@@ -1,5 +1,4 @@
-﻿using BDArmory.Modules;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BDArmory.Control
 {
@@ -9,6 +8,7 @@ namespace BDArmory.Control
 
         Vessel vessel { get; }
         Transform transform { get; }
+        Part part { get; }
 
         #endregion PartModule
 

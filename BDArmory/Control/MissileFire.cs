@@ -26,6 +26,8 @@ namespace BDArmory.Control
     {
         #region Declarations
 
+        bool IsPrimaryWM = true; // Is this the WM that's controlling this vessel?
+
         //weapons
         private List<IBDWeapon> weaponTypes = new List<IBDWeapon>();
         private Dictionary<string, List<float>> weaponRanges = new Dictionary<string, List<float>>();
@@ -43,7 +45,7 @@ namespace BDArmory.Control
         ScreenMessage selectionMessage;
         string selectionText = "";
 
-        Transform cameraTransform;
+        // Transform cameraTransform;
 
         float startTime;
         public int firedMissiles;
@@ -1230,7 +1232,7 @@ UI_FloatRange(minValue = 0.1f, maxValue = 10f, stepIncrement = 0.1f, scene = UI_
                 UpdateList();
                 if (weaponArray.Length > 0) selectedWeapon = weaponArray[weaponIndex];
                 //selectedWeaponString = GetWeaponName(selectedWeapon);
-                cameraTransform = part.FindModelTransform("BDARPMCameraTransform");
+                // cameraTransform = part.FindModelTransform("BDARPMCameraTransform");
 
                 part.force_activate();
                 rippleTimer = Time.time;
@@ -1279,6 +1281,7 @@ UI_FloatRange(minValue = 0.1f, maxValue = 10f, stepIncrement = 0.1f, scene = UI_
                 GameEvents.onPartDie.Add(OnPartDie);
                 GameEvents.onVesselPartCountChanged.Add(UpdateMaxGunRange);
                 GameEvents.onVesselPartCountChanged.Add(UpdateCurrentHP);
+                GameEvents.onVesselPartCountChanged.Add(OnVesselPartCountChanged);
 
                 totalHP = GetTotalHP();
                 currentHP = totalHP;
@@ -1356,11 +1359,70 @@ UI_FloatRange(minValue = 0.1f, maxValue = 10f, stepIncrement = 0.1f, scene = UI_
 
         void OnVesselCreate(Vessel v)
         {
-            if (v == null) return;
+            if (v == null || vessel != v) return;
+            if (AI != null && AI.weaponManager != this) // Tell the previous WM to update its modules (not actually sure this is the previous WM...).
+            {
+                var parentAIWasActive = AI.pilotEnabled;
+                var parentWMWasActive = AI.weaponManager.guardMode;
+                AI.weaponManager.RefreshModules("parent vessel");
+                if (AI != null && AI.weaponManager != null) // After refreshing modules, the AI and WM might not be the same!
+                {
+                    if (parentAIWasActive) AI.ActivatePilot(); // Enable the new AI if the parent was active.
+                    else AI.DeactivatePilot();
+                    guardMode = parentWMWasActive; // Enable the new WM if the parent was active.
+                    AI.weaponManager.UpdateList();
+                }
+            }
+            RefreshModules("vessel creation");
+            Debug.Log($"DEBUG New vessel {vessel} created with AI {AI} ({(AI != null ? AI.part.persistentId : null)}) and WM {this} ({this.part.persistentId})");
+            // modulesNeedRefreshing = true;
+            weaponsListNeedsUpdating = true;
+            cmPrioritiesNeedRefreshing = true;
+            if (BDACompetitionMode.Instance.competitionIsActive)
+                StartCoroutine(AddToCompetitionWhenReady());
+        }
+
+        IEnumerator AddToCompetitionWhenReady()
+        {
+            var wait = new WaitForFixedUpdate();
+            var start = Time.time;
+            while (BDACompetitionMode.Instance.IsValidVessel(vessel) == BDACompetitionMode.InvalidVesselReason.None && (string.IsNullOrEmpty(vessel.vesselName) || !vessel.loaded) && Time.time - start < 10)
+            {
+                yield return wait;
+            }
+            if (Time.time - start < 10 && BDACompetitionMode.Instance.IsValidVessel(vessel) == BDACompetitionMode.InvalidVesselReason.None && !BDACompetitionMode.Instance.Scores.Players.Contains(vessel.vesselName) && !vessel.vesselName.Contains(" Fighter_"))
+            {
+                UpdateList();
+                if (vessel.vesselType == VesselType.Plane && vessel.vesselName.EndsWith(" Plane"))
+                {
+                    vessel.vesselName = vessel.vesselName.Remove(vessel.vesselName.Length - 6) + " Fighter";
+                    int i = 1;
+                    var potentialName = vessel.vesselName + $"_{i}";
+                    while (BDACompetitionMode.Instance.Scores.Players.Contains(potentialName))
+                    {
+                        ++i;
+                        potentialName = vessel.vesselName + $"_{i}";
+                    }
+                    vessel.vesselName = potentialName;
+                }
+                BDACompetitionMode.Instance.Scores.AddPlayer(vessel);
+                Debug.Log($"DEBUG Adding {vessel.vesselName} to the competition.");
+                if (guardMode) { ToggleGuardMode(); ToggleGuardMode(); } // Disable, then re-enable guard mode to reset weapon stuff.
+                if (AI != null) { AI.ActivatePilot(); } // Make sure the AI is active.
+            }
+        }
+
+        void OnVesselPartCountChanged(Vessel v)
+        {
+            if (v == null || vessel != v) return;
+            // if (!modulesNeedRefreshing)
+            Debug.Log($"DEBUG PartCountChange on {vessel} to {vessel.Parts.Count}");
             modulesNeedRefreshing = true;
+            weaponsListNeedsUpdating = true;
             cmPrioritiesNeedRefreshing = true;
         }
 
+        // FIXME This triggers for each WM on the combined plane. The non-primary WMs ought to be disabled until they're the primary WM.
         void OnPartJointBreak(PartJoint j, float breakForce)
         {
             if (!part)
@@ -1375,6 +1437,8 @@ UI_FloatRange(minValue = 0.1f, maxValue = 10f, stepIncrement = 0.1f, scene = UI_
 
             if (HighLogic.LoadedSceneIsFlight && ((j.Parent && j.Parent.vessel == vessel) || (j.Child && j.Child.vessel == vessel)))
             {
+                if (!modulesNeedRefreshing)
+                    Debug.Log($"DEBUG PartJointBreak on {vessel} between {j.Parent.partInfo.name} and {j.Child.partInfo.name}");
                 modulesNeedRefreshing = true;
                 weaponsListNeedsUpdating = true;
                 cmPrioritiesNeedRefreshing = true;
@@ -1420,6 +1484,8 @@ UI_FloatRange(minValue = 0.1f, maxValue = 10f, stepIncrement = 0.1f, scene = UI_
             }
 
             base.OnUpdate();
+
+            if (!IsPrimaryWM) return; // Don't do anything if we're not in control.
 
             UpdateTargetingAudio();
 
@@ -1556,6 +1622,11 @@ UI_FloatRange(minValue = 0.1f, maxValue = 10f, stepIncrement = 0.1f, scene = UI_
         public override void OnFixedUpdate()
         {
             if (vessel == null || !vessel.gameObject.activeInHierarchy) return;
+            if (!IsPrimaryWM)
+            {
+                if (modulesNeedRefreshing) RefreshModules(); // Refresh the modules in case we've become the primary WM.
+                return; // Don't do anything else if we're not in control.
+            }
             if (weaponsListNeedsUpdating) UpdateList();
 
             if (!vessel.packed)
@@ -1598,6 +1669,7 @@ UI_FloatRange(minValue = 0.1f, maxValue = 10f, stepIncrement = 0.1f, scene = UI_
             GameEvents.onPartDie.Remove(OnPartDie);
             GameEvents.onVesselPartCountChanged.Remove(UpdateMaxGunRange);
             GameEvents.onVesselPartCountChanged.Remove(UpdateCurrentHP);
+            GameEvents.onVesselPartCountChanged.Remove(OnVesselPartCountChanged);
             GameEvents.onEditorPartPlaced.Remove(UpdateMaxGunRange);
             GameEvents.onEditorPartDeleted.Remove(UpdateMaxGunRange);
             TimingManager.FixedUpdateRemove(TimingManager.TimingStage.Earlyish, PointDefence);
@@ -1610,6 +1682,7 @@ UI_FloatRange(minValue = 0.1f, maxValue = 10f, stepIncrement = 0.1f, scene = UI_
 
         void OnGUI()
         {
+            if (!IsPrimaryWM) return; // Don't do anything if we're not in control.
             if (!BDArmorySettings.DEBUG_LINES && lr != null) { lr.enabled = false; }
             if (HighLogic.LoadedSceneIsFlight && vessel == FlightGlobals.ActiveVessel &&
                 BDArmorySetup.GAME_UI_ENABLED && !MapView.MapIsEnabled)
@@ -4327,11 +4400,16 @@ UI_FloatRange(minValue = 0.1f, maxValue = 10f, stepIncrement = 0.1f, scene = UI_
             return true;
         }
 
-        void RefreshModules()
+        void RefreshModules(string tag = null)
         {
             modulesNeedRefreshing = false;
             cmPrioritiesNeedRefreshing = true;
             VesselModuleRegistry.OnVesselModified(vessel); // Make sure the registry is up-to-date.
+            IsPrimaryWM = VesselModuleRegistry.GetMissileFire(vessel, true) == this;
+            // var oldAI = AI;
+            AI = VesselModuleRegistry.GetIBDAIControl(vessel, true);
+            // if (oldAI != null && oldAI != AI) { if (oldAI.pilotEnabled) AI.ActivatePilot(); else AI.DeactivatePilot(); } // If the AI changed, copy the parent AI's state.
+            Debug.Log($"DEBUG Refreshing modules on {vessel} with AI {AI} ({AI.part.persistentId}) and WM {this} ({this.part.persistentId}, primary: {IsPrimaryWM}){(tag != null ? $" from {tag}" : null)}");
             _radars = VesselModuleRegistry.GetModules<ModuleRadar>(vessel);
             if (_radars != null)
             {
