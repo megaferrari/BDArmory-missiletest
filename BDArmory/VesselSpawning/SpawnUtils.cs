@@ -165,6 +165,10 @@ namespace BDArmory.VesselSpawning
                 }
             }
             FireSpitter.ActivateFSEngines(vessel, activate);
+            foreach (var repulsor in VesselModuleRegistry.GetModules<ModuleSpaceFriction>(vessel))
+            {
+                repulsor.ToggleRepulsor();
+            }
         }
 
         public static bool IsModularMissilePart(Part part)
@@ -257,6 +261,10 @@ namespace BDArmory.VesselSpawning
                 };
                 if (count > 0) message += (count > 1 ? " are" : " is") + " not attached to its root part";
             }
+            if (!(vessel.rootPart.IsKerbalSeat() || vessel.rootPart.protoModuleCrew.Any(crew => crew != null)))
+            {
+                message += $"{(message.Length > 0 ? " and its" : "'s")} cockpit isn't the root part";
+            }
 
             if (!string.IsNullOrEmpty(message))
             {
@@ -348,7 +356,7 @@ namespace BDArmory.VesselSpawning
         public IEnumerator RemoveVesselCoroutine(Vessel vessel)
         {
             if (vessel == null) yield break;
-            ++removeVesselsPending;
+            removeVesselsPending = Math.Max(1, removeVesselsPending + 1);
             if (vessel != FlightGlobals.ActiveVessel && vessel.vesselType != VesselType.SpaceObject)
             {
                 try
@@ -370,8 +378,7 @@ namespace BDArmory.VesselSpawning
             {
                 if (vessel.vesselType == VesselType.SpaceObject)
                 {
-                    if ((BDArmorySettings.ASTEROID_RAIN && AsteroidRain.IsManagedAsteroid(vessel))
-                        || (BDArmorySettings.ASTEROID_FIELD && AsteroidField.IsManagedAsteroid(vessel))) // Don't remove asteroids when we're using them.
+                    if (AsteroidUtils.IsManagedAsteroid(vessel)) // Don't remove asteroids when we're using them.
                     {
                         --removeVesselsPending;
                         yield break;
@@ -409,12 +416,13 @@ namespace BDArmory.VesselSpawning
             var vesselsToKill = FlightGlobals.Vessels.ToList();
             // Spawn in the SpawnProbe at the camera position.
             var spawnProbe = VesselSpawner.SpawnSpawnProbe();
+            var tic = Time.time;
             if (spawnProbe != null) // If the spawnProbe is null, then just try to kill everything anyway.
             {
                 spawnProbe.Landed = false; // Tell KSP that it's not landed so KSP doesn't mess with its position.
-                yield return new WaitWhile(() => spawnProbe != null && (!spawnProbe.loaded || spawnProbe.packed));
-                // Switch to the spawn probe.
-                while (spawnProbe != null && FlightGlobals.ActiveVessel != spawnProbe)
+                yield return new WaitWhile(() => spawnProbe != null && (!spawnProbe.loaded || spawnProbe.packed) && Time.time - tic < 30);
+                // Switch to the spawn probe. Give up after 30s.
+                while (spawnProbe != null && FlightGlobals.ActiveVessel != spawnProbe && Time.time - tic < 30)
                 {
                     LoadedVesselSwitcher.Instance.ForceSwitchVessel(spawnProbe);
                     yield return waitForFixedUpdate;
@@ -426,9 +434,10 @@ namespace BDArmory.VesselSpawning
             // Finally, remove the SpawnProbe.
             RemoveVessel(spawnProbe);
 
-            // Now, clear the teams and wait for everything to be removed.
+            // Now, clear the teams and wait up to 30s for everything to be removed.
             SpawnUtils.originalTeams.Clear();
-            yield return new WaitWhile(() => removeVesselsPending > 0);
+            tic = Time.time;
+            yield return new WaitWhile(() => removeVesselsPending > 0 && Time.time - tic < 30);
         }
 
         public void DisableAllBulletsAndRockets()

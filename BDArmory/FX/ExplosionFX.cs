@@ -691,8 +691,7 @@ namespace BDArmory.FX
             { // Explosion centre velocity depends on atmospheric density relative to Kerbin sea level.
                 var atmDensity = (float)FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(Position), FlightGlobals.getExternalTemperature(Position));
                 Velocity /= 1 + atmDensity / KerbinSeaLevelAtmDensity;
-                var deltaPos = Velocity * TimeWarp.fixedDeltaTime; // Krakensbane is already accounted for above.
-                Position += deltaPos;
+                Position += Velocity * TimeWarp.fixedDeltaTime; // Krakensbane is already accounted for above.
             }
 
             if (!isFX)
@@ -982,7 +981,7 @@ namespace BDArmory.FX
                                                 WarheadTypes.Kinetic => ImpactSpeed,
                                                 _ => ExplosionVelocity
                                             },
-                                            SourceVesselName, ExplosionSourceType.Missile, type);
+                                            SourceVesselName, ExplosionSource, type);
                                     }
                                 }
                                 else
@@ -1001,7 +1000,7 @@ namespace BDArmory.FX
                                             WarheadTypes.Kinetic => ImpactSpeed,
                                             _ => ExplosionVelocity
                                         },
-                                        ExplosionSourceType.Missile);
+                                        ExplosionSource);
                                 }
 
                                 if (penetrationFactor > 1 && warheadType != WarheadTypes.Kinetic)
@@ -1045,23 +1044,7 @@ namespace BDArmory.FX
                                 }
                                 // Update scoring structures
                                 //damage = Mathf.Clamp(damage, 0, part.Damage()); //if we want to clamp overkill score inflation
-                                var aName = eventToExecute.SourceVesselName; // Attacker
-                                var tName = part.vessel.GetName(); // Target
-                                switch (ExplosionSource)
-                                {
-                                    case ExplosionSourceType.Bullet:
-                                        BDACompetitionMode.Instance.Scores.RegisterBulletDamage(aName, tName, damage);
-                                        break;
-                                    case ExplosionSourceType.Rocket:
-                                        BDACompetitionMode.Instance.Scores.RegisterRocketDamage(aName, tName, damage);
-                                        break;
-                                    case ExplosionSourceType.Missile:
-                                        BDACompetitionMode.Instance.Scores.RegisterMissileDamage(aName, tName, damage);
-                                        break;
-                                    case ExplosionSourceType.BattleDamage:
-                                        BDACompetitionMode.Instance.Scores.RegisterBattleDamage(aName, part.vessel, damage);
-                                        break;
-                                }
+                                ProjectileUtils.ApplyScore(part, eventToExecute.SourceVesselName, 0, damage, null, ExplosionSource);
                             }
                         }
                     }

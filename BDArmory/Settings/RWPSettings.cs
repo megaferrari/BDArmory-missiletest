@@ -32,6 +32,7 @@ namespace BDArmory.Settings
 				{"DISABLE_RAMMING", false},
 				{"HACK_INTAKES", true},
 				{"HP_THRESHOLD", 2000},
+				{"MAX_ARMOR_LIMIT", 10},
 				{"INFINITE_AMMO", false},
 				{"INFINITE_ORDINANCE", false}, // Note: don't set inf fuel or inf EC as those are used during autotuning and are handled differently in order to sync with the cheats menu.
 				{"MAX_SAS_TORQUE", 30},
@@ -143,7 +144,7 @@ namespace BDArmory.Settings
 			}},
 			{70,new(){
 				{"ASTEROID_FIELD", true},
-				{"ASTEROID_FIELD_ALTITUDE", 20000},
+				{"ASTEROID_FIELD_ALTITUDE", 50000},
 				{"ASTEROID_FIELD_ANOMALOUS_ATTRACTION", true},
 				{"ASTEROID_FIELD_ANOMALOUS_ATTRACTION_STRENGTH", 0.05},
 				{"ASTEROID_FIELD_NUMBER", 250},
@@ -151,10 +152,10 @@ namespace BDArmory.Settings
 				{"COMPETITION_DISTANCE", 1000},
 				{"COMPETITION_DURATION", 10},
 				{"MAX_SAS_TORQUE", 9999},
-				{"VESSEL_SPAWN_WORLDINDEX", 15},
-				{"VESSEL_SPAWN_ALTITUDE", 20000},
+				{"VESSEL_SPAWN_ALTITUDE", 50000},
 				{"VESSEL_SPAWN_DISTANCE", 8500},
 				{"VESSEL_RELATIVE_BULLET_CHECKS", true},
+				{"MAX_ARMOR_LIMIT", 50},
 			}},
 		};
 		public static Dictionary<int, int> RWPRoundToIndex = new() { { 0, 0 } }, RWPIndexToRound = new() { { 0, 0 } }; // Helpers for the UI slider.

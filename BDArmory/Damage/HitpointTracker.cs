@@ -296,6 +296,11 @@ namespace BDArmory.Damage
                 }
                 Hitpoints = maxHitPoints_;
                 if (!ArmorSet) overrideArmorSetFromConfig();
+                if (BDArmorySettings.MAX_ARMOR_LIMIT >= 0)
+                {
+                    maxSupportedArmor = Mathf.Min(BDArmorySettings.MAX_ARMOR_LIMIT, maxSupportedArmor);
+                    Armor = Mathf.Min(Armor, maxSupportedArmor);
+                }
 
                 previousHitpoints = maxHitPoints_;
                 part.RefreshAssociatedWindows();
@@ -1153,9 +1158,10 @@ namespace BDArmory.Damage
         {
             if (BDArmorySettings.DEBUG_ARMOR)
             {
-                Debug.Log("[HPTracker] armor mass: " + armorMass + "; mass to reduce: " + (massToReduce * Math.Round((Density / 1000000), 3)) * BDArmorySettings.ARMOR_MASS_MOD + "kg"); //g/m3
+                Debug.Log("[HPTracker] armor mass: " + armorMass * 1000 + "kg; mass to reduce: " + (massToReduce * Math.Round((Density / 1000000), 3)) * BDArmorySettings.ARMOR_MASS_MOD + "kg"); //g/m3
             }
             float reduceMass = (massToReduce * (Density / 1000000000)); //g/cm3 conversion to yield tons
+            if (armorMass < reduceMass) reduceMass = armorMass; //shouldn't be happening, but just in case
             if (totalArmorQty > 0)
             {
                 //Armor -= ((reduceMass * 2) / armorMass) * Armor; //armor that's 50% air isn't going to stop anything and could be considered 'destroyed' so lets reflect that by doubling armor loss (this will also nerf armor panels from 'god-tier' to merely 'very very good'
@@ -1177,11 +1183,13 @@ namespace BDArmory.Damage
                     Armour = Armor;
                 }
             }
+            if (BDArmorySettings.DEBUG_ARMOR) Debug.Log("[HPTracker] Debug: current Armor: " + Armor + "; ArmorRemaining: " + ArmorRemaining + "; ArmorPanel: " + ArmorPanel);
             if (ArmorPanel)
             {
                 Hitpoints = ArmorRemaining; // * armorVolume * 10;
                 if (Armor <= 0)
                 {
+                    Debug.Log("[HPTracker] Debug: Armor integrity reduced to 0! Destroying panel");
                     DestroyPart();
                 }
             }

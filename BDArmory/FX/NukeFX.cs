@@ -41,7 +41,8 @@ namespace BDArmory.FX
         public Vector3 Position { get { return _position; } set { _position = value; transform.position = _position; } }
         Vector3 _position;
         public Vector3 Velocity { get; set; }
-        public Part ExplosivePart { get; set; }
+        //public Part ExplosivePart { get; set; }
+        public float nukeMass { get; set; }
         public float TimeIndex => Time.time - StartTime;
         public string flashModelPath { get; set; }
         public string shockModelPath { get; set; }
@@ -178,7 +179,7 @@ namespace BDArmory.FX
                 }
             }
             fxEmitters.Clear();
-            ExplosivePart = null; // Clear the Part reference.
+            //ExplosivePart = null; // Clear the Part reference.
             explosionEvents.Clear(); // Make sure we don't have any left over events leaking memory.
             explosionEventsPreProcessing.Clear();
             explosionEventsPartsAdded.Clear();
@@ -377,8 +378,7 @@ namespace BDArmory.FX
             { // Explosion centre velocity depends on atmospheric density relative to Kerbin sea level.
                 var atmDensity = (float)FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(Position), FlightGlobals.getExternalTemperature(Position));
                 Velocity /= 1 + atmDensity / KerbinSeaLevelAtmDensity;
-                var deltaPos = Velocity * TimeWarp.fixedDeltaTime; // Krakensbane is already accounted for above.
-                Position += deltaPos;
+                Position += Velocity * TimeWarp.fixedDeltaTime; // Krakensbane is already accounted for above.
             }
             if (Time.time - startTime > detonationTimer)
             {
@@ -495,7 +495,7 @@ namespace BDArmory.FX
                     if (lastValidAtmDensity > 0.1)
                         blastImpulse = Mathf.Pow(3.01f * 1100f / realDistance, 1.25f) * 6.894f * lastValidAtmDensity * yieldCubeRoot; // * (radiativeArea / 3f); pascals/m isn't going to increase if a larger surface area, it's still going go be same force
                     else
-                        blastImpulse = (part.mass * 15295.74) / (4 * Math.PI * Math.Pow(realDistance, 2.0)) * (part.radiativeArea / 3.0);
+                        blastImpulse = (nukeMass * 15295.74) / (4 * Math.PI * Math.Pow(realDistance, 2.0));// * (part.radiativeArea / 3.0);
                     if (blastImpulse > 0)
                     {
                         float damage = 0;
@@ -510,9 +510,10 @@ namespace BDArmory.FX
                         {
                             if (!ProjectileUtils.CalculateExplosiveArmorDamage(part, blastImpulse, realDistance, SourceVesselName, eventToExecute.Hit, ExplosionSource, thermalRadius - realDistance)) //false = armor blowthrough
                             {
-                                damage = part.AddExplosiveDamage(blastDamage, 1, ExplosionSource, 1);
+                                damage = ProjectileUtils.IsArmorPart(part) ? blastDamage : part.AddExplosiveDamage(blastDamage, 1, ExplosionSource, 1); //armor panels return damage = 0, so adding exception so they still score properly
+                                // no damage reduction from very thick armor, but no multiplier from damage type, either, should balance out. And any comp that allows nukes probably isn't going to be weighting DamageIn...
                             }
-                            if (damage > 0) //else damage from spalling done in CalcExplArmorDamage
+                            if (damage > 0) 
                             {
                                 if (BDArmorySettings.BATTLEDAMAGE)
                                 {
@@ -543,7 +544,7 @@ namespace BDArmory.FX
                                 switch (ExplosionSource)
                                 {
                                     case ExplosionSourceType.Missile:
-                                        BDACompetitionMode.Instance.Scores.RegisterMissileDamage(aName, tName, damage);
+                                        BDACompetitionMode.Instance.Scores.RegisterMissileDamage(aName, tName, damage); //FIXME/TODO - damage should probably correlate in some way to armor mass lost/damage to armor, instead of '0'
                                         break;
                                     case ExplosionSourceType.BattleDamage:
                                         BDACompetitionMode.Instance.Scores.RegisterBattleDamage(aName, part.vessel, damage);
@@ -672,6 +673,7 @@ namespace BDArmory.FX
             string flashModel = "", string shockModel = "", string blastModel = "", string plumeModel = "", string debrisModel = "", string ModelPath = "", string soundPath = "",
             Part nukePart = null, Part hitPart = null, Vector3 sourceVelocity = default)
         {
+            if (blastRadius < 100) blastRadius = 100;
             SetupPool(ModelPath, soundPath, blastRadius);
 
             Quaternion rotation;
@@ -699,6 +701,7 @@ namespace BDArmory.FX
 
             eFx.yield = Yield;
             eFx.fluence = thermalShock;
+            eFx.nukeMass = nukePart != null ? nukePart.mass : Mathf.Pow(Yield, 1 / 3) / 10;
             eFx.isEMP = emp;
             eFx.detonationTimer = delay;
             newExplosion.SetActive(true);

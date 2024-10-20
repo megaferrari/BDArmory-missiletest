@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
-VERSION = "1.23.1"
+VERSION = "1.23.4"
 
 parser = argparse.ArgumentParser(description="Tournament log parser", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('tournament', type=str, nargs='*', help="Tournament folder to parse.")
@@ -119,7 +119,7 @@ def encode_names(log_lines: List[str]) -> Tuple[Dict[str, str], List[str]]:
             craft_names.add(entry)
         if field == 'ALIVE':
             craft_names.add(entry)
-    craft_names.update({json.dumps(name)[1:-1] for name in craft_names})
+    craft_names.update({json.dumps(name, ensure_ascii=False)[1:-1] for name in craft_names})  # Handle manually encoded DEADTEAMS.
     craft_names = {cn: b64encode(cn.encode()) for cn in craft_names}
     sorted_craft_names = list(sorted(craft_names, key=lambda k: len(k), reverse=True))  # Sort the craft names from longest to shortest to avoid accidentally replacing substrings.
     for i in range(1, len(log_lines)):  # The first line doesn't contain craft names
@@ -285,7 +285,7 @@ for tournamentNumber, tournamentDir in enumerate(tournamentDirs):
 
     if not args.no_files and len(tournamentData) > 0:
         with open(tournamentDir / 'results.json', 'w', encoding="utf-8") as outFile:
-            json.dump(tournamentData, outFile, indent=2)
+            json.dump(tournamentData, outFile, indent=2, ensure_ascii=False)
 
     craftNames = sorted(list(set(craft for round in tournamentData.values() for heat in round.values() for craft in heat['craft'].keys())))
     teamWins = Counter([team for round in tournamentData.values() for heat in round.values() if heat['result']['result'] == "Win" for team in heat['result']['teams']])
@@ -473,7 +473,7 @@ for tournamentNumber, tournamentDir in enumerate(tournamentDirs):
 
     if not args.no_files and len(summary['craft']) > 0:
         with open(tournamentDir / 'summary.json', 'w', encoding="utf-8") as outFile:
-            json.dump(summary, outFile, indent=2)
+            json.dump(summary, outFile, indent=2, ensure_ascii=False)
 
     if len(summary['craft']) > 0:
         if not args.no_files:
@@ -513,10 +513,17 @@ for tournamentNumber, tournamentDir in enumerate(tournamentDirs):
         if not args.quiet:  # Write results to console
             strings = []
             if not args.no_header and not args.current_dir and 'duration' in tournamentMetadata:
-                strings.append(f"Tournament {tournamentMetadata.get('ID', '???')} of duration {tournamentMetadata['duration'][1] -
-                               tournamentMetadata['duration'][0]} with {tournamentMetadata['rounds']} rounds starting at {tournamentMetadata['duration'][0]}")
-            headers = ['Name', 'Wins', 'Survive', 'MIA', 'Deaths (BRMRAS)', 'D.Order', 'D.Time', 'Kills (BRMR)', 'Assists', 'Hits', 'Damage', 'DmgTaken', 'RocHits', 'RocParts', 'RocDmg', 'HitByRoc',
-                                                                  'MisHits', 'MisParts', 'MisDmg', 'HitByMis', 'Ram', 'BD dealt', 'BD taken', 'Ast.', 'Acc%', 'RktAcc%', 'HP%', 'Dmg/Hit', 'Hits/Sp', 'Dmg/Sp'] if not args.scores_only else ['Name']
+                strings.append(
+                    f"Tournament {tournamentMetadata.get('ID', '???')} of duration {tournamentMetadata['duration'][1] - tournamentMetadata['duration'][0]} with {tournamentMetadata['rounds']} rounds starting at {tournamentMetadata['duration'][0]}"
+                )  # Python <3.12 has issues with line breaks in f-strings.
+            headers = [
+                'Name', 'Wins', 'Survive', 'MIA', 'Deaths (BRMRAS)', 'D.Order', 'D.Time',
+                'Kills (BRMR)', 'Assists', 'Hits', 'Damage', 'DmgTaken',
+                'RocHits', 'RocParts', 'RocDmg', 'HitByRoc',
+                'MisHits', 'MisParts', 'MisDmg', 'HitByMis',
+                'Ram', 'BD dealt', 'BD taken', 'Ast.',
+                'Acc%', 'RktAcc%', 'HP%', 'Dmg/Hit', 'Hits/Sp', 'Dmg/Sp'
+            ] if not args.scores_only else ['Name']
             if hasWaypoints and not args.scores_only:
                 headers.extend(['WPcount', 'WPtime', 'WPdev', 'WPbestC', 'WPbestT', 'WPbestD'])
             if args.score:

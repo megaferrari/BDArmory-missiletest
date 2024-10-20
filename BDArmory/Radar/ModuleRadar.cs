@@ -46,7 +46,7 @@ namespace BDArmory.Radar
         [KSPField]
         public double resourceDrain = 0.825;        //resource (EC/sec) usage of active radar
 
-        [KSPField]
+        [KSPField] 
         public string resourceName = "ElectricCharge";
 
         private int resourceID;
@@ -101,6 +101,15 @@ namespace BDArmory.Radar
 
         [KSPField]
         public FloatCurve radarLockTrackCurve = new FloatCurve();		//FloatCurve defining at what range which RCS size can be locked/tracked
+
+        [KSPField]
+        public FloatCurve radarVelocityGate = new FloatCurve();		//FloatCurve defining the reduction in received RCS due to a doppler gate
+
+        [KSPField]
+        public FloatCurve radarRangeGate = new FloatCurve();		//FloatCurve defining the reduction in received RCS due to a range gate
+
+        [KSPField]
+        public float radarMinTrackSCR = 1f;
 
         [KSPField]
         public float radarGroundClutterFactor = 0.25f; //Factor defining how effective the radar is for look-down, compensating for ground clutter (0=ineffective, 1=fully effective)
@@ -214,6 +223,7 @@ namespace BDArmory.Radar
         }
 
         private TargetSignatureData[] attemptedLocks;
+        //private bool[] lockSuccesses; // Removed as it was deemed unecessary
         private List<TargetSignatureData> lockedTargets;
 
         public TargetSignatureData lockedTarget
@@ -255,6 +265,25 @@ namespace BDArmory.Radar
         public float radarMaxDistanceLockTrack
         {
             get { return radarLockTrackCurve.maxTime; }
+        }
+
+        public float radarMaxRangeGate
+        {
+            get { return radarRangeGate.maxTime; }
+        }
+        public float radarMinRangeGate
+        {
+            get { return radarRangeGate.minTime; }
+        }
+
+        public float radarMaxVelocityGate
+        {
+            get { return radarVelocityGate.maxTime; }
+        }
+
+        public float radarMinVelocityGate
+        {
+            get { return radarVelocityGate.minTime; }
         }
 
         //linked vessels
@@ -315,7 +344,6 @@ namespace BDArmory.Radar
         {
             resourceID = PartResourceLibrary.Instance.GetDefinition(resourceName).id;
         }
-
 
         public void EnsureVesselRadarData()
         {
@@ -479,6 +507,7 @@ namespace BDArmory.Radar
                 radarTransform = radarTransformName != string.Empty ? part.FindModelTransform(radarTransformName) : part.transform;
 
                 attemptedLocks = new TargetSignatureData[maxLocks];
+                //lockSuccesses = new bool[maxLocks];
                 TargetSignatureData.ResetTSDArray(ref attemptedLocks);
                 lockedTargets = new List<TargetSignatureData>();
 
@@ -777,12 +806,12 @@ namespace BDArmory.Radar
             {
                 angle = -angle;
             }
-            //TargetSignatureData.ResetTSDArray(ref attemptedLocks);
+            TargetSignatureData.ResetTSDArray(ref attemptedLocks);
             RadarUtils.RadarUpdateScanLock(weaponManager, angle, referenceTransform, lockAttemptFOV, referenceTransform.position, this, true, ref attemptedLocks, signalPersistTime);
 
             for (int i = 0; i < attemptedLocks.Length; i++)
             {
-                if (attemptedLocks[i].exists && (attemptedLocks[i].predictedPosition - position).sqrMagnitude < 40 * 40)
+                if (attemptedLocks[i].exists && (attemptedLocks[i].predictedPosition - position).sqrMagnitude < 40 * 40) //(lockSuccesses[i] && attemptedLocks[i].exists && (attemptedLocks[i].predictedPosition - position).sqrMagnitude < 40 * 40)
                 {
                     // If locked onto a vessel that was not our target, return false
                     if ((attemptedLocks[i].vessel != null) && (targetVessel != null) && (attemptedLocks[i].vessel != targetVessel))
@@ -801,6 +830,7 @@ namespace BDArmory.Radar
 
                     vesselRadarData.AddRadarContact(this, lockedTarget, true);
                     vesselRadarData.UpdateLockedTargets();
+                    attemptedLocks[i] = TargetSignatureData.noTarget;
                     return true;
                 }
             }
@@ -993,6 +1023,7 @@ namespace BDArmory.Radar
             {
                 attemptedLocks = new TargetSignatureData[wpmr.MaxradarLocks];
                 TargetSignatureData.ResetTSDArray(ref attemptedLocks);
+                //lockSuccesses = new bool[wpmr.MaxradarLocks];
             }
         }
 
@@ -1227,4 +1258,5 @@ namespace BDArmory.Radar
             }
         }
     }
+
 }

@@ -98,7 +98,22 @@ namespace BDArmory.UI
 
         public void AddToolbarButton()
         {
+            if (!HighLogic.LoadedSceneIsFlight && !HighLogic.LoadedSceneIsEditor) return;
             StartCoroutine(ToolbarButtonRoutine());
+        }
+        IEnumerator ToolbarButtonRoutine()
+        {
+            if (buttonSetup) // Reconfigure the callbacks to use the current instance.
+            {
+                button.onTrue = ShowAIGUI;
+                button.onFalse = HideAIGUI;
+                yield break;
+            }
+            yield return new WaitUntil(() => ApplicationLauncher.Ready && BDArmorySetup.toolbarButtonAdded); // Wait until after the main BDA toolbar button.
+            Texture buttonTexture = GameDatabase.Instance.GetTexture(BDArmorySetup.textureDir + "icon_ai", false);
+            button = ApplicationLauncher.Instance.AddModApplication(ShowAIGUI, HideAIGUI, Dummy, Dummy, Dummy, Dummy, ApplicationLauncher.AppScenes.SPH | ApplicationLauncher.AppScenes.VAB | ApplicationLauncher.AppScenes.FLIGHT, buttonTexture);
+            buttonSetup = true;
+            if (windowBDAAIGUIEnabled) button.SetTrue(false);
         }
 
         public void RemoveToolbarButton()
@@ -108,21 +123,6 @@ namespace BDArmory.UI
             ApplicationLauncher.Instance.RemoveModApplication(button);
             button = null;
             buttonSetup = false;
-        }
-
-        IEnumerator ToolbarButtonRoutine()
-        {
-            if (buttonSetup) yield break;
-            if (!HighLogic.LoadedSceneIsFlight && !HighLogic.LoadedSceneIsEditor) yield break;
-            yield return new WaitUntil(() => ApplicationLauncher.Ready && BDArmorySetup.toolbarButtonAdded); // Wait until after the main BDA toolbar button.
-
-            if (!buttonSetup)
-            {
-                Texture buttonTexture = GameDatabase.Instance.GetTexture(BDArmorySetup.textureDir + "icon_ai", false);
-                button = ApplicationLauncher.Instance.AddModApplication(ShowAIGUI, HideAIGUI, Dummy, Dummy, Dummy, Dummy, ApplicationLauncher.AppScenes.SPH | ApplicationLauncher.AppScenes.VAB | ApplicationLauncher.AppScenes.FLIGHT, buttonTexture);
-                buttonSetup = true;
-                if (windowBDAAIGUIEnabled) button.SetTrue(false);
-            }
         }
 
         public void ToggleAIGUI()
@@ -135,17 +135,29 @@ namespace BDArmory.UI
         {
             windowBDAAIGUIEnabled = true;
             GUIUtils.SetGUIRectVisible(_guiCheckIndex, windowBDAAIGUIEnabled);
-            if (HighLogic.LoadedSceneIsFlight) Instance.GetAI(); // Call via Instance to avoid issue with the toolbar button holding a reference to a null gameobject causing an NRE when starting a coroutine.
-            else Instance.GetAIEditor();
+            if (HighLogic.LoadedSceneIsFlight) GetAI();
+            else GetAIEditor();
             if (button != null) button.SetTrue(false);
         }
 
-        public void HideAIGUI()
+        // Doing it this way prevents OnGUI events from below the window from being triggered by the window disappearing.
+        public void HideAIGUI() => StartCoroutine(HideAIGUIAtEndOfFrame());
+        bool waitingForEndOfFrame = false;
+        IEnumerator HideAIGUIAtEndOfFrame()
+        {
+            if (waitingForEndOfFrame) yield break;
+            waitingForEndOfFrame = true;
+            yield return new WaitForEndOfFrame();
+            waitingForEndOfFrame = false;
+            HideAIGUINow();
+        }
+        void HideAIGUINow()
         {
             windowBDAAIGUIEnabled = false;
             GUIUtils.SetGUIRectVisible(_guiCheckIndex, windowBDAAIGUIEnabled);
             BDAWindowSettingsField.Save(); // Save window settings.
             if (button != null) button.SetFalse(false);
+            if (HighLogic.LoadedSceneIsEditor) GUIUtils.PreventClickThrough(BDArmorySetup.WindowRectAI, "AIGUI lock", true);
         }
 
         void Dummy()
@@ -329,15 +341,15 @@ namespace BDArmory.UI
         /// <param name="gAI">The AI.</param>
         /// <param name="fieldName">The name of the field to look at.</param>
         /// <returns>value, minValue, maxValue, (rounding, sigFig, withZero)</returns>
-        (float, float, float, (float, float, bool)) GetAIFieldLimits(ActiveAIType aiType, BDGenericAIBase gAI, string fieldName)
+        (float, float, float, (float, float, bool, bool)) GetAIFieldLimits(ActiveAIType aiType, BDGenericAIBase gAI, string fieldName)
         {
             float value = 0, minValue = 0, maxValue = 0, rounding = 0, sigFig = 0;
-            bool withZero = false;
+            bool withZero = false, reducedPrecisionAtMin = false;
             try
             {
-                (float, float, float, float, bool) GetLimits(UI_FloatRange uic)
+                (float, float, float, float, bool, bool) GetLimits(UI_FloatRange uic)
                 {
-                    if (uic is UI_FloatSemiLogRange) (minValue, maxValue, rounding, sigFig, withZero) = (uic as UI_FloatSemiLogRange).GetLimits();
+                    if (uic is UI_FloatSemiLogRange) (minValue, maxValue, rounding, sigFig, withZero, reducedPrecisionAtMin) = (uic as UI_FloatSemiLogRange).GetLimits();
                     else if (uic is UI_FloatPowerRange) (minValue, maxValue, rounding, sigFig) = (uic as UI_FloatPowerRange).GetLimits();
                     else
                     {
@@ -345,7 +357,7 @@ namespace BDArmory.UI
                         maxValue = uic.maxValue;
                         rounding = uic.stepIncrement;
                     }
-                    return (minValue, maxValue, rounding, sigFig, withZero);
+                    return (minValue, maxValue, rounding, sigFig, withZero, reducedPrecisionAtMin);
                 }
                 switch (aiType)
                 {
@@ -353,7 +365,7 @@ namespace BDArmory.UI
                         {
                             var AI = gAI as BDModulePilotAI;
                             var uic = (HighLogic.LoadedSceneIsFlight ? AI.Fields[fieldName].uiControlFlight : AI.Fields[fieldName].uiControlEditor) as UI_FloatRange;
-                            (minValue, maxValue, rounding, sigFig, withZero) = GetLimits(uic);
+                            (minValue, maxValue, rounding, sigFig, withZero, reducedPrecisionAtMin) = GetLimits(uic);
                             value = (float)typeof(BDModulePilotAI).GetField(fieldName).GetValue(AI);
                         }
                         break;
@@ -361,7 +373,7 @@ namespace BDArmory.UI
                         {
                             var AI = gAI as BDModuleSurfaceAI;
                             var uic = (HighLogic.LoadedSceneIsFlight ? AI.Fields[fieldName].uiControlFlight : AI.Fields[fieldName].uiControlEditor) as UI_FloatRange;
-                            (minValue, maxValue, rounding, sigFig, withZero) = GetLimits(uic);
+                            (minValue, maxValue, rounding, sigFig, withZero, reducedPrecisionAtMin) = GetLimits(uic);
                             value = (float)typeof(BDModuleSurfaceAI).GetField(fieldName).GetValue(AI);
                         }
                         break;
@@ -369,7 +381,7 @@ namespace BDArmory.UI
                         {
                             var AI = gAI as BDModuleVTOLAI;
                             var uic = (HighLogic.LoadedSceneIsFlight ? AI.Fields[fieldName].uiControlFlight : AI.Fields[fieldName].uiControlEditor) as UI_FloatRange;
-                            (minValue, maxValue, rounding, sigFig, withZero) = GetLimits(uic);
+                            (minValue, maxValue, rounding, sigFig, withZero, reducedPrecisionAtMin) = GetLimits(uic);
                             value = (float)typeof(BDModuleVTOLAI).GetField(fieldName).GetValue(AI);
                         }
                         break;
@@ -377,7 +389,7 @@ namespace BDArmory.UI
                         {
                             var AI = gAI as BDModuleOrbitalAI;
                             var uic = (HighLogic.LoadedSceneIsFlight ? AI.Fields[fieldName].uiControlFlight : AI.Fields[fieldName].uiControlEditor) as UI_FloatRange;
-                            (minValue, maxValue, rounding, sigFig, withZero) = GetLimits(uic);
+                            (minValue, maxValue, rounding, sigFig, withZero, reducedPrecisionAtMin) = GetLimits(uic);
                             value = (float)typeof(BDModuleOrbitalAI).GetField(fieldName).GetValue(AI);
                         }
                         break;
@@ -391,7 +403,7 @@ namespace BDArmory.UI
 #endif
                 Debug.LogError($"[BDArmory.BDArmoryAIGUI]: Failed to retrieve field limits from {fieldName} on AI of type {aiType}: {errorMsg}");
             }
-            return (value, minValue, maxValue, (rounding, sigFig, withZero));
+            return (value, minValue, maxValue, (rounding, sigFig, withZero, reducedPrecisionAtMin));
         }
 
         /// <summary>
@@ -400,11 +412,11 @@ namespace BDArmory.UI
         /// </summary>
         /// <param name="fieldName"></param>
         /// <returns>minValue, maxValue, rounding, sig.fig., with zero</returns>
-        (float, float, float, float, bool) GetFieldLimits(string fieldName)
+        (float, float, float, float, bool, bool) GetFieldLimits(string fieldName)
         {
-            if (!inputFields.ContainsKey(fieldName)) return (0, 0, 0, 0, false);
+            if (!inputFields.ContainsKey(fieldName)) return (0, 0, 0, 0, false, false);
             var field = inputFields[fieldName];
-            return ((float)field.minValue, (float)field.maxValue, field.rounding, field.sigFig, field.withZero);
+            return ((float)field.minValue, (float)field.maxValue, field.rounding, field.sigFig, field.withZero, field.reducedPrecisionAtMin);
         }
 
         /// <summary>
@@ -497,6 +509,7 @@ namespace BDArmory.UI
                             nameof(AI.extendTargetAngle),
                             nameof(AI.extendTargetDist),
                             nameof(AI.extendAbortTime),
+                            nameof(AI.extendMinGainRate),
 
                             nameof(AI.turnRadiusTwiddleFactorMin),
                             nameof(AI.turnRadiusTwiddleFactorMax),
@@ -591,7 +604,9 @@ namespace BDArmory.UI
                             nameof(AI.steerMult),
                             nameof(AI.steerKiAdjust),
                             nameof(AI.steerDamping),
+                            nameof(AI.steerMaxError),
                             nameof(AI.MinEngagementRange),
+                            nameof(AI.ForceFiringRange),
                             nameof(AI.ManeuverSpeed),
                             nameof(AI.minFiringSpeed),
                             nameof(AI.firingSpeed),
@@ -714,7 +729,7 @@ namespace BDArmory.UI
             if (!stylesConfigured) ConfigureStyles();
             if (HighLogic.LoadedSceneIsFlight) BDArmorySetup.SetGUIOpacity();
             if (resizingWindow && Event.current.type == EventType.MouseUp) { resizingWindow = false; }
-            if (BDArmorySettings.UI_SCALE != 1) GUIUtility.ScaleAroundPivot(BDArmorySettings.UI_SCALE * Vector2.one, BDArmorySetup.WindowRectAI.position);
+            if (BDArmorySettings._UI_SCALE != 1) GUIUtility.ScaleAroundPivot(BDArmorySettings._UI_SCALE * Vector2.one, BDArmorySetup.WindowRectAI.position);
             BDArmorySetup.WindowRectAI = GUI.Window(GUIUtility.GetControlID(FocusType.Passive), BDArmorySetup.WindowRectAI, WindowRectAI, "", BDArmorySetup.BDGuiSkin.window);//"BDA Weapon Manager"
             if (HighLogic.LoadedSceneIsFlight) BDArmorySetup.SetGUIOpacity(false);
         }
@@ -751,7 +766,7 @@ namespace BDArmory.UI
         }
 
         enum Section { UpToEleven, PID, Altitude, Speed, Control, Evasion, Terrain, Ramming, Combat, Misc, FixedAutoTuneFields, VehicleType }; // Sections and other important toggles.
-        readonly Dictionary<Section, bool> showSection = Enum.GetValues(typeof(Section)).Cast<Section>().ToDictionary(s => s, s => false);
+        static Dictionary<Section, bool> showSection = Enum.GetValues(typeof(Section)).Cast<Section>().ToDictionary(s => s, s => false);
         readonly Dictionary<Section, float> sectionHeights = [];
         const float contentBorder = 0.2f * entryHeight;
         const float contentMargin = 10;
@@ -811,7 +826,7 @@ namespace BDArmory.UI
                         GUI.Label(SettinglabelRect(line), StringUtils.Localize($"#LOC_BDArmory_AIWindow_{baseLOC}") + ": " + formattedValue, Label);
                         if (!NumFieldsEnabled)
                         {
-                            var (min, max, rounding, _, _) = GetFieldLimits(fieldName);
+                            var (min, max, rounding, _, _, _) = GetFieldLimits(fieldName);
                             if (fieldName == "firingSpeed") Debug.Log($"DEBUG min: {min}, max: {max}, rounding: {rounding}");
                             if (value != (value = GUI.HorizontalSlider(SettingSliderRect(line, width), value, min, max)) && rounding > 0)
                                 value = BDAMath.RoundToUnit(value, rounding);
@@ -839,10 +854,10 @@ namespace BDArmory.UI
                         GUI.Label(SettinglabelRect(line), StringUtils.Localize($"#LOC_BDArmory_AIWindow_{baseLOC}") + ": " + formattedValue, Label);
                         if (!NumFieldsEnabled)
                         {
-                            var (min, max, rounding, sigFig, withZero) = GetFieldLimits(fieldName);
+                            var (min, max, rounding, sigFig, withZero, reducedPrecisionAtMin) = GetFieldLimits(fieldName);
                             if (!cacheSemiLogLimits.ContainsKey(fieldName)) { cacheSemiLogLimits[fieldName] = null; }
                             var cache = cacheSemiLogLimits[fieldName];
-                            if (value != (value = GUIUtils.HorizontalSemiLogSlider(SettingSliderRect(line, width), value, min, max, sigFig, withZero, ref cache)) && rounding > 0)
+                            if (value != (value = GUIUtils.HorizontalSemiLogSlider(SettingSliderRect(line, width), value, min, max, sigFig, withZero, reducedPrecisionAtMin, ref cache)) && rounding > 0)
                                 value = BDAMath.RoundToUnit(value, rounding);
                         }
                         else
@@ -879,6 +894,7 @@ namespace BDArmory.UI
         readonly Dictionary<string, (float, float)[]> cacheSemiLogLimits = [];
         void WindowRectAI(int windowID)
         {
+            if (HighLogic.LoadedSceneIsEditor) GUIUtils.PreventClickThrough(BDArmorySetup.WindowRectAI, "AIGUI lock");
             float windowColumns = 2;
             float contentIndent = contentMargin + columnIndent;
             float contentWidth = 2 * ColumnWidth - 2 * contentMargin - columnIndent;
@@ -888,7 +904,10 @@ namespace BDArmory.UI
             GUI.Label(new Rect(100, contentTop, contentWidth, entryHeight), StringUtils.Localize("#LOC_BDArmory_AIWindow_title"), Title);
 
             if (GUI.Button(TitleButtonRect(1), "X", windowBDAAIGUIEnabled ? BDArmorySetup.BDGuiSkin.button : BDArmorySetup.BDGuiSkin.box)) //Exit Button
-            { ToggleAIGUI(); }
+            {
+                if (button) button.SetFalse();
+                else HideAIGUI(); // In case the button is disabled.
+            }
             if (GUI.Button(TitleButtonRect(2), "i", infoLinkEnabled ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button)) //Infolink button
             { infoLinkEnabled = !infoLinkEnabled; }
             if (GUI.Button(TitleButtonRect(3), "?", contextTipsEnabled ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button)) //Context labels button
@@ -1251,6 +1270,7 @@ namespace BDArmory.UI
                                         evadeLines = ContentEntry(ContentType.FloatSlider, evadeLines, contentWidth, ref AI.extendTargetAngle, nameof(AI.extendTargetAngle), "ExtendTargetAngle", $"{AI.extendTargetAngle:0}°");
                                         evadeLines = ContentEntry(ContentType.FloatSlider, evadeLines, contentWidth, ref AI.extendTargetDist, nameof(AI.extendTargetDist), "ExtendTargetDist", $"{AI.extendTargetDist:0}m");
                                         evadeLines = ContentEntry(ContentType.FloatSlider, evadeLines, contentWidth, ref AI.extendAbortTime, nameof(AI.extendAbortTime), "ExtendAbortTime", $"{AI.extendAbortTime:0}s");
+                                        evadeLines = ContentEntry(ContentType.FloatSlider, evadeLines, contentWidth, ref AI.extendMinGainRate, nameof(AI.extendMinGainRate), "ExtendMinGainRate", $"{AI.extendMinGainRate:0}m/s");
                                     }
                                     AI.canExtend = GUI.Toggle(ToggleButtonRect(evadeLines, contentWidth), AI.canExtend, StringUtils.Localize("#LOC_BDArmory_AI_ExtendToggle"), AI.canExtend ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Dynamic pid"
                                     evadeLines += 1.25f;
@@ -1873,7 +1893,7 @@ namespace BDArmory.UI
                                 float line = 1.5f;
                                 showSection[Section.PID] = GUI.Toggle(SubsectionRect(line), showSection[Section.PID], StringUtils.Localize("#LOC_BDArmory_AIWindow_PID"), showSection[Section.PID] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"PiD"
 
-                                line += 1.5f; 
+                                line += 1.5f;
                                 showSection[Section.Combat] = GUI.Toggle(SubsectionRect(line), showSection[Section.Combat], StringUtils.Localize("#LOC_BDArmory_AIWindow_Combat"), showSection[Section.Combat] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Combat"
 
                                 line += 1.5f;
@@ -1915,6 +1935,7 @@ namespace BDArmory.UI
                                     line = ContentEntry(ContentType.FloatSlider, line, contentWidth, ref AI.steerMult, nameof(AI.steerMult), "SteerPower", $"{AI.steerMult:0.0}", true);
                                     line = ContentEntry(ContentType.FloatSlider, line, contentWidth, ref AI.steerKiAdjust, nameof(AI.steerKiAdjust), "SteerKi", $"{AI.steerKiAdjust:0.00}", true);
                                     line = ContentEntry(ContentType.FloatSlider, line, contentWidth, ref AI.steerDamping, nameof(AI.steerDamping), "SteerDamping", $"{AI.steerDamping:0.0}", true);
+                                    line = ContentEntry(ContentType.FloatSlider, line, contentWidth, ref AI.steerMaxError, nameof(AI.steerMaxError), "SteerMaxError", $"{AI.steerMaxError:0.0}", true);
 
                                     GUI.EndGroup();
                                     sectionHeights[Section.PID] = Mathf.Lerp(sectionHeight, line, 0.15f);
@@ -1943,7 +1964,24 @@ namespace BDArmory.UI
                                         AI.rollTowards = RollModeTypes[rollTowards].ToString();
                                         AI.ChooseOptionsUpdated(null, null);
                                     }
+
+                                    var oldMinEngagementRange = AI.MinEngagementRange;
                                     line = ContentEntry(ContentType.SemiLogSlider, line, contentWidth, ref AI.MinEngagementRange, nameof(AI.MinEngagementRange), "MinEngagementRange", $"{AI.MinEngagementRange:0}m");
+                                    if (AI.MinEngagementRange != oldMinEngagementRange)
+                                    {
+                                        AI.OnMinUpdated(null, null);
+                                        var field = inputFields["ForceFiringRange"];
+                                        field.SetCurrentValue(AI.ForceFiringRange);
+                                    }
+
+                                    var oldForceFiringRange = AI.ForceFiringRange;
+                                    line = ContentEntry(ContentType.SemiLogSlider, line, contentWidth, ref AI.ForceFiringRange, nameof(AI.ForceFiringRange), "ForceFiringRange", $"{AI.ForceFiringRange:0}m");
+                                    if (AI.ForceFiringRange != oldForceFiringRange)
+                                    {
+                                        AI.OnMaxUpdated(null, null);
+                                        var field = inputFields["MinEngagementRange"];
+                                        field.SetCurrentValue(AI.MinEngagementRange);
+                                    }
 
                                     AI.allowRamming = GUI.Toggle(ToggleButtonRect(line, contentWidth), AI.allowRamming,
                                         StringUtils.Localize("#LOC_BDArmory_AI_AllowRamming"), AI.allowRamming ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Allow Ramming"
@@ -2030,6 +2068,24 @@ namespace BDArmory.UI
                                     if (contextTipsEnabled)
                                     {
                                         GUI.Label(ContextLabelRect(line++), StringUtils.Localize("#LOC_BDArmory_AIWindow_ReverseEngines_Context"), contextLabel);
+                                    }
+
+                                    AI.EngineRCSRotation = GUI.Toggle(ToggleButtonRect(line, contentWidth), AI.EngineRCSRotation,
+                                        StringUtils.Localize("#LOC_BDArmory_AIWindow_EngineRCSRotation") + " : " + (AI.EngineRCSRotation ? StringUtils.Localize("#LOC_BDArmory_Enabled") : StringUtils.Localize("#LOC_BDArmory_Disabled")),
+                                        AI.EngineRCSRotation ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);
+                                    line += 1.25f;
+                                    if (contextTipsEnabled)
+                                    {
+                                        GUI.Label(ContextLabelRect(line++), StringUtils.Localize("#LOC_BDArmory_AIWindow_EngineRCSRotation_Context"), contextLabel);
+                                    }
+
+                                    AI.EngineRCSTranslation = GUI.Toggle(ToggleButtonRect(line, contentWidth), AI.EngineRCSTranslation,
+                                        StringUtils.Localize("#LOC_BDArmory_AIWindow_EngineRCSTranslation") + " : " + (AI.EngineRCSTranslation ? StringUtils.Localize("#LOC_BDArmory_Enabled") : StringUtils.Localize("#LOC_BDArmory_Disabled")),
+                                        AI.EngineRCSTranslation ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);
+                                    line += 1.25f;
+                                    if (contextTipsEnabled)
+                                    {
+                                        GUI.Label(ContextLabelRect(line++), StringUtils.Localize("#LOC_BDArmory_AIWindow_EngineRCSTranslation_Context"), contextLabel);
                                     }
 
                                     GUI.EndGroup();
@@ -2122,9 +2178,9 @@ namespace BDArmory.UI
 
             if (Event.current.type == EventType.Repaint && resizingWindow)
             {
-                WindowHeight += Mouse.delta.y / BDArmorySettings.UI_SCALE;
+                WindowHeight += Mouse.delta.y / BDArmorySettings._UI_SCALE;
                 WindowHeight = Mathf.Max(WindowHeight, 305);
-                if (BDArmorySettings.DEBUG_OTHER) GUI.Label(new Rect(WindowWidth / 2, WindowHeight - 26, WindowWidth / 2 - 26, 26), $"Resizing: {Mathf.Round(WindowHeight * BDArmorySettings.UI_SCALE)}", Label);
+                if (BDArmorySettings.DEBUG_OTHER) GUI.Label(new Rect(WindowWidth / 2, WindowHeight - 26, WindowWidth / 2 - 26, 26), $"Resizing: {Mathf.Round(WindowHeight * BDArmorySettings._UI_SCALE)}", Label);
             }
             #endregion
 
@@ -2145,6 +2201,7 @@ namespace BDArmory.UI
             GameEvents.onEditorLoad.Remove(OnEditorLoad);
             GameEvents.onEditorPartPlaced.Remove(OnEditorPartPlacedEvent);
             GameEvents.onEditorPartDeleted.Remove(OnEditorPartDeletedEvent);
+            if (HighLogic.LoadedSceneIsEditor) GUIUtils.PreventClickThrough(BDArmorySetup.WindowRectAI, "AIGUI lock", true);
         }
     }
 }
