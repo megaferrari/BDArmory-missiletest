@@ -401,9 +401,9 @@ namespace BDArmory.Control
             base.OnDestroy();
         }
 
-        public override void ActivatePilot()
+        public override bool ActivatePilot()
         {
-            base.ActivatePilot();
+            if (!base.ActivatePilot()) return false;
             TakingOff = false;
             dynDecayRate = Mathf.Exp(Mathf.Log(0.5f) * Time.fixedDeltaTime / 60f); // Decay rate for a half-life of 60s.
             //originalMaxSpeed = ManeuverSpeed;
@@ -424,6 +424,7 @@ namespace BDArmory.Control
                 engineIndependentThrottleState.Add(engine.part.persistentId, new (engine.independentThrottle, engine.independentThrottlePercentage, engine.thrustPercentage));
             }
             UpdateEngineLists(true); // Update engine list, turn off reverse engines if active
+            return true;
         }
 
         public override void DeactivatePilot()

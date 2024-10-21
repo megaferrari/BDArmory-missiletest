@@ -215,9 +215,9 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
             SetOnUpToElevenChanged();
         }
 
-        public override void ActivatePilot()
+        public override bool ActivatePilot()
         {
-            base.ActivatePilot();
+            if (!base.ActivatePilot()) return false;
             //originalMaxSpeed = MaxSpeed;
             pathingMatrix = new AIUtils.TraversabilityMatrix();
 
@@ -243,6 +243,7 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
             extendingTarget = null;
             bypassTarget = null;
             collisionDetectionTicker = 6;
+            return true;
         }
 
         public override void DeactivatePilot()

@@ -1788,9 +1788,9 @@ namespace BDArmory.Control
             base.OnDestroy();
         }
 
-        public override void ActivatePilot()
+        public override bool ActivatePilot()
         {
-            base.ActivatePilot();
+            if (!base.ActivatePilot()) return false;
             originalMaxSpeed = maxSpeed;
             belowMinAltitude = vessel.LandedOrSplashed;
             prevTargetDir = vesselTransform.up;
@@ -1802,6 +1802,7 @@ namespace BDArmory.Control
             SetOnBrakingPriorityChanged(); // Has to be set after the speed controller exists.
 
             bodyGravity = (float)PhysicsGlobals.GravitationalAcceleration * (float)vessel.orbit.referenceBody.GeeASL; // Set gravity for calculations;
+            return true;
         }
 
         void Update()

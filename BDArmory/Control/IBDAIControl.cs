@@ -17,7 +17,7 @@ namespace BDArmory.Control
         /// </summary>
         MissileFire weaponManager { get; }
 
-        void ActivatePilot();
+        bool ActivatePilot();
 
         void DeactivatePilot();
 

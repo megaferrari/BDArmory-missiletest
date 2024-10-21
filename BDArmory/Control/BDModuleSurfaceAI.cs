@@ -208,9 +208,9 @@ namespace BDArmory.Control
             SetOnUpToElevenChanged();
         }
 
-        public override void ActivatePilot()
+        public override bool ActivatePilot()
         {
-            base.ActivatePilot();
+            if (!base.ActivatePilot()) return false;
             originalMaxSpeed = MaxSpeed;
             pathingMatrix = new AIUtils.TraversabilityMatrix();
 
@@ -231,6 +231,7 @@ namespace BDArmory.Control
             bypassTarget = null;
             collisionDetectionTicker = 6;
             if (VesselModuleRegistry.GetModules<ModuleSpaceFriction>(vessel).Count > 0) isHovercraft = true;
+            return true;
         }
 
         public override void DeactivatePilot()

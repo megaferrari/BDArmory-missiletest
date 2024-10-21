@@ -158,9 +158,15 @@ namespace BDArmory.Control
 
         #region Pilot on/off
 
-        public virtual void ActivatePilot()
+        /// <summary>
+        /// Activate the AI.
+        /// </summary>
+        /// <returns>true if successfully activated, false otherwise.</returns>
+        public virtual bool ActivatePilot()
         {
             pilotOn = true;
+            vessel.ActiveController().UpdateAIModules(); // Update the active AI module.
+            if (!pilotOn) return false; // If it's not us, abort.
             if (activeVessel)
                 activeVessel.OnFlyByWire -= autoPilot;
             activeVessel = vessel;
@@ -194,6 +200,7 @@ namespace BDArmory.Control
                 Debug.LogError($"[BDArmory.BDGenericAIBase]: Failed to set Gear action group on {vessel.vesselName}: {e.Message}");
             }
             RefreshPartWindow();
+            return true;
         }
 
         public virtual void DeactivatePilot()
@@ -587,7 +594,7 @@ namespace BDArmory.Control
                 if (BDArmorySettings.WAYPOINT_GUARD_INDEX >= 0 && !weaponManager.guardMode && activeWaypointIndex + (waypoints.Count * (activeWaypointLap - 1)) >= Mathf.Min(BDArmorySettings.WAYPOINT_GUARD_INDEX, waypoints.Count * waypointLapLimit)) //allow guard activating, i.e. halfway through lap2), guarantee guard activation after last guate
                 {
                     // activate guard mode   
-                    weaponManager.guardMode = true; 
+                    weaponManager.guardMode = true;
                 }
 
                 ++activeWaypointIndex;
@@ -596,7 +603,7 @@ namespace BDArmory.Control
                     if (BDArmorySettings.DEBUG_AI) Debug.Log("[BDArmory.BDGenericAIBase]: Waypoints complete");
                     waypoints = null;
                     ReleaseCommand();
-                    if(BDArmorySettings.WAYPOINT_GUARD_INDEX >= 0 && !weaponManager.guardMode) weaponManager.guardMode = true;
+                    if (BDArmorySettings.WAYPOINT_GUARD_INDEX >= 0 && !weaponManager.guardMode) weaponManager.guardMode = true;
                     return;
                 }
                 else if (activeWaypointIndex >= waypoints.Count && activeWaypointLap <= waypointLapLimit)
@@ -616,7 +623,7 @@ namespace BDArmory.Control
                     pilotAI.maxSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed;
                     pilotAI.OnMaxSpeedChanged();
                 }
-                if (surfaceAI != null) surfaceAI.MaxSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed; 
+                if (surfaceAI != null) surfaceAI.MaxSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed;
                 //if (vtolAI != null) vtolAI.MaxSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed; //VTOL AI really needs expanding to actually include behavior beyond stationary hovering; could do WPs, but only if it has a fixed horizontal thrusters under IndependantThrottle...
                 //if (orbitalAI != null) orbitalAI.ManeuverSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed; //Don' think WPs would work, period, with an orbital reference frame?
             }

@@ -26,18 +26,19 @@ namespace BDArmory.Control
     {
         #region Declarations
 
-        bool IsPrimaryWM = true; // Is this the WM that's controlling this vessel?
+        [KSPField(guiName = "#LOC_BDArmory_WM_IsPrimaryWM", guiActive = true), UI_Label(scene = UI_Scene.All)]
+        public bool IsPrimaryWM = true; // Is this the WM that's controlling this vessel? Gets set by ActiveControllerVesselModule.
 
         //weapons
-        private List<IBDWeapon> weaponTypes = new List<IBDWeapon>();
-        private Dictionary<string, List<float>> weaponRanges = new Dictionary<string, List<float>>();
+        private List<IBDWeapon> weaponTypes = [];
+        private Dictionary<string, List<float>> weaponRanges = [];
         public IBDWeapon[] weaponArray;
 
         // extension for feature_engagementenvelope: specific lists by weapon engagement type
-        private List<IBDWeapon> weaponTypesAir = new List<IBDWeapon>();
-        private List<IBDWeapon> weaponTypesMissile = new List<IBDWeapon>();
-        private List<IBDWeapon> weaponTypesGround = new List<IBDWeapon>();
-        private List<IBDWeapon> weaponTypesSLW = new List<IBDWeapon>();
+        private List<IBDWeapon> weaponTypesAir = [];
+        private List<IBDWeapon> weaponTypesMissile = [];
+        private List<IBDWeapon> weaponTypesGround = [];
+        private List<IBDWeapon> weaponTypesSLW = [];
 
         [KSPField(guiActiveEditor = false, isPersistant = true, guiActive = false)] public int weaponIndex;
 
@@ -83,8 +84,8 @@ namespace BDArmory.Control
         }
 
         float triggerTimer;
-        Dictionary<string, int> rippleGunCount = new Dictionary<string, int>();
-        Dictionary<string, int> gunRippleIndex = new Dictionary<string, int>();
+        Dictionary<string, int> rippleGunCount = [];
+        Dictionary<string, int> gunRippleIndex = [];
         public float gunRippleRpm;
 
         public void incrementRippleIndex(string weaponname)
@@ -187,7 +188,7 @@ namespace BDArmory.Control
 
         void ParseRippleOptions()
         {
-            rippleDictionary = new Dictionary<string, RippleOption>();
+            rippleDictionary = [];
             //Debug.Log("[BDArmory.MissileFire]: Parsing ripple options");
             if (!string.IsNullOrEmpty(rippleData))
             {
@@ -314,7 +315,7 @@ namespace BDArmory.Control
         bool showBombAimer;
 
         //targeting
-        private List<Vessel> loadedVessels = new List<Vessel>();
+        private List<Vessel> loadedVessels = [];
         float targetListTimer;
 
         //sounds
@@ -377,30 +378,30 @@ namespace BDArmory.Control
         //targeting pods
         public ModuleTargetingCamera mainTGP = null;
         public List<ModuleTargetingCamera> targetingPods { get { if (modulesNeedRefreshing) RefreshModules(); return _targetingPods; } }
-        List<ModuleTargetingCamera> _targetingPods = new List<ModuleTargetingCamera>();
+        List<ModuleTargetingCamera> _targetingPods = [];
 
         //radar
         public List<ModuleRadar> radars { get { if (modulesNeedRefreshing) RefreshModules(); return _radars; } }
-        public List<ModuleRadar> _radars = new List<ModuleRadar>();
+        public List<ModuleRadar> _radars = [];
         public int MaxradarLocks = 0;
         public VesselRadarData vesselRadarData;
         public bool _radarsEnabled = false;
         public float GpsUpdateMax = -1;
         public List<ModuleIRST> irsts { get { if (modulesNeedRefreshing) RefreshModules(); return _irsts; } }
-        public List<ModuleIRST> _irsts = new List<ModuleIRST>();
+        public List<ModuleIRST> _irsts = [];
         public bool _irstsEnabled = false;
         public bool _sonarsEnabled = false;
         //jammers
         public List<ModuleECMJammer> jammers { get { if (modulesNeedRefreshing) RefreshModules(); return _jammers; } }
-        public List<ModuleECMJammer> _jammers = new List<ModuleECMJammer>();
+        public List<ModuleECMJammer> _jammers = [];
 
         //cloak generators
         public List<ModuleCloakingDevice> cloaks { get { if (modulesNeedRefreshing) RefreshModules(); return _cloaks; } }
-        public List<ModuleCloakingDevice> _cloaks = new List<ModuleCloakingDevice>();
+        public List<ModuleCloakingDevice> _cloaks = [];
 
         //other modules
         public List<IBDWMModule> wmModules { get { if (modulesNeedRefreshing) RefreshModules(); return _wmModules; } }
-        List<IBDWMModule> _wmModules = new List<IBDWMModule>();
+        List<IBDWMModule> _wmModules = [];
 
         bool modulesNeedRefreshing = true; // Refresh modules as needed — avoids excessive calling due to events.
         bool cmPrioritiesNeedRefreshing = true; // Refresh CM priorities as needed.
@@ -483,7 +484,7 @@ namespace BDArmory.Control
         float underAttackLastNotified = 0f;
         public bool underFire;
         float underFireLastNotified = 0f;
-        HashSet<WeaponClasses> recentlyFiringWeaponClasses = new HashSet<WeaponClasses> { WeaponClasses.Gun, WeaponClasses.Rocket, WeaponClasses.DefenseLaser };
+        HashSet<WeaponClasses> recentlyFiringWeaponClasses = [WeaponClasses.Gun, WeaponClasses.Rocket, WeaponClasses.DefenseLaser];
         public bool recentlyFiring // Recently firing property for CameraTools.
         {
             get
@@ -1278,8 +1279,8 @@ namespace BDArmory.Control
 
                 StartCoroutine(StartupListUpdater());
                 firedMissiles = 0;
-                missilesAway = new Dictionary<TargetInfo, int>();
-                rippleGunCount = new Dictionary<string, int>();
+                missilesAway = [];
+                rippleGunCount = [];
 
                 GameEvents.onVesselCreate.Add(OnVesselCreate);
                 GameEvents.onPartJointBreak.Add(OnPartJointBreak);
@@ -1379,7 +1380,7 @@ namespace BDArmory.Control
                 }
             }
             RefreshModules("vessel creation");
-            Debug.Log($"DEBUG New vessel {vessel} created with AI {AI} ({(AI != null ? AI.part.persistentId : null)}) and WM {this} ({this.part.persistentId})");
+            // Debug.Log($"DEBUG New vessel {vessel} created with AI {AI} ({(AI != null ? AI.part.persistentId : null)}) and WM {this} ({this.part.persistentId})");
             // modulesNeedRefreshing = true;
             weaponsListNeedsUpdating = true;
             cmPrioritiesNeedRefreshing = true;
@@ -1420,8 +1421,6 @@ namespace BDArmory.Control
         void OnVesselPartCountChanged(Vessel v)
         {
             if (v == null || vessel != v) return;
-            // if (!modulesNeedRefreshing)
-            Debug.Log($"DEBUG PartCountChange on {vessel} to {vessel.Parts.Count}");
             modulesNeedRefreshing = true;
             weaponsListNeedsUpdating = true;
             cmPrioritiesNeedRefreshing = true;
@@ -1442,12 +1441,9 @@ namespace BDArmory.Control
 
             if (HighLogic.LoadedSceneIsFlight && ((j.Parent && j.Parent.vessel == vessel) || (j.Child && j.Child.vessel == vessel)))
             {
-                if (!modulesNeedRefreshing)
-                    Debug.Log($"DEBUG PartJointBreak on {vessel} between {j.Parent.partInfo.name} and {j.Child.partInfo.name}");
                 modulesNeedRefreshing = true;
                 weaponsListNeedsUpdating = true;
                 cmPrioritiesNeedRefreshing = true;
-                // UpdateList();
             }
         }
 
@@ -1898,9 +1894,9 @@ namespace BDArmory.Control
                 {
                     if (weaponArray != null) // Heat debugging
                     {
-                        List<string> weaponHeatDebugStrings = new List<string>();
-                        List<string> weaponAimDebugStrings = new List<string>();
-                        HashSet<WeaponClasses> validClasses = new HashSet<WeaponClasses> { WeaponClasses.Gun, WeaponClasses.Rocket, WeaponClasses.DefenseLaser };
+                        List<string> weaponHeatDebugStrings = [];
+                        List<string> weaponAimDebugStrings = [];
+                        HashSet<WeaponClasses> validClasses = [WeaponClasses.Gun, WeaponClasses.Rocket, WeaponClasses.DefenseLaser];
                         foreach (var weaponCandidate in VesselModuleRegistry.GetModules<IBDWeapon>(vessel)) // Show each weapon, not each weapon group (which might contain multiple weapon types).
                         {
                             if (weaponCandidate == null || !validClasses.Contains(weaponCandidate.GetWeaponClass())) continue;
@@ -3365,7 +3361,7 @@ namespace BDArmory.Control
             isLegacyCMing = false;
         }
 
-        Dictionary<CMDropper.CountermeasureTypes, int> cmCurrentPriorities = new Dictionary<CMDropper.CountermeasureTypes, int>();
+        Dictionary<CMDropper.CountermeasureTypes, int> cmCurrentPriorities = [];
         void RefreshCMPriorities()
         {
             cmCurrentPriorities.Clear();
@@ -3679,7 +3675,7 @@ namespace BDArmory.Control
                                 registeredRanges.Add(range);
                             }
                             else
-                                weaponRanges.Add(weaponName, new List<float> { range });
+                                weaponRanges.Add(weaponName, [range]);
                         }
                     }
                     EngageableWeapon engageableWeapon = weapon.Current as EngageableWeapon;
@@ -3723,8 +3719,7 @@ namespace BDArmory.Control
             //weaponTypes.Sort();
             weaponTypes = weaponTypes.OrderBy(w => w.GetShortName()).ToList();
 
-            List<IBDWeapon> tempList = new List<IBDWeapon> { null };
-            tempList.AddRange(weaponTypes);
+            List<IBDWeapon> tempList = [null, .. weaponTypes];
 
             weaponArray = tempList.ToArray();
 
@@ -3885,7 +3880,7 @@ namespace BDArmory.Control
                 }
 
                 //Get ripple weapon count, so we don't have to enumerate the whole list again.
-                List<ModuleWeapon> rippleWeapons = new List<ModuleWeapon>();
+                List<ModuleWeapon> rippleWeapons = [];
                 using (var weapCnt = VesselModuleRegistry.GetModules<ModuleWeapon>(vessel).GetEnumerator())
                     while (weapCnt.MoveNext())
                     {
@@ -3941,7 +3936,7 @@ namespace BDArmory.Control
             SetRotaryRails();
         }
 
-        private HashSet<uint> baysOpened = new HashSet<uint>();
+        private HashSet<uint> baysOpened = [];
         private bool SetCargoBays()
         {
             if (!guardMode) return false;
@@ -4076,7 +4071,7 @@ namespace BDArmory.Control
             return openingBays;
         }
 
-        private HashSet<uint> wepsDeployed = new HashSet<uint>();
+        private HashSet<uint> wepsDeployed = [];
         private bool SetDeployableWeapons()
         {
             bool deployingWeapon = false;
@@ -4483,11 +4478,8 @@ namespace BDArmory.Control
             modulesNeedRefreshing = false;
             cmPrioritiesNeedRefreshing = true;
             VesselModuleRegistry.OnVesselModified(vessel); // Make sure the registry is up-to-date.
-            IsPrimaryWM = VesselModuleRegistry.GetMissileFire(vessel, true) == this;
-            // var oldAI = AI;
-            AI = VesselModuleRegistry.GetIBDAIControl(vessel, true);
-            // if (oldAI != null && oldAI != AI) { if (oldAI.pilotEnabled) AI.ActivatePilot(); else AI.DeactivatePilot(); } // If the AI changed, copy the parent AI's state.
-            Debug.Log($"DEBUG Refreshing modules on {vessel} with AI {AI} ({AI.part.persistentId}) and WM {this} ({this.part.persistentId}, primary: {IsPrimaryWM}){(tag != null ? $" from {tag}" : null)}");
+            AI = vessel.ActiveController().AI;
+            // Debug.Log($"DEBUG Refreshing modules on {vessel} with AI {AI} ({AI.part.persistentId}) and WM {this} ({part.persistentId}, primary: {IsPrimaryWM}){(tag != null ? $" from {tag}" : null)}");
             _radars = VesselModuleRegistry.GetModules<ModuleRadar>(vessel);
             if (_radars != null)
             {
@@ -4536,7 +4528,7 @@ namespace BDArmory.Control
         void SmartFindTarget()
         {
             var lastTarget = currentTarget;
-            List<TargetInfo> targetsTried = new List<TargetInfo>();
+            List<TargetInfo> targetsTried = [];
             string targetDebugText = "";
             targetsAssigned.Clear(); //fixes fixed guns not firing if Multitargeting >1
             missilesAssigned.Clear();
@@ -4837,7 +4829,7 @@ namespace BDArmory.Control
             {
                 missilesAssigned.Add(currentTarget);
             }
-            List<TargetInfo> targetsTried = new List<TargetInfo>();
+            List<TargetInfo> targetsTried = [];
 
             //Secondary targeting priorities
             //1. incoming missile threats
@@ -6727,7 +6719,7 @@ namespace BDArmory.Control
                                     {
                                         if (rd.Current != null && rd.Current.sonarMode != ModuleRadar.SonarModes.None)
                                         {
-                                            if (rd.Current.sonarMode == ModuleRadar.SonarModes.Active && results.foundTorpedo && results.foundHeatMissile && rd. Current.DynamicRadar) continue;
+                                            if (rd.Current.sonarMode == ModuleRadar.SonarModes.Active && results.foundTorpedo && results.foundHeatMissile && rd.Current.DynamicRadar) continue;
                                             rd.Current.EnableRadar();
                                             _sonarsEnabled = true;
                                         }
@@ -7655,7 +7647,7 @@ namespace BDArmory.Control
                         FireECM(10);
                     }
                     if (results.foundGPSMissile) //not really sure what you'd do vs a wireguided/INS torpedo - kill engines and active sonar + fire decoys to try and break detection by op4 passive sonar? fire bubblers to garble active sonar detection?
-                    {                        
+                    {
                     }
                 }
             }
@@ -7736,7 +7728,7 @@ namespace BDArmory.Control
             if (selectedWeapon == null) return;
             int TurretID = 0;
             int MissileTgtID = 0;
-            List<TargetInfo> firedTargets = new List<TargetInfo>();
+            List<TargetInfo> firedTargets = [];
             using (var weapon = VesselModuleRegistry.GetModules<ModuleWeapon>(vessel).GetEnumerator())
                 while (weapon.MoveNext())
                 {

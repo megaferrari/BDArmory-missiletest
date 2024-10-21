@@ -123,7 +123,7 @@ namespace BDArmory.Utils
         /// <param name="vessel">The vessel.</param>
         void AddVesselToRegistry(Vessel vessel)
         {
-            registry.Add(vessel, new Dictionary<Type, List<UnityEngine.Object>>());
+            registry.Add(vessel, []);
             vesselPartCounts[vessel] = vessel.Parts.Count;
             if (BDArmorySettings.DEBUG_OTHER) Debug.Log($"[BDArmory.VesselModuleRegistry]: Vessel {vessel.vesselName} added to registry.");
         }
@@ -209,7 +209,7 @@ namespace BDArmory.Utils
                 {
                     if (!partsAdded && registry[vessel][moduleType].Count == 0) continue; // Part loss shouldn't give more modules.
                     // Invoke the specific callback to update the registry for this type of module.
-                    updateModuleCallbacks[moduleType].Invoke(this, new object[1] { vessel });
+                    updateModuleCallbacks[moduleType].Invoke(this, [vessel]);
                 }
             }
 
@@ -853,5 +853,104 @@ namespace BDArmory.Utils
         }
 #endif
         #endregion
+    }
+
+    public class ActiveController : VesselModule
+    {
+        public MissileFire WM { get; private set; }
+        public IBDAIControl AI { get; private set; } // The active AI (if any).
+        public BDModulePilotAI PilotAI { get; private set; }
+        public BDModuleSurfaceAI SurfaceAI { get; private set; }
+        public BDModuleVTOLAI VTOLAI { get; private set; }
+        public BDModuleOrbitalAI OrbitalAI { get; private set; }
+
+        bool updateRequired = true;
+
+        // Activate module on valid vessels during flight.
+        public override Activation GetActivation() => Vessel.vesselType == VesselType.SpaceObject ? Activation.Never : Activation.FlightScene;
+
+        public static ActiveController GetActiveController(Vessel vessel)
+        {
+            return vessel.gameObject.GetComponent<ActiveController>();
+        }
+
+        void UpdateModules()
+        {
+            if (!updateRequired) return;
+
+            // Make sure the registry is up-to-date.
+            VesselModuleRegistry.OnVesselModified(Vessel);
+
+            // Set only the closest WM to the root part as the active WM.
+            WM = VesselModuleRegistry.GetMissileFire(Vessel);
+            foreach (var wm in VesselModuleRegistry.GetMissileFires(Vessel)) wm.IsPrimaryWM = wm == WM;
+
+            // Update the AIs.
+            PilotAI = VesselModuleRegistry.GetBDModulePilotAI(Vessel);
+            SurfaceAI = VesselModuleRegistry.GetBDModuleSurfaceAI(Vessel);
+            VTOLAI = VesselModuleRegistry.GetModule<BDModuleVTOLAI>(Vessel);
+            OrbitalAI = VesselModuleRegistry.GetModule<BDModuleOrbitalAI>(Vessel);
+            UpdateAIModules(true);
+
+            updateRequired = false;
+            var vesselName = Vessel.GetName();
+            if (BDArmorySettings.DEBUG_OTHER) Debug.Log($"[BDArmory.ActiveController]: ActiveController modules updated on {(string.IsNullOrEmpty(vesselName) ? Vessel.rootPart.partInfo.name : vesselName)} ({Vessel.vesselType}), WM: {WM != null}, PilotAI: {PilotAI != null}, SurfaceAI: {SurfaceAI != null}, VTOLAI: {VTOLAI != null}, OrbitalAI: {OrbitalAI != null}, AI: {AI}");
+        }
+
+        /// <summary>
+        /// Set AI to the first active AI in the order Pilot, Surface, VTOL, Orbital, otherwise the AI closest to the root part on the vessel.
+        /// AIs other than the primary one get deactivated.
+        /// In order to activate a lower priority AI, the higher priority ones need to be disabled first.
+        /// <param name="reactivate">Reactivate the active AI in case deactivating others disables some stuff.</param>
+        /// </summary>
+        public void UpdateAIModules(bool reactivate = false)
+        {
+            var prevAI = AI;
+            if (PilotAI != null && PilotAI.pilotEnabled) AI = PilotAI;
+            else if (SurfaceAI != null && SurfaceAI.pilotEnabled) AI = SurfaceAI;
+            else if (VTOLAI != null && VTOLAI.pilotEnabled) AI = VTOLAI;
+            else if (OrbitalAI != null && OrbitalAI.pilotEnabled) AI = OrbitalAI;
+            else AI = VesselModuleRegistry.GetIBDAIControl(Vessel);
+            if (AI != null && AI.pilotEnabled && prevAI != AI) // Then, if the active AI has changed, deactivate any other AIs to avoid any control conflicts.
+            {
+                foreach (var ai in VesselModuleRegistry.GetIBDAIControls(Vessel))
+                {
+                    if (ai == AI) continue;
+                    ai.DeactivatePilot(); // FIXME This doesn't appear to be deactivating lower priority AI.
+                }
+                if (reactivate) AI.ActivatePilot(); // Reactivate the AI in case deactivating the others disabled any common stuff.
+            }
+        }
+
+        /// <summary>
+        /// This is called whenever a new vessel is created (both spawning and undocking / parts falling off / firing missiles / etc.).
+        /// </summary>
+        public override void OnLoadVessel()
+        {
+            base.OnLoadVessel();
+            GameEvents.onVesselPartCountChanged.Add(OnVesselPartCountChanged);
+            TimingManager.FixedUpdateAdd(TimingManager.TimingStage.Precalc, UpdateModules);
+            UpdateModules();
+        }
+
+        /// <summary>
+        /// This is called when parts fall off or when docking occurs.
+        /// </summary>
+        /// <param name="vessel"></param>
+        void OnVesselPartCountChanged(Vessel vessel)
+        {
+            if (vessel == Vessel) updateRequired = true;
+        }
+
+        /// <summary>
+        /// Clean up the event handlers.
+        /// </summary>
+        /// <param name="vessel"></param>
+        public override void OnUnloadVessel()
+        {
+            TimingManager.FixedUpdateRemove(TimingManager.TimingStage.Precalc, UpdateModules);
+            GameEvents.onVesselPartCountChanged.Remove(OnVesselPartCountChanged);
+            base.OnUnloadVessel();
+        }
     }
 }

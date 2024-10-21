@@ -236,5 +236,7 @@ namespace BDArmory.Extensions
         {
             return vessel.FindVesselModuleImplementing<T>();
         }
+
+        public static ActiveController ActiveController(this Vessel vessel) => Utils.ActiveController.GetActiveController(vessel);
     }
 }
