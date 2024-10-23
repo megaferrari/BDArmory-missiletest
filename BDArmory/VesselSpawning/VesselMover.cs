@@ -47,13 +47,13 @@ namespace BDArmory.VesselSpawning
             ready = false;
             StartCoroutine(WaitForBdaSettings());
             ConfigureStyles();
-            SetUpMoveIndicator();
+            SetupMoveIndicator();
             GameEvents.onVesselChange.Add(OnVesselChanged);
 
             if (BDArmorySettings.VM_TOOLBAR_BUTTON) AddToolbarButton();
         }
 
-        void SetUpMoveIndicator()
+        void SetupMoveIndicator()
         {
             moveIndicator = new GameObject().AddComponent<LineRenderer>();
             moveIndicator.material = new Material(Shader.Find("KSP/Emissive/Diffuse"));
@@ -751,7 +751,7 @@ namespace BDArmory.VesselSpawning
         IEnumerator GetSpawnPoint()
         {
             messageState = Messages.ChoosingSpawnPoint;
-            GameObject indicatorObject = SetUpSpawnPointIndicator();
+            GameObject indicatorObject = SetupSpawnPointIndicator();
 
             Vector3 mouseAim, point;
             Ray ray;
@@ -797,7 +797,7 @@ namespace BDArmory.VesselSpawning
             Destroy(indicatorObject);
         }
 
-        GameObject SetUpSpawnPointIndicator()
+        GameObject SetupSpawnPointIndicator()
         {
             // Use the same indicator as the original VesselMover for familiarity.
             GameObject indicatorObject = new();
