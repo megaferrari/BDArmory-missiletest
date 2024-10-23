@@ -17,8 +17,8 @@ namespace BDArmory.Control
 {
     public class BDModuleSurfaceAI : BDGenericAIBase, IBDAIControl
     {
+        public override AIType aiType => AIType.SurfaceAI;
         #region Declarations
-
         Vessel extendingTarget = null;
         Vessel bypassTarget = null;
         Vector3 bypassTargetPos;

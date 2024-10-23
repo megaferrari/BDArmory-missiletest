@@ -17,8 +17,8 @@ namespace BDArmory.Control
 {
     public class BDModuleVTOLAI : BDGenericAIBase, IBDAIControl
     {
+        public override AIType aiType => AIType.VTOLAI;
         #region Declarations
-
         Vessel extendingTarget = null;
         Vessel bypassTarget = null;
         Vector3 bypassTargetPos;

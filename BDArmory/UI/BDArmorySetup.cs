@@ -2568,6 +2568,7 @@ namespace BDArmory.UI
                         //     PROF_n = Mathf.RoundToInt(Mathf.Pow(10, PROF_n_pow));
                         // }
 
+                        // if (GUI.Button(SLineRect(++line), "Test \"ActiveController\"")) TestActiveController();
                         // if (BDArmorySettings.DEBUG_OTHER && GUI.Button(SLineRect(++line), "Dump VesselModuleRegistry") && FlightGlobals.ActiveVessel != null) { VesselModuleRegistry.Instance.DumpRegistriesFor(FlightGlobals.ActiveVessel); }
                         // GUI.Label(SLeftSliderRect(++line), $"Initial correction: {(TestNumericalMethodsIC == 0 ? "None" : TestNumericalMethodsIC == 1 ? "All" : TestNumericalMethodsIC == 2 ? "Local" : "Gravity")}");
                         // TestNumericalMethodsIC = Mathf.RoundToInt(GUI.HorizontalSlider(SRightSliderRect(line), TestNumericalMethodsIC, 0, 3));
@@ -4412,8 +4413,8 @@ namespace BDArmory.UI
         }
         #endregion
 #if DEBUG
-        // static int PROF_N_pow = 4, PROF_n_pow = 4;
-        static int PROF_N = 10000, PROF_n = 10000;
+        // static int PROF_N_pow = 3, PROF_n_pow = 4;
+        static int PROF_N = 1000, PROF_n = 10000;
         IEnumerator TestVesselPositionTiming()
         {
             var wait = new WaitForFixedUpdate();
@@ -4684,6 +4685,17 @@ namespace BDArmory.UI
             }
             x = vessel.transform.position;
             Debug.Log($"DEBUG {Time.time}: After {duration}s ({steps}*{dt}={steps * dt}), Actual x = {x}, Forward Euler predicts x = {x0} (Δ = {(x - x0).magnitude}), Semi-implicit Euler predicts x = {x1} (Δ = {(x - x1).magnitude}), Leap-frog predicts x = {x2} (Δ = {(x - x2).magnitude})");
+        }
+
+        public static void TestActiveController()
+        {
+            Vessel vessel = FlightGlobals.ActiveVessel;
+            var watch = new System.Diagnostics.Stopwatch();
+            float µsResolution = 1e6f / System.Diagnostics.Stopwatch.Frequency;
+            Debug.Log($"DEBUG Clock resolution: {µsResolution}µs, {PROF_N} outer loops, {PROF_n} inner loops");
+            ActiveController activeController = null;
+            var func = [MethodImpl(MethodImplOptions.AggressiveInlining)] () => { for (int i = 0; i < PROF_n; ++i) { activeController = vessel.ActiveController(); } };
+            Debug.Log($"DEBUG vessel.ActiveController() took {ProfileFunc(func, PROF_N) / PROF_n:G3}µs to give {activeController} with hash {(uint)activeController.GetHashCode()}");
         }
 
         public static void TestUp()

@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Runtime.CompilerServices;
 
 using BDArmory.Settings;
 using BDArmory.Utils;
@@ -237,6 +238,7 @@ namespace BDArmory.Extensions
             return vessel.FindVesselModuleImplementing<T>();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ActiveController ActiveController(this Vessel vessel) => Utils.ActiveController.GetActiveController(vessel);
     }
 }

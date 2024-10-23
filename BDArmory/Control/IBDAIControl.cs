@@ -2,6 +2,7 @@
 
 namespace BDArmory.Control
 {
+    public enum AIType { GenericAI, PilotAI, SurfaceAI, VTOLAI, OrbitalAI };
     public interface IBDAIControl
     {
         #region PartModule
@@ -11,6 +12,8 @@ namespace BDArmory.Control
         Part part { get; }
 
         #endregion PartModule
+
+        AIType aiType { get; }
 
         /// <summary>
         /// The weapon manager the AI connects to.

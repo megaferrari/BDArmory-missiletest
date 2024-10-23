@@ -20,6 +20,7 @@ namespace BDArmory.Control
         // Code contained within this file is adapted from Hatbat, Spartwo and MiffedStarfish's Kerbal Combat Systems Mod https://github.com/Halbann/StockCombatAI/tree/dev/Source/KerbalCombatSystems.
         // Code is distributed under CC-BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/
 
+        public override AIType aiType => AIType.OrbitalAI;
         #region Declarations
 
         // Orbiter AI variables.

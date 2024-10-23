@@ -21,6 +21,7 @@ namespace BDArmory.Control
 {
     public class BDModulePilotAI : BDGenericAIBase, IBDAIControl
     {
+        public override AIType aiType => AIType.PilotAI;
         #region Pilot AI Settings GUI
         #region PID
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_AI_SteerPower", //Steer Factor
