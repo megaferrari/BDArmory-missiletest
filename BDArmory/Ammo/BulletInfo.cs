@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BDArmory.Utils;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -31,7 +32,9 @@ namespace BDArmory.Bullets
         public float projectileTTL { get; private set; }
         public float apBulletMod { get; private set; }
         public string bulletDragTypeName { get; private set; }
+        public Color projectileColorC { get; private set; }
         public string projectileColor { get; private set; }
+        public Color startColorC { get; private set; }
         public string startColor { get; private set; }
         public bool fadeColor { get; private set; }
         // Parsed types
@@ -75,7 +78,9 @@ namespace BDArmory.Bullets
             this.projectileTTL = projectileTTL;
             this.bulletDragTypeName = bulletDragTypeName;
             this.projectileColor = projectileColor;
+            this.projectileColorC = GUIUtils.ParseColor255(projectileColor);
             this.startColor = startColor;
+            this.startColorC = GUIUtils.ParseColor255(startColor);
             this.fadeColor = fadeColor;
         }
 
@@ -112,7 +117,7 @@ namespace BDArmory.Bullets
                         (float)ParseField(node, "massMod", typeof(float)),
                         (float)ParseField(node, "impulse", typeof(float)),
                         (string)ParseField(node, "fuzeType", typeof(string)),
-                        (float)ParseField(node, "guidanceDPS", typeof(float)),
+                        (float)ParseField(node, "guidanceDPS", typeof(float)),                        
                         (float)ParseField(node, "apBulletMod", typeof(float)),
                         Math.Max((int)ParseField(node, "projectileCount", typeof(int)), 1),
                         -1,

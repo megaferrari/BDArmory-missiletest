@@ -16,6 +16,7 @@ namespace BDArmory.Armor
         public string armorName = "Reactive Armor";
 
         Transform[] sections;
+        int[] sectionIndexes;
 
         [KSPField]
         public bool NXRA = false; //non-explosive reactive armor?
@@ -29,8 +30,33 @@ namespace BDArmory.Armor
         [KSPField]
         public float armorModifier = 1.25f; //armor thickness modifier
 
+        [KSPField]
+        public float ERAflyerPlateHalfDimension = 0.25f; //half of the average length of the flyer plate
+
+        [KSPField]
+        public float ERAgurneyConstant = 2700f; //gurney specific energy of the ERA, equal to sqrt(2E) (in m/s)
+
+        [KSPField]
+        public float ERArelativeEffectiveness = 1.72f; //tnt RE of the ERA explosive
+
+        [KSPField]
+        public float ERAexplosiveMass = 5f; //ERA explosive mass (in kg)
+
+        [KSPField]
+        public float ERAexplosiveDensity = 1650f; //ERA explosive density (in kg/m^3)
+
+        [KSPField]
+        public bool ERAbackingPlate = true; //backing plate ?
+
+        [KSPField]
+        public float ERAspacing = 0.25f; //spacing between back plate and armor
+
+        [KSPField]
+        public float ERAdetonationDelay = 50f; //detonation delay (in microseconds)
+
         public int sectionsRemaining = 1;
         private int sectionsCount = 1;
+        public float ERAexplosiveThickness { get; private set; } = -1f;
 
         Vector3 direction = default(Vector3);
 
@@ -52,13 +78,16 @@ namespace BDArmory.Armor
             Transform segmentsTransform = part.FindModelTransform(sectionTransformName);
             sectionsCount = segmentsTransform.childCount;
             sections = new Transform[sectionsCount];
+            sectionIndexes = new int[sectionsCount];
             for (int i = 0; i < sectionsCount; i++)
             {
                 string sectionName = segmentsTransform.GetChild(i).name;
                 int sectionIndex = int.Parse(sectionName.Substring(8)) - 1;
                 sections[sectionIndex] = segmentsTransform.GetChild(i);
+                sectionIndexes[sectionIndex] = i;
             }
-            sections.Shuffle(); //randomize order sections get removed
+            sectionIndexes.Shuffle();
+            //sections.Shuffle(); //randomize order sections get removed
             sectionsRemaining = sectionsCount;
             var HP = part.FindModuleImplementing<HitpointTracker>();
             if (HP != null)
@@ -67,16 +96,45 @@ namespace BDArmory.Armor
                 HP.Hitpoints = (sectionsCount * SectionHP); 
                 HP.SetupPrefab(); //and update hitpoint slider
             }
+
+            if (ERAbackingPlate)
+            {
+                ERAexplosiveThickness = 1000f * (ERAexplosiveMass / (ERAflyerPlateHalfDimension * ERAflyerPlateHalfDimension * ERAexplosiveDensity));
+            }
         }
 
-        public void UpdateSectionScales()
+        public void UpdateSectionScales(int sectionDestroyed = -1, bool directionInput = false, Vector3 directionIn = default)
         {
-            direction = -sections[sectionsRemaining-1].up; 
+            int destroyedIndex = -1;
+            if (sectionDestroyed < 0)
+                for (int i = 0; i < sectionsCount; ++i)
+                {
+                    sectionDestroyed = sectionIndexes[i];
+                    if (sectionDestroyed >= 0)
+                    {
+                        destroyedIndex = i;
+                        break;
+                    }
+                }
+            else
+                for (int i = 0; i < sectionsCount; ++i)
+                {
+                    if (sectionDestroyed == sectionIndexes[i])
+                    {
+                        destroyedIndex = i;
+                        break;
+                    }
+                }
 
-            ExplosionFx.CreateExplosion(sections[sectionsRemaining - 1].transform.position, 1, ExploModelPath, explSoundPath, ExplosionSourceType.BattleDamage, 30, part, SourceVessel, null, armorName, direction, 30, true);
-            if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log("[BDArmory.ReactiveArmor]: Removing section, " + sectionsRemaining + " sections left");
+            if (directionInput)
+                direction = -directionIn;
+            else
+                direction = -sections[sectionDestroyed].forward;
+
+            ExplosionFx.CreateExplosion(sections[sectionDestroyed].transform.position, ERAexplosiveMass * ERArelativeEffectiveness * (ERAbackingPlate ? 1.5f: 1f), ExploModelPath, explSoundPath, ExplosionSourceType.BattleDamage, 30, part, SourceVessel, null, armorName, direction, 30, true);
+            if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log($"[BDArmory.ReactiveArmor]: Removing section: {sectionDestroyed}, " + sectionsRemaining + " sections left");
             sectionsRemaining--;
-            if (sectionsRemaining < 1)
+            if (sectionsRemaining < 1 || destroyedIndex < 0)
             {
                 part.Destroy();
             }
@@ -89,11 +147,14 @@ namespace BDArmory.Armor
                 }
                 if (HP.Hitpoints < 0) part.Destroy();
             }
-            for (int i = 0; i < sectionsCount; i++)
+                
+            sections[sectionDestroyed].localScale = Vector3.zero;
+            sectionIndexes[destroyedIndex] = -1;
+            /*for (int i = 0; i < sectionsCount; i++)
             {
                 if (i < sectionsRemaining) sections[i].localScale = Vector3.one;
                 else sections[i].localScale = Vector3.zero;
-            }
+            }*/
         }
     }
 }

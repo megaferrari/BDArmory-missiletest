@@ -195,9 +195,11 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static float EXP_IMP_MOD = 0.25f;
         [BDAPersistentSettingsField] public static float BUILDING_DMG_MULTIPLIER = 1f;
         [BDAPersistentSettingsField] public static bool EXTRA_DAMAGE_SLIDERS = false;
+        [BDAPersistentSettingsField] public static float HEAT_CONE_HALF_ANGLE = 2.5f;
         [BDAPersistentSettingsField] public static float WEAPON_FX_DURATION = 15;               //how long do weapon secondary effects(EMP/choker/gravitic/etc) last
         [BDAPersistentSettingsField] public static float ZOMBIE_DMG_MULT = 0.1f;
         [BDAPersistentSettingsField] public static float ARMOR_MASS_MOD = 1f;                   //Armor mass multiplier
+        [BDAPersistentSettingsField] public static bool KERBAL_ERA = true;
         #endregion
 
         #region FX
@@ -477,6 +479,9 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static float CHAFF_FACTOR = 0.65f;                       // Change this to make chaff more or less effective. Higher values will make chaff batter, lower values will make chaff worse.
         [BDAPersistentSettingsField] public static float SMOKE_DEFLECTION_FACTOR = 10f;
         [BDAPersistentSettingsField] public static int APS_THRESHOLD = 60;                           // Threshold caliber that APS will register for intercepting hostile shells/rockets
+        #endregion
+        #region ProjectShowdown Stuff
+        [BDAPersistentSettingsField] public static bool COMP_CONVENIENCE_CHECKS = false;
         #endregion
     }
 }

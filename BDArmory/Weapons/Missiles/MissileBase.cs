@@ -468,7 +468,7 @@ namespace BDArmory.Weapons.Missiles
         public VesselRadarData vrd;
         public TargetSignatureData radarTarget;
         private TargetSignatureData[] scannedTargets;
-        public MissileFire TargetMf = null;
+        //public MissileFire TargetMf = null; //not actually used by anything
         private LineRenderer LR;
 
         //INS stuff
@@ -767,7 +767,7 @@ namespace BDArmory.Weapons.Missiles
                     lookRay = new Ray(lookRay.origin, Vector3.RotateTowards(lookRay.direction, GetForwardTransform(), (offBoresightAngle - maxOffBoresight) * Mathf.Deg2Rad, 0));
 
                 DrawDebugLine(lookRay.origin, lookRay.origin + lookRay.direction * 10000, predictedHeatTarget.exists ? Color.magenta : heatTarget.exists ? Color.yellow : Color.blue);
-                //Debug.Log($"[MissileBase] offboresightAngle {offBoresightAngle > maxOffBoresight}; lockFailtimer: {lockFailTimer}; heatTarget? {heatTarget.exists}; predictedheattaret? {predictedHeatTarget.exists}");
+                //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[MissileBase] offboresightAngle {offBoresightAngle > maxOffBoresight}; lockFailtimer: {lockFailTimer}; heatTarget? {heatTarget.exists}; predictedheattaret? {predictedHeatTarget.exists}; heatTarget vessel {(heatTarget.exists && heatTarget.vessel != null ? heatTarget.vessel.name : "null")}");
                 // Update heat target
                 if (activeRadarRange < 0)
                     heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, lookRay, predictedHeatTarget, lockedSensorFOV / 2, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias,
@@ -867,7 +867,7 @@ namespace BDArmory.Weapons.Missiles
             {
                 ModuleTargetingCamera foundCam = null;
                 bool parentOnly = (GuidanceMode == GuidanceModes.BeamRiding);
-                foundCam = BDATargetManager.GetLaserTarget(this, parentOnly);
+                foundCam = BDATargetManager.GetLaserTarget(this, parentOnly, Team);
                 if (foundCam != null && foundCam.cameraEnabled && foundCam.groundStabilized && BDATargetManager.CanSeePosition(foundCam.groundTargetPosition, vessel.transform.position, MissileReferenceTransform.position))
                 {
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileBase]: Laser guided missileBase actively found laser point. Enabling guidance.");
@@ -1642,11 +1642,11 @@ namespace BDArmory.Weapons.Missiles
                             if (TimeIndex > 1f)
                             {
                                 Ray rayFuturePosition = new Ray(vessel.CoM, missileDistancePerFrame);
-                                float dist = Time.fixedDeltaTime * (float)vessel.Velocity().magnitude;
-                                var hitCount = Physics.RaycastNonAlloc(rayFuturePosition, proximityHits, dist, layerMask);
+                                //float dist = Time.fixedDeltaTime * (float)vessel.Velocity().magnitude;
+                                var hitCount = Physics.RaycastNonAlloc(rayFuturePosition, proximityHits, relativeSpeed, layerMask);
                                 if (hitCount == proximityHits.Length) // If there's a whole bunch of stuff in the way (unlikely), then we need to increase the size of our hits buffer.
                                 {
-                                    proximityHits = Physics.RaycastAll(rayFuturePosition, dist, layerMask);
+                                    proximityHits = Physics.RaycastAll(rayFuturePosition, relativeSpeed, layerMask);
                                     hitCount = proximityHits.Length;
                                 }
                                 if (hitCount > 0)
@@ -1668,7 +1668,7 @@ namespace BDArmory.Weapons.Missiles
                                                 if (hitPart.vessel != SourceVessel && hitPart.vessel != vessel)
                                                 {
                                                     //We found a hit to other vessel, set transform.position to hit point (moves immediately, but doesn't update .CoM fields, etc)
-                                                    vessel.SetPosition(hit.point - 0.5f * rayFuturePosition.direction);
+                                                    vessel.SetPosition(hit.point - 0.1f * rayFuturePosition.direction);
                                                     DetonationDistanceState = DetonationDistanceStates.Detonate;
                                                     Detonate();
                                                     return;
@@ -1700,7 +1700,7 @@ namespace BDArmory.Weapons.Missiles
                                         ray.origin += selfRad * ray.direction; // Start at the tip of the missile (assuming it's pointing roughly prograde in the relVel direction and is longest on that axis).
                                         if (Physics.Raycast(ray, out RaycastHit hit, relativeSpeed, (int)(LayerMasks.Parts | LayerMasks.EVA | LayerMasks.Wheels))) // Hit!
                                         {
-                                            vessel.SetPosition(hit.point - 0.5f * ray.direction); // Slightly back so that shaped charge explosives hit properly.
+                                            vessel.SetPosition(hit.point - 0.1f * ray.direction); // Slightly back so that shaped charge explosives hit properly.
                                             shouldDetonate = true;
                                         }
                                         else // Not hitting, just getting close, check for reaching CPA.
