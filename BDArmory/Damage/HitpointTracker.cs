@@ -403,6 +403,13 @@ namespace BDArmory.Damage
                     //UI_ProgressBar Armorleft = (UI_ProgressBar)Fields["ArmorRemaining"].uiControlFlight;
                     //Armorleft.scene = UI_Scene.None;
                 }
+                if (part.Modules.Contains("ModuleReactiveArmor"))
+                {
+                    Fields["Armor"].guiActiveEditor = false;
+                    Fields["ArmorTypeNum"].guiActiveEditor = false;
+                    Fields["armorCost"].guiActiveEditor = false;
+                    Fields["armorMass"].guiActiveEditor = false;
+                }
                 if (part.IsMissile())
                 {
                     Fields["ArmorTypeNum"].guiActiveEditor = false;
@@ -1009,14 +1016,17 @@ namespace BDArmory.Damage
                                     hitpoints = aeroVolume * 1200;
                                     if (HighLogic.LoadedSceneIsFlight)
                                     {
-                                        var lift = part.FindModuleImplementing<ModuleLiftingSurface>();
-                                        if (lift != null) lift.deflectionLiftCoeff = 0;
-                                        DragCube DragCube = DragCubeSystem.Instance.RenderProceduralDragCube(part);
-                                        part.DragCubes.ClearCubes();
-                                        part.DragCubes.Cubes.Add(DragCube);
-                                        part.DragCubes.ResetCubeWeights();
-                                        part.DragCubes.ForceUpdate(true, true, false);
-                                        part.DragCubes.SetDragWeights();
+                                        if (FerramAerospace.CheckForFAR())
+                                        {
+                                            var lift = part.FindModuleImplementing<ModuleLiftingSurface>();
+                                            if (lift != null) lift.deflectionLiftCoeff = 0;
+                                            DragCube DragCube = DragCubeSystem.Instance.RenderProceduralDragCube(part);
+                                            part.DragCubes.ClearCubes();
+                                            part.DragCubes.Cubes.Add(DragCube);
+                                            part.DragCubes.ResetCubeWeights();
+                                            part.DragCubes.ForceUpdate(true, true, false);
+                                            part.DragCubes.SetDragWeights();
+                                        }
                                     }
                                 }
                                 if (BDArmorySettings.RUNWAY_PROJECT_ROUND == 60) hitpoints = Mathf.Min(500, hitpoints);
@@ -1158,9 +1168,10 @@ namespace BDArmory.Damage
         {
             if (BDArmorySettings.DEBUG_ARMOR)
             {
-                Debug.Log("[HPTracker] armor mass: " + armorMass + "; mass to reduce: " + (massToReduce * Math.Round((Density / 1000000), 3)) * BDArmorySettings.ARMOR_MASS_MOD + "kg"); //g/m3
+                Debug.Log("[HPTracker] armor mass: " + armorMass * 1000 + "kg; mass to reduce: " + (massToReduce * Math.Round((Density / 1000000), 3)) * BDArmorySettings.ARMOR_MASS_MOD + "kg"); //g/m3
             }
             float reduceMass = (massToReduce * (Density / 1000000000)); //g/cm3 conversion to yield tons
+            if (armorMass < reduceMass) reduceMass = armorMass; //shouldn't be happening, but just in case
             if (totalArmorQty > 0)
             {
                 //Armor -= ((reduceMass * 2) / armorMass) * Armor; //armor that's 50% air isn't going to stop anything and could be considered 'destroyed' so lets reflect that by doubling armor loss (this will also nerf armor panels from 'god-tier' to merely 'very very good'
@@ -1419,7 +1430,7 @@ namespace BDArmory.Damage
         {
             //if (isAI) return; //replace with newer implementation
             if (BDArmorySettings.LEGACY_ARMOR || BDArmorySettings.RESET_ARMOUR) return;
-            if (part.IsMissile()) return;
+            if (part.IsMissile() || part.Modules.Contains("ModuleReactiveArmor")) return;
             if (ArmorTypeNum != (ArmorInfo.armors.FindIndex(t => t.name == "None") + 1) || ArmorPanel)
             {
                 /*

@@ -660,16 +660,24 @@ namespace BDArmory.Radar
                 : 0;
         }
 
-        private void UpdateSlaveData()
+        private bool UpdateSlaveData()
         {
-            if (!slaveTurrets || !weaponManager) return;
+            if (!weaponManager)
+            {
+                return false;
+            }
+            if (!slaveTurrets || !locked)
+            {
+                weaponManager.slavedTarget = TargetSignatureData.noTarget;
+                return false;
+            }
             weaponManager.slavingTurrets = true;
-            if (!locked) return;
             TargetSignatureData lockedTarget = lockedTargetData.targetData;
             weaponManager.slavedPosition = lockedTarget.predictedPositionWithChaffFactor(lockedTargetData.detectedByRadar.radarChaffClutterFactor);
             weaponManager.slavedVelocity = lockedTarget.velocity;
             weaponManager.slavedAcceleration = lockedTarget.acceleration;
             weaponManager.slavedTarget = lockedTarget;
+            return true;
             //This is only slaving turrets if there's a radar lock on the WM's guardTarget
             //no radar-guided gunnery for scan radars?
             //what about multiple turret multitarget tracking?
@@ -708,7 +716,10 @@ namespace BDArmory.Radar
 
                 CleanDisplayedContacts();
 
-                UpdateSlaveData();
+                if (!UpdateSlaveData() && slaveTurrets)
+                {
+                    UnslaveTurrets();
+                }
             }
             else
             {
@@ -1018,7 +1029,7 @@ namespace BDArmory.Radar
 
             if (resizingWindow && Event.current.type == EventType.MouseUp) { resizingWindow = false; }
             const string windowTitle = "Radar";
-            if (BDArmorySettings.UI_SCALE != 1) GUIUtility.ScaleAroundPivot(BDArmorySettings.UI_SCALE * Vector2.one, BDArmorySetup.WindowRectRadar.position);
+            if (BDArmorySettings._UI_SCALE != 1) GUIUtility.ScaleAroundPivot(BDArmorySettings._UI_SCALE * Vector2.one, BDArmorySetup.WindowRectRadar.position);
             BDArmorySetup.WindowRectRadar = GUI.Window(524141, BDArmorySetup.WindowRectRadar, WindowRadar, windowTitle, GUI.skin.window);
             GUIUtils.UseMouseEventInRect(BDArmorySetup.WindowRectRadar);
 
@@ -1319,7 +1330,7 @@ namespace BDArmory.Radar
             {
                 if (Mouse.delta.x != 0 || Mouse.delta.y != 0)
                 {
-                    float diff = (Mathf.Abs(Mouse.delta.x) > Mathf.Abs(Mouse.delta.y) ? Mouse.delta.x : Mouse.delta.y) / BDArmorySettings.UI_SCALE;
+                    float diff = (Mathf.Abs(Mouse.delta.x) > Mathf.Abs(Mouse.delta.y) ? Mouse.delta.x : Mouse.delta.y) / BDArmorySettings._UI_SCALE;
                     BDArmorySettings.RADAR_WINDOW_SCALE = Mathf.Clamp(BDArmorySettings.RADAR_WINDOW_SCALE + diff / RadarScreenSize, BDArmorySettings.RADAR_WINDOW_SCALE_MIN, BDArmorySettings.RADAR_WINDOW_SCALE_MAX);
                     BDArmorySetup.ResizeRadarWindow(BDArmorySettings.RADAR_WINDOW_SCALE);
                 }
@@ -1754,8 +1765,8 @@ namespace BDArmory.Radar
             rData.signalPersistTime = radar.signalPersistTime;
             rData.detectedByRadar = radar;
             rData.locked = _locked;
-            rData.targetData = contactData;
             contactData.lockedByRadar = radar;
+            rData.targetData = contactData;
             rData.pingPosition = UpdatedPingPosition(contactData.position, radar);
 
             if (_locked)

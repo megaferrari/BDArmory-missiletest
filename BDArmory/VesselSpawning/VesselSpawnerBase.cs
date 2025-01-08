@@ -196,6 +196,11 @@ namespace BDArmory.VesselSpawning
                     spawnPoint = hit.point + (float)spawnConfig.altitude * hit.normal;
                 }
             }
+            else
+            {
+                yield return waitForFixedUpdate; // Wait a couple of frames so that the floating origin shift has time to do its thing.
+                yield return waitForFixedUpdate;
+            }
         }
         #endregion
 
@@ -980,6 +985,7 @@ namespace BDArmory.VesselSpawning
                 if (BDArmorySettings.MUTATOR_MODE) SpawnUtils.ApplyMutators(vessel, true);
                 if (BDArmorySettings.ENABLE_HOS) SpawnUtils.ApplyHOS(vessel);
                 if (BDArmorySettings.RUNWAY_PROJECT) SpawnUtils.ApplyRWP(vessel);
+                if (BDArmorySettings.COMP_CONVENIENCE_CHECKS) SpawnUtils.ApplyCompSettingsChecks(vessel);
             }
 
             // Update the ramming information for the new vessel.
