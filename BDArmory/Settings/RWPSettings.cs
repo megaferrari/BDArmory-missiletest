@@ -42,6 +42,7 @@ namespace BDArmory.Settings
 				{"VESSEL_SPAWN_REASSIGN_TEAMS", true},
 				{"OUT_OF_AMMO_KILL_TIME", 60},
 				{"BATTLEDAMAGE", true},
+				{"PWING_EDGE_LIFT", true},
 			}},
 			{17, new(){}},
 			{33, new(){}},
