@@ -266,17 +266,12 @@ namespace BDArmory.Utils
                         {
 							aeroVolume = (0.786f * length * (width / 2) * Mathf.Clamp(adjustedThickness, 0, 0.275f)); //original .7 was based on errorneous 2x4 wingboard dimensions; stock reference wing area is 1.875x3.75m
 							liftCoeff = (length * (width / 2f)) / 3.52f;
-                        }
-                            if (!FerramAerospace.CheckForFAR()) part.Modules.GetModule<ModuleLiftingSurface>().deflectionLiftCoeff = (float)Math.Round(liftCoeff, 2);
+                        }                            
                         if (!ctrlSrf && !WingctrlSrf)
                             PWType.GetField("aeroUIMass", BindingFlags.Public | BindingFlags.Instance).SetValue(module, ((float)liftCoeff / 10f) * (adjustedThickness * 5.6f)); //Adjust PWing GUI mass readout
                         else
                             PWType.GetField("aeroUIMass", BindingFlags.Public | BindingFlags.Instance).SetValue(module, ((float)liftCoeff / 5f) * (adjustedThickness * 5.6f)); //this modifies the IPartMassModifier, so the mass will also change along with the GUI
-                        if (BDArmorySettings.RUNWAY_PROJECT)
-                        {
-                            liftCoeff = Mathf.Clamp((float)liftCoeff, 0, BDArmorySettings.MAX_PWING_LIFT); //if Runway Project, check lift is within limit and clamp if not
-                            //f (!WingctrlSrf && !ctrlSrf) PWType.GetField("sharedBaseOffsetRoot", BindingFlags.Public | BindingFlags.Instance).SetValue(module, 0); //irrelevant in pWing 0.46.7
-                        }
+
                         if (BDArmorySettings.PWING_THICKNESS_AFFECT_MASS_HP)
                         {
                             liftCoeff *= (1 - ((adjustedThickness - 0.188f) / ((width + ((BDArmorySettings.PWING_EDGE_LIFT || ctrlSrf) ? edgeWidth : 0)) / 2))); //adjust lift coeff based on Thickness to Chord Ratio. Loggins lift nerf for spherical/near-spherical wing crossections
@@ -284,6 +279,12 @@ namespace BDArmory.Utils
                             if (HighLogic.LoadedSceneIsFlight) if (Mathf.Abs(Vector3.Dot(part.vessel.ReferenceTransform.up, part.transform.right)) > 0.85) liftCoeff /= 2; //something something a wing rotated 90deg would only be generating body lift due to airfoil now perpendicular to airflow. Loggins pWing body nerf
                             if (HighLogic.LoadedSceneIsEditor) if (Mathf.Abs(Vector3.Dot(EditorLogic.fetch.vesselRotation * Vector3d.up, part.transform.right)) > 0.85) liftCoeff /= 2;
                         }
+                        if (BDArmorySettings.RUNWAY_PROJECT)
+                        {
+                            liftCoeff = Mathf.Clamp((float)liftCoeff, 0, BDArmorySettings.MAX_PWING_LIFT); //if Runway Project, check lift is within limit and clamp if not
+                            //f (!WingctrlSrf && !ctrlSrf) PWType.GetField("sharedBaseOffsetRoot", BindingFlags.Public | BindingFlags.Instance).SetValue(module, 0); //irrelevant in pWing 0.46.7                            
+                        }
+                        if (!FerramAerospace.CheckForFAR()) part.Modules.GetModule<ModuleLiftingSurface>().deflectionLiftCoeff = (float)Math.Round(liftCoeff, 2);
                         PWType.GetField("stockLiftCoefficient", BindingFlags.Public | BindingFlags.Instance).SetValue(module, isAeroSrf ? (float)liftCoeff : 0f); //adjust PWing GUI lift readout
                         if (part.name.Contains("B9.Aero.Wing.Procedural.Panel") || !isAeroSrf) //if Josue's noLift PWings PR never gets folded in, here's an alternative using an MM'ed PWing structural panel part
                         {

@@ -837,6 +837,10 @@ namespace BDArmory.UI
                 RWPSettings.Load();
                 CompSettings.Load();
                 BDArmorySettings.ready = true;
+                if (BDAEditorArmorWindow.Instance)
+                {
+                    BDAEditorArmorWindow.Instance.SetupLegalityValues();
+                }
             }
             catch (NullReferenceException e)
             {

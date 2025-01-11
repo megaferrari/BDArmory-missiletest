@@ -9,6 +9,7 @@ using BDArmory.Damage;
 using BDArmory.Extensions;
 using BDArmory.Settings;
 using BDArmory.Utils;
+using System.Text;
 
 namespace BDArmory.UI
 {
@@ -95,6 +96,15 @@ namespace BDArmory.UI
         private float relValue = 1;
         private float exploValue;
 
+        //comp rules compliance stuff
+        float maxStacking = -1;
+        int maxPartCount = -1;
+        float maxLtW = -1;
+        float maxTWR = -1;
+        float maxMass = -1;
+        int maxEngines = -1;
+        int pointBuyBudget = -1;
+
         Dictionary<string, NumericInputField> thicknessField;
         void Awake()
         {
@@ -112,6 +122,7 @@ namespace BDArmory.UI
             vesselResourceIDs = new List<int>();
             vesselResources = new List<PartResourceDefinition>();
             GameEvents.onEditorShipModified.Add(OnEditorShipModifiedEvent);
+            GameEvents.onEditorPartPlaced.Add(OnEditorPartPlacedEvent);
             /*
             var modifiedCaliber = (15) + (15) * (2f * 0.15f * 0.15f);
             float bulletEnergy = ProjectileUtils.CalculateProjectileEnergy(0.388f, 1109);
@@ -127,6 +138,7 @@ namespace BDArmory.UI
             exploValue = 940 * 1.15f * 7.85f;
             listStyle = new GUIStyle(BDArmorySetup.BDGuiSkin.button);
             listStyle.fixedHeight = 18; //make list contents slightly smaller
+            SetupLegalityValues();
         }
 
         private void FillArmorList()
@@ -151,6 +163,23 @@ namespace BDArmory.UI
 
             hullBoxText = new GUIContent();
             hullBoxText.text = StringUtils.Localize("#LOC_BDArmory_Armor_HullType");
+        }
+
+        public void SetupLegalityValues()
+        {
+            if (BDArmorySettings.COMP_CONVENIENCE_CHECKS || BDArmorySettings.RUNWAY_PROJECT)
+            {
+                if (CompSettings.CompVesselChecksEnabled)
+                {
+                    if (CompSettings.vesselChecks.TryGetValue("maxStacking", out float ms) && ms > 0) maxStacking = ms;
+                    if (CompSettings.vesselChecks.TryGetValue("maxPartCount", out float mpc) && mpc > 0) maxPartCount = Mathf.RoundToInt(mpc);
+                    if (CompSettings.vesselChecks.TryGetValue("maxLtW", out float ltw) && mpc > 0) maxLtW = ltw;
+                    if (CompSettings.vesselChecks.TryGetValue("maxTWR", out float twr) && mpc > 0) maxTWR = twr;
+                    if (CompSettings.vesselChecks.TryGetValue("maxMass", out float m) && m > 0) maxMass = m;
+                    if (CompSettings.vesselChecks.TryGetValue("maxEngines", out float me) && me > 0) maxEngines = Mathf.RoundToInt(me);
+                }
+                if (CompSettings.CompPriceChecksEnabled && CompSettings.vesselChecks.TryGetValue("pointBuyBudget", out float pb) && pb > 0) pointBuyBudget = Mathf.RoundToInt(pb);
+            }
         }
 
         private void OnEditorShipModifiedEvent(ShipConstruct data)
@@ -238,11 +267,19 @@ namespace BDArmory.UI
                     CalculateTotalLift(); // Re-calculate lift and wing loading on armor change
                 //Debug.Log("[ArmorTool] Recalculating mass/lift");
             }
+            DoVesselLegalityChecks(false); 
+        }
+
+        private void OnEditorPartPlacedEvent(Part data)
+        {
+            if (data is null) return;
+            DoVesselLegalityChecks(true);
         }
 
         private void OnDestroy()
         {
             GameEvents.onEditorShipModified.Remove(OnEditorShipModifiedEvent);
+            GameEvents.onEditorPartPlaced.Remove(OnEditorPartPlacedEvent);
             HideToolbarGUINow();
             if (toolbarButton)
             {
@@ -646,6 +683,14 @@ namespace BDArmory.UI
                 }
             }
             line += 0.5f;
+            if ((BDArmorySettings.RUNWAY_PROJECT || BDArmorySettings.COMP_CONVENIENCE_CHECKS) && (CompSettings.CompBanChecksEnabled || CompSettings.CompPriceChecksEnabled || CompSettings.CompVesselChecksEnabled))
+            {
+                if (GUI.Button(new Rect(10, (line + armorLines + StatLines + HullLines) * lineHeight, 280, lineHeight), "Check Vessel Legality", BDArmorySetup.ButtonStyle))
+                {
+                    DoVesselLegalityChecks(true, true);
+                }
+                line += 1.5f;
+            }
             GUI.DragWindow();
             height = Mathf.Lerp(height, (line + armorLines + StatLines + HullLines) * lineHeight, 0.15f);
             windowRect.height = height;
@@ -974,7 +1019,7 @@ namespace BDArmory.UI
             {
                 using (List<Part>.Enumerator parts = EditorLogic.fetch.ship.Parts.GetEnumerator())
                     while (parts.MoveNext())
-                    {
+                    {                        
                         if (parts.Current.name.Contains("conformaldecals")) continue;
                         HitpointTracker a = parts.Current.GetComponent<HitpointTracker>();
                         if (a != null)
@@ -992,7 +1037,13 @@ namespace BDArmory.UI
                             {
                                 ModuleLiftingSurface wing = parts.Current.GetComponent<ModuleLiftingSurface>();
                                 if (wing != null && wing.deflectionLiftCoeff > 0f)
+                                {
                                     VisualizerColor = Color.HSVToRGB(Mathf.Clamp01(Mathf.Log10(wing.deflectionLiftCoeff + 1f)) / 3, 1, 1);
+                                    if (BDArmorySettings.MAX_PWING_LIFT > 0 && parts.Current.name.Contains("B9.Aero.Wing.Procedural") && wing.deflectionLiftCoeff >= BDArmorySettings.MAX_PWING_LIFT)
+                                    {
+                                        VisualizerColor = Color.magenta;
+                                    }
+                                }
                                 else
                                     VisualizerColor = Color.HSVToRGB(0, 0, 0.5f);
                             }
@@ -1121,6 +1172,179 @@ namespace BDArmory.UI
             refreshVisualizer = false;
             refreshHPvisualizer = false;
             refreshHullvisualizer = false;
+        }
+
+        float priceCkeckoout = 0;
+        Dictionary<string, List<Part>> partLimitCheck = new Dictionary<string, List<Part>>(); 
+        string boughtParts = "";
+        string engineparts = "";
+        int engineCount = 0;
+        string blacklistedParts = "";
+        bool notOnPriceList = false;
+        int oversizedPWings = 0;
+        float maxThrust = 0;
+        void DoVesselLegalityChecks(bool refreshParts, bool buttonTest = false)
+        {
+            if ((BDArmorySettings.RUNWAY_PROJECT || BDArmorySettings.COMP_CONVENIENCE_CHECKS) && (CompSettings.CompBanChecksEnabled || CompSettings.CompPriceChecksEnabled || CompSettings.CompVesselChecksEnabled))
+            {
+                if (refreshParts)
+                {
+                    priceCkeckoout = 0;
+                    partLimitCheck.Clear();
+                    boughtParts = "";
+                    engineparts = "";
+                    engineCount = 0;
+                    maxThrust = 0;
+                    blacklistedParts = "";
+
+                    foreach (var part in EditorLogic.fetch.ship.Parts) //grab a list of parts and their quantity
+                    {
+                        if (partLimitCheck.TryGetValue(part.name, out var qty))
+                            qty.Add(part);
+                        else
+                            partLimitCheck.Add(part.name, new List<Part> { part });
+                    }
+                    //begin evaluation
+                    if (CompSettings.CompBanChecksEnabled) //do we have more limited parts than allowed?
+                    {
+                        foreach (var part in CompSettings.partBlacklist)
+                        {
+                            string partName = part.Key;
+                            int blacklistCount = 0;
+                            if (partName.Contains("*"))
+                            {
+                                partName = partName.Trim('*');
+
+                                foreach (var kvp in partLimitCheck)
+                                {
+                                    if (kvp.Key.Contains(partName))
+                                        blacklistCount += kvp.Value.Count;
+                                }
+                            }
+                            else
+                                if (partLimitCheck.TryGetValue(part.Key, out var qty))
+                                    blacklistCount = qty.Count;
+                            if (CompSettings.partBlacklist.TryGetValue(part.Key, out float bQ) && blacklistCount > bQ)
+                            {
+                                if (!string.IsNullOrEmpty(blacklistedParts)) blacklistedParts += " | ";
+                                blacklistedParts += $"{partName} parts({blacklistCount}/{bQ})"; //is the part on the black list? if so, add to string for messaging illegal parts
+                            }
+                            //Debug.Log($"[VesselCheckDebug] part {kvp.Value[0].partInfo.title} is on blackList, allowed quantity {kvp.Value.Count}/{bQ}");
+                        }
+                    }             
+                    //could just eval the placed part, but that doesn't cover symmetry or subassumblies
+                    foreach (var kvp in partLimitCheck)
+                    {
+                        notOnPriceList = false;
+
+                        if (CompSettings.CompPriceChecksEnabled && pointBuyBudget > 0)// budget check 
+                        {
+                            if (CompSettings.partPointCosts.TryGetValue(kvp.Key, out float pb)) //if the part is in the pricing list
+                            {
+                                if (!string.IsNullOrEmpty(boughtParts)) boughtParts += " | ";
+                                boughtParts += $"{kvp.Value.Count}x {kvp.Value[0].partInfo.title}({kvp.Value.Count * pb})"; //make a note for later
+                                priceCkeckoout += (kvp.Value.Count * pb); //and tally total budget spent so far
+                                //Debug.Log($"[VesselCheckDebug] part {kvp.Value[0].partInfo.title} is on pricelist, cost {pb}x{kvp.Value.Count}({kvp.Value.Count * pb})");
+                            }
+                            else
+                            {
+                                //Debug.Log($"[VesselCheckDebug] part {kvp.Value[0].partInfo.title} is not on pricelist!");
+                                notOnPriceList = true;
+                            }
+                        }
+                        foreach (var partModule in kvp.Value[0].Modules) //weapon whitelist/engine count
+                        {
+                            if (partModule == null) continue;
+                            switch (partModule.moduleName)
+                            {
+                                case "ModuleEngines":
+                                case "ModuleEnginesFX": 
+                                    {
+                                        if (engineparts.Contains(kvp.Value[0].partInfo.title)) break; //don't grab both moduleEngines for dual-mode engines and double-count them
+                                        if (CompSettings.CompVesselChecksEnabled && maxEngines > 0 || maxTWR > 0) 
+                                        {
+                                            if (maxEngines > 0)
+                                            {
+                                                if (!string.IsNullOrEmpty(engineparts)) engineparts += " | ";
+                                                engineparts += $"{kvp.Value.Count}x {kvp.Value[0].partInfo.title}";
+                                                engineCount += kvp.Value.Count;
+                                                Debug.Log($"[VesselCheckDebug] found {kvp.Value.Count} {kvp.Value[0].partInfo.title}");
+                                            }
+                                            if (maxTWR > 0) maxThrust += kvp.Value[0].FindModuleImplementing<ModuleEngines>().maxThrust * kvp.Value.Count;
+                                        }
+                                        break;
+                                    }
+                                case "ModuleWeapon":
+                                case "MissileBase":
+                                case "MissileLauncher":
+                                    {
+                                        if (pointBuyBudget > 0 && notOnPriceList) //if a weapon isn't on the price list, it's banned
+                                        {
+                                            if (!string.IsNullOrEmpty(blacklistedParts)) blacklistedParts += " | ";
+                                            blacklistedParts += $"{kvp.Value[0].partInfo.title}({kvp.Value.Count}/0)";
+                                        }
+                                        break;
+                                    }
+                            }
+                        }
+                    }
+                }
+                foreach (var part in EditorLogic.fetch.ship.Parts) //not ideal, but linking this to Visualizer's parts eval only updates when that does
+                {
+                    if (part.name.Contains("B9.Aero.Wing.Procedural.Type"))
+                    {
+                        ModuleLiftingSurface wing = part.GetComponent<ModuleLiftingSurface>();
+                        if (wing != null && wing.deflectionLiftCoeff > 0f)
+                        {
+                            if (BDArmorySettings.MAX_PWING_LIFT > 0 && wing.deflectionLiftCoeff >= BDArmorySettings.MAX_PWING_LIFT)
+                                oversizedPWings++;
+                        }
+                    }
+                }
+                StringBuilder evaluationstring = new StringBuilder();
+                ScreenMessage vessellegality = new ScreenMessage("", 7.0f, ScreenMessageStyle.LOWER_CENTER);
+                if (CompSettings.CompVesselChecksEnabled)
+                {
+                    if (maxPartCount > 0 && EditorLogic.fetch.ship.Parts.Count > maxPartCount)
+                        evaluationstring.AppendLine($"Part count exceeded! ({EditorLogic.fetch.ship.Parts.Count}/{maxPartCount})");
+                    if (engineCount > 0 && engineCount > maxEngines)
+                        evaluationstring.AppendLine($"Too many Engines: ({engineCount}/{maxEngines}) - {engineparts}");
+                    if (maxTWR > 0 && ((maxThrust / (PhysicsGlobals.GravitationalAcceleration * FlightGlobals.GetHomeBody().GeeASL) * EditorLogic.fetch.ship.GetTotalMass())) > maxLtW) 
+                        evaluationstring.AppendLine($"TWR exceeded: {maxThrust / (EditorLogic.fetch.ship.GetTotalMass() * (PhysicsGlobals.GravitationalAcceleration * FlightGlobals.GetHomeBody().GeeASL))}/{maxTWR}");
+                    if (maxLtW > 0 && wingLoadingWet > maxLtW)
+                        evaluationstring.AppendLine($"LtW exceeded: {wingLoadingWet}/{maxLtW}");
+                    if (maxStacking > 0 && totalLiftStackRatio * 100 > maxStacking)
+                        evaluationstring.AppendLine($"Wing stacking: {Mathf.RoundToInt(totalLiftStackRatio * 100)}/{maxStacking}%");
+                    if (maxMass > 0 && EditorLogic.fetch.ship.GetTotalMass() > maxMass)
+                        evaluationstring.AppendLine($"Mass limit exceeded: {EditorLogic.fetch.ship.GetTotalMass()}/{maxMass}");
+                    //max Dimensions?
+                }
+                if (CompSettings.CompPriceChecksEnabled && pointBuyBudget > 0)
+                {
+                    if (priceCkeckoout > pointBuyBudget)
+                        evaluationstring.AppendLine($"Point Budget exceeded: ({priceCkeckoout}/{pointBuyBudget}) - {boughtParts}");
+                }
+                if (CompSettings.CompVesselChecksEnabled || CompSettings.CompBanChecksEnabled)
+                {
+                    if (!string.IsNullOrEmpty(blacklistedParts))
+                        evaluationstring.AppendLine($"Illegal parts: - {blacklistedParts}");
+                }
+                if (buttonTest)
+                {
+                    if (evaluationstring.Length == 0)
+                        evaluationstring.AppendLine("Vessel legal!");
+                }
+                if (oversizedPWings > 0) //this only updates when Visualizer does...
+                    evaluationstring.AppendLine($"{oversizedPWings} pWings exceeding max Lift - check Lift Visualizer");
+                ScreenMessages.RemoveMessage(vessellegality);
+                vessellegality.textInstance = null;
+                vessellegality.message = evaluationstring.ToString();
+                vessellegality.style = ScreenMessageStyle.UPPER_CENTER;
+
+                ScreenMessages.PostScreenMessage(vessellegality);
+                //todo - draw a GUI line to each illegal part?
+                //Debug.Log($"[VesselCheckDebug] evalString {evaluationstring.ToString()}");
+            }
         }
 
         private void CalculateArmorStats()
