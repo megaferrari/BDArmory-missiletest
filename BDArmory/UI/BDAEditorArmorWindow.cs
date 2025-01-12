@@ -1210,7 +1210,7 @@ namespace BDArmory.UI
                         foreach (var part in CompSettings.partBlacklist)
                         {
                             string partName = part.Key;
-                            int blacklistCount = 0;
+                            int listedpartCount = 0;
                             if (partName.Contains("*"))
                             {
                                 partName = partName.Trim('*');
@@ -1218,18 +1218,26 @@ namespace BDArmory.UI
                                 foreach (var kvp in partLimitCheck)
                                 {
                                     if (kvp.Key.Contains(partName))
-                                        blacklistCount += kvp.Value.Count;
+                                        listedpartCount += kvp.Value.Count;
                                 }
                             }
                             else
                                 if (partLimitCheck.TryGetValue(part.Key, out var qty))
-                                    blacklistCount = qty.Count;
-                            if (CompSettings.partBlacklist.TryGetValue(part.Key, out float bQ) && blacklistCount > bQ)
+                                listedpartCount = qty.Count;
+                            if (CompSettings.partBlacklist.TryGetValue(part.Key, out float bQ))
                             {
-                                if (!string.IsNullOrEmpty(blacklistedParts)) blacklistedParts += " | ";
-                                blacklistedParts += $"{partName} parts({blacklistCount}/{bQ})"; //is the part on the black list? if so, add to string for messaging illegal parts
+                                if (bQ >= 0 && listedpartCount > bQ)
+                                {
+                                    if (!string.IsNullOrEmpty(blacklistedParts)) blacklistedParts += " | ";
+                                    blacklistedParts += $"{partName} parts({listedpartCount}/{bQ})"; //is the part on the black list? if so, add to string for messaging illegal parts
+                                }
+                                if (bQ < 0 && listedpartCount < Mathf.Abs(bQ))
+                                {
+                                    if (!string.IsNullOrEmpty(blacklistedParts)) blacklistedParts += " | ";
+                                    blacklistedParts += $"{partName} missing({listedpartCount}/{Mathf.Abs(bQ)})"; //is the part on the white list? if so, add to string for messaging missing parts
+                                }
+                                //Debug.Log($"[VesselCheckDebug] part {kvp.Value[0].partInfo.title} is on blackList, allowed quantity {kvp.Value.Count}/{bQ}");
                             }
-                            //Debug.Log($"[VesselCheckDebug] part {kvp.Value[0].partInfo.title} is on blackList, allowed quantity {kvp.Value.Count}/{bQ}");
                         }
                     }             
                     //could just eval the placed part, but that doesn't cover symmetry or subassumblies
@@ -1261,9 +1269,9 @@ namespace BDArmory.UI
                                 case "ModuleEnginesFX": 
                                     {
                                         if (engineparts.Contains(kvp.Value[0].partInfo.title)) break; //don't grab both moduleEngines for dual-mode engines and double-count them
-                                        if (CompSettings.CompVesselChecksEnabled && maxEngines > 0 || maxTWR > 0) 
+                                        if (CompSettings.CompVesselChecksEnabled && maxEngines < maxPartCount || maxTWR > 0) 
                                         {
-                                            if (maxEngines > 0)
+                                            if (maxEngines < maxPartCount)
                                             {
                                                 if (!string.IsNullOrEmpty(engineparts)) engineparts += " | ";
                                                 engineparts += $"{kvp.Value.Count}x {kvp.Value[0].partInfo.title}";
@@ -1289,7 +1297,7 @@ namespace BDArmory.UI
                         }
                     }
                 }
-                foreach (var part in EditorLogic.fetch.ship.Parts) //not ideal, but linking this to Visualizer's parts eval only updates when that does
+                foreach (var part in EditorLogic.fetch.ship.Parts) //not ideal, but this needs to fire onVesselModified, not onPartPlaced, but linking this to Visualizer's parts eval only updates when that does
                 {
                     if (part.name.Contains("B9.Aero.Wing.Procedural.Type"))
                     {
@@ -1307,8 +1315,13 @@ namespace BDArmory.UI
                 {
                     if (maxPartCount > 0 && EditorLogic.fetch.ship.Parts.Count > maxPartCount)
                         evaluationstring.AppendLine($"Part count exceeded! ({EditorLogic.fetch.ship.Parts.Count}/{maxPartCount})");
-                    if (engineCount > 0 && engineCount > maxEngines)
-                        evaluationstring.AppendLine($"Too many Engines: ({engineCount}/{maxEngines}) - {engineparts}");
+                    if (engineCount > 0)
+                    {
+                        if (maxEngines >= 0 && engineCount > maxEngines)
+                            evaluationstring.AppendLine($"Too many Engines: ({engineCount}/{maxEngines}) - {engineparts}");
+                        if (maxEngines < 0 && engineCount < Mathf.Abs(maxEngines))
+                            evaluationstring.AppendLine($"Too few Engines: ({engineCount}/{Mathf.Abs(maxEngines)})");
+                    }
                     if (maxTWR > 0 && ((maxThrust / (PhysicsGlobals.GravitationalAcceleration * FlightGlobals.GetHomeBody().GeeASL) * EditorLogic.fetch.ship.GetTotalMass())) > maxLtW) 
                         evaluationstring.AppendLine($"TWR exceeded: {maxThrust / (EditorLogic.fetch.ship.GetTotalMass() * (PhysicsGlobals.GravitationalAcceleration * FlightGlobals.GetHomeBody().GeeASL))}/{maxTWR}");
                     if (maxLtW > 0 && wingLoadingWet > maxLtW)
