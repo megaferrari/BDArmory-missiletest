@@ -856,6 +856,7 @@ namespace BDArmory.Utils
         #endregion
     }
 
+    // FIXME Replace VesselModule.Get...AI() calls with vessel.ActiveController()...AI calls and similar.
     public class ActiveController : VesselModule
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
