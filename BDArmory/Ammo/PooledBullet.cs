@@ -161,6 +161,7 @@ namespace BDArmory.Bullets
         public float caliber = 1;
         public float bulletVelocity; //muzzle velocity
         public float guidanceDPS = 0;
+        public float guidanceRange = -1f;
         public bool sabot = false;
         private float HERatio = 0.06f;
         public float ballisticCoefficient;
@@ -581,9 +582,11 @@ namespace BDArmory.Bullets
             // Initial half-timestep velocity change (leapfrog integrator)
             LeapfrogVelocityHalfStep(0.5f * period);
 
-            if (targetVessel != null && atmosphereDensity > 0.05f)
+            if (targetVessel != null && atmosphereDensity > 0.05f && guidanceDPS > 0)
             {
-                if (penTicker == 0 && Vector3.Dot(targetVessel.CoM - currentPosition, currentVelocity) > 0) //don't circle around if it misses, or after it hits something
+                Vector3 targetVec = targetVessel.CoM - currentPosition;
+
+                if (penTicker == 0 && Vector3.Dot(targetVec, currentVelocity) > 0 && (guidanceRange < 0 || targetVec.sqrMagnitude < guidanceRange * guidanceRange)) //don't circle around if it misses, or after it hits something
                 {
                     Vector3 leadTargetOffset = targetVessel.CoM + Vector3.Distance(targetVessel.CoM, currentPosition) / bulletVelocity * targetVessel.Velocity();
                     //if (Vector3.Angle(currentVelocity, leadTargetOffset) > 1) currentVelocity *= 2f * ballisticCoefficient / (TimeWarp.fixedDeltaTime * currentVelocity.magnitude * atmosphereDensity + 2f * ballisticCoefficient); needs bulletdrop gravity accel factored in as well
@@ -1032,6 +1035,7 @@ namespace BDArmory.Bullets
                 else if (deltaMass > 0f)
                 {
                     float factor = (bulletMass - deltaMass * Mathf.Clamp01((float)(distanceTraveled + bulletHit.hit.distance - distanceLastHit) / (currentSpeed * dragVelocityFactor * relaxationTime))) / bulletMass;
+                    factor = Mathf.Max(factor, (1.1f * caliber - 10f) / (length - 10f));
                     if (BDArmorySettings.DEBUG_WEAPONS)
                         Debug.Log($"[BDArmory.PooledBullet] factor: {factor}. Distance Since Last Hit: {distanceTraveled + bulletHit.hit.distance - distanceLastHit} m. Unadjusted Mass: {bulletMass} kg. Adjusted Mass: {bulletMass * factor} kg. deltaMass: {deltaMass}. relaxationTime: {relaxationTime}s. currentSpeed: {currentSpeed * dragVelocityFactor}.");
                     bulletMass *= factor;
@@ -1357,8 +1361,8 @@ namespace BDArmory.Bullets
                                             else if (ERAdelay < (plateSpacing / anglemultiplier + length) / impactSpeed)
                                             {
                                                 // Projectile starts touching the plate but not past the plate
-                                                // And if ERAdelay > tMaxDelTip
-                                                if (ERAdelay > tMaxDelTip)
+                                                // And if ERAdelay < tMaxDelTip
+                                                if (ERAdelay < tMaxDelTip)
                                                 {
                                                     // Then the plate does not completely feed into the projectile
                                                     tFinal = tIntermediateContact;
@@ -1981,6 +1985,7 @@ namespace BDArmory.Bullets
                 pBullet.dmgMult = damageMult;
                 pBullet.targetVessel = tgtVessel;
                 pBullet.guidanceDPS = guidance;
+                pBullet.guidanceRange = bulletType.guidanceRange;
                 pBullet.isSubProjectile = isSubP;
                 pBullet.isAPSprojectile = isAPSP;
                 pBullet.gameObject.SetActive(true);
@@ -2044,18 +2049,20 @@ namespace BDArmory.Bullets
                 NukeInfo nukeInfo = sBullet.nuclear ? new NukeInfo(flashModelPath, shockModelPath, blastModelPath,
                     plumeModelPath, debrisModelPath, blastSoundPath) : new NukeInfo();
 
-                float subTTL = Mathf.Max(sBullet.projectileTTL, detonationRange / sBullet.bulletVelocity * 1.1f);
+                float dragAdjSpeed = GetDragAdjustedVelocity().magnitude;
+                float subProjectileSpeed = dragAdjSpeed + sBullet.bulletVelocity;
+                float subTTL = Mathf.Max(sBullet.projectileTTL, 1.1f * detonationRange / subProjectileSpeed);
                 float subDetonationTime = sBullet.eFuzeType switch
                         {
-                            BulletFuzeTypes.Timed => detonationRange / sBullet.bulletVelocity, //because beehive TimedFuze for the parent shell is timeToDetonation - detonationRange / bulletVelocity
-                            BulletFuzeTypes.Flak => detonationRange / sBullet.bulletVelocity + Time.fixedDeltaTime, // Detonate at expected impact time for flak (plus 1 frame to allow proximity detection).
+                            BulletFuzeTypes.Timed => detonationRange / subProjectileSpeed, //because beehive TimedFuze for the parent shell is timeToDetonation - detonationRange / bulletVelocity
+                            BulletFuzeTypes.Flak => detonationRange / subProjectileSpeed + Time.fixedDeltaTime, // Detonate at expected impact time for flak (plus 1 frame to allow proximity detection).
                             _ => subTTL // Otherwise detonate at the TTL.
                         };
 
                 FireBullet(sBullet, count * sBullet.projectileCount, sourceInfo, graphicsInfo, nukeInfo,
                         bulletDrop, subTTL, iTime, subDetonationRange, subDetonationTime,
                         isAPSprojectile, tgtRocket, tgtShell, stealResources, dmgMult, bulletDmgMult,
-                        false, GetDragAdjustedVelocity().magnitude, bulletVelocity, currentVelocity, true);
+                        false, dragAdjSpeed, bulletVelocity, currentVelocity, true);
             }
         }
         /// <summary>

@@ -4,6 +4,8 @@ using BDArmory.Damage;
 using BDArmory.Extensions;
 using BDArmory.FX;
 using BDArmory.Settings;
+using BDArmory.Utils;
+using System;
 
 namespace BDArmory.Armor
 {
@@ -49,10 +51,16 @@ namespace BDArmory.Armor
         public bool ERAbackingPlate = true; //backing plate ?
 
         [KSPField]
-        public float ERAspacing = 0.25f; //spacing between back plate and armor
+        public float ERAspacing = 0.1f; //spacing between back plate and armor
 
         [KSPField]
         public float ERAdetonationDelay = 50f; //detonation delay (in microseconds)
+
+        [KSPField]
+        public float ERAplateThickness = 16f; //plate thickness (in mm)
+
+        [KSPField]
+        public string ERAplateMaterial = "Mild Steel"; //plate material
 
         public int sectionsRemaining = 1;
         private int sectionsCount = 1;
@@ -71,6 +79,32 @@ namespace BDArmory.Armor
             if (HighLogic.LoadedSceneIsFlight)
             {
                 SourceVessel = part.vessel.GetName();
+            }
+        }
+
+        void OnGUI()
+        {
+            if (BDArmorySettings.DEBUG_LINES)
+            {
+                try
+                {
+                    for (int i = 0; i < sectionsCount; ++i)
+                    {
+                        if (sectionIndexes[i] >= 0)
+                        {
+                            GUIUtils.DrawLineBetweenWorldPositions(sections[sectionIndexes[i]].position,
+                                sections[sectionIndexes[i]].position + sections[sectionIndexes[i]].forward, 1, Color.blue);
+                            GUIUtils.DrawLineBetweenWorldPositions(sections[sectionIndexes[i]].position,
+                                sections[sectionIndexes[i]].position + sections[sectionIndexes[i]].up, 1, Color.red);
+                            GUIUtils.DrawLineBetweenWorldPositions(sections[sectionIndexes[i]].position,
+                                sections[sectionIndexes[i]].position + sections[sectionIndexes[i]].right, 1, Color.green);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("[BDArmory.MissileLauncher]: Exception thrown in OnGUI: " + e.Message + "\n" + e.StackTrace);
+                }
             }
         }
         void MakeArmorSectionArray()
@@ -95,6 +129,16 @@ namespace BDArmory.Armor
                 HP.maxHitPoints = (sectionsCount * SectionHP); //set HP based on number of sections
                 HP.Hitpoints = (sectionsCount * SectionHP); 
                 HP.SetupPrefab(); //and update hitpoint slider
+
+                HP.Armor = ERAplateThickness;
+                HP.ArmorThickness = ERAplateThickness;
+                HP.ArmorTypeNum = ArmorInfo.armors.FindIndex(t => t.name == ERAplateMaterial) + 1;
+                if (HP.ArmorTypeNum == 0)
+                {
+                    HP.ArmorTypeNum = ArmorInfo.armors.FindIndex(t => t.name == "None");
+                    Debug.LogWarning($"[BDArmory.ReactiveArmor] WARNING: Part {part.name} has invalid armor type: {ERAplateMaterial}. Defaulted to Aluminum. Please fix ASAP!");
+                }
+                HP.ArmorSetup(null, null);
             }
 
             if (ERAbackingPlate)

@@ -3409,7 +3409,7 @@ namespace BDArmory.Weapons
                     return;
                 }
             }
-            if (shutdownRoutine != null) 
+            if (shutdownRoutine != null)
                 return;
             if (disabledStates.Contains(weaponState))
                 return;
@@ -4390,7 +4390,7 @@ namespace BDArmory.Weapons
 
         void UpdateOffsetWeapon()
         {
-            if (fireTransforms == null) return;
+            if (fireTransforms == null || fireTransforms.Length == 0) return; // Empty fireTransforms can happen as a race condition when MissileFire.Start() calls this, which should be harmless.
             Vector3 weaponPosition = fireTransforms[0].position;
             Vector3 weaponDirection = fireTransforms[0].forward;
             if (part.symmetryCounterparts.Count > 0)
@@ -5074,24 +5074,28 @@ namespace BDArmory.Weapons
                 //else, we have turrets slaved to a targetpainter, use that
                 if (weaponManager.slavingTurrets && turret)
                 {
-                    slaved = true;
-                    targetRadius = weaponManager.slavedTarget.vessel != null ? weaponManager.slavedTarget.vessel.GetRadius() : 35f;
-                    targetPosition = weaponManager.slavedPosition;
-                    //currently overriding multi-turret multi-targeting if enabled as all turrets slaved to WM's guardTarget/current active radarLock
-                    targetVelocity = weaponManager.slavedTarget.vessel != null ? weaponManager.slavedTarget.vessel.rb_velocity : (weaponManager.slavedVelocity - BDKrakensbane.FrameVelocityV3f);
-                    if (weaponManager.slavedTarget.vessel != null)
+                    bool isVessel = weaponManager.slavedTarget.vessel != null;
+                    if (!isVessel || !(visRange && RadarUtils.GetVesselChaffFactor(weaponManager.slavedTarget.vessel) < 1f))
                     {
-                        targetAcceleration = weaponManager.slavedTarget.vessel.acceleration;
-                        targetIsLandedOrSplashed = weaponManager.slavedTarget.vessel.LandedOrSplashed;
+                        slaved = true;
+                        targetRadius = isVessel ? weaponManager.slavedTarget.vessel.GetRadius() : 35f;
+                        targetPosition = weaponManager.slavedPosition;
+                        //currently overriding multi-turret multi-targeting if enabled as all turrets slaved to WM's guardTarget/current active radarLock
+                        targetVelocity = isVessel ? weaponManager.slavedTarget.vessel.rb_velocity : (weaponManager.slavedVelocity - BDKrakensbane.FrameVelocityV3f);
+                        if (isVessel)
+                        {
+                            targetAcceleration = weaponManager.slavedTarget.vessel.acceleration;
+                            targetIsLandedOrSplashed = weaponManager.slavedTarget.vessel.LandedOrSplashed;
+                        }
+                        else
+                        {
+                            targetAcceleration = weaponManager.slavedAcceleration;
+                            targetIsLandedOrSplashed = false;
+                        }
+                        targetAcquired = true;
+                        targetAcquisitionType = TargetAcquisitionType.Slaved;
+                        return;
                     }
-                    else
-                    {
-                        targetAcceleration = weaponManager.slavedAcceleration;
-                        targetIsLandedOrSplashed = false;
-                    }
-                    targetAcquired = true;
-                    targetAcquisitionType = TargetAcquisitionType.Slaved;
-                    return;
                 }
 
                 // within visual range and no radar aiming/need precision visual targeting of specific subsystems
@@ -5545,7 +5549,7 @@ namespace BDArmory.Weapons
                 ReloadWeapon();
             }
             if (hasReloadAnim && isReloading) //wait for reload to finish before shutting down
-            {                
+            {
                 yield return new WaitWhileFixed(() => reloadState.normalizedTime < 1); //why is this not registering when in Guardmode?
             }
             if (!calledByReload) //allow isreloading to co-opt the startup/shutdown anim without disabling weapon in the process
@@ -6023,6 +6027,11 @@ namespace BDArmory.Weapons
         public override string GetInfo()
         {
             ammoList = BDAcTools.ParseNames(bulletType);
+            if (BulletInfo.bullets == null || RocketInfo.rockets == null)
+            {
+                Debug.LogError($"[BDArmory.ModuleWeapon]: BDArmory hasn't loaded properly.\n  This is typically a symptom of having installed BDArmory (or other mods) incorrectly.\n  Check the 'AssemblyLoader' section at the start of the KSP.log for duplicate, missing or misplaced mod dlls or other errors/exceptions.");
+                // Let the exception happen and break loading KSP so users can fix their install.
+            }
             StringBuilder output = new StringBuilder();
             output.Append(Environment.NewLine);
             output.AppendLine($"Weapon Type: {weaponType}");
@@ -6147,7 +6156,7 @@ namespace BDArmory.Weapons
                             if (binfo.eFuzeType == BulletFuzeTypes.Penetrating)
                                 output.AppendLine($"- Min thickness to arm fuze: {tempPenDepth * 0.666f:F2}");
                             output.AppendLine($"- radius:  {Math.Round(BlastPhysicsUtils.CalculateBlastRange(binfo.tntMass), 2)} m");
-                            
+
                             if (binfo.eFuzeType == BulletFuzeTypes.Timed || binfo.eFuzeType == BulletFuzeTypes.Proximity || binfo.eFuzeType == BulletFuzeTypes.Flak)
                             {
                                 output.AppendLine($"Air detonation: True");
@@ -6198,6 +6207,15 @@ namespace BDArmory.Weapons
                             if (subMunitionData.Length < 2 || !int.TryParse(subMunitionData[1], out int count)) count = 1;
                             BulletInfo sinfo = BulletInfo.bullets[projType];
                             output.AppendLine($"- deploys {count}x {(string.IsNullOrEmpty(sinfo.DisplayName) ? sinfo.name : sinfo.DisplayName)}");
+                        }
+                        if (binfo.guidanceDPS > 0)
+                        {
+                            output.AppendLine($"Guidance:");
+                            output.AppendLine($"- Guidance Rate: {Math.Round(binfo.guidanceDPS, 3)} deg/s");
+                            if (binfo.guidanceRange > 0)
+                                output.AppendLine($"- Guidance Range: {Math.Round(binfo.guidanceRange)} m");
+                            else
+                                output.AppendLine($"- Guidance Range: Unlimited");
                         }
                     }
                 }

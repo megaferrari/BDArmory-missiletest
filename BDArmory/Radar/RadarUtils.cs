@@ -1466,8 +1466,9 @@ namespace BDArmory.Radar
 
             if (isNotSonar)
             {
+                bool surfaceTarget = (targetVessel.Landed || targetVessel.Splashed);
                 // If radar, then check against water
-                if (BDArmorySettings.RADAR_NOTCHING && (!isMissile || !(BDArmorySettings.RADAR_ALLOW_SURFACE_WARFARE && (targetVessel.Landed || targetVessel.Splashed) && (radarVessel.Landed || radarVessel.Splashed))) && radarMinRangeGate != float.MaxValue && radarMinVelocityGate != float.MaxValue)
+                if (BDArmorySettings.RADAR_NOTCHING && !surfaceTarget && radarMinRangeGate != float.MaxValue && radarMinVelocityGate != float.MaxValue)
                 {
                     distance = BDAMath.Sqrt(distance);
                     if (TerrainCheck(position, targetPosition, FlightGlobals.currentMainBody, (!isMissile ? 1000f * distance : distance) + radarMaxRangeGate, out terrainR, out terrainAngle, true))
@@ -1480,12 +1481,12 @@ namespace BDArmory.Radar
                 {
                     if (targetVessel.Splashed)
                     {
-                        if (TerrainCheck(position, targetPosition + targetVessel.upAxis * (targetVessel.altitude < 0f ? -targetVessel.altitude + 2f : 0f), FlightGlobals.currentMainBody, !isMissile && BDArmorySettings.RADAR_ALLOW_SURFACE_WARFARE && (targetVessel.Landed || targetVessel.Splashed) && (radarVessel.Landed || radarVessel.Splashed)))
+                        if (TerrainCheck(position, targetPosition + targetVessel.upAxis * (targetVessel.altitude < 0f ? -targetVessel.altitude + 2f : 0f), FlightGlobals.currentMainBody, !isMissile && BDArmorySettings.RADAR_ALLOW_SURFACE_WARFARE && surfaceTarget && (radarVessel.Landed || radarVessel.Splashed)))
                             return false;
                     }
                     else
                     {
-                        if (TerrainCheck(position, targetPosition, FlightGlobals.currentMainBody, !isMissile && BDArmorySettings.RADAR_ALLOW_SURFACE_WARFARE && (targetVessel.Landed || targetVessel.Splashed) && (radarVessel.Landed || radarVessel.Splashed)))
+                        if (TerrainCheck(position, targetPosition, FlightGlobals.currentMainBody, !isMissile && BDArmorySettings.RADAR_ALLOW_SURFACE_WARFARE && surfaceTarget && (radarVessel.Landed || radarVessel.Splashed)))
                             return false;
                     }
                     distance = BDAMath.Sqrt(distance);
@@ -1521,6 +1522,8 @@ namespace BDArmory.Radar
                     // ignore null and unloaded
                     if (loadedvessels.Current == null || !loadedvessels.Current.loaded) continue;
                     if (loadedvessels.Current.IsUnderwater() && radar.sonarMode == ModuleRadar.SonarModes.None) //don't detect underwater targets with radar
+                        continue;
+                    if (!loadedvessels.Current.Splashed && radar.sonarMode != ModuleRadar.SonarModes.None) //don't detect flying targets with sonar
                         continue;
                     // ignore self, ignore behind ray
                     Vector3 vectorToTarget = (loadedvessels.Current.CoM - ray.origin);
@@ -1648,7 +1651,9 @@ namespace BDArmory.Radar
                 while (loadedvessels.MoveNext())
                 {
                     // ignore null, unloaded and ignored types
-                    if (loadedvessels.Current == null || loadedvessels.Current.packed || !loadedvessels.Current.loaded) continue;
+                    if (loadedvessels.Current == null || loadedvessels.Current.packed || !loadedvessels.Current.loaded || loadedvessels.Current == missile.vessel) continue;
+                    if (!loadedvessels.Current.Splashed && missile.GetWeaponClass() == WeaponClasses.SLW) continue; //don't detect non-water targets if a torpedo
+                    if (!loadedvessels.Current.IsUnderwater() && missile.GetWeaponClass() != WeaponClasses.SLW) continue; //don't detect underwater targets with radar
 
                     // IFF code check to prevent friendly lock-on (neutral vessel without a weaponmanager WILL be lockable!)
                     MissileFire wm = VesselModuleRegistry.GetModule<MissileFire>(loadedvessels.Current);
@@ -1660,8 +1665,9 @@ namespace BDArmory.Radar
 
                     // ignore self, ignore behind ray
                     Vector3 vectorToTarget = (loadedvessels.Current.CoM - ray.origin);
-                    if (((vectorToTarget).sqrMagnitude < RADAR_IGNORE_DISTANCE_SQR) ||
-                         (Vector3.Dot(vectorToTarget, ray.direction) < 0))
+                    //if (((vectorToTarget).sqrMagnitude < RADAR_IGNORE_DISTANCE_SQR) ||
+                    //     (Vector3.Dot(vectorToTarget, ray.direction) < 0))
+                    if (Vector3.Dot(vectorToTarget, ray.direction) < 0)
                         continue;
 
                     if (Vector3.Angle(loadedvessels.Current.CoM - ray.origin, ray.direction) < fov / 2f)
@@ -1820,13 +1826,17 @@ namespace BDArmory.Radar
                     if (loadedvessels.Current == null || loadedvessels.Current.packed || !loadedvessels.Current.loaded) continue;
                     if (loadedvessels.Current == myWpnManager.vessel) continue;
 
-                    targetPosition = loadedvessels.Current.transform.position;
+                    targetPosition = loadedvessels.Current.CoM;
 
                     // ignore too close ones
                     if ((targetPosition - position).sqrMagnitude < RADAR_IGNORE_DISTANCE_SQR)
                         continue;
                     if (loadedvessels.Current.IsUnderwater() && radar.sonarMode == ModuleRadar.SonarModes.None) //don't detect underwater targets with radar
                         continue;
+                    if (!loadedvessels.Current.Splashed && radar.sonarMode != ModuleRadar.SonarModes.None) //don't detect sonar targets when out of water
+                        continue;
+
+
                     Vector3 vesselDirection = (loadedvessels.Current.CoM - position).ProjectOnPlanePreNormalized(upVector);
                     if (Vector3.Angle(vesselDirection, lookDirection) < fov / 2f)
                     {
@@ -2216,6 +2226,8 @@ namespace BDArmory.Radar
         {
             bool detected = false;
             // float distance already in km
+            if (radar.vessel.altitude < -10 && radar.sonarMode == ModuleRadar.SonarModes.None) return detected; // Normal Radar Should not detect stuff underwater
+            if (!radar.vessel.Splashed && radar.sonarMode != ModuleRadar.SonarModes.None) return detected; // Sonar should only work when in the water
 
             //evaluate if we can detect such a signature at that range
             if ((distance > radar.radarMinDistanceDetect) && (distance < radar.radarMaxDistanceDetect))
@@ -2382,7 +2394,7 @@ namespace BDArmory.Radar
                                                 results.threatVessel = weapon.Current.vessel;
                                                 results.threatWeaponManager = weapon.Current.weaponManager;
                                                 results.missDistance = missDistance;
-                                                results.missDeviation = (weapon.Current.fireTransforms[0].position - myWpnManager.vessel.transform.position).magnitude * weapon.Current.maxDeviation / 2f * Mathf.Deg2Rad; // y = x*tan(θ), expansion of tan(θ) is θ + O(θ^3).
+                                                results.missDeviation = (weapon.Current.fireTransforms[0].position - myWpnManager.vessel.CoM).magnitude * weapon.Current.maxDeviation / 2f * Mathf.Deg2Rad; // y = x*tan(θ), expansion of tan(θ) is θ + O(θ^3).
                                             }
                                         }
                                     }
@@ -2467,7 +2479,7 @@ namespace BDArmory.Radar
         {
             Transform fireTransform = threatWeapon.fireTransforms[0];
             // If we're out of range, then it's not a threat.
-            if (threatWeapon.maxEffectiveDistance * threatWeapon.maxEffectiveDistance < (fireTransform.position - self.transform.position).sqrMagnitude) return float.MaxValue;
+            if (threatWeapon.maxEffectiveDistance * threatWeapon.maxEffectiveDistance < (fireTransform.position - self.CoM).sqrMagnitude) return float.MaxValue;
             // If we have a firing solution, use that, otherwise use relative vessel positions
             Vector3 aimDirection = fireTransform.forward;
             float targetCosAngle = threatWeapon.FiringSolutionVector != null ? Vector3.Dot(aimDirection, (Vector3)threatWeapon.FiringSolutionVector) : Vector3.Dot(aimDirection, (self.vesselTransform.position - fireTransform.position).normalized);
@@ -2487,11 +2499,11 @@ namespace BDArmory.Radar
         /// </summary>
         public static bool TerrainCheck(Vector3 start, Vector3 end)
         {
-            if (!BDArmorySettings.IGNORE_TERRAIN_CHECK)
-            {
+            //if (!BDArmorySettings.IGNORE_TERRAIN_CHECK) //Thisversion of TerrainCheck is only used by weapon LOS check, and should never be disabled.
+            //{
                 return Physics.Linecast(start, end, (int)LayerMasks.Scenery);
-            }
-            return false;
+            //}
+            //return false;
         }
 
         /// <summary>
@@ -2499,7 +2511,7 @@ namespace BDArmory.Radar
         /// </summary>
         public static bool TerrainCheck(Vector3 start, Vector3 end, CelestialBody body, bool ignoreSetting = false)
         {
-            if (!BDArmorySettings.IGNORE_TERRAIN_CHECK)
+            if (!ignoreSetting)
             {
                 if (!BDArmorySettings.CHECK_WATER_TERRAIN)
                     return Physics.Linecast(start, end, (int)LayerMasks.Scenery);

@@ -178,6 +178,10 @@ namespace BDArmory.Weapons.Missiles
                     GuidanceMode = GuidanceModes.Orbital;
                     GuidanceLabel = "Orbital";
                     break;
+				case 8:
+                    GuidanceMode = GuidanceModes.AAMLoft;
+                    GuidanceLabel = "AAM Loft";
+                    break;
             }
 
             if (Fields["CruiseAltitude"] != null)
@@ -1419,22 +1423,27 @@ namespace BDArmory.Weapons.Missiles
             if (BDArmorySetup.Instance.ActiveWeaponManager != null &&
                 BDArmorySetup.Instance.ActiveWeaponManager.vessel == vessel)
             {
-                BDArmorySetup.Instance.ActiveWeaponManager.SendTargetDataToMissile(this);
+                if (targetVessel == null)
+                    BDArmorySetup.Instance.ActiveWeaponManager.SendTargetDataToMissile(this, null);
             }
 
             if (!HasFired)
             {
                 GameEvents.onPartDie.Add(PartDie);
-                BDATargetManager.FiredMissiles.Add(this);
-
-                var wpm = VesselModuleRegistry.GetMissileFire(vessel, true);
-                if (wpm != null) Team = wpm.Team;
-
                 SourceVessel = vessel;
                 SetTargeting();
                 Jettison();
                 AddTargetInfoToVessel();
                 IncreaseTolerance();
+
+                BDATargetManager.FiredMissiles.Add(this);
+
+                var wpm = VesselModuleRegistry.GetMissileFire(vessel, true);
+                if (wpm != null)
+                {
+                    Team = wpm.Team;
+                    wpm.UpdateMissilesAway(targetVessel, this);
+                }
 
                 initialMissileRollPlane = -vessel.transform.up;
                 initialMissileForward = vessel.transform.forward;
