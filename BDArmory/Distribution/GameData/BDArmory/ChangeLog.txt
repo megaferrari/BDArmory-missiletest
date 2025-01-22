@@ -1,4 +1,14 @@
-﻿IMPROVEMENTS / FIXES
+﻿- AI:
+	- The AI targeting priority 'Aerial Target Preference' now considers craft flatspinning or otherwise possessing negligible horizontal velocity lower than 200m from the ground as semi-ground targets for target filtering.
+-Weapons:
+	-Removed the 'Engage Missile' toggle from APS/Dual-Purpose APS turrets as these weapons don't use it.
+	-Missiles: 
+		-Fix AAMLoft implementation for MMGs.
+
+
+
+
+IMPROVEMENTS / FIXES
 - General:
 	- Fix potential stack overflow in cfg parsing of bullets, rockets, materials and mutators that can cause KSP to not load if BDBNIC is also installed.
 - UI:

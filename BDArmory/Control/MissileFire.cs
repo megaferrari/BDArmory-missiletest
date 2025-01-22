@@ -5285,7 +5285,7 @@ namespace BDArmory.Control
             // Calculate score values
             float targetBiasValue = targetBias;
             float targetRangeValue = target.TargetPriRange(this);
-            float targetPreferencevalue = target.TargetPriEngagement(target.weaponManager);
+            float targetPreferencevalue = target.TargetPriEngagement(target.weaponManager, this.vessel.radarAltitude);
             float targetATAValue = target.TargetPriATA(this);
             float targetAoDValue = target.TargetPriAoD(this);
             float targetAccelValue = target.TargetPriAcceleration();

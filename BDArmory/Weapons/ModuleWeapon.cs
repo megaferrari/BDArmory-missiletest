@@ -1147,6 +1147,8 @@ namespace BDArmory.Weapons
             if (isAPS)
             {
                 engageMissile = false; //missiles targeted separately from base WM targeting logic, having this is unnecessary and can cause problems with radar slaving
+                Fields["engageMissile"].guiActive = false;
+                Fields["engageMissile"].guiActiveEditor = false;
                 if (!dualModeAPS)
                 {
                     HideEngageOptions();
