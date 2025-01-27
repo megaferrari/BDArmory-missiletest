@@ -22,7 +22,7 @@ namespace BDArmory.Competition
     public enum CompetitionStartFailureReason { None, OnlyOneTeam, TeamsChanged, TeamLeaderDisappeared, PilotDisappeared, Other };
     public enum CompetitionType { FFA, SEQUENCED, WAYPOINTS };
 
-    
+
     [KSPAddon(KSPAddon.Startup.Flight, false)]
     public class BDACompetitionMode : MonoBehaviour
     {
@@ -491,7 +491,7 @@ namespace BDArmory.Competition
             using (var loadedVessels = BDATargetManager.LoadedVessels.GetEnumerator())
                 while (loadedVessels.MoveNext())
                 {
-                    if (loadedVessels.Current == null || !loadedVessels.Current.loaded || VesselModuleRegistry.ignoredVesselTypes.Contains(loadedVessels.Current.vesselType))
+                    if (loadedVessels.Current == null || !loadedVessels.Current.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(loadedVessels.Current.vesselType))
                         continue;
                     IBDAIControl pilot = VesselModuleRegistry.GetModule<IBDAIControl>(loadedVessels.Current);
                     if (pilot == null || !pilot.weaponManager || pilot.weaponManager.Team.Neutral)
@@ -972,7 +972,7 @@ namespace BDArmory.Competition
                         yield break;
                     }
             }
-            if (BDATargetManager.LoadedVessels.Where(v => !VesselModuleRegistry.ignoredVesselTypes.Contains(v.vesselType)).Any(v => VesselModuleRegistry.GetModuleCount<ModuleRadar>(v) > 0)) // Update RCS if any vessels have radars.
+            if (BDATargetManager.LoadedVessels.Where(v => !VesselModuleRegistry.IgnoredVesselTypes.Contains(v.vesselType)).Any(v => VesselModuleRegistry.GetModuleCount<ModuleRadar>(v) > 0)) // Update RCS if any vessels have radars.
             {
                 try
                 {
@@ -1031,7 +1031,7 @@ namespace BDArmory.Competition
             uniqueVesselNames.Clear();
             foreach (var vessel in BDATargetManager.LoadedVessels)
             {
-                if (vessel == null || !vessel.loaded || VesselModuleRegistry.ignoredVesselTypes.Contains(vessel.vesselType)) continue;
+                if (vessel == null || !vessel.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType)) continue;
                 var pilot = VesselModuleRegistry.GetModule<IBDAIControl>(vessel);
                 if (pilot == null || pilot.weaponManager == null)
                 {
@@ -1144,36 +1144,38 @@ namespace BDArmory.Competition
             if (vessel == null) return;
             VesselModuleRegistry.OnVesselModified(vessel);
             CheckVesselType(vessel);
-            if (VesselModuleRegistry.ignoredVesselTypes.Contains(vessel.vesselType)) return;
+            if (VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType)) return;
             if (!BDArmorySettings.AUTONOMOUS_COMBAT_SEATS) CheckForAutonomousCombatSeat(vessel);
             if (BDArmorySettings.DESTROY_UNCONTROLLED_WMS) CheckForUncontrolledVessel(vessel);
             if (BDArmorySettings.COMPETITION_GM_KILL_TIME > -1 && (BDArmorySettings.COMPETITION_GM_KILL_WEAPON || BDArmorySettings.COMPETITION_GM_KILL_ENGINE || BDArmorySettings.COMPETITION_GM_KILL_DISABLED || (BDArmorySettings.COMPETITION_GM_KILL_HP > 0))) CheckForGMCulling(vessel);
         }
 
-        HashSet<VesselType> validVesselTypes = new HashSet<VesselType> { VesselType.Plane, VesselType.Ship };
         public void CheckVesselType(Vessel vessel)
         {
             if (!BDArmorySettings.RUNWAY_PROJECT) return;
             if (vessel != null && vessel.vesselName != null)
             {
-                var vesselTypeIsValid = validVesselTypes.Contains(vessel.vesselType);
+                var vesselTypeIsValid = VesselModuleRegistry.ValidVesselTypes.Contains(vessel.vesselType);
                 var hasMissileFire = VesselModuleRegistry.GetModuleCount<MissileFire>(vessel) > 0;
                 if (!vesselTypeIsValid && hasMissileFire) // Found an invalid vessel type with a weapon manager.
                 {
-                    var message = "Found weapon manager on " + vessel.vesselName + " of type " + vessel.vesselType;
-                    if (vessel.vesselName.EndsWith(" " + vessel.vesselType.ToString()))
+                    var message = $"Found weapon manager on {vessel.vesselName} of type {vessel.vesselType}";
+                    if (vessel.vesselName.EndsWith($" {vessel.vesselType}"))
                         vessel.vesselName = vessel.vesselName.Remove(vessel.vesselName.Length - vessel.vesselType.ToString().Length - 1);
                     vessel.vesselType = VesselType.Plane;
-                    message += ", changing vessel name and type to " + vessel.vesselName + ", " + vessel.vesselType;
+                    message += $", changing vessel name and type to {vessel.vesselName}, {vessel.vesselType}";
                     Debug.Log("[BDArmory.BDACompetitionMode]: " + message);
                     return;
                 }
-                if (vesselTypeIsValid && vessel.vesselType == VesselType.Plane && vessel.vesselName.EndsWith(" Plane") && !Scores.Players.Contains(vessel.vesselName) && Scores.Players.Contains(vessel.vesselName.Remove(vessel.vesselName.Length - 6)) && IsValidVessel(vessel, false) == InvalidVesselReason.None)
+                if (vesselTypeIsValid)
                 {
-                    var message = "Found a valid vessel (" + vessel.vesselName + ") tagged with 'Plane' when it shouldn't be, renaming.";
-                    Debug.Log("[BDArmory.BDACompetitionMode]: " + message);
-                    vessel.vesselName = vessel.vesselName.Remove(vessel.vesselName.Length - 6);
-                    return;
+                    if (vessel.vesselName.EndsWith($" {vessel.vesselType}") && !Scores.Players.Contains(vessel.vesselName) && Scores.Players.Contains(vessel.vesselName.Remove(vessel.vesselName.Length - $" {vessel.vesselType}".Length)) && IsValidVessel(vessel, false) == InvalidVesselReason.None)
+                    {
+                        var message = $"Found a valid vessel ({vessel.vesselName}) tagged with '{vessel.vesselType}' when it shouldn't be, renaming.";
+                        Debug.Log("[BDArmory.BDACompetitionMode]: " + message);
+                        vessel.vesselName = vessel.vesselName.Remove(vessel.vesselName.Length - $" {vessel.vesselType}".Length);
+                        return;
+                    }
                 }
             }
         }
@@ -1340,13 +1342,13 @@ namespace BDArmory.Competition
         void CheckForBadlyNamedVessels()
         {
             foreach (var wm in LoadedVesselSwitcher.Instance.WeaponManagers.SelectMany(tm => tm.Value).Where(wm => wm != null).ToList())
-                if (wm != null && wm.vessel != null && wm.vessel.vesselName != null)
+                if (wm != null && wm.vessel != null && wm.vessel.vesselName != null && VesselModuleRegistry.ValidVesselTypes.Contains(wm.vessel.vesselType))
                 {
-                    if (wm.vessel.vesselType == VesselType.Plane && wm.vessel.vesselName.EndsWith(" Plane") && !Scores.Players.Contains(wm.vessel.vesselName) && Scores.Players.Contains(wm.vessel.vesselName.Remove(wm.vessel.vesselName.Length - 6)) && IsValidVessel(wm.vessel) == InvalidVesselReason.None)
+                    if (wm.vessel.vesselName.EndsWith($" {wm.vessel.vesselType}") && !Scores.Players.Contains(wm.vessel.vesselName) && Scores.Players.Contains(wm.vessel.vesselName.Remove(wm.vessel.vesselName.Length - $" {wm.vessel.vesselType}".Length)) && IsValidVessel(wm.vessel) == InvalidVesselReason.None)
                     {
                         var message = "Found a valid vessel (" + wm.vessel.vesselName + ") tagged with 'Plane' when it shouldn't be, renaming.";
                         Debug.Log("[BDArmory.BDACompetitionMode]: " + message);
-                        wm.vessel.vesselName = wm.vessel.vesselName.Remove(wm.vessel.vesselName.Length - 6);
+                        wm.vessel.vesselName = wm.vessel.vesselName.Remove(wm.vessel.vesselName.Length - $" {wm.vessel.vesselType}".Length);
                     }
                 }
         }
@@ -2149,7 +2151,7 @@ namespace BDArmory.Competition
             using (var loadedVessels = BDATargetManager.LoadedVessels.GetEnumerator())
                 while (loadedVessels.MoveNext())
                 {
-                    if (loadedVessels.Current == null || !loadedVessels.Current.loaded || VesselModuleRegistry.ignoredVesselTypes.Contains(loadedVessels.Current.vesselType))
+                    if (loadedVessels.Current == null || !loadedVessels.Current.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(loadedVessels.Current.vesselType))
                         continue;
                     IBDAIControl pilot = VesselModuleRegistry.GetModule<IBDAIControl>(loadedVessels.Current);
                     if (pilot == null || !pilot.weaponManager || pilot.weaponManager.Team.Neutral)
@@ -2444,7 +2446,7 @@ namespace BDArmory.Competition
             foreach (var vessel in FlightGlobals.Vessels)
             {
                 if (vessel == null) continue;
-                if (VesselModuleRegistry.ignoredVesselTypes.Contains(vessel.vesselType)) continue;  // Debris handled by DebrisDelayedCleanUp, others are ignored.
+                if (VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType)) continue;  // Debris handled by DebrisDelayedCleanUp, others are ignored.
                 if (nonCompetitorsToRemove.Contains(vessel)) continue; // Already scheduled for removal.
                 bool activePilot = false;
                 if (vessel.GetName() == BDArmorySettings.PINATA_NAME)
@@ -2639,7 +2641,7 @@ namespace BDArmory.Competition
             // check all the planes
             foreach (var vessel in FlightGlobals.Vessels)
             {
-                if (vessel == null || !vessel.loaded || VesselModuleRegistry.ignoredVesselTypes.Contains(vessel.vesselType)) // || vessel.packed) // Allow packed craft to avoid the packed craft being considered dead (e.g., when command seats spawn).
+                if (vessel == null || !vessel.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType)) // || vessel.packed) // Allow packed craft to avoid the packed craft being considered dead (e.g., when command seats spawn).
                     continue;
 
                 var mf = VesselModuleRegistry.GetModule<MissileFire>(vessel);
@@ -3045,7 +3047,7 @@ namespace BDArmory.Competition
                     using (var loadedVessels = BDATargetManager.LoadedVessels.GetEnumerator())
                         while (loadedVessels.MoveNext())
                         {
-                            if (loadedVessels.Current == null || !loadedVessels.Current.loaded || VesselModuleRegistry.ignoredVesselTypes.Contains(loadedVessels.Current.vesselType)) // || vessel.packed) // Allow packed craft to avoid the packed craft being considered dead (e.g., when command seats spawn).
+                            if (loadedVessels.Current == null || !loadedVessels.Current.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(loadedVessels.Current.vesselType)) // || vessel.packed) // Allow packed craft to avoid the packed craft being considered dead (e.g., when command seats spawn).
                                 continue;
                             IBDAIControl pilot = VesselModuleRegistry.GetModule<IBDAIControl>(loadedVessels.Current);
                             if (pilot == null || !pilot.weaponManager || pilot.weaponManager.Team.Neutral) continue;
@@ -3169,7 +3171,7 @@ namespace BDArmory.Competition
                 ConfigureMutator();
                 foreach (var vessel in FlightGlobals.Vessels)
                 {
-                    if (vessel == null || !vessel.loaded || VesselModuleRegistry.ignoredVesselTypes.Contains(vessel.vesselType)) // || vessel.packed) // Allow packed craft to avoid the packed craft being considered dead (e.g., when command seats spawn).
+                    if (vessel == null || !vessel.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType)) // || vessel.packed) // Allow packed craft to avoid the packed craft being considered dead (e.g., when command seats spawn).
                         continue;
 
                     var mf = VesselModuleRegistry.GetModule<MissileFire>(vessel);
@@ -3199,7 +3201,7 @@ namespace BDArmory.Competition
             using var loadedVessels = BDATargetManager.LoadedVessels.GetEnumerator();
             while (loadedVessels.MoveNext())
             {
-                if (loadedVessels.Current == null || !loadedVessels.Current.loaded || VesselModuleRegistry.ignoredVesselTypes.Contains(loadedVessels.Current.vesselType))
+                if (loadedVessels.Current == null || !loadedVessels.Current.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(loadedVessels.Current.vesselType))
                     continue;
                 var craftName = loadedVessels.Current.GetName();
                 if (!Scores.Players.Contains(craftName)) continue;

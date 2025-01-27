@@ -126,7 +126,7 @@ namespace BDArmory.Control
                 while (vs.MoveNext())
                 {
                     if (vs.Current == null) continue;
-                    if (!vs.Current.loaded || vs.Current == vessel || VesselModuleRegistry.ignoredVesselTypes.Contains(vs.Current.vesselType)) continue;
+                    if (!vs.Current.loaded || vs.Current == vessel || VesselModuleRegistry.IgnoredVesselTypes.Contains(vs.Current.vesselType)) continue;
 
                     IBDAIControl pilot = VesselModuleRegistry.GetIBDAIControl(vs.Current, true);
                     if (pilot == null) continue;
@@ -198,7 +198,7 @@ namespace BDArmory.Control
                 using (var vs = BDATargetManager.LoadedVessels.GetEnumerator())
                     while (vs.MoveNext())
                     {
-                        if (vs.Current == null || !vs.Current.loaded || VesselModuleRegistry.ignoredVesselTypes.Contains(vs.Current.vesselType)) continue;
+                        if (vs.Current == null || !vs.Current.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(vs.Current.vesselType)) continue;
 
                         if (vs.Current.id.ToString() != wingIDs.Current) continue;
                         var pilot = VesselModuleRegistry.GetIBDAIControl(vs.Current, true);

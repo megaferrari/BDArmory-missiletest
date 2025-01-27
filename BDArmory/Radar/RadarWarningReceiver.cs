@@ -456,7 +456,7 @@ namespace BDArmory.Radar
                 while (vessel.MoveNext())
                 {
                     if (vessel.Current == null || !vessel.Current.loaded) continue;
-                    if (VesselModuleRegistry.ignoredVesselTypes.Contains(vessel.Current.vesselType)) continue;
+                    if (VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.Current.vesselType)) continue;
                     Vector3 dirToVessel = vessel.Current.transform.position - ray.origin;
                     if (Vector3.Angle(ray.direction, dirToVessel) < fov / 2)
                     {

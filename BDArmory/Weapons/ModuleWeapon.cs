@@ -2526,7 +2526,7 @@ namespace BDArmory.Weapons
                                     {
                                         if (electroLaser)
                                         {
-                                            if (!VesselModuleRegistry.ignoredVesselTypes.Contains(p.vessel.vesselType))
+                                            if (!VesselModuleRegistry.IgnoredVesselTypes.Contains(p.vessel.vesselType))
                                             {
                                                 var emp = p.vessel.rootPart.FindModuleImplementing<ModuleDrainEC>();
                                                 if (emp == null)
@@ -4542,7 +4542,7 @@ namespace BDArmory.Weapons
                 using (var friendly = FlightGlobals.Vessels.GetEnumerator())
                     while (friendly.MoveNext())
                     {
-                        if (VesselModuleRegistry.ignoredVesselTypes.Contains(friendly.Current.vesselType)) continue;
+                        if (VesselModuleRegistry.IgnoredVesselTypes.Contains(friendly.Current.vesselType)) continue;
                         if (friendly.Current == null || friendly.Current == weaponManager.vessel) continue;
                         var wms = VesselModuleRegistry.GetModule<MissileFire>(friendly.Current);
                         if (wms == null || wms.Team != weaponManager.Team) continue;
@@ -4562,7 +4562,7 @@ namespace BDArmory.Weapons
             using (var friendly = FlightGlobals.Vessels.GetEnumerator())
                 while (friendly.MoveNext())
                 {
-                    if (VesselModuleRegistry.ignoredVesselTypes.Contains(friendly.Current.vesselType)) continue;
+                    if (VesselModuleRegistry.IgnoredVesselTypes.Contains(friendly.Current.vesselType)) continue;
                     if (friendly.Current == null || friendly.Current == weaponManager.vessel) continue;
                     var wms = VesselModuleRegistry.GetModule<MissileFire>(friendly.Current);
                     if (wms == null || wms.Team != weaponManager.Team) continue;
@@ -5266,7 +5266,7 @@ namespace BDArmory.Weapons
                         using (var v = BDATargetManager.LoadedVessels.GetEnumerator())
                             while (v.MoveNext())
                             {
-                                if (v.Current == null || !v.Current.loaded || VesselModuleRegistry.ignoredVesselTypes.Contains(v.Current.vesselType)) continue;
+                                if (v.Current == null || !v.Current.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(v.Current.vesselType)) continue;
                                 if (!v.Current.IsControllable) continue;
                                 if (v.Current == vessel) continue;
                                 Vector3 targetVector = v.Current.CoM - part.transform.position;

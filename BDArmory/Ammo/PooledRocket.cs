@@ -1034,7 +1034,7 @@ namespace BDArmory.Bullets
                                         {
                                             partHit.rb.AddForceAtPosition((partHit.transform.position - currentPosition).normalized * impulse, partHit.transform.position, ForceMode.Acceleration);
                                         }
-                                        if (EMP && !VesselModuleRegistry.ignoredVesselTypes.Contains(partHit.vesselType))
+                                        if (EMP && !VesselModuleRegistry.IgnoredVesselTypes.Contains(partHit.vesselType))
                                         {
                                             var MDEC = partHit.vessel.rootPart.FindModuleImplementing<ModuleDrainEC>();
                                             if (MDEC == null)

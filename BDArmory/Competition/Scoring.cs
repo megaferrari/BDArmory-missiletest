@@ -654,7 +654,7 @@ namespace BDArmory.Competition
             var survivingTeamNames = new HashSet<string>();
             foreach (var vessel in FlightGlobals.Vessels)
             {
-                if (vessel == null || !vessel.loaded || vessel.packed || VesselModuleRegistry.ignoredVesselTypes.Contains(vessel.vesselType))
+                if (vessel == null || !vessel.loaded || vessel.packed || VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType))
                     continue;
                 var mf = VesselModuleRegistry.GetModule<MissileFire>(vessel);
                 var ai = VesselModuleRegistry.GetIBDAIControl(vessel);

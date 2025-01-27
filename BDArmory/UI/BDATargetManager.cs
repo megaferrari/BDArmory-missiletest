@@ -943,7 +943,7 @@ namespace BDArmory.UI
                     GetVesselHeatSignature(activeVessel, top).Item1.ToString("0") + "/" +
                     GetVesselHeatSignature(activeVessel, bottom).Item1.ToString("0"));
                 var radarSig = RadarUtils.GetVesselRadarSignature(activeVessel);
-                if ((radarSig.radarBaseSignature == radarSig.radarMassAtUpdate) && (!VesselModuleRegistry.ignoredVesselTypes.Contains(activeVessel.vesselType) && activeVessel.IsControllable))
+                if ((radarSig.radarBaseSignature == radarSig.radarMassAtUpdate) && (!VesselModuleRegistry.IgnoredVesselTypes.Contains(activeVessel.vesselType) && activeVessel.IsControllable))
                     RadarUtils.ForceUpdateRadarCrossSections();
                 string aspectedText = "";
                 if (BDArmorySettings.ASPECTED_RCS)
@@ -1622,7 +1622,7 @@ namespace BDArmory.UI
             using (var friendlyTarget = FlightGlobals.Vessels.GetEnumerator())
                 while (friendlyTarget.MoveNext())
                 {
-                    if (VesselModuleRegistry.ignoredVesselTypes.Contains(friendlyTarget.Current.vesselType)) continue;
+                    if (VesselModuleRegistry.IgnoredVesselTypes.Contains(friendlyTarget.Current.vesselType)) continue;
                     if (friendlyTarget.Current == null || friendlyTarget.Current == weaponManager.vessel) continue;
                     var wms = VesselModuleRegistry.GetModule<MissileFire>(friendlyTarget.Current);
                     if (wms == null || wms.Team != weaponManager.Team) continue;

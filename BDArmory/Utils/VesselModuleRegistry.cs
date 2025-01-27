@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 
 using BDArmory.Competition;
 using BDArmory.Control;
+using BDArmory.Extensions;
 using BDArmory.Settings;
 using BDArmory.Weapons;
 using BDArmory.Weapons.Missiles;
@@ -29,7 +30,8 @@ namespace BDArmory.Utils
         static public VesselModuleRegistry Instance;
         static public Dictionary<Vessel, Dictionary<Type, List<UnityEngine.Object>>> registry;
         static public Dictionary<Type, System.Reflection.MethodInfo> updateModuleCallbacks;
-        public static HashSet<VesselType> ignoredVesselTypes = [VesselType.Debris, VesselType.SpaceObject];
+        public static readonly HashSet<VesselType> IgnoredVesselTypes = [VesselType.Debris, VesselType.SpaceObject];
+        public static readonly HashSet<VesselType> ValidVesselTypes = [VesselType.Plane, VesselType.Ship, VesselType.Rover, VesselType.Lander, VesselType.Base]; // Valid vessel types for competitions.
         static readonly HashSet<Type> ModuleTypesToSortByProximityToRoot = [
             typeof(BDModulePilotAI),
             typeof(BDModuleSurfaceAI),
@@ -905,6 +907,7 @@ namespace BDArmory.Utils
 
             updateRequired = false;
             var vesselName = Vessel.GetName();
+            if (string.IsNullOrEmpty(vesselName)) vesselName = "new vessel";
             if (BDArmorySettings.DEBUG_OTHER) Debug.Log($"[BDArmory.ActiveController]: ActiveController modules updated on {(string.IsNullOrEmpty(vesselName) ? Vessel.rootPart.partInfo.name : vesselName)} ({Vessel.vesselType}), WM: {WM != null}, PilotAI: {PilotAI != null}, SurfaceAI: {SurfaceAI != null}, VTOLAI: {VTOLAI != null}, OrbitalAI: {OrbitalAI != null}, AI: {AI}");
         }
 
@@ -916,7 +919,8 @@ namespace BDArmory.Utils
         /// </summary>
         public void UpdateAIModules(bool reactivate = false)
         {
-            var prevAI = AI;
+            var vesselName = vessel.GetName();
+            if (string.IsNullOrEmpty(vesselName)) vesselName = "new vessel";
             if (PilotAI != null && PilotAI.pilotEnabled) AI = PilotAI;
             else if (SurfaceAI != null && SurfaceAI.pilotEnabled) AI = SurfaceAI;
             else if (VTOLAI != null && VTOLAI.pilotEnabled) AI = VTOLAI;
@@ -927,7 +931,7 @@ namespace BDArmory.Utils
                 foreach (var ai in VesselModuleRegistry.GetIBDAIControls(Vessel))
                 {
                     if (ai == null || ai == AI || !ai.pilotEnabled) continue;
-                    ScreenMessages.PostScreenMessage($"Deactivating non-primary {ai.aiType} on {Vessel.GetName()}", 3);
+                    ScreenMessages.PostScreenMessage($"Deactivating non-primary {ai.aiType} on {vesselName}", 3);
                     ai.DeactivatePilot();
                 }
                 if (reactivate && AI.pilotEnabled)
@@ -935,6 +939,53 @@ namespace BDArmory.Utils
                     AI.ActivatePilot(); // Reactivate the AI in case deactivating the others disabled any common stuff.
                 }
             }
+            TimingManager.FixedUpdateAdd(TimingManager.TimingStage.Precalc, UpdateVesselType); // Reclassify the vessel if needed on the next frame.
+        }
+
+        /// <summary>
+        /// Update a vessel's type to match its AI (or lack thereof).
+        /// Vessels with a WM must be one of VesselModuleRegistry.ValidVesselTypes.
+        /// Note: unmanned probes are not considered a separate type from their manned equivalents.
+        /// </summary>
+        void UpdateVesselType()
+        {
+            TimingManager.FixedUpdateRemove(TimingManager.TimingStage.Precalc, UpdateVesselType); // Do it only once.
+            var origType = vessel.vesselType;
+            vessel.StripTypeFromName();
+            if (AI != null)
+            {
+                switch (AI.aiType)
+                {
+                    case AIType.PilotAI:
+                    case AIType.VTOLAI:
+                        vessel.vesselType = VesselType.Plane;
+                        break;
+                    case AIType.OrbitalAI:
+                        vessel.vesselType = VesselType.Ship;
+                        break;
+                    case AIType.SurfaceAI:
+                        switch ((AI as BDModuleSurfaceAI).SurfaceType)
+                        {
+                            case AIUtils.VehicleMovementType.Land:
+                            case AIUtils.VehicleMovementType.Amphibious:
+                                vessel.vesselType = VesselType.Rover;
+                                break;
+                            case AIUtils.VehicleMovementType.Stationary:
+                                vessel.vesselType = VesselType.Lander;
+                                break;
+                            case AIUtils.VehicleMovementType.Water:
+                            case AIUtils.VehicleMovementType.Submarine:
+                                vessel.vesselType = VesselType.Ship;
+                                break;
+                        }
+                        break;
+                }
+            }
+            else if (WM != null)
+            {
+                vessel.vesselType = VesselType.Base; // Fixed weapon emplacement.
+            }
+            if (BDArmorySettings.DEBUG_OTHER && origType != vessel.vesselType) Debug.Log($"[BDArmory.ActiveController]: Reclassifying vessel type of {vessel.GetName()} from {origType} to {vessel.vesselType}.");
         }
 
         /// <summary>

@@ -233,7 +233,7 @@ namespace BDArmory.UI
                 while (v.MoveNext())
                 {
                     if (v.Current == null || !v.Current.loaded || v.Current.packed) continue;
-                    if (VesselModuleRegistry.ignoredVesselTypes.Contains(v.Current.vesselType)) continue;
+                    if (VesselModuleRegistry.IgnoredVesselTypes.Contains(v.Current.vesselType)) continue;
                     if (fromModifiedEvent) VesselModuleRegistry.OnVesselModified(v.Current, true);
                     var wms = VesselModuleRegistry.GetMissileFire(v.Current, true);
                     if (wms != null)

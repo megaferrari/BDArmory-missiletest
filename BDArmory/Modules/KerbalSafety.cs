@@ -88,7 +88,7 @@ namespace BDArmory.Modules
                 evaKerbalsToMonitor.Clear();
                 foreach (var vessel in FlightGlobals.Vessels)
                 {
-                    if (VesselModuleRegistry.ignoredVesselTypes.Contains(vessel.vesselType)) continue;
+                    if (VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType)) continue;
                     CheckVesselForKerbals(vessel);
                 }
             }

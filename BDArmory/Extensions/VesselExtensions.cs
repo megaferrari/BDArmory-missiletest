@@ -240,5 +240,18 @@ namespace BDArmory.Extensions
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ActiveController ActiveController(this Vessel vessel) => Utils.ActiveController.GetActiveController(vessel);
+
+        /// <summary>
+        /// Strip the vessel type from the end of a vessel's name (as long as it's not an ignored type).
+        /// KSP automatically adds this whenever a new vessel is made.
+        /// </summary>
+        /// <param name="vessel"></param>
+        public static void StripTypeFromName(this Vessel vessel)
+        {
+            if (!VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType) && vessel.vesselName.EndsWith($" {vessel.vesselType}"))
+            {
+                vessel.vesselName = vessel.vesselName.Remove(vessel.vesselName.Length - $" {vessel.vesselType}".Length);
+            }
+        }
     }
 }

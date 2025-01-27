@@ -4143,7 +4143,7 @@ namespace BDArmory.Control
                                 registeredFoVs.Add(boresight);
                             }
                             else
-                                weaponBoresights.Add(weaponName, new List<float> { boresight });
+                                weaponBoresights.Add(weaponName, [boresight]);
                         }
                     }
                     EngageableWeapon engageableWeapon = weapon.Current as EngageableWeapon;
