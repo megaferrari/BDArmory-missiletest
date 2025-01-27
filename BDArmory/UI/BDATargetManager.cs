@@ -211,9 +211,10 @@ namespace BDArmory.UI
                     cam.Current.gimbalLimitReached) continue;
 
                 float angle = Vector3.Angle(missilePosition, cam.Current.groundTargetPosition - position);
+                float tgtRadius = Mathf.Max(cam.Current.weaponManager.currentTarget ? cam.Current.weaponManager.currentTarget.Vessel.GetRadius() : 20, 20);
                 if (!(angle < maxOffBoresight) || !(angle < smallestAngle) ||
                     !CanSeePosition(cam.Current.groundTargetPosition, vessel.transform.position,
-                        (vessel.transform.position + missilePosition))) continue;
+                        (vessel.transform.position + missilePosition), tgtRadius)) continue;
 
                 smallestAngle = angle;
                 finalCam = cam.Current;
@@ -222,8 +223,8 @@ namespace BDArmory.UI
             return finalCam;
         }
 
-        public static bool CanSeePosition(Vector3 groundTargetPosition, Vector3 vesselPosition, Vector3 missilePosition)
-        {
+        public static bool CanSeePosition(Vector3 groundTargetPosition, Vector3 vesselPosition, Vector3 missilePosition, float threshold)
+        {            
             if ((groundTargetPosition - vesselPosition).sqrMagnitude < 400) // 20 * 20
             {
                 return false;
@@ -235,7 +236,12 @@ namespace BDArmory.UI
             RaycastHit rayHit;
             if (Physics.Raycast(ray, out rayHit, dist, (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.Unknown19 | LayerMasks.Wheels)))
             {
-                if ((rayHit.point - groundTargetPosition).sqrMagnitude < 200)
+                bool pCheck = false;
+                Part p = rayHit.collider.GetComponentInParent<Part>();
+                if (p && p.vessel && (p.vessel.CoM - groundTargetPosition).sqrMagnitude < 100)
+                    pCheck = true;
+
+                if ((rayHit.point - groundTargetPosition).sqrMagnitude < (pCheck ? threshold * threshold : 200)) //200 is a max vessel width of 14m. Trivially easy to exceed, even in pure Stock, which would prevent tgtCams from seeing said large vessel
                 {
                     return true;
                 }
@@ -942,11 +948,11 @@ namespace BDArmory.UI
                 string aspectedText = "";
                 if (BDArmorySettings.ASPECTED_RCS)
                 {
-                    aspectedText += ", For/Aft: " + RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, forward).ToString("0.00") + "/" + RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, aft).ToString("0.00");
-                    aspectedText += ", Side: " + RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, side).ToString("0.00");
-                    aspectedText += ", Top/Bot: " + RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, top).ToString("0.00") + "/" + RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, bottom).ToString("0.00");
+                    aspectedText += ", For/Aft: " + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, forward)) + "/" + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, aft));
+                    aspectedText += ", Side: " + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, side));
+                    aspectedText += ", Top/Bot: " + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, top)) + "/" + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, bottom));
                 }
-                debugString.AppendLine($"Radar Signature: " + radarSig.radarModifiedSignature.ToString("0.00") + aspectedText);
+                debugString.AppendLine($"Radar Signature: " + RadarUtils.RCSString(radarSig.radarModifiedSignature) + aspectedText);
                 debugString.AppendLine($"Chaff multiplier: " + RadarUtils.GetVesselChaffFactor(activeVessel).ToString("0.0"));
 
                 var ecmjInfo = activeVessel.gameObject.GetComponent<VesselECMJInfo>();

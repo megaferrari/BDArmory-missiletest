@@ -34,9 +34,9 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static float VESSEL_WAYPOINT_WINDOW_WIDTH = 480f;
         [BDAPersistentSettingsField] public static float EVOLUTION_WINDOW_WIDTH = 350f;
         [BDAPersistentSettingsField] public static float GUI_OPACITY = 1f;                   // Modify the GUI opacity.
-        [BDAPersistentSettingsField] public static float UI_SCALE = 1f; // Global UI scaling
+        [BDAPersistentSettingsField] public static float UI_SCALE = 1f; // Global UI scaling. (Config value for when not following stock.)
         [BDAPersistentSettingsField] public static bool UI_SCALE_FOLLOWS_STOCK = true; // Global UI scaling follows stock
-        public static float _UI_SCALE => UI_SCALE_FOLLOWS_STOCK ? GameSettings.UI_SCALE : UI_SCALE;
+        public static float UI_SCALE_ACTUAL => UI_SCALE_FOLLOWS_STOCK ? GameSettings.UI_SCALE : UI_SCALE; // Use this one in code.
         public static float PREVIOUS_UI_SCALE = 1f; // For tracking changes
         #endregion
 
@@ -335,7 +335,6 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static float OUT_OF_AMMO_KILL_TIME = -1f;              // Out of ammo kill timer for continuous spawn mode.
         [BDAPersistentSettingsField] public static int VESSEL_SPAWN_FILL_SEATS = 1;                // Fill seats: 0 - minimal, 1 - full cockpits or the first combat seat, 2 - all ModuleCommand and KerbalSeat parts, 3 - also cabins.
         [BDAPersistentSettingsField] public static bool VESSEL_SPAWN_CONTINUE_SINGLE_SPAWNING = false; // Spawn craft again after single spawn competition finishes.
-        [BDAPersistentSettingsField] public static bool VESSEL_SPAWN_DUMP_LOG_EVERY_SPAWN = false; // Dump competition scores every time a vessel spawns.
         [BDAPersistentSettingsField] public static bool SHOW_SPAWN_LOCATIONS = false;              // Show the interesting spawn locations.
         [BDAPersistentSettingsField] public static int VESSEL_SPAWN_NUMBER_OF_TEAMS = 0;           // Number of Teams: 0 - FFA, 1 - Folders, 2-10 specified directly
         [BDAPersistentSettingsField] public static string VESSEL_SPAWN_FILES_LOCATION = "";        // Spawn files location (under AutoSpawn).

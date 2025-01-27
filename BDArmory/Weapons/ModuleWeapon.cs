@@ -365,7 +365,10 @@ namespace BDArmory.Weapons
         {
             return string.Empty;
         }
-
+        public float GetEngageFOV()
+        {
+            return -1;
+        }
         public string GetPartName()
         {
             return WeaponName;
@@ -6497,7 +6500,7 @@ namespace BDArmory.Weapons
                 }
                 new Rect(guiWindowRect.xMin - (230 - 8), Screen.height - Input.mousePosition.y - 5, 220, 20);
             }
-            if (BDArmorySettings._UI_SCALE != 1) GUIUtility.ScaleAroundPivot(BDArmorySettings._UI_SCALE * Vector2.one, guiWindowRect.position);
+            if (BDArmorySettings.UI_SCALE_ACTUAL != 1) GUIUtility.ScaleAroundPivot(BDArmorySettings.UI_SCALE_ACTUAL * Vector2.one, guiWindowRect.position);
             guiWindowRect = GUILayout.Window(GUIUtility.GetControlID(FocusType.Passive), guiWindowRect, GUIWindow, StringUtils.Localize("#LOC_BDArmory_WeaponGroup"), Styles.styleEditorPanel);
         }
 
