@@ -736,8 +736,9 @@ namespace BDArmory.FX
             if (BDArmorySettings.REPORT_DAMAGE_NOT_PARTS_HIT && isReportingWeapon && explosionEvents.Count == 0 && totalDamageApplied.Count > 0)
             {
                 // Debug.Log($"DEBUG dmg: {string.Join(", ", totalDamageApplied.Select(kvp => $"{kvp.Key}:{kvp.Value:0}"))}, parts: {string.Join(", ", totalPartsHit.Select(kvp => $"{kvp.Key}:{kvp.Value}"))}");
-                List<string> debrisNames = ["Debris", "Plane", "Ship", "Probe"]; // Any others?
-                foreach (var vesselName in totalDamageApplied.Keys.ToList()) // Merge debris and vessel hits. Note: if only debris is hit, they won't get merged — quit flogging a dead horse!
+                List<string> debrisNames = ["Debris", "Probe"];
+                debrisNames.AddRange(VesselModuleRegistry.ValidVesselTypes.Select(t => t.ToString()));
+                foreach (var vesselName in totalDamageApplied.Keys.ToList()) // Merge debris and vessel hits. Note: if only debris is hit, they won't get merged — it's dead, Jim!
                 {
                     foreach (var debrisName in debrisNames.Select(name => $"{vesselName} {name}"))
                     {
