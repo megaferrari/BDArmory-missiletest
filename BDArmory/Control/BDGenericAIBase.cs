@@ -238,12 +238,12 @@ namespace BDArmory.Control
             }
             else
             {
-                ActivatePilot();
+                ActiveController.GetActiveController(vessel).SetActiveAI(this);
             }
         }
 
         [KSPAction("Activate Pilot")]
-        public void AGActivatePilot(KSPActionParam param) => ActivatePilot();
+        public void AGActivatePilot(KSPActionParam param) => ActiveController.GetActiveController(vessel).SetActiveAI(this);
 
         [KSPAction("Deactivate Pilot")]
         public void AGDeactivatePilot(KSPActionParam param) => DeactivatePilot();
