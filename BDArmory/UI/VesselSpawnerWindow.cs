@@ -12,6 +12,7 @@ using BDArmory.Settings;
 using BDArmory.Utils;
 using BDArmory.VesselSpawning.SpawnStrategies;
 using BDArmory.VesselSpawning;
+using BDArmory.Extensions;
 
 namespace BDArmory.UI
 {
@@ -1165,8 +1166,8 @@ namespace BDArmory.UI
             {
                 if (vessel == null) continue;
                 if (vessel.vesselType == VesselType.Debris || vessel.vesselType == VesselType.SpaceObject) continue; // Ignore debris and space objects.
-                if (VesselModuleRegistry.GetModuleCount<Control.IBDAIControl>(vessel) > 0 // Check for an AI.
-                    && VesselModuleRegistry.GetModuleCount<Control.MissileFire>(vessel) > 0 // Check for a WM.
+                if (vessel.ActiveController().AI != null // Check for an AI.
+                    && vessel.ActiveController().WM != null // Check for a WM.
                     && vessel.IsControllable
                 ) continue; // It's an active vessel, skip it.
                 potentialObservers.Add(vessel);

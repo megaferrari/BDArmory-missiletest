@@ -31,7 +31,7 @@ namespace BDArmory.Weapons.Missiles
 
         public Vessel LegacyTargetVessel;
 
-        private MissileFire weaponManager = null;
+        private MissileFire weaponManager = null; // FIXMEAI
         private bool mfChecked = false;
 
         private readonly List<Part> _vesselParts = new List<Part>();
@@ -1206,7 +1206,7 @@ namespace BDArmory.Weapons.Missiles
             {
                 if (!mfChecked)
                 {
-                    weaponManager = VesselModuleRegistry.GetModule<MissileFire>(vessel);
+                    weaponManager = vessel.ActiveController().WM;
                     mfChecked = true;
                 }
                 if (mfChecked && weaponManager != null && !weaponManager.guardFiringMissile)

@@ -44,8 +44,8 @@ namespace BDArmory.UI
         float previousWindowHeight = 32;
         private string camMode = "A";
         private int currentMode = 1;
-        private SortedList<string, List<MissileFire>> weaponManagers = new SortedList<string, List<MissileFire>>();
-        private Dictionary<string, float> cameraScores = new Dictionary<string, float>();
+        private SortedList<string, List<MissileFire>> weaponManagers = [];
+        private Dictionary<string, float> cameraScores = [];
 
         private bool upToDateWMs = false;
         public SortedList<string, List<MissileFire>> WeaponManagers
@@ -58,7 +58,7 @@ namespace BDArmory.UI
             }
         }
 
-        private Dictionary<string, List<Vessel>> _vessels = new Dictionary<string, List<Vessel>>();
+        private Dictionary<string, List<Vessel>> _vessels = [];
         public Dictionary<string, List<Vessel>> Vessels
         {
             get

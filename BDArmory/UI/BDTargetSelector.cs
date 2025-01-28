@@ -24,7 +24,7 @@ namespace BDArmory.UI
         private float height;
 
         private Vector2 windowLocation;
-        private MissileFire targetWeaponManager;
+        private MissileFire targetWeaponManager; // FIXMEAI check if this is static or dynamic
 
         public void Open(MissileFire weaponManager, Vector2 position)
         {

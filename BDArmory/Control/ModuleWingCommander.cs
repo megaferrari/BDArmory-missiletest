@@ -15,7 +15,7 @@ namespace BDArmory.Control
 {
     public class ModuleWingCommander : PartModule
     {
-        public MissileFire weaponManager;
+        public MissileFire weaponManager; // FIXMEAI
 
         public List<IBDAIControl> friendlies;
 

@@ -319,7 +319,7 @@ namespace BDArmory.Competition
             var victim = victimVessel.vesselName;
             if (damage <= 0 || attacker == null || victim == null || !ScoreData.ContainsKey(attacker) || !ScoreData.ContainsKey(victim)) return false; // Note: we allow attacker=victim here to track self damage.
             if (ScoreData[victim].aliveState != AliveState.Alive) return false; // Ignore damage after the victim is dead.
-            if (VesselModuleRegistry.GetModuleCount<MissileFire>(victimVessel) == 0) return false; // The victim is dead, but hasn't been registered as such yet. We want to check this here as it's common for BD to occur as the vessel is killed.
+            if (victimVessel.ActiveController().WM == null) return false; // The victim is dead, but hasn't been registered as such yet. We want to check this here as it's common for BD to occur as the vessel is killed.
 
             if (ScoreData[victim].battleDamageFrom.ContainsKey(attacker)) { ScoreData[victim].battleDamageFrom[attacker] += damage; }
             else { ScoreData[victim].battleDamageFrom[attacker] = damage; }
@@ -657,7 +657,7 @@ namespace BDArmory.Competition
             {
                 if (vessel == null || !vessel.loaded || vessel.packed || VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType))
                     continue;
-                var mf = VesselModuleRegistry.GetModule<MissileFire>(vessel);
+                var mf = vessel.ActiveController().WM;
                 var ai = vessel.ActiveController().AI;
                 double HP = 0;
                 double WreckFactor = 0;

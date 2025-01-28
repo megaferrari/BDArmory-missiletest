@@ -38,7 +38,7 @@ namespace BDArmory.Radar
 
         string[] iconLabels = new string[] { "S", "F", "A", "M", "M", "D", "So", "T", "T", "J" };
 
-        public MissileFire weaponManager;
+        public MissileFire weaponManager; // FIXMEAI
 
         // This field may not need to be persistent.  It was combining display with active RWR status.
         [KSPField(isPersistant = true)] public bool rwrEnabled;

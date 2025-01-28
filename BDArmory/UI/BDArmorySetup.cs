@@ -157,7 +157,7 @@ namespace BDArmory.UI
         bool hasEnteredGPSName;
         string newGPSName = string.Empty;
 
-        public MissileFire ActiveWeaponManager;
+        public MissileFire ActiveWeaponManager; // FIXMEAI
         public bool missileWarning;
         public float missileWarningTime = 0;
 

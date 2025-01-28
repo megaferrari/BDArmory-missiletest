@@ -1156,8 +1156,7 @@ namespace BDArmory.Competition
             if (vessel != null && vessel.vesselName != null)
             {
                 var vesselTypeIsValid = VesselModuleRegistry.ValidVesselTypes.Contains(vessel.vesselType);
-                var hasMissileFire = VesselModuleRegistry.GetModuleCount<MissileFire>(vessel) > 0;
-                if (!vesselTypeIsValid && hasMissileFire) // Found an invalid vessel type with a weapon manager.
+                if (!vesselTypeIsValid && vessel.ActiveController().WM != null) // Found an invalid vessel type with a weapon manager.
                 {
                     var message = $"Found weapon manager on {vessel.vesselName} of type {vessel.vesselType}";
                     if (vessel.vesselName.EndsWith($" {vessel.vesselType}"))
@@ -1207,7 +1206,7 @@ namespace BDArmory.Competition
         void CheckForUncontrolledVessel(Vessel vessel)
         {
             if (vessel == null || vessel.vesselName == null) return;
-            if (VesselModuleRegistry.GetModuleCount<MissileFire>(vessel) == 0) return; // The weapon managers are already dead.
+            if (vessel.ActiveController().WM == null) return; // The weapon managers are already dead.
             if (vessel.GetName().Contains(BDArmorySettings.PINATA_NAME)) return; //don't delete uncontrolled pinata
             // Check for partial or full control state.
             foreach (var moduleCommand in VesselModuleRegistry.GetModuleCommands(vessel)) { moduleCommand.UpdateNetwork(); }
@@ -1234,7 +1233,7 @@ namespace BDArmory.Competition
             }
             if (BDArmorySettings.COMPETITION_GM_KILL_WEAPON)
             {
-                var mf = VesselModuleRegistry.GetModule<MissileFire>(vessel);
+                var mf = vessel.ActiveController().WM;
                 if (mf != null)
                 {
                     if (!vessel.IsControllable || !mf.HasWeaponsAndAmmo()) // Check first for not controllable or no weapons or ammo
@@ -1243,7 +1242,7 @@ namespace BDArmory.Competition
             }
             if (BDArmorySettings.COMPETITION_GM_KILL_DISABLED)
             {
-                var mf = VesselModuleRegistry.GetModule<MissileFire>(vessel);
+                var mf = vessel.ActiveController().WM;
                 if (mf != null)
                 {
                     if (!vessel.IsControllable || !mf.HasWeaponsAndAmmo()) // Check first for not controllable or no weapons or ammo
@@ -1268,7 +1267,7 @@ namespace BDArmory.Competition
             }
             if (BDArmorySettings.COMPETITION_GM_KILL_HP > 0)
             {
-                var mf = VesselModuleRegistry.GetModule<MissileFire>(vessel);
+                var mf = vessel.ActiveController().WM;
                 if (mf != null)
                     if (mf.currentHP / mf.totalHP * 100 < BDArmorySettings.COMPETITION_GM_KILL_HP)
                         StartCoroutine(DelayedGMKill(vessel, BDArmorySettings.COMPETITION_GM_KILL_TIME, " crippled. Terminated by GM."));
@@ -2331,7 +2330,7 @@ namespace BDArmory.Competition
             }
         }
 
-        List<MissileFire> craftToCull = new List<MissileFire>();
+        List<MissileFire> craftToCull = [];
         void CullSlowWaypointRunners(double threshold)
         {
             //if (BDArmorySettings.WAYPOINT_GUARD_INDEX >= 0) return;
@@ -2456,7 +2455,7 @@ namespace BDArmory.Competition
                 else
                 {
                     int foundActiveParts = 0; // Note: this checks for exactly one of each part.
-                    if (VesselModuleRegistry.GetModule<MissileFire>(vessel) != null) // Has a weapon manager
+                    if (vessel.ActiveController().WM != null) // Has a weapon manager
                     { ++foundActiveParts; }
 
 
@@ -2644,8 +2643,7 @@ namespace BDArmory.Competition
                 if (vessel == null || !vessel.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType)) // || vessel.packed) // Allow packed craft to avoid the packed craft being considered dead (e.g., when command seats spawn).
                     continue;
 
-                var mf = VesselModuleRegistry.GetModule<MissileFire>(vessel);
-
+                var mf = vessel.ActiveController().WM;
                 if (mf != null)
                 {
                     // things to check
@@ -3174,8 +3172,7 @@ namespace BDArmory.Competition
                     if (vessel == null || !vessel.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType)) // || vessel.packed) // Allow packed craft to avoid the packed craft being considered dead (e.g., when command seats spawn).
                         continue;
 
-                    var mf = VesselModuleRegistry.GetModule<MissileFire>(vessel);
-
+                    var mf = vessel.ActiveController().WM;
                     if (mf != null)
                     {
                         var MM = vessel.rootPart.FindModuleImplementing<BDAMutator>();
@@ -3479,7 +3476,7 @@ namespace BDArmory.Competition
                                 rammingInformation[otherVesselName].targetInformation[vesselName].potentialCollisionDetectionTime = currentTime;
 
                                 // Register intent to ram.
-                                var AI =vessel.ActiveController().AI;
+                                var AI = vessel.ActiveController().AI;
                                 rammingInformation[vesselName].targetInformation[otherVesselName].ramming |= GetAIRammingState(AI); // The AI is alive and trying to ram.
                                 var otherAI = otherVessel.ActiveController().AI;
                                 rammingInformation[otherVesselName].targetInformation[vesselName].ramming |= GetAIRammingState(otherAI); // The other AI is alive and trying to ram.

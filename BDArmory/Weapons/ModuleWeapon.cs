@@ -3403,7 +3403,7 @@ namespace BDArmory.Weapons
         public void DisableWeapon()
         {
             if (dualModeAPS) isAPS = true;
-            if (isAPS && weaponManager != null)
+            if (isAPS && vessel.ActiveController().WM != null)
             {
                 if (ammoCount > 0 || BDArmorySettings.INFINITE_AMMO)
                 {
@@ -4544,8 +4544,8 @@ namespace BDArmory.Weapons
                     {
                         if (VesselModuleRegistry.IgnoredVesselTypes.Contains(friendly.Current.vesselType)) continue;
                         if (friendly.Current == null || friendly.Current == weaponManager.vessel) continue;
-                        var wms = VesselModuleRegistry.GetModule<MissileFire>(friendly.Current);
-                        if (wms == null || wms.Team != weaponManager.Team) continue;
+                        var wm = friendly.Current.ActiveController().WM;
+                        if (wm == null || wm.Team != weaponManager.Team) continue;
                         var friendlyRelativePosition = friendly.Current.CoM - fireTransform.position;
                         var theta = friendly.Current.GetRadius() / friendlyRelativePosition.magnitude; // Approx to arctan(θ) =  θ - θ^3/3 + O(θ^5)
                         var cosTheta = Mathf.Clamp(1f - 0.5f * theta * theta, -1f, 1f); // Approximation to cos(theta) for the friendly vessel's radius at that distance. (cos(x) = 1-x^2/2!+O(x^4))
@@ -4564,8 +4564,8 @@ namespace BDArmory.Weapons
                 {
                     if (VesselModuleRegistry.IgnoredVesselTypes.Contains(friendly.Current.vesselType)) continue;
                     if (friendly.Current == null || friendly.Current == weaponManager.vessel) continue;
-                    var wms = VesselModuleRegistry.GetModule<MissileFire>(friendly.Current);
-                    if (wms == null || wms.Team != weaponManager.Team) continue;
+                    var wm = friendly.Current.ActiveController().WM;
+                    if (wm == null || wm.Team != weaponManager.Team) continue;
                     var friendlyPosition = friendly.Current.CoM;
                     var friendlyVelocity = friendly.Current.Velocity();
                     var friendlyAcceleration = friendly.Current.acceleration;

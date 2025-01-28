@@ -31,7 +31,7 @@ namespace BDArmory.UI
         GUIStyle alliesStyle;
 
         private Vector2 windowLocation;
-        private MissileFire targetWeaponManager;
+        private MissileFire targetWeaponManager; // FIXMEAI check if this is static or dynamic
         private string newTeamName = string.Empty;
 
         public void Open(MissileFire weaponManager, Vector2 position)

@@ -4717,7 +4717,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
 
         #region Internal parameters
         BDModulePilotAI AI; // The AI being tuned.
-        MissileFire WM; // The attached WM (if trying to tune while in combat — not recommended currently).
+        MissileFire WM; // The attached WM (if trying to tune while in combat — not recommended currently). FIXMEAI
         float timeout = 15; // Measure for at most 15s.
         float pointingTolerance = 0.1f; // Pointing tolerance for stopping measurements.
         float rollTolerance = 5f; // Roll tolerance for stopping measurements.

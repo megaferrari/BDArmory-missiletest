@@ -1341,7 +1341,7 @@ namespace BDArmory.Radar
         /// </summary>
         public static float GetStandoffJammingModifier(Vessel v, Competition.BDTeam team, Vector3 position, Vessel targetV, float signature)
         {
-            if (!VesselModuleRegistry.GetModule<MissileFire>(targetV)) return 1f; // Don't evaluate SOJ effects for targets without weapons managers
+            if (targetV.ActiveController().WM == null) return 1f; // Don't evaluate SOJ effects for targets without weapons managers
             if (signature == 0) return 1f; // Don't evaluate SOJ effects for targets with 0 signature
 
             float standOffJammingMod = 0f;
@@ -1356,7 +1356,7 @@ namespace BDArmory.Radar
                     if ((loadedvessels.Current == v) || (loadedvessels.Current == targetV)) continue;
                     if (loadedvessels.Current.vesselType == VesselType.Debris) continue;
 
-                    MissileFire wm = VesselModuleRegistry.GetModule<MissileFire>(loadedvessels.Current);
+                    MissileFire wm = loadedvessels.Current.ActiveController().WM;
 
                     if (!wm) continue;
                     if (team.IsFriendly(wm.Team)) continue;
@@ -1656,7 +1656,7 @@ namespace BDArmory.Radar
                     if (loadedvessels.Current.IsUnderwater() && missile.GetWeaponClass() != WeaponClasses.SLW) continue; //don't detect underwater targets with radar
 
                     // IFF code check to prevent friendly lock-on (neutral vessel without a weaponmanager WILL be lockable!)
-                    MissileFire wm = VesselModuleRegistry.GetModule<MissileFire>(loadedvessels.Current);
+                    MissileFire wm = loadedvessels.Current.ActiveController().WM;
                     if (wm != null)
                     {
                         if (missile.Team.IsFriendly(wm.Team))
@@ -2341,7 +2341,7 @@ namespace BDArmory.Radar
                                             time = AIUtils.TimeToCPA(missileBase.vessel, myWpnManager.vessel, myWpnManager.evadeThreshold * 1.2f),
                                             position = missileBase.transform.position,
                                             vessel = missileBase.vessel,
-                                            weaponManager = missileBase.SourceVessel != null ? VesselModuleRegistry.GetModule<MissileFire>(missileBase.SourceVessel) : null,
+                                            weaponManager = missileBase.SourceVessel == null ? null : missileBase.SourceVessel.ActiveController().WM,
                                         });
                                         switch (missileBase.TargetingMode)
                                         {
@@ -2453,11 +2453,11 @@ namespace BDArmory.Radar
                         if (friendly.Current == null)
                             continue;
                         if (VesselModuleRegistry.IgnoredVesselTypes.Contains(friendly.Current.vesselType)) continue;
-                        var wms = VesselModuleRegistry.GetModule<MissileFire>(friendly.Current);
-                        if (wms == null || wms.Team != mf.Team)
+                        var wm = friendly.Current.ActiveController().WM;
+                        if (wm == null || wm.Team != mf.Team)
                             continue;
 
-                        Vector3 relV = missile.vessel.Velocity() - wms.vessel.Velocity();
+                        Vector3 relV = missile.vessel.Velocity() - wm.vessel.Velocity();
                         bool approaching = Vector3.Dot(relV, vectorFromMissile) > 0;
                         bool withinRadarFOV = (missile.TargetingMode == MissileBase.TargetingModes.Radar) ?
                             (Vector3.Angle(missile.GetForwardTransform(), vectorFromMissile) <= Mathf.Clamp(missile.lockedSensorFOV, 40f, 90f) / 2f) : false;
@@ -2466,8 +2466,8 @@ namespace BDArmory.Radar
 
                         return (missile.HasFired && missile.TimeIndex > 1f && approaching && maneuverCapability &&
                                     (
-                                        (missile.TargetPosition - (wms.vessel.CoM + (wms.vessel.Velocity() * Time.fixedDeltaTime))).sqrMagnitude < missileBlastRadiusSqr || // Target position is within blast radius of missile.
-                                        wms.vessel.PredictClosestApproachSqrSeparation(missile.vessel, Mathf.Max(wms.evadeThreshold, wms.cmThreshold)) < missileBlastRadiusSqr || // Closest approach is within blast radius of missile. 
+                                        (missile.TargetPosition - (wm.vessel.CoM + (wm.vessel.Velocity() * Time.fixedDeltaTime))).sqrMagnitude < missileBlastRadiusSqr || // Target position is within blast radius of missile.
+                                        wm.vessel.PredictClosestApproachSqrSeparation(missile.vessel, Mathf.Max(wm.evadeThreshold, wm.cmThreshold)) < missileBlastRadiusSqr || // Closest approach is within blast radius of missile. 
                                         withinRadarFOV // We are within radar FOV of missile boresight.
                                     ));
                     }

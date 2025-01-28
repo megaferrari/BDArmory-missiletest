@@ -18,7 +18,7 @@ namespace BDArmory.Control
         /// <summary>
         /// The weapon manager the AI connects to.
         /// </summary>
-        MissileFire weaponManager { get; }
+        MissileFire weaponManager { get; } // FIXMEAI
 
         bool ActivatePilot();
 

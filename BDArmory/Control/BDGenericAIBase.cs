@@ -31,7 +31,7 @@ namespace BDArmory.Control
         public bool pilotOn;
         protected Vessel activeVessel;
 
-        public MissileFire weaponManager { get; protected set; }
+        public MissileFire weaponManager { get; protected set; } // FIXMEAI
 
         /// <summary>
         /// The default is BDAirspeedControl. If you want to use something else, just override ActivatePilot  (and, potentially, DeactivatePilot), and make it use something else.
@@ -348,10 +348,10 @@ namespace BDArmory.Control
 
         #region utilities
 
-        protected void UpdateWeaponManager()
+        protected void UpdateWeaponManager() // FIXMEAI
         {
             VesselModuleRegistry.OnVesselModified(vessel);
-            weaponManager = VesselModuleRegistry.GetModule<MissileFire>(vessel);
+            weaponManager = vessel.ActiveController().WM;
             if (weaponManager != null)
                 weaponManager.AI = this;
         }
@@ -403,7 +403,7 @@ namespace BDArmory.Control
                     var nonGuardTargetVessel = vessel.targetObject.GetVessel();
                     if (nonGuardTargetVessel != null)
                     {
-                        var targetWeaponManager = VesselModuleRegistry.GetModule<MissileFire>(nonGuardTargetVessel);
+                        var targetWeaponManager = nonGuardTargetVessel.ActiveController().WM;
                         if (targetWeaponManager != null && weaponManager.Team.IsEnemy(targetWeaponManager.Team))
                             targetVessel = (Vessel)vessel.targetObject;
                     }

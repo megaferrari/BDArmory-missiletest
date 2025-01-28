@@ -128,7 +128,7 @@ namespace BDArmory.GameModes
             }
         }
         MissileFire MF;
-        public MissileFire weaponManager
+        public MissileFire weaponManager // FIXMEAI
         {
             get
             {

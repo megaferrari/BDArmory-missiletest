@@ -314,7 +314,7 @@ namespace BDArmory.Radar
         //vessel
         private MissileFire wpmr;
 
-        public MissileFire weaponManager
+        public MissileFire weaponManager // FIXMEAI
         {
             get
             {

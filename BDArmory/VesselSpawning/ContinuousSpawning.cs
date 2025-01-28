@@ -216,7 +216,7 @@ namespace BDArmory.VesselSpawning
 #if DEBUG
                     if (BDArmorySettings.DEBUG_SPAWNING)
                     {
-                        var missing = spawnConfig.craftFiles.Where(craftURL => craftURLToVesselName.ContainsKey(craftURL) && (!spawnCounts.ContainsKey(craftURL) || spawnCounts[craftURL] < BDArmorySettings.VESSEL_SPAWN_LIVES_PER_VESSEL) && !craftToSpawn.Contains(craftURL) && !FlightGlobals.Vessels.Where(v => !VesselModuleRegistry.IgnoredVesselTypes.Contains(v.vesselType) && VesselModuleRegistry.GetModuleCount<MissileFire>(v) > 0).Select(v => v.vesselName).Contains(craftURLToVesselName[craftURL])).ToList();
+                        var missing = spawnConfig.craftFiles.Where(craftURL => craftURLToVesselName.ContainsKey(craftURL) && (!spawnCounts.ContainsKey(craftURL) || spawnCounts[craftURL] < BDArmorySettings.VESSEL_SPAWN_LIVES_PER_VESSEL) && !craftToSpawn.Contains(craftURL) && !FlightGlobals.Vessels.Where(v => !VesselModuleRegistry.IgnoredVesselTypes.Contains(v.vesselType) && v.ActiveController().WM != null).Select(v => v.vesselName).Contains(craftURLToVesselName[craftURL])).ToList();
                         if (missing.Count > 0)
                         {
                             LogMessage("MISSING vessels: " + string.Join(", ", craftURLToVesselName.Where(c => missing.Contains(c.Key)).Select(c => c.Value)), false);
@@ -464,15 +464,13 @@ namespace BDArmory.VesselSpawning
         {
             if (BDArmorySettings.OUT_OF_AMMO_KILL_TIME < 0) return; // Never
             var now = Planetarium.GetUniversalTime();
-            Vessel vessel;
-            MissileFire weaponManager;
             ContinuousSpawningScores score;
             foreach (var vesselName in continuousSpawningScores.Keys)
             {
                 score = continuousSpawningScores[vesselName];
-                vessel = score.vessel;
+                var vessel = score.vessel;
                 if (vessel == null) continue; // Vessel hasn't been respawned yet.
-                weaponManager = VesselModuleRegistry.GetModule<MissileFire>(vessel);
+                var weaponManager = vessel.ActiveController().WM;
                 if (weaponManager == null) continue; // Weapon manager hasn't registered yet.
                 if (score.outOfAmmoTime == 0 && !weaponManager.HasWeaponsAndAmmo())
                     score.outOfAmmoTime = Planetarium.GetUniversalTime();

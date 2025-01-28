@@ -50,7 +50,7 @@ namespace BDArmory.Radar
 
         private bool drawGUI;
 
-        public MissileFire weaponManager;
+        public MissileFire weaponManager; // FIXMEAI
         public bool canReceiveRadarData;
 
         //GUI

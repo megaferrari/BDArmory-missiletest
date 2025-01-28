@@ -41,7 +41,7 @@ namespace BDArmory.UI
         internal const float textOpacity = 2f;
         internal const float iconOpacity = 1f;
 
-        public SortedList<string, List<MissileFire>> weaponManagers = new SortedList<string, List<MissileFire>>();
+        public SortedList<string, List<MissileFire>> weaponManagers = [];
 
         public static string textureDir = "BDArmory/Textures/";
 
@@ -247,7 +247,7 @@ namespace BDArmory.UI
                         if (weaponManagers.TryGetValue(wm.Team.Name, out var teamManagers))
                             teamManagers.Add(wm);
                         else
-                            weaponManagers.Add(wm.Team.Name, new List<MissileFire> { wm });
+                            weaponManagers.Add(wm.Team.Name, [wm]);
                     }
                 }
         }

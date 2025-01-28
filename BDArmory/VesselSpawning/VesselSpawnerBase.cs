@@ -520,7 +520,7 @@ namespace BDArmory.VesselSpawning
         /// <returns></returns>
         protected IEnumerator WaitForWeaponManagers(Dictionary<string, Vessel> vessels, Dictionary<string, int> vesselPartCounts, bool saveTeams, bool continueAnyway)
         {
-            var vesselsToCheck = vessels.Where(kvp => VesselModuleRegistry.GetModuleCount<MissileFire>(kvp.Value) > 0).Select(kvp => kvp.Key).ToList(); // Only check the vessels that actually have weapon managers.
+            var vesselsToCheck = vessels.Where(kvp => kvp.Value.ActiveController().WM != null).Select(kvp => kvp.Key).ToList(); // Only check the vessels that actually have weapon managers.
             var allWeaponManagersAssigned = false;
             var startTime = Time.time;
             do
@@ -545,7 +545,7 @@ namespace BDArmory.VesselSpawning
                 var weaponManagers = LoadedVesselSwitcher.Instance.WeaponManagers.SelectMany(tm => tm.Value).ToList();
                 foreach (var vesselName in vesselsToCheck.ToList())
                 {
-                    var weaponManager = VesselModuleRegistry.GetModule<MissileFire>(vessels[vesselName]);
+                    var weaponManager = vessels[vesselName].ActiveController().WM;
                     if (weaponManager != null && weaponManagers.Contains(weaponManager)) // The weapon manager has been added, let's go!
                     { vesselsToCheck.Remove(vesselName); }
                 }
@@ -770,7 +770,7 @@ namespace BDArmory.VesselSpawning
         {
             yield return waitForFixedUpdate; // Wait at least one update so the vessel parts list is populated.
             var startTime = Time.time;
-            var weaponManager = VesselModuleRegistry.GetModule<MissileFire>(vessel);
+            var weaponManager = vessel.ActiveController().WM;
             var vesselName = vessel.vesselName; // In case it disappears.
             var assigned = weaponManager != null && LoadedVesselSwitcher.Instance.WeaponManagers.SelectMany(tm => tm.Value).Contains(weaponManager);
             while (!assigned && Time.time - startTime < 10 && vessel != null)
@@ -785,7 +785,7 @@ namespace BDArmory.VesselSpawning
                         yield break;
                     }
                 }
-                if (weaponManager == null) weaponManager = VesselModuleRegistry.GetModule<MissileFire>(vessel);
+                if (weaponManager == null) weaponManager = vessel.ActiveController().WM;
                 assigned = weaponManager != null && LoadedVesselSwitcher.Instance.WeaponManagers.SelectMany(tm => tm.Value).Contains(weaponManager);
                 vessel.SetPosition(VectorUtils.GetWorldSurfacePostion(finalSpawnPositions[vessel.vesselName], FlightGlobals.currentMainBody)); // Prevent the vessel from falling.
             }
@@ -806,7 +806,7 @@ namespace BDArmory.VesselSpawning
         {
             // Activate the vessel with AG10, or failing that, staging.
             vessel.ActionGroups.ToggleGroup(BDACompetitionMode.KM_dictAG[10]); // Modular Missiles use lower AGs (1-3) for staging, use a high AG number to not affect them
-            var weaponManager = VesselModuleRegistry.GetModule<MissileFire>(vessel);
+            var weaponManager = vessel.ActiveController().WM;
             if (weaponManager != null)
             {
                 if (weaponManager.AI != null)
@@ -952,7 +952,7 @@ namespace BDArmory.VesselSpawning
                 ContinuousSpawning.Instance.continuousSpawningScores[vesselName].outOfAmmoTime = 0;
             }
 
-            var weaponManager = VesselModuleRegistry.GetModule<MissileFire>(vessel);
+            var weaponManager = vessel.ActiveController().WM;
             if (BDArmorySettings.TAG_MODE && !string.IsNullOrEmpty(BDACompetitionMode.Instance.Scores.currentlyIT))
             { weaponManager.SetTeam(BDTeam.Get("NO")); }
             else
