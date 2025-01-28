@@ -9,6 +9,7 @@ using BDArmory.Radar;
 using BDArmory.Settings;
 using BDArmory.Utils;
 using BDArmory.Weapons.Missiles;
+using BDArmory.Extensions;
 
 namespace BDArmory.WeaponMounts
 {
@@ -82,7 +83,7 @@ namespace BDArmory.WeaponMounts
             get
             {
                 if (wm && wm.vessel == vessel) return wm;
-                wm = VesselModuleRegistry.GetMissileFire(vessel, true);
+                wm = vessel.ActiveController().WM; // FIXMEAI bad caching
                 return wm;
             }
         }

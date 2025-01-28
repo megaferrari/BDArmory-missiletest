@@ -13,6 +13,7 @@ using BDArmory.Modules;
 using BDArmory.Settings;
 using BDArmory.UI;
 using BDArmory.Utils;
+using BDArmory.Extensions;
 
 namespace BDArmory.Competition.OrchestrationStrategies
 {
@@ -67,7 +68,7 @@ namespace BDArmory.Competition.OrchestrationStrategies
         public IEnumerator Execute(BDAScoreClient client, BDAScoreService service)
         {
             if (BDArmorySettings.DEBUG_OTHER) Debug.Log("[BDArmory.WaypointFollowingStrategy]: Started");
-            pilots = BDACompetitionMode.Instance.GetAllPilots().Select(p => VesselModuleRegistry.GetModule<BDGenericAIBase>(p.vessel)).ToList();
+            pilots = BDACompetitionMode.Instance.GetAllPilots().Select(p => p.vessel.ActiveController().AI as BDGenericAIBase).ToList();
             if (BDACompetitionMode.Instance.competitionIsActive) BDACompetitionMode.Instance.StopCompetition(); // Stop any currently active competition.
             BDACompetitionMode.Instance.ResetCompetitionStuff(); // Reset a bunch of stuff related to competitions so they don't interfere.
             BDACompetitionMode.Instance.StartCompetitionMode(BDArmorySettings.COMPETITION_DISTANCE, BDArmorySettings.COMPETITION_START_DESPITE_FAILURES, "", CompetitionType.WAYPOINTS);

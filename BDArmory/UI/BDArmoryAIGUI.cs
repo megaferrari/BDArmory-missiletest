@@ -45,6 +45,7 @@ namespace BDArmory.UI
         public BDModuleOrbitalAI.PIDModeTypes[] PIDModeTypes = (BDModuleOrbitalAI.PIDModeTypes[])Enum.GetValues(typeof(BDModuleOrbitalAI.PIDModeTypes)); // Get the PID mode as an array of enum values.
         public BDModuleOrbitalAI.RollModeTypes[] RollModeTypes = (BDModuleOrbitalAI.RollModeTypes[])Enum.GetValues(typeof(BDModuleOrbitalAI.RollModeTypes)); // Get the roll mode as an array of enum values.
 
+        // FIXMEAI This can use AIType with ActiveController for simpler code.
         public enum ActiveAIType { PilotAI, SurfaceAI, VTOLAI, OrbitalAI, None }; // Order of priority of AIs.
         public ActiveAIType activeAIType = ActiveAIType.None;
         public BDGenericAIBase ActiveAI;
@@ -269,23 +270,34 @@ namespace BDArmory.UI
                 if (FlightGlobals.ActiveVessel == null) yield break;
             }
             // Now, get the new AI and update stuff.
-            foreach (var aiType in Enum.GetValues(typeof(ActiveAIType)) as ActiveAIType[])
+            ActiveAI = FlightGlobals.ActiveVessel.ActiveController().AI as BDGenericAIBase; // FIXMEAI Check that this works properly and clean up.
+            activeAIType = ActiveAI == null ? ActiveAIType.None : ActiveAI.aiType switch
             {
-                BDGenericAIBase aiQuery = aiType switch
-                {
-                    ActiveAIType.PilotAI => VesselModuleRegistry.GetBDModulePilotAI(FlightGlobals.ActiveVessel, true),
-                    ActiveAIType.SurfaceAI => VesselModuleRegistry.GetBDModuleSurfaceAI(FlightGlobals.ActiveVessel, true),
-                    ActiveAIType.VTOLAI => VesselModuleRegistry.GetModule<BDModuleVTOLAI>(FlightGlobals.ActiveVessel, true),
-                    ActiveAIType.OrbitalAI => VesselModuleRegistry.GetModule<BDModuleOrbitalAI>(FlightGlobals.ActiveVessel, true),
-                    _ => null
-                };
-                if (aiQuery == null) continue; // None of this type found.
-                activeAIType = aiType;
-                ActiveAI = aiQuery;
-                SetInputFields(aiType);
-                SetChooseOptionSliders();
-                yield break;
-            }
+                AIType.PilotAI => ActiveAIType.PilotAI,
+                AIType.SurfaceAI => ActiveAIType.SurfaceAI,
+                AIType.VTOLAI => ActiveAIType.VTOLAI,
+                AIType.OrbitalAI => ActiveAIType.OrbitalAI,
+                _ => ActiveAIType.None
+            };
+            SetInputFields(activeAIType);
+            SetChooseOptionSliders();
+            // foreach (var aiType in Enum.GetValues(typeof(ActiveAIType)) as ActiveAIType[])
+            // {
+            //     BDGenericAIBase aiQuery = aiType switch
+            //     {
+            //         ActiveAIType.PilotAI => VesselModuleRegistry.GetBDModulePilotAI(FlightGlobals.ActiveVessel, true),
+            //         ActiveAIType.SurfaceAI => VesselModuleRegistry.GetBDModuleSurfaceAI(FlightGlobals.ActiveVessel, true),
+            //         ActiveAIType.VTOLAI => VesselModuleRegistry.GetModule<BDModuleVTOLAI>(FlightGlobals.ActiveVessel, true),
+            //         ActiveAIType.OrbitalAI => VesselModuleRegistry.GetModule<BDModuleOrbitalAI>(FlightGlobals.ActiveVessel, true),
+            //         _ => null
+            //     };
+            //     if (aiQuery == null) continue; // None of this type found.
+            //     activeAIType = aiType;
+            //     ActiveAI = aiQuery;
+            //     SetInputFields(aiType);
+            //     SetChooseOptionSliders();
+            //     yield break;
+            // }
         }
 
         void GetAIEditor()

@@ -1322,7 +1322,7 @@ namespace BDArmory.Control
                     UpdateVisualGunRangeSqr(null, null);
                 }
 
-                AI = VesselModuleRegistry.GetIBDAIControl(vessel, true);
+                AI = vessel.ActiveController().AI; //VesselModuleRegistry.GetIBDAIControl(vessel, true); FIXMEAI This is being cached.
 
                 modulesNeedRefreshing = true;
                 cmPrioritiesNeedRefreshing = true;
@@ -1489,6 +1489,7 @@ namespace BDArmory.Control
             }
             if (Time.time - start < 10 && BDACompetitionMode.Instance.IsValidVessel(vessel) == BDACompetitionMode.InvalidVesselReason.None && !BDACompetitionMode.Instance.Scores.Players.Contains(vessel.vesselName) && !vessel.vesselName.Contains(" Fighter_"))
             {
+                // FIXMEAI Detached parts with AI/WM where the parent no longer them shouldn't count as new. (E.g., detached combat seats that weren't the root part.)
                 UpdateList();
                 if (vessel.vesselType == VesselType.Plane && vessel.vesselName.EndsWith(" Plane"))
                 {
@@ -1503,7 +1504,7 @@ namespace BDArmory.Control
                     vessel.vesselName = potentialName;
                 }
                 BDACompetitionMode.Instance.Scores.AddPlayer(vessel);
-                Debug.Log($"DEBUG Adding {vessel.vesselName} to the competition.");
+                Debug.Log($"DEBUG Adding {vessel.vesselName} to the competition."); // FIXMEAI This may no tbe appropriate here now that we have ActiveController.
                 if (guardMode) { ToggleGuardMode(); ToggleGuardMode(); } // Disable, then re-enable guard mode to reset weapon stuff.
                 if (AI != null) { AI.ActivatePilot(); } // Make sure the AI is active.
             }
@@ -5437,7 +5438,8 @@ namespace BDArmory.Control
             int targetWeaponPriority = -1;
             bool candidateAGM = false;
             bool candidateAntiRad = false;
-            var surfaceAI = VesselModuleRegistry.GetModule<BDModuleSurfaceAI>(vessel); // Get the surface AI if the vessel has one.
+            // var surfaceAI = VesselModuleRegistry.GetModule<BDModuleSurfaceAI>(vessel); // Get the surface AI if the vessel has one.
+            var surfaceAI = vessel.ActiveController().SurfaceAI; // FIXMEAI This and the AI above should be using the active AI and checking its type, otherwise a secondary inactive surface AI will screw with this.
             if (target.isMissile)
             {
                 // iterate over weaponTypesMissile and pick suitable one based on engagementRange (and dynamic launch zone for missiles)

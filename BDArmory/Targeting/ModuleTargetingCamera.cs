@@ -157,12 +157,12 @@ namespace BDArmory.Targeting
 
         private MissileFire wpmr;
 
-        public MissileFire weaponManager
+        public MissileFire weaponManager // FIXMEAI
         {
             get
             {
                 if (wpmr == null || wpmr.vessel != vessel)
-                { wpmr = VesselModuleRegistry.GetMissileFire(vessel, true); }
+                { wpmr = vessel.ActiveController().WM; }
                 return wpmr;
             }
         }

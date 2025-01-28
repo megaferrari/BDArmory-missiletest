@@ -9,6 +9,7 @@ using BDArmory.Settings;
 using BDArmory.Targeting;
 using BDArmory.UI;
 using BDArmory.Utils;
+using BDArmory.Extensions;
 
 namespace BDArmory.Control
 {
@@ -128,21 +129,21 @@ namespace BDArmory.Control
                     if (vs.Current == null) continue;
                     if (!vs.Current.loaded || vs.Current == vessel || VesselModuleRegistry.IgnoredVesselTypes.Contains(vs.Current.vesselType)) continue;
 
-                    IBDAIControl pilot = VesselModuleRegistry.GetIBDAIControl(vs.Current, true);
-                    if (pilot == null) continue;
-                    MissileFire wm = VesselModuleRegistry.GetMissileFire(vs.Current, true);
-                    if (wm == null || wm.Team != weaponManager.Team) continue;
-                    friendlies.Add(pilot);
+                    var ac = vs.Current.ActiveController();
+                    if (ac == null) continue; // Since this is called on vessel destroy, we need to check that the vessel module isn't null.
+                    if (ac.AI == null) continue;
+                    if (ac.WM == null || ac.WM.Team != weaponManager.Team) continue;
+                    friendlies.Add(ac.AI);
                 }
 
             //TEMPORARY
-            wingmen = new List<IBDAIControl>();
-            using (var fs = friendlies.GetEnumerator())
-                while (fs.MoveNext())
-                {
-                    if (fs.Current == null) continue;
-                    wingmen.Add(fs.Current);
-                }
+            wingmen = [];
+            using var fs = friendlies.GetEnumerator();
+            while (fs.MoveNext())
+            {
+                if (fs.Current == null) continue;
+                wingmen.Add(fs.Current);
+            }
         }
 
         void RefreshWingmen()
@@ -201,7 +202,7 @@ namespace BDArmory.Control
                         if (vs.Current == null || !vs.Current.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(vs.Current.vesselType)) continue;
 
                         if (vs.Current.id.ToString() != wingIDs.Current) continue;
-                        var pilot = VesselModuleRegistry.GetIBDAIControl(vs.Current, true);
+                        var pilot = vs.Current.ActiveController().AI;
                         if (pilot != null) wingmen.Add(pilot);
                     }
             }

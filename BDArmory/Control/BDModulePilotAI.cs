@@ -2227,10 +2227,10 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
             SetStatus("Ramming speed!");
 
             // If they're also in ramming speed and trying to ram us, then just aim straight for them until the last moment.
-            var targetAI = VesselModuleRegistry.GetBDModulePilotAI(v);
+            var targetAI = v.ActiveController().PilotAI;
             if (timeToCPA > 1f && targetAI != null && targetAI.ramming)
             {
-                var targetWM = VesselModuleRegistry.GetMissileFire(v);
+                var targetWM = v.ActiveController().WM;
                 if (targetWM != null && targetWM.currentTarget != null && targetWM.currentTarget.Vessel == vessel && Vector3.Dot(vessel.srf_vel_direction, v.srf_vel_direction) < -0.866f) // They're trying to ram us and are mostly head-on! Two can play at that game!
                 {
                     FlyToPosition(s, AIUtils.PredictPosition(v.transform.position, v.Velocity(), v.acceleration, TimeWarp.fixedDeltaTime)); // Ultimate Chicken!!!
@@ -3959,7 +3959,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
                         if (!PredictCollisionWithVessel(vs.Current, vesselCollisionAvoidanceLookAheadPeriod, out Vector3 collisionAvoidDir)) continue;
                         if (!VesselModuleRegistry.IgnoredVesselTypes.Contains(vs.Current.vesselType))
                         {
-                            var ibdaiControl = VesselModuleRegistry.GetModule<IBDAIControl>(vs.Current);
+                            var ibdaiControl = vs.Current.ActiveController().AI;
                             if (ibdaiControl != null && ibdaiControl.currentCommand == PilotCommands.Follow && ibdaiControl.commandLeader != null && ibdaiControl.commandLeader.vessel == vessel) continue;
                         }
                         var collisionTargetSize = vs.Current.vesselSize.sqrMagnitude; // We're only interested in sorting by size, which is much faster than sorting by mass.
@@ -4706,7 +4706,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
         {
             this.AI = AI;
             if (AI.vessel == null) { Debug.LogError($"[BDArmory.BDModulePilotAI.PIDAutoTuning]: PIDAutoTuning triggered on null vessel!"); return; }
-            WM = VesselModuleRegistry.GetMissileFire(AI.vessel);
+            WM = AI.vessel.ActiveController().WM;
             partCount = AI.vessel.Parts.Count;
             maxObservedSpeed = AI.idleSpeed;
         }

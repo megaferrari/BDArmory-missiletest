@@ -10,6 +10,7 @@ using BDArmory.GameModes.Waypoints;
 using BDArmory.Settings;
 using BDArmory.Utils;
 using BDArmory.VesselSpawning;
+using BDArmory.Extensions;
 
 namespace BDArmory.Competition
 {
@@ -45,7 +46,7 @@ namespace BDArmory.Competition
             foreach (var vessel in vessels)
             {
                 ScoreData[vessel.vesselName].competitionID = BDACompetitionMode.Instance.CompetitionID;
-                ScoreData[vessel.vesselName].team = VesselModuleRegistry.GetMissileFire(vessel, true).Team.Name;
+                ScoreData[vessel.vesselName].team = vessel.ActiveController().WM.Team.Name;
             }
             deathCount = 0;
             deathOrder.Clear();
@@ -64,7 +65,7 @@ namespace BDArmory.Competition
             if (BDACompetitionMode.Instance.IsValidVessel(vessel) != BDACompetitionMode.InvalidVesselReason.None) return false; // Invalid vessel.
             ScoreData[vessel.vesselName] = new ScoringData();
             ScoreData[vessel.vesselName].competitionID = BDACompetitionMode.Instance.CompetitionID;
-            ScoreData[vessel.vesselName].team = VesselModuleRegistry.GetMissileFire(vessel, true).Team.Name;
+            ScoreData[vessel.vesselName].team = vessel.ActiveController().WM.Team.Name;
             ScoreData[vessel.vesselName].lastFiredTime = Planetarium.GetUniversalTime();
             ScoreData[vessel.vesselName].previousPartCount = vessel.parts.Count();
             BDACompetitionMode.Instance.AddPlayerToRammingInformation(vessel);
@@ -590,7 +591,7 @@ namespace BDArmory.Competition
                 ScoreData[vesselName].tagIsIt = true;
                 ScoreData[vesselName].tagTimesIt++;
                 ScoreData[vesselName].tagLastUpdated = now;
-                var mf = VesselModuleRegistry.GetMissileFire(vessels[vesselName]);
+                var mf = vessels[vesselName].ActiveController().WM;
                 mf.SetTeam(BDTeam.Get("IT"));
                 mf.ForceScan();
                 BDACompetitionMode.Instance.competitionStatus.Add(vesselName + " is IT!");
@@ -604,7 +605,7 @@ namespace BDArmory.Competition
                     if (ScoreData[player].team != "NO")
                     {
                         ScoreData[player].tagIsIt = false;
-                        var mf = VesselModuleRegistry.GetMissileFire(vessels[player]);
+                        var mf = vessels[player].ActiveController().WM;
                         mf.SetTeam(BDTeam.Get("NO"));
                         mf.ForceScan();
                         vessels[player].ActionGroups.ToggleGroup(BDACompetitionMode.KM_dictAG[9]); // Trigger AG9 on becoming "NOT IT"
@@ -657,7 +658,7 @@ namespace BDArmory.Competition
                 if (vessel == null || !vessel.loaded || vessel.packed || VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType))
                     continue;
                 var mf = VesselModuleRegistry.GetModule<MissileFire>(vessel);
-                var ai = VesselModuleRegistry.GetIBDAIControl(vessel);
+                var ai = vessel.ActiveController().AI;
                 double HP = 0;
                 double WreckFactor = 0;
                 if (mf != null)

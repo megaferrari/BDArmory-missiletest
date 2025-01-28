@@ -493,7 +493,7 @@ namespace BDArmory.Competition
                 {
                     if (loadedVessels.Current == null || !loadedVessels.Current.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(loadedVessels.Current.vesselType))
                         continue;
-                    IBDAIControl pilot = VesselModuleRegistry.GetModule<IBDAIControl>(loadedVessels.Current);
+                    IBDAIControl pilot = loadedVessels.Current.ActiveController().AI;
                     if (pilot == null || !pilot.weaponManager || pilot.weaponManager.Team.Neutral)
                         continue;
                     //so, for NPC on NPC violence prevention - have NPCs set to be allies of each other, or set to the same team? Should also probably have a toggle for if NPCs are friends w/ each other
@@ -683,7 +683,7 @@ namespace BDArmory.Competition
                             nuke.thermalRadius = 200;
                             if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log("[BDArmory.BDACompetitionMOde]: Adding Nuke Module to " + pilot.vessel.GetName());
                         }
-                        BDModulePilotAI pilotAI = VesselModuleRegistry.GetModule<BDModulePilotAI>(pilot.vessel);
+                        BDModulePilotAI pilotAI = pilot.vessel.ActiveController().PilotAI;
                         if (pilotAI != null)
                         {
                             pilotAI.minAltitude = Mathf.Max(pilotAI.minAltitude, 750);
@@ -848,7 +848,7 @@ namespace BDArmory.Competition
 
             for (var i = 0; i < leaders.Count; ++i)
             {
-                var pilotAI = VesselModuleRegistry.GetBDModulePilotAI(leaders[i].vessel, true); // Adjust initial fly-to point for terrain and default altitudes.
+                var pilotAI = leaders[i].vessel.ActiveController().PilotAI; // Adjust initial fly-to point for terrain and default altitudes.
                 var startPosition = center + startDirection + (pilotAI != null ? (pilotAI.defaultAltitude - BodyUtils.GetRadarAltitudeAtPos(center + startDirection, false)) * VectorUtils.GetUpDirection(center + startDirection) : Vector3.zero);
                 leaders[i].CommandFlyTo(VectorUtils.WorldPositionToGeoCoords(startPosition, FlightGlobals.currentMainBody));
                 startDirection = directionStep * startDirection;
@@ -1032,11 +1032,11 @@ namespace BDArmory.Competition
             foreach (var vessel in BDATargetManager.LoadedVessels)
             {
                 if (vessel == null || !vessel.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType)) continue;
-                var pilot = VesselModuleRegistry.GetModule<IBDAIControl>(vessel);
+                var pilot = vessel.ActiveController().AI;
                 if (pilot == null || pilot.weaponManager == null)
                 {
                     VesselModuleRegistry.OnVesselModified(vessel, true);
-                    pilot = VesselModuleRegistry.GetModule<IBDAIControl>(vessel);
+                    pilot = vessel.ActiveController().AI;
                     if (pilot == null || pilot.weaponManager == null) continue; // Unfixable, ignore the vessel.
                 }
                 if (IsValidVessel(vessel) != InvalidVesselReason.None) continue;
@@ -1119,9 +1119,9 @@ namespace BDArmory.Competition
         {
             if (vessel == null)
                 return InvalidVesselReason.NullVessel;
-            if (VesselModuleRegistry.GetModuleCount<IBDAIControl>(vessel) == 0) // Check for an AI.
+            if (vessel.ActiveController().AI == null) // Check for an AI.
                 return InvalidVesselReason.NoAI;
-            if (VesselModuleRegistry.GetModuleCount<MissileFire>(vessel) == 0) // Check for a weapon manager.
+            if (vessel.ActiveController().WM == null) // Check for a weapon manager.
                 return InvalidVesselReason.NoWeaponManager;
             if (attemptFix && VesselModuleRegistry.GetModuleCount<ModuleCommand>(vessel) == 0 && VesselModuleRegistry.GetModuleCount<KerbalSeat>(vessel) == 0) // Check for a cockpit or command seat.
                 CheckVesselType(vessel); // Attempt to fix it.
@@ -1192,7 +1192,7 @@ namespace BDArmory.Competition
                     return;
                 }
                 // Check for a lack of control.
-                var AI = VesselModuleRegistry.GetModule<BDModulePilotAI>(vessel);
+                var AI = vessel.ActiveController().AI;
                 if (VesselModuleRegistry.GetModuleCount<KerbalEVA>(vessel) == 0 && AI != null && AI.pilotEnabled) // If not controlled by a kerbalEVA in a KerbalSeat, check the regular ModuleCommand parts.
                 {
                     if (VesselModuleRegistry.GetModules<ModuleCommand>(vessel).All(c => c.GetControlSourceState() == CommNet.VesselControlState.None))
@@ -1252,8 +1252,8 @@ namespace BDArmory.Competition
                     {
                         if (SpawnUtils.CountActiveEngines(vessel, true) == 0)
                         {
-                            var surfaceAI = VesselModuleRegistry.GetModule<BDModuleSurfaceAI>(vessel); // Get the surface AI if the vessel has one.
-                            if (surfaceAI == null) // No engines on an AI that needs them, craft is disabled
+                            var surfaceAI = vessel.ActiveController().SurfaceAI; // Get the surface AI if the vessel has one.
+                            if (surfaceAI == null || !surfaceAI.pilotEnabled) // No engines on an AI that needs them, craft is disabled
                                 StartCoroutine(DelayedGMKill(vessel, BDArmorySettings.COMPETITION_GM_KILL_TIME, " lost all engines. Terminated by GM."));
                             else if ((surfaceAI.SurfaceType & AIUtils.VehicleMovementType.Land) != 0) // Check for wheels on craft capable of moving on land
                             {
@@ -1963,7 +1963,7 @@ namespace BDArmory.Competition
                             foreach (var pilot in pilots)
                             {
                                 attackGPS = centerGPS;
-                                if (VesselModuleRegistry.GetBDModulePilotAI(pilot.vessel) != null)
+                                if (pilot.vessel.ActiveController().PilotAI != null)
                                     attackGPS.z = (float)BodyUtils.GetTerrainAltitudeAtPos(center) + 1000; // Target 1km above the terrain at the center.
                                 pilot.ReleaseCommand();
                                 pilot.CommandAttack(attackGPS);
@@ -2153,7 +2153,7 @@ namespace BDArmory.Competition
                 {
                     if (loadedVessels.Current == null || !loadedVessels.Current.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(loadedVessels.Current.vesselType))
                         continue;
-                    IBDAIControl pilot = VesselModuleRegistry.GetModule<IBDAIControl>(loadedVessels.Current);
+                    IBDAIControl pilot = loadedVessels.Current.ActiveController().AI;
                     if (pilot == null || !pilot.weaponManager || pilot.weaponManager.Team.Neutral)
                         continue;
 
@@ -2420,7 +2420,7 @@ namespace BDArmory.Competition
                 }
                 if (!hasKerbal)
                 {
-                    var AI = VesselModuleRegistry.GetModule<BDModulePilotAI>(vessel);
+                    var AI = vessel.ActiveController().AI;
                     if (AI != null && AI.pilotEnabled) AI.DeactivatePilot();
                     StartCoroutine(DelayedExplodeWMs(vessel, 1f, UncontrolledReason.Uncontrolled));
                 }
@@ -2460,7 +2460,7 @@ namespace BDArmory.Competition
                     { ++foundActiveParts; }
 
 
-                    if (VesselModuleRegistry.GetModule<IBDAIControl>(vessel) != null) // Has an AI
+                    if (vessel.ActiveController().AI != null) // Has an AI
                     { ++foundActiveParts; }
 
                     if (VesselModuleRegistry.GetModule<ModuleCommand>(vessel) != null || VesselModuleRegistry.GetModule<KerbalSeat>(vessel) != null) // Has a command module or command seat.
@@ -2802,10 +2802,10 @@ namespace BDArmory.Competition
                         }
                         if (mf.guardMode) // If we're in guard mode, check to see if we should disable it.
                         {
-                            var pilotAI = VesselModuleRegistry.GetModule<BDModulePilotAI>(vessel); // Get the pilot AI if the vessel has one.
-                            var surfaceAI = VesselModuleRegistry.GetModule<BDModuleSurfaceAI>(vessel); // Get the surface AI if the vessel has one.
-                            var vtolAI = VesselModuleRegistry.GetModule<BDModuleVTOLAI>(vessel); // Get the VTOL AI if the vessel has one.
-                            var orbitalAI = VesselModuleRegistry.GetModule<BDModuleOrbitalAI>(vessel); // Get the Orbital AI if the vessel has one.
+                            var pilotAI = vessel.ActiveController().PilotAI; // Get the pilot AI if the vessel has one.
+                            var surfaceAI = vessel.ActiveController().SurfaceAI; // Get the surface AI if the vessel has one.
+                            var vtolAI = vessel.ActiveController().VTOLAI; // Get the VTOL AI if the vessel has one.
+                            var orbitalAI = vessel.ActiveController().OrbitalAI; // Get the Orbital AI if the vessel has one.
                             if ((pilotAI == null && surfaceAI == null && vtolAI == null && orbitalAI == null) || (mf.outOfAmmo && (BDArmorySettings.DISABLE_RAMMING || !((pilotAI != null && pilotAI.allowRamming) || (orbitalAI != null && orbitalAI.allowRamming))))) // if we've lost the AI or the vessel is out of weapons/ammo and ramming is not allowed.
                                 mf.guardMode = false;
                         }
@@ -2819,7 +2819,8 @@ namespace BDArmory.Competition
                         vData.averageCount++;
                         if (vData.landedState && BDArmorySettings.COMPETITION_KILL_TIMER > 0)
                         {
-                            if (VesselModuleRegistry.GetBDModuleSurfaceAI(vessel, true) == null) // Ignore surface AI vessels for the kill timer.
+                            var surfaceAI = vessel.ActiveController().SurfaceAI;
+                            if (surfaceAI == null || !surfaceAI.pilotEnabled) // Ignore active surface AI vessels for the kill timer.
                             {
                                 KillTimer[vesselName] = (int)(now - vData.landedKillTimer);
                                 if (now - vData.landedKillTimer > BDArmorySettings.COMPETITION_KILL_TIMER)
@@ -2829,7 +2830,6 @@ namespace BDArmory.Competition
                             }
                             else
                             {
-                                var surfaceAI = VesselModuleRegistry.GetModule<BDModuleSurfaceAI>(vessel);
                                 if ((surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Land && vessel.Splashed) || ((surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Water || surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Submarine) && vessel.Landed) || (surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Water && vessel.IsUnderwater()))
                                 {
                                     KillTimer[vesselName] = (int)(now - vData.landedKillTimer);
@@ -3049,7 +3049,7 @@ namespace BDArmory.Competition
                         {
                             if (loadedVessels.Current == null || !loadedVessels.Current.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(loadedVessels.Current.vesselType)) // || vessel.packed) // Allow packed craft to avoid the packed craft being considered dead (e.g., when command seats spawn).
                                 continue;
-                            IBDAIControl pilot = VesselModuleRegistry.GetModule<IBDAIControl>(loadedVessels.Current);
+                            IBDAIControl pilot = loadedVessels.Current.ActiveController().AI;
                             if (pilot == null || !pilot.weaponManager || pilot.weaponManager.Team.Neutral) continue;
                             if (((BDGenericAIBase)pilot).IsRunningWaypoints)
                             {
@@ -3108,8 +3108,8 @@ namespace BDArmory.Competition
                 {
                     while (pilots.MoveNext())
                     {
-                        var pilotAI = VesselModuleRegistry.GetModule<BDModulePilotAI>(pilots.Current.vessel); // Get the pilot AI if the vessel has one.
-                        pilotAI.minAltitude = MinAlt;
+                        var pilotAI = pilots.Current.vessel.ActiveController().PilotAI; // Get the pilot AI if the vessel has one.
+                        if (pilotAI != null) pilotAI.minAltitude = MinAlt;
                     }
                 }
                 if (Mathf.RoundToInt(MinAlt / 100) != Mathf.RoundToInt(lastMinAlt / 100)) // Only write a message when it shows something different.
@@ -3348,12 +3348,12 @@ namespace BDArmory.Competition
             foreach (var vesselName in rammingInformation.Keys)
             {
                 var vessel = rammingInformation[vesselName].vessel;
-                var AI = vessel != null ? VesselModuleRegistry.GetIBDAIControl(vessel) : null; // Get the pilot AI if the vessel has one.
+                var AI = vessel == null ? null : vessel.ActiveController().AI; // Get the pilot AI if the vessel has one.
 
                 foreach (var otherVesselName in rammingInformation[vesselName].targetInformation.Keys)
                 {
                     var otherVessel = rammingInformation[vesselName].targetInformation[otherVesselName].vessel;
-                    var otherAI = otherVessel != null ? VesselModuleRegistry.GetIBDAIControl(otherVessel) : null; // Get the pilot AI if the vessel has one.
+                    var otherAI = otherVessel == null ? null : otherVessel.ActiveController().AI; // Get the pilot AI if the vessel has one.
                     if (AI == null || otherAI == null) // One of the vessels or pilot AIs has been destroyed.
                     {
                         rammingInformation[vesselName].targetInformation[otherVesselName].timeToCPA = maxTimeToCPA; // Set the timeToCPA to maxTimeToCPA, so that it's not considered for new potential collisions.
@@ -3479,9 +3479,9 @@ namespace BDArmory.Competition
                                 rammingInformation[otherVesselName].targetInformation[vesselName].potentialCollisionDetectionTime = currentTime;
 
                                 // Register intent to ram.
-                                var AI = VesselModuleRegistry.GetIBDAIControl(vessel);
+                                var AI =vessel.ActiveController().AI;
                                 rammingInformation[vesselName].targetInformation[otherVesselName].ramming |= GetAIRammingState(AI); // The AI is alive and trying to ram.
-                                var otherAI = VesselModuleRegistry.GetIBDAIControl(otherVessel);
+                                var otherAI = otherVessel.ActiveController().AI;
                                 rammingInformation[otherVesselName].targetInformation[vesselName].ramming |= GetAIRammingState(otherAI); // The other AI is alive and trying to ram.
                             }
                         }
@@ -3617,7 +3617,7 @@ namespace BDArmory.Competition
                 asteroidCollisions.Remove(vesselName);
                 yield break;
             }
-            if (vessel == null || VesselModuleRegistry.GetMissileFire(vessel) == null)
+            if (vessel == null || vessel.ActiveController().WM == null)
             {
                 rammingInformation[vesselName].partCount = 0;
                 if (Scores.ScoreData[vesselName].aliveState == AliveState.Alive)
@@ -3718,8 +3718,8 @@ namespace BDArmory.Competition
                     if (currentTime - rammingInformation[vesselName].targetInformation[otherVesselName].potentialCollisionDetectionTime > potentialCollisionDetectionTime) // We've waited long enough for the parts that are going to explode to explode.
                     {
                         var otherVessel = rammingInformation[vesselName].targetInformation[otherVesselName].vessel;
-                        var AI = vessel != null ? VesselModuleRegistry.GetIBDAIControl(vessel) : null;
-                        var otherAI = otherVessel != null ? VesselModuleRegistry.GetIBDAIControl(otherVessel) : null;
+                        var AI = vessel == null ? null : vessel.ActiveController().AI;
+                        var otherAI = otherVessel == null ? null : otherVessel.ActiveController().AI;
 
                         // Count the number of parts lost.
                         var rammedPartsLost = (otherAI == null) ? rammingInformation[vesselName].targetInformation[otherVesselName].partCountJustPriorToCollision : rammingInformation[vesselName].targetInformation[otherVesselName].partCountJustPriorToCollision - otherVessel.parts.Count;

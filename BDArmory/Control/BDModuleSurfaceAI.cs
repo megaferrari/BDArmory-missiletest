@@ -439,7 +439,7 @@ namespace BDArmory.Control
                             if (vs.Current == null || vs.Current == vessel || vs.Current.GetTotalMass() < AvoidMass) continue;
                             if (!VesselModuleRegistry.IgnoredVesselTypes.Contains(vs.Current.vesselType))
                             {
-                                var ibdaiControl = VesselModuleRegistry.GetModule<IBDAIControl>(vs.Current);
+                                var ibdaiControl = vs.Current.ActiveController().AI;
                                 if (!vs.Current.LandedOrSplashed || (ibdaiControl != null && ibdaiControl.commandLeader != null && ibdaiControl.commandLeader.vessel == vessel))
                                     continue;
                             }

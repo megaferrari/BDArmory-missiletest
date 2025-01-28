@@ -269,7 +269,7 @@ namespace BDArmory.Weapons
             get
             {
                 if (mf) return mf;
-                mf = VesselModuleRegistry.GetMissileFire(vessel, true);
+                mf = vessel.ActiveController().WM; // FIXMEAI Bad caching
                 return mf;
             }
         }

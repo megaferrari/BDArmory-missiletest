@@ -11,6 +11,7 @@ using BDArmory.Control;
 using BDArmory.Settings;
 using BDArmory.Utils;
 using BDArmory.ModIntegration;
+using BDArmory.Extensions;
 
 /*
 * *Milestone 6: Figure out how to have TI activation toggle the F4 SHOW_LABELS (or is it Flt_Show_labels?) method to sim a keypress?
@@ -235,18 +236,18 @@ namespace BDArmory.UI
                     if (v.Current == null || !v.Current.loaded || v.Current.packed) continue;
                     if (VesselModuleRegistry.IgnoredVesselTypes.Contains(v.Current.vesselType)) continue;
                     if (fromModifiedEvent) VesselModuleRegistry.OnVesselModified(v.Current, true);
-                    var wms = VesselModuleRegistry.GetMissileFire(v.Current, true);
-                    if (wms != null)
+                    var wm = v.Current.ActiveController().WM;
+                    if (wm != null)
                     {
-                        if (!ColorAssignments.ContainsKey(wms.teamString))
+                        if (!ColorAssignments.ContainsKey(wm.teamString))
                         {
                             float rnd = UnityEngine.Random.Range(0f, 100f);
-                            ColorAssignments.Add(wms.Team.Name, Color.HSVToRGB((rnd / 100f), 1f, 1f));
+                            ColorAssignments.Add(wm.Team.Name, Color.HSVToRGB((rnd / 100f), 1f, 1f));
                         }
-                        if (weaponManagers.TryGetValue(wms.Team.Name, out var teamManagers))
-                            teamManagers.Add(wms);
+                        if (weaponManagers.TryGetValue(wm.Team.Name, out var teamManagers))
+                            teamManagers.Add(wm);
                         else
-                            weaponManagers.Add(wms.Team.Name, new List<MissileFire> { wms });
+                            weaponManagers.Add(wm.Team.Name, new List<MissileFire> { wm });
                     }
                 }
         }

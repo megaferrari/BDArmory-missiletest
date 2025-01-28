@@ -204,7 +204,7 @@ namespace BDArmory.Targeting
             }
 
             Team = null;
-            var mf = VesselModuleRegistry.GetMissileFire(vessel, true);
+            var mf = vessel.ActiveController().WM;
             if (mf != null)
             {
                 Team = mf.Team;
@@ -604,7 +604,7 @@ namespace BDArmory.Targeting
             // For orbital AI craft, avoid intercepting targets if we are descending and the maneuver will bring our own periapsis to an unsafe altitude
 
             if (!vessel) return true;
-            var orbitalAI = VesselModuleRegistry.GetModule<BDModuleOrbitalAI>(myMf.vessel);
+            var orbitalAI = myMf.vessel.ActiveController().OrbitalAI;
             if (orbitalAI == null)
                 return true;
 

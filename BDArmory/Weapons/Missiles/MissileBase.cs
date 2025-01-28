@@ -740,7 +740,7 @@ namespace BDArmory.Weapons.Missiles
                         float jamDistance = RadarUtils.GetVesselECMJammingDistance(targetVessel.Vessel); //does the target have a jammer, and is the missile within the jammed AoE
                         if (jamDistance * jamDistance < distanceToTargetSqr) //outside/no area of interference, can receive GPS signal
                         {
-                            //var weaponManager = VesselModuleRegistry.GetMissileFire(SourceVessel);
+                            //var weaponManager = SourceVessel.ActiveController().WM;
                             //if (weaponManager != null && weaponManager.CanSeeTarget(targetVessel, false))
 
                             if (gpsUpdates == 0) // Constant updates
@@ -1378,7 +1378,7 @@ namespace BDArmory.Weapons.Missiles
             {
                 if (gpsUpdates >= 0f)
                 {
-                    var weaponManager = VesselModuleRegistry.GetMissileFire(SourceVessel);
+                    var weaponManager = SourceVessel.ActiveController().WM;
                     TargetSignatureData INStarget = TargetSignatureData.noTarget;
                     bool radarLocked = false;
                     if (weaponManager != null && weaponManager.vesselRadarData)

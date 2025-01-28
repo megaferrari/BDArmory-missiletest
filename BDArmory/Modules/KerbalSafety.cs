@@ -290,11 +290,11 @@ namespace BDArmory.Modules
         void OnVesselSwitch(Vessel from, Vessel to)
         {
             var weaponManagers = LoadedVesselSwitcher.Instance.WeaponManagers.SelectMany(tm => tm.Value).ToList();
-            if (to != null && weaponManagers.Contains(VesselModuleRegistry.GetMissileFire(to, true))) // New vessel is an active competitor.
+            if (to != null && weaponManagers.Contains(to.ActiveController().WM)) // New vessel is an active competitor.
             {
                 activeVesselBeforeEject = to;
             }
-            else if (from != null && weaponManagers.Contains(VesselModuleRegistry.GetMissileFire(from, true))) // Old vessel is an active competitor.
+            else if (from != null && weaponManagers.Contains(from.ActiveController().WM)) // Old vessel is an active competitor.
             {
                 activeVesselBeforeEject = from;
             }

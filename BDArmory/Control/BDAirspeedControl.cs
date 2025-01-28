@@ -478,7 +478,7 @@ namespace BDArmory.Control
         }
         public void SetSecondaryThrottle(float value)
         {
-            using (var engines = VesselModuleRegistry.GetModuleEngines(vessel).GetEnumerator()) //allow VTOL AI to have standard horizontal engines for thrust, using engiens set to independent throttle so normal engines usable for altitude
+            using (var engines = VesselModuleRegistry.GetModuleEngines(vessel).GetEnumerator()) //allow VTOL AI to have standard horizontal engines for thrust, using engines set to independent throttle so normal engines usable for altitude
                 while (engines.MoveNext())
                 {
                     if (engines.Current == null) continue;

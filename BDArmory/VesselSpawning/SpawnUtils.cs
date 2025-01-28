@@ -245,9 +245,10 @@ namespace BDArmory.VesselSpawning
         public static bool CheckAIWMPlacement(Vessel vessel)
         {
             var message = "";
-            List<string> failureStrings = new List<string>();
-            var AI = VesselModuleRegistry.GetModule<BDGenericAIBase>(vessel, true);
-            var WM = VesselModuleRegistry.GetMissileFire(vessel, true);
+            List<string> failureStrings = [];
+            
+            var AI = vessel.ActiveController().AI;
+            var WM = vessel.ActiveController().WM;
             if (AI == null) message = " has no AI";
             if (WM == null) message += (AI == null ? " or WM" : " has no WM");
             if (AI != null || WM != null)
@@ -774,7 +775,7 @@ namespace BDArmory.VesselSpawning
         {
             if (vessel == null || !vessel.loaded) return;
 
-            if (VesselModuleRegistry.GetMissileFire(vessel, true) != null && vessel.rootPart.FindModuleImplementing<ModuleSpaceFriction>() == null)
+            if (vessel.ActiveController().WM != null && vessel.rootPart.FindModuleImplementing<ModuleSpaceFriction>() == null)
             {
                 vessel.rootPart.AddModule("ModuleSpaceFriction");
             }
@@ -1085,7 +1086,7 @@ namespace BDArmory.VesselSpawning
                         nuke.thermalRadius = 200;
                         if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log("[BDArmory.BDACompetitionMOde]: Adding Nuke Module to " + vessel.GetName());
                     }
-                    BDModulePilotAI pilotAI = VesselModuleRegistry.GetModule<BDModulePilotAI>(vessel);
+                    BDModulePilotAI pilotAI = vessel.ActiveController().PilotAI;
                     if (pilotAI != null)
                     {
                         pilotAI.minAltitude = Mathf.Max(pilotAI.minAltitude, 750);
@@ -1151,7 +1152,7 @@ namespace BDArmory.VesselSpawning
                             if (part.Current.CrewCapacity > 0 && part.Current.CrewCapacity > cockpitSeatCount) cockpitSeatCount = part.Current.CrewCapacity;
                         }
                     }
-                var AI = VesselModuleRegistry.GetModule<BDModulePilotAI>(vessel);
+                var AI = vessel.ActiveController().PilotAI;
                 if (AI != null)
                 {
                     if (CompSettings.CompOverrides.TryGetValue("extendDistanceAirToAir", out float dATA) && dATA > 0)
@@ -1167,7 +1168,7 @@ namespace BDArmory.VesselSpawning
                     if (CompSettings.CompOverrides.TryGetValue("extensionCutoffTime", out float eCT) && eCT > 0)
                         AI.extensionCutoffTime = Mathf.Max(AI.extensionCutoffTime, eCT);
                 }
-                var WM = VesselModuleRegistry.GetModule<MissileFire>(vessel);
+                var WM = vessel.ActiveController().WM;
                 if (WM != null)
                 {
                     if (cockpitSeatCount == 1)

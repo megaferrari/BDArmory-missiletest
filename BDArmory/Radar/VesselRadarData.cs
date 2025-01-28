@@ -385,7 +385,7 @@ namespace BDArmory.Radar
 
             if (!weaponManager)
             {
-                weaponManager = VesselModuleRegistry.GetMissileFire(vessel, true);
+                weaponManager = vessel.ActiveController().WM;
             }
 
             StartCoroutine(StartupRoutine());
@@ -1696,7 +1696,7 @@ namespace BDArmory.Radar
                     if (VesselModuleRegistry.IgnoredVesselTypes.Contains(v.Current.vesselType)) continue;
 
                     BDTeam team = null;
-                    var mf = VesselModuleRegistry.GetMissileFire(v.Current, true);
+                    var mf = v.Current.ActiveController().WM;
                     if (mf != null) team = mf.Team;
                     if (team != weaponManager.Team) continue;
                     VesselRadarData vrd = v.Current.gameObject.GetComponent<VesselRadarData>();

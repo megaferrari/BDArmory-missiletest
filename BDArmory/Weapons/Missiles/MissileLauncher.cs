@@ -1250,7 +1250,7 @@ namespace BDArmory.Weapons.Missiles
             {
                 SourceVessel = vessel;
             }
-            var wpm = VesselModuleRegistry.GetMissileFire(SourceVessel, true);
+            var wpm = SourceVessel.ActiveController().WM;
             if (wpm != null) Team = wpm.Team;
             
             if (multiLauncher)
@@ -1355,7 +1355,7 @@ namespace BDArmory.Weapons.Missiles
             }
 
             ml.launched = true;
-            var wpm = VesselModuleRegistry.GetMissileFire(SourceVessel, true);
+            var wpm = SourceVessel.ActiveController().WM;
             ml.SourceVessel = SourceVessel;
             ml.GuidanceMode = GuidanceMode;
             //wpm.SendTargetDataToMissile(ml);
@@ -3324,7 +3324,7 @@ namespace BDArmory.Weapons.Missiles
         void WarnTarget()
         {
             if (targetVessel == null) return;
-            var wpm = VesselModuleRegistry.GetMissileFire(targetVessel.Vessel, true);
+            var wpm = targetVessel.Vessel.ActiveController().WM;
             if (wpm != null) wpm.MissileWarning(Vector3.Distance(transform.position, targetVessel.transform.position), this);
         }
 

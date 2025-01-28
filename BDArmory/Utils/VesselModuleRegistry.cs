@@ -11,6 +11,7 @@ using BDArmory.Extensions;
 using BDArmory.Settings;
 using BDArmory.Weapons;
 using BDArmory.Weapons.Missiles;
+using BDArmory.UI;
 
 namespace BDArmory.Utils
 {
@@ -858,9 +859,20 @@ namespace BDArmory.Utils
         #endregion
     }
 
-    // FIXME Replace VesselModule.Get...AI() calls with vessel.ActiveController()...AI calls and similar.
+    // FIXMEAI Replace VesselModule.Get...AI() calls with vessel.ActiveController()...AI calls and similar.
+    // FIXMEAI Make a PR before merging so that the others can review the (quite significant) changes.
+    /// <summary>
+    /// This class maintains an overview and control of which WM and AI modules are the primary ones controlling a vessel.
+    /// The primary AI is either the one that was most recently activated or the one closest to the root of the vessel.
+    /// </summary>
     public class ActiveController : VesselModule
     {
+        /// <summary>
+        /// Get the active controller vessel module for the vessel.
+        /// Note: there is an extension method vessel.GetActiveController().
+        /// </summary>
+        /// <param name="vessel"></param>
+        /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ActiveController GetActiveController(Vessel vessel)
         {
@@ -874,10 +886,10 @@ namespace BDArmory.Utils
 
         public MissileFire WM { get; private set; }
         public IBDAIControl AI { get; private set; } // The active AI (if any).
-        public BDModulePilotAI PilotAI { get; private set; }
-        public BDModuleSurfaceAI SurfaceAI { get; private set; }
-        public BDModuleVTOLAI VTOLAI { get; private set; }
-        public BDModuleOrbitalAI OrbitalAI { get; private set; }
+        public BDModulePilotAI PilotAI { get; private set; } // The primary or most recently active pilot AI.
+        public BDModuleSurfaceAI SurfaceAI { get; private set; } // The primary or most recently active surface AI.
+        public BDModuleVTOLAI VTOLAI { get; private set; } // The primary or most recently active VTOL AI.
+        public BDModuleOrbitalAI OrbitalAI { get; private set; } // The primary or most recently active orbital AI.
 
         bool updateRequired = true;
 
@@ -910,15 +922,19 @@ namespace BDArmory.Utils
             registry = registry.Where(kvp => kvp.Key != null).ToDictionary(kvp => kvp.Key, kvp => kvp.Value); // Remove any null vessels.
 
             updateRequired = false;
-            var vesselName = Vessel.GetName();
-            if (string.IsNullOrEmpty(vesselName)) vesselName = "new vessel";
-            if (BDArmorySettings.DEBUG_OTHER) Debug.Log($"[BDArmory.ActiveController]: ActiveController modules updated on {(string.IsNullOrEmpty(vesselName) ? Vessel.rootPart.partInfo.name : vesselName)} ({Vessel.vesselType}), WM: {WM != null}, PilotAI: {PilotAI != null}, SurfaceAI: {SurfaceAI != null}, VTOLAI: {VTOLAI != null}, OrbitalAI: {OrbitalAI != null}, AI: {AI}");
+            if (BDArmorySettings.DEBUG_OTHER)
+            {
+                var vesselName = Vessel.GetName();
+                if (string.IsNullOrEmpty(vesselName)) vesselName = "new vessel";
+                Debug.Log($"[BDArmory.ActiveController]: ActiveController modules updated on {(string.IsNullOrEmpty(vesselName) ? Vessel.rootPart.partInfo.name : vesselName)} ({Vessel.vesselType}), WM: {WM != null}, PilotAI: {PilotAI != null}, SurfaceAI: {SurfaceAI != null}, VTOLAI: {VTOLAI != null}, OrbitalAI: {OrbitalAI != null}, AI: {AI}");
+            }
+            LoadedVesselSwitcher.Instance.UpdateList();
         }
 
         /// <summary>
         /// Set AI to the first active AI in the order Pilot, Surface, VTOL, Orbital, otherwise the AI closest to the root part on the vessel.
         /// AIs other than the primary one get deactivated.
-        /// In order to activate a lower priority AI, the higher priority ones need to be disabled first.
+        /// In order to activate a lower priority AI, the higher priority ones need to be disabled first. SetActiveAI below takes care of this.
         /// <param name="reactivate">Reactivate the active AI in case deactivating others disables some stuff.</param>
         /// </summary>
         public void UpdateAIModules(bool reactivate = false)

@@ -219,7 +219,7 @@ namespace BDArmory.VesselSpawning
                     foreach (var vesselName in team)
                     {
                         if (!spawnedVessels.ContainsKey(vesselName)) continue;
-                        var wm = VesselModuleRegistry.GetMissileFire(spawnedVessels[vesselName]);
+                        var wm = spawnedVessels[vesselName].ActiveController().WM;
                         if (wm == null) continue;
                         if (wm.Team.Name.Length < 2) continue; // If it's a one-letter name, ignore it.
                         if (teamNames.Contains(wm.Team.Name)) continue; // The team name already exists, ignore it.

@@ -800,7 +800,7 @@ namespace BDArmory.UI
 
         void GetWeaponManager()
         {
-            ActiveWeaponManager = VesselModuleRegistry.GetMissileFire(FlightGlobals.ActiveVessel, true);
+            ActiveWeaponManager = FlightGlobals.ActiveVessel.ActiveController().WM;
             if (ActiveWeaponManager != null)
             { ConfigTextFields(); }
         }
@@ -3464,7 +3464,7 @@ namespace BDArmory.UI
                         {
                             foreach (var vessel in FlightGlobals.Vessels)
                             {
-                                if (VesselModuleRegistry.GetMissileFire(vessel, true) != null && vessel.rootPart.FindModuleImplementing<BDAMutator>() == null)
+                                if (vessel.ActiveController().WM != null && vessel.rootPart.FindModuleImplementing<BDAMutator>() == null)
                                 {
                                     vessel.rootPart.AddModule("BDAMutator");
                                 }

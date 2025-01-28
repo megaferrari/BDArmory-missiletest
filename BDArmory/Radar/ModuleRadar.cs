@@ -319,7 +319,7 @@ namespace BDArmory.Radar
             get
             {
                 if (wpmr != null && wpmr.vessel == vessel) return wpmr;
-                wpmr = VesselModuleRegistry.GetMissileFire(vessel, true);
+                wpmr = vessel.ActiveController().WM;
                 return wpmr;
             }
             set { wpmr = value; }
@@ -365,7 +365,7 @@ namespace BDArmory.Radar
             EnsureVesselRadarData();
             radarEnabled = true;
 
-            var mf = VesselModuleRegistry.GetMissileFire(vessel, true);
+            var mf = vessel.ActiveController().WM;
             if (mf != null && vesselRadarData != null) vesselRadarData.weaponManager = mf;
             UpdateToggleGuiName();
             vesselRadarData.AddRadar(this);
@@ -406,7 +406,7 @@ namespace BDArmory.Radar
                 {
                     BDATargetManager.ClearRadarReport(loadedvessels.Current, weaponManager); //reset radar contact status
                 }
-            var mf = VesselModuleRegistry.GetMissileFire(vessel, true);
+            var mf = vessel.ActiveController().WM;
             if (mf != null)
             {
                 if (mf.radars.Count > 1)

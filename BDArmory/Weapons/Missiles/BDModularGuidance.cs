@@ -1128,11 +1128,11 @@ namespace BDArmory.Weapons.Missiles
                 (vessel.CoM + (vessel.Velocity() * Time.fixedDeltaTime) - (targetPosition + (TargetVelocity * Time.fixedDeltaTime))).sqrMagnitude) return;
             if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.BDModularGuidance]: Missile CheckMiss showed miss for {vessel.vesselName} ({SourceVessel}) with target at {targetPosition - vessel.CoM:G3}");
 
-            var pilotAI = VesselModuleRegistry.GetModule<BDModulePilotAI>(vessel); // Get the pilot AI if the  missile has one.
-            if (pilotAI != null)
+            var AI = vessel.ActiveController().AI; // Get the AI if the missile has one.
+            if (AI != null)
             {
                 ResetMissile();
-                pilotAI.ActivatePilot();
+                AI.ActivatePilot();
                 return;
             }
 
@@ -1180,11 +1180,11 @@ namespace BDArmory.Weapons.Missiles
             {
                 if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.BDModularGuidance]: Missile CheckMiss showed miss for {vessel.vesselName}");
 
-                var pilotAI = VesselModuleRegistry.GetModule<BDModulePilotAI>(vessel); // Get the pilot AI if the  missile has one.
-                if (pilotAI != null)
+                var AI = vessel.ActiveController().AI; // Get the AI if the missile has one.
+                if (AI != null)
                 {
                     ResetMissile();
-                    pilotAI.ActivatePilot();
+                    AI.ActivatePilot();
                     return;
                 }
 
@@ -1474,11 +1474,11 @@ namespace BDArmory.Weapons.Missiles
         [KSPAction("Reset Missile")]
         public void AGReset(KSPActionParam param)
         {
-            var pilotAI = VesselModuleRegistry.GetModule<BDModulePilotAI>(vessel); // Get the pilot AI if the  missile has one.
-            if (pilotAI != null)
+            var AI = vessel.ActiveController().AI; // Get the AI if the missile has one.
+            if (AI != null)
             {
                 ResetMissile();
-                pilotAI.ActivatePilot();
+                AI.ActivatePilot();
             }
         }
 
@@ -1513,7 +1513,7 @@ namespace BDArmory.Weapons.Missiles
 
                 BDATargetManager.FiredMissiles.Add(this);
 
-                var wpm = VesselModuleRegistry.GetMissileFire(vessel, true);
+                var wpm = vessel.ActiveController().WM;
                 if (wpm != null)
                 {
                     Team = wpm.Team;

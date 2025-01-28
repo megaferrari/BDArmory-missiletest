@@ -70,7 +70,7 @@ namespace BDArmory.Targeting
             }
             else
             {
-                var mf = VesselModuleRegistry.GetMissileFire(v, true);
+                var mf = v.ActiveController().WM;
                 if (mf != null) Team = mf.Team;
             }
 

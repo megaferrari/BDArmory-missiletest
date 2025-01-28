@@ -238,12 +238,12 @@ namespace BDArmory.Control
             }
             else
             {
-                ActiveController.GetActiveController(vessel).SetActiveAI(this);
+                vessel.ActiveController().SetActiveAI(this);
             }
         }
 
         [KSPAction("Activate Pilot")]
-        public void AGActivatePilot(KSPActionParam param) => ActiveController.GetActiveController(vessel).SetActiveAI(this);
+        public void AGActivatePilot(KSPActionParam param) => vessel.ActiveController().SetActiveAI(this);
 
         [KSPAction("Deactivate Pilot")]
         public void AGDeactivatePilot(KSPActionParam param) => DeactivatePilot();
@@ -614,10 +614,10 @@ namespace BDArmory.Control
                 UpdateWaypoint(); // Call ourselves again for the new waypoint to follow.
                 //Modify AI maxSpeed if the gate we just pased has a speed limit
                 float mSpeed = WaypointCourses.CourseLocations[waypointCourseIndex].waypoints[activeWaypointIndex].maxSpeed;
-                var pilotAI = VesselModuleRegistry.GetModule<BDModulePilotAI>(vessel); // Get the pilot AI if the vessel has one.
-                var surfaceAI = VesselModuleRegistry.GetModule<BDModuleSurfaceAI>(vessel); // Get the surface AI if the vessel has one.
-                var vtolAI = VesselModuleRegistry.GetModule<BDModuleVTOLAI>(vessel); // Get the VTOL AI if the vessel has one.
-                var orbitalAI = VesselModuleRegistry.GetModule<BDModuleOrbitalAI>(vessel); // Get the Orbital AI if the vessel has one.
+                var pilotAI = vessel.ActiveController().PilotAI; // Get the pilot AI if the vessel has one.
+                var surfaceAI = vessel.ActiveController().SurfaceAI; // Get the surface AI if the vessel has one.
+                var vtolAI = vessel.ActiveController().VTOLAI; // Get the VTOL AI if the vessel has one.
+                var orbitalAI = vessel.ActiveController().OrbitalAI; // Get the Orbital AI if the vessel has one.
                 if (pilotAI != null)
                 {
                     pilotAI.maxSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed;

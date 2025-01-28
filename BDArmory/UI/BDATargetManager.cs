@@ -792,7 +792,7 @@ namespace BDArmory.UI
 
                 if (tInfo == null)
                 {
-                    var WM = VesselModuleRegistry.GetMissileFire(vessel, true);
+                    var WM = vessel.ActiveController().WM;
                     if (WM != null)
                     {
                         tInfo = vessel.gameObject.AddComponent<TargetInfo>();
@@ -964,7 +964,7 @@ namespace BDArmory.UI
                     $"Thermal: {(cloakInfo.thermalReductionFactor * 100).ToString("0.00")}%" : "N/A"));
                 debugStringLineCount += 10;
 
-                var wm = VesselModuleRegistry.GetMissileFire(activeVessel);
+                var wm = activeVessel.ActiveController().WM;
                 if (wm != null && wm.currentTarget != null)
                 {
                     debugString.Append(Environment.NewLine);

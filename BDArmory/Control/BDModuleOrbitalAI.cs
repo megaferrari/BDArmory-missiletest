@@ -1249,7 +1249,7 @@ namespace BDArmory.Control
             bool canIntercept = false;
 
             // Is it worth us chasing a withdrawing ship?
-            BDModuleOrbitalAI targetAI = VesselModuleRegistry.GetModule<BDModuleOrbitalAI>(target);
+            BDModuleOrbitalAI targetAI = target.ActiveController().OrbitalAI;
 
             if (targetAI)
             {
@@ -1318,7 +1318,7 @@ namespace BDArmory.Control
             bool speedWithinLimits = Mathf.Abs(relVel.magnitude - ManeuverSpeed) < ManeuverSpeed * tolerance;
             if (!speedWithinLimits)
             {
-                BDModuleOrbitalAI targetAI = VesselModuleRegistry.GetModule<BDModuleOrbitalAI>(targetVessel);
+                BDModuleOrbitalAI targetAI = targetVessel.ActiveController().OrbitalAI;
                 if (targetAI != null)
                     speedWithinLimits = targetAI.ManeuverSpeed > ManeuverSpeed && targetAI.targetVessel == vessel && RelVel(targetVessel, vessel).sqrMagnitude > ManeuverSpeed * ManeuverSpeed; // Target is targeting us, set to maneuver faster, and is maneuvering faster
             }
@@ -1490,7 +1490,7 @@ namespace BDArmory.Control
                     speedTarget = speedTargetHigh;
 
                 // If our target is targeting us and is maneuvering at a speed slower than our fire speed, set speed target as slighly above their maneuver speed
-                BDModuleOrbitalAI targetAI = VesselModuleRegistry.GetModule<BDModuleOrbitalAI>(targetVessel);
+                BDModuleOrbitalAI targetAI = targetVessel.ActiveController().OrbitalAI;
                 if (targetAI != null && targetAI.targetVessel == vessel && targetAI.ManeuverSpeed < firingSpeed)
                     speedTarget = Mathf.Max(1.05f * targetAI.ManeuverSpeed, speedTarget);
             }
@@ -1597,7 +1597,7 @@ namespace BDArmory.Control
                         if (!PredictCollisionWithVessel(vs.Current, vesselCollisionAvoidanceLookAheadPeriod, out Vector3 collisionAvoidDir)) continue;
                         if (!VesselModuleRegistry.IgnoredVesselTypes.Contains(vs.Current.vesselType))
                         {
-                            var ibdaiControl = VesselModuleRegistry.GetModule<IBDAIControl>(vs.Current);
+                            var ibdaiControl = vs.Current.ActiveController().AI;
                             if (ibdaiControl != null && ibdaiControl.currentCommand == PilotCommands.Follow && ibdaiControl.commandLeader != null && ibdaiControl.commandLeader.vessel == vessel) continue;
                         }
                         var collisionTargetSize = vs.Current.vesselSize.sqrMagnitude; // We're only interested in sorting by size, which is much faster than sorting by mass.

@@ -164,12 +164,12 @@ namespace BDArmory.Radar
         //vessel
         private MissileFire wpmr;
 
-        public MissileFire weaponManager
+        public MissileFire weaponManager //FIXMEAI
         {
             get
             {
                 if (wpmr != null && wpmr.vessel == vessel) return wpmr;
-                wpmr = VesselModuleRegistry.GetMissileFire(vessel, true);
+                wpmr = vessel.ActiveController().WM;
                 return wpmr;
             }
             set { wpmr = value; }
@@ -214,7 +214,7 @@ namespace BDArmory.Radar
             EnsureVesselRadarData();
             irstEnabled = true;
 
-            var mf = VesselModuleRegistry.GetMissileFire(vessel, true);
+            var mf = vessel.ActiveController().WM;
             if (mf != null && vesselRadarData != null) vesselRadarData.weaponManager = mf;
             UpdateToggleGuiName();
             vesselRadarData.AddIRST(this);
@@ -238,7 +238,7 @@ namespace BDArmory.Radar
                 {
                     BDATargetManager.ClearRadarReport(loadedvessels.Current, weaponManager); //reset radar contact status
                 }
-            var mf = VesselModuleRegistry.GetMissileFire(vessel, true);
+            var mf = vessel.ActiveController().WM;
             if (mf != null)
             {
                 if (mf.irsts.Count > 1)

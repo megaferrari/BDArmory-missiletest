@@ -1,3 +1,4 @@
+using BDArmory.Extensions;
 using BDArmory.Services;
 using BDArmory.Utils;
 using UnityEngine;
@@ -91,7 +92,7 @@ namespace BDArmory.Weapons
 
         void OnEngageOptionsChanged(BaseField field, object obj)
         {
-            var wm = VesselModuleRegistry.GetMissileFire(vessel, true);
+            var wm = vessel.ActiveController().WM;
             var value = (bool)field.GetValue(this);
             foreach (var part in part.symmetryCounterparts)
             {

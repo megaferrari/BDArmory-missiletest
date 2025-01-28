@@ -5,6 +5,7 @@ using BDArmory.Control;
 using BDArmory.Settings;
 using BDArmory.Utils;
 using System.Collections.Generic;
+using BDArmory.Extensions;
 
 namespace BDArmory.GameModes
 {
@@ -70,13 +71,14 @@ namespace BDArmory.GameModes
         {
             get { return PauseMenu.isOpen || Time.timeScale == 0; }
         }
+        // FIXMEAI These are all cached values that aren't being updated.
         BDModulePilotAI AI;
         public BDModulePilotAI pilot
         {
             get
             {
                 if (AI) return AI;
-                AI = VesselModuleRegistry.GetBDModulePilotAI(vessel, true); // FIXME should this be IBDAIControl?
+                AI = vessel.ActiveController().PilotAI;
                 return AI;
             }
         }
@@ -86,7 +88,7 @@ namespace BDArmory.GameModes
             get
             {
                 if (SAI) return SAI;
-                SAI = VesselModuleRegistry.GetBDModuleSurfaceAI(vessel, true);
+                SAI = vessel.ActiveController().SurfaceAI;
                 return SAI;
             }
         }
@@ -97,7 +99,7 @@ namespace BDArmory.GameModes
             get
             {
                 if (VAI) return VAI;
-                VAI = VesselModuleRegistry.GetModule<BDModuleVTOLAI>(vessel);
+                VAI = vessel.ActiveController().VTOLAI;
 
                 return VAI;
             }
@@ -109,7 +111,7 @@ namespace BDArmory.GameModes
             get
             {
                 if (OAI) return OAI;
-                OAI = VesselModuleRegistry.GetModule<BDModuleOrbitalAI>(vessel);
+                OAI = vessel.ActiveController().OrbitalAI;
 
                 return OAI;
             }
@@ -131,7 +133,7 @@ namespace BDArmory.GameModes
             get
             {
                 if (MF) return MF;
-                MF = VesselModuleRegistry.GetMissileFire(vessel, true);
+                MF = vessel.ActiveController().WM;
                 return MF;
             }
         }
@@ -313,7 +315,7 @@ namespace BDArmory.GameModes
         {
             foreach (var vessel in FlightGlobals.Vessels)
             {
-                if (VesselModuleRegistry.GetMissileFire(vessel, true) != null && vessel.rootPart.FindModuleImplementing<ModuleSpaceFriction>() == null)
+                if (vessel.ActiveController().WM != null && vessel.rootPart.FindModuleImplementing<ModuleSpaceFriction>() == null)
                 {
                     vessel.rootPart.AddModule("ModuleSpaceFriction");
                 }

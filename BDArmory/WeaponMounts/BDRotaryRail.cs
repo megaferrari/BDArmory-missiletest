@@ -78,7 +78,7 @@ namespace BDArmory.WeaponMounts
             get
             {
                 if (wm && wm.vessel == vessel) return wm;
-                wm = VesselModuleRegistry.GetMissileFire(vessel, true);
+                wm = vessel.ActiveController().WM; // FIXMEAI
                 return wm;
             }
         }

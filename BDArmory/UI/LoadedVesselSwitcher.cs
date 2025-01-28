@@ -228,13 +228,13 @@ namespace BDArmory.UI
                 {
                     if (v.Current == null || !v.Current.loaded || v.Current.packed) continue;
                     if (VesselModuleRegistry.IgnoredVesselTypes.Contains(v.Current.vesselType)) continue;
-                    var wms = VesselModuleRegistry.GetMissileFire(v.Current);
-                    if (wms != null)
+                    var wm = v.Current.ActiveController().WM;
+                    if (wm != null)
                     {
-                        if (weaponManagers.TryGetValue(wms.Team.Name, out var teamManagers))
-                            teamManagers.Add(wms);
+                        if (weaponManagers.TryGetValue(wm.Team.Name, out var teamManagers))
+                            teamManagers.Add(wm);
                         else
-                            weaponManagers.Add(wms.Team.Name, new List<MissileFire> { wms });
+                            weaponManagers.Add(wm.Team.Name, [wm]);
                     }
                 }
 
@@ -1277,8 +1277,8 @@ namespace BDArmory.UI
                                     vesselScore = Math.Abs(vesselScore);
                                     float HP = 0;
                                     float WreckFactor = 0;
-                                    var AI = VesselModuleRegistry.GetBDModulePilotAI(wm.Current.vessel, true);
-                                    var OAI = VesselModuleRegistry.GetModule<BDModuleOrbitalAI>(wm.Current.vessel, true);
+                                    var AI = wm.Current.vessel.ActiveController().PilotAI;
+                                    var OAI = wm.Current.vessel.ActiveController().OrbitalAI;
 
                                     // If we're running a waypoints competition (without combat), only focus on vessels still running waypoints.
                                     if (BDACompetitionMode.Instance.competitionType == CompetitionType.WAYPOINTS)

@@ -6,6 +6,7 @@ using UnityEngine;
 using BDArmory.Control;
 using BDArmory.Utils;
 using BDArmory.Weapons.Missiles;
+using BDArmory.Extensions;
 
 namespace BDArmory.WeaponMounts
 {
@@ -53,12 +54,12 @@ namespace BDArmory.WeaponMounts
 
         MissileFire wm;
 
-        public MissileFire weaponManager
+        public MissileFire weaponManager // FIXMEAI
         {
             get
             {
                 if (wm && wm.vessel == vessel) return wm;
-                wm = VesselModuleRegistry.GetMissileFire(vessel, true);
+                wm = vessel.ActiveController().WM;
                 return wm;
             }
         }
