@@ -326,8 +326,8 @@ namespace BDArmory.CounterMeasure
             CMFlare cmf = cm.GetComponent<CMFlare>();
             cmf.velocity = part.rb.velocity
                 + BDKrakensbane.FrameVelocityV3f
-                + (ejectVelocity * ejectTransform.up)
-                + (UnityEngine.Random.Range(-3f, 3f) * ejectTransform.forward)
+                + (ejectVelocity * ejectTransform.forward)
+                + (UnityEngine.Random.Range(-3f, 3f) * ejectTransform.up)
                 + (UnityEngine.Random.Range(-3f, 3f) * ejectTransform.right);
             cmf.SetThermal(vessel);
 
@@ -384,8 +384,8 @@ namespace BDArmory.CounterMeasure
             yield return new WaitForSecondsFixed(0.2f);
             GameObject smokeCMObject = smokePool.GetPooledObject();
             CMSmoke smoke = smokeCMObject.GetComponent<CMSmoke>();
-            smoke.velocity = part.rb.velocity + (ejectVelocity * ejectTransform.up) +
-                             (UnityEngine.Random.Range(-3f, 3f) * ejectTransform.forward) +
+            smoke.velocity = part.rb.velocity + (ejectVelocity * ejectTransform.forward) +
+                             (UnityEngine.Random.Range(-3f, 3f) * ejectTransform.up) +
                              (UnityEngine.Random.Range(-3f, 3f) * ejectTransform.right);
             smokeCMObject.SetActive(true);
             smokeCMObject.transform.position = ejectTransform.position + (10 * ejectTransform.forward);
@@ -420,8 +420,8 @@ namespace BDArmory.CounterMeasure
             CMDecoy cmd = cm.GetComponent<CMDecoy>();
             cmd.velocity = part.rb.velocity
                 + BDKrakensbane.FrameVelocityV3f
-                + (ejectVelocity * ejectTransform.up)
-                + (UnityEngine.Random.Range(-3f, 3f) * ejectTransform.forward)
+                + (ejectVelocity * ejectTransform.forward)
+                + (UnityEngine.Random.Range(-3f, 3f) * ejectTransform.up)
                 + (UnityEngine.Random.Range(-3f, 3f) * ejectTransform.right);
             cmd.SetAcoustics(vessel);
 
@@ -453,8 +453,8 @@ namespace BDArmory.CounterMeasure
             yield return new WaitForSecondsFixed(0.2f);
             GameObject bubbleCMObject = bubblePool.GetPooledObject();
             CMBubble bubble = bubbleCMObject.GetComponent<CMBubble>();
-            bubble.velocity = part.rb.velocity + (ejectVelocity * ejectTransform.up) +
-                             (UnityEngine.Random.Range(-3f, 3f) * ejectTransform.forward) +
+            bubble.velocity = part.rb.velocity + (ejectVelocity * ejectTransform.forward) +
+                             (UnityEngine.Random.Range(-3f, 3f) * ejectTransform.up) +
                              (UnityEngine.Random.Range(-3f, 3f) * ejectTransform.right);
             bubbleCMObject.SetActive(true);
             bubbleCMObject.transform.position = ejectTransform.position + (10 * ejectTransform.forward);
