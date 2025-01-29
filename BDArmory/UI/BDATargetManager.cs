@@ -1596,14 +1596,17 @@ namespace BDArmory.UI
                 {
                     if (target.Current == null) continue;
                     if (mf.PDMslTgts.Contains(target.Current)) continue;
+                    //Debug.Log($"[BDArmory.BDAtargetManager - {(mf.vessel != null ? mf.vessel.GetName() : "null")}] closestMissileThreat, checking {target.Current.Vessel.name}");
                     if (target.Current && target.Current.Vessel && target.Current.isMissile && mf.CanSeeTarget(target.Current))
                     {
+                        Debug.Log($"[BDArmory.BDAtargetManager - {(mf.vessel != null ? mf.vessel.GetName() : "null")}] closestMissileThreat, {target.Current.Vessel.name} is missile...");
                         if (RadarUtils.MissileIsThreat(target.Current.MissileBaseModule, mf, false))
                         {
                             //if (target.Current.NumFriendliesEngaging(mf.Team) >= 0) continue;
                             if (finalTarget == null || target.Current.IsCloser(finalTarget, mf))
                             {
                                 finalTarget = target.Current;
+                                //Debug.Log($"[BDArmory.BDAtargetManager - {(mf.vessel != null ? mf.vessel.GetName() : "null")}] and is threat.");
                             }
                         }
                     }

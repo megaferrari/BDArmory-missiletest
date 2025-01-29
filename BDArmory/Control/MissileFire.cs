@@ -1571,7 +1571,7 @@ namespace BDArmory.Control
             {
                 canRipple = false; // Disable the ripple options in the WM gui.
                 triggerTimer = 0;
-                hasSingleFired = false; // The AI uses this as part of it's authorisation check for guns!
+                hasSingleFired = false; // The AI uses this as part of its authorisation check for guns!
             }
 
             //BOMB/MISSILE HUD - calculate GUI element positions here instead of OnGUI for smoother display 
@@ -8457,7 +8457,7 @@ namespace BDArmory.Control
                     {
                         APScount++;
                         if (weapon.Current.ammoCount <= 0 && !BDArmorySettings.INFINITE_AMMO) continue;
-                        if (weapon.Current.eAPSType == ModuleWeapon.APSTypes.Missile || weapon.Current.eAPSType == ModuleWeapon.APSTypes.Omni)
+                        if ((weapon.Current.eAPSType == ModuleWeapon.APSTypes.Missile || weapon.Current.eAPSType == ModuleWeapon.APSTypes.Omni) && !guardMode)
                         {
                             interceptiontarget = BDATargetManager.GetClosestMissileThreat(this);
                             if (interceptiontarget != null) PDMslTgts.Add(interceptiontarget);
@@ -8519,7 +8519,7 @@ namespace BDArmory.Control
                         }
                     }
                 }
-            //Debug.Log($"[BDArmory.MissileFire - {(this.vessel != null ? vessel.GetName() : "null")}] tgtcount: {PDBulletTgts.Count + PDRktTgts.Count + PDMslTgts.Count}, APS count: {APScount}");
+
             using (var missile = VesselModuleRegistry.GetModules<MissileBase>(vessel).GetEnumerator())
             {
                 while (missile.MoveNext())
@@ -8536,11 +8536,27 @@ namespace BDArmory.Control
                         missileCount += Mathf.CeilToInt(ml.multiLauncher.missileSpawner.ammoCount / ml.multiLauncher.salvoSize);
                     }
                     else missileCount++;
-                    interceptiontarget = BDATargetManager.GetClosestMissileThreat(this);
-                    if (interceptiontarget != null && !PDMslTgts.Contains(interceptiontarget)) PDMslTgts.Add(interceptiontarget);
+                    if (!guardMode)
+                    {
+                        interceptiontarget = BDATargetManager.GetClosestMissileThreat(this);
+                        if (interceptiontarget != null && !PDMslTgts.Contains(interceptiontarget)) PDMslTgts.Add(interceptiontarget);
+                    }
                 }
             }
-
+            //We already have a list of incoming threat missiles, just use that
+            if (guardMode && missileIsIncoming)
+            {
+                foreach (var incomingMissile in results.incomingMissiles)
+                {
+                    if (incomingMissile.vessel != null)
+                    {
+                        TargetInfo tInfo;
+                        if ((tInfo = incomingMissile.vessel.gameObject.GetComponent<TargetInfo>()))
+                            PDMslTgts.Add(tInfo);
+                    }
+                }
+            }
+            Debug.Log($"[BDArmory.MissileFire - {(this.vessel != null ? vessel.GetName() : "null")}] tgtcount: {PDBulletTgts.Count + PDRktTgts.Count + PDMslTgts.Count}, APS count: {APScount}; interceptor count: {missileCount}");
             if (APScount + missileCount <= 0)
             {
                 PDScanTimer = -100;
@@ -8646,6 +8662,7 @@ namespace BDArmory.Control
                                         if (viableTarget && TargetInTurretRange(weapon.Current.turret, 7, PDMslTgts[TurretID].Vessel.CoM, weapon.Current))
                                         {
                                             weapon.Current.visualTargetPart = PDMslTgts[TurretID].Vessel.rootPart;  // if target within turret fire zone, assign
+                                            //Debug.Log($"[BDArmory.MissileLauncher] assigning missile target {PDMslTgts[TurretID].Vessel.name}, ID {TurretID}");
                                             weapon.Current.tgtShell = null;
                                             weapon.Current.tgtRocket = null;
                                         }
@@ -8659,10 +8676,13 @@ namespace BDArmory.Control
                                                     if (TargetInTurretRange(weapon.Current.turret, 7, item.Current.Vessel.CoM, weapon.Current))
                                                     {
                                                         weapon.Current.visualTargetPart = item.Current.Vessel.rootPart;
+                                                        //Debug.Log($"[BDArmory.MissileLauncher] assigning missile target {PDMslTgts[TurretID].Vessel.name} as secondary target, ID {TurretID}");
                                                         weapon.Current.tgtShell = null;
                                                         weapon.Current.tgtRocket = null;
                                                         break;
                                                     }
+                                                    else
+                                                        //Debug.Log($"[BDArmory.MissileLauncher] Turret {weapon.Current.WeaponName} out of range!");
                                                 }
                                         }
                                         TurretID++;
@@ -8673,13 +8693,14 @@ namespace BDArmory.Control
                                     if (guardTarget == null)
                                     {
                                         weapon.Current.visualTargetPart = null;
+                                        //Debug.Log($"[BDArmory.MissileLauncher] No Target! nulling visaltargetpart!");
                                     }
                                     // weapon.Current.tgtShell = null; // FIXME These were wiping Omni type APS shell and rocket targets.
                                     // weapon.Current.tgtRocket = null;
                                 }
                             }
                             if (BDArmorySettings.DEBUG_WEAPONS)
-                                Debug.Log($"[BDArmory.MissileFire - {(this.vessel != null ? vessel.GetName() : "null")}]: {weapon.Current.shortName} assigned shell:{(weapon.Current.tgtShell != null ? "true" : "false")}; rocket: {(weapon.Current.tgtRocket != null ? "true" : "false")}; missile:{(weapon.Current.visualTargetPart != null ? weapon.Current.visualTargetPart.vessel.GetName() : "null")}");
+                                Debug.Log($"[BDArmory.MissileFire - {(this.vessel != null ? vessel.GetName() : "null")}]: PDMslTgts: {PDMslTgts.Count}; {weapon.Current.shortName} assigned shell:{(weapon.Current.tgtShell != null ? "true" : "false")}; rocket: {(weapon.Current.tgtRocket != null ? "true" : "false")}; missile:{(weapon.Current.visualTargetPart != null ? weapon.Current.visualTargetPart.vessel.GetName() : "null")}");
                             weapon.Current.autoFireTimer = Time.time;
                             weapon.Current.autoFireLength = (fireBurstLength < 0.01f) ? targetScanInterval / 2f : fireBurstLength;
                             weapon.Current.autofireShotCount = 0;
