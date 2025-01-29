@@ -1112,7 +1112,11 @@ namespace BDArmory.Weapons.Missiles
                         if (radarLOAL)
                         {
                             // Lost track of target, but we can re-acquire set radarLOALSearching = true and try to re-acquire using existing target information
-                            radarLOALSearching = true;
+                            if (radarLOALSearching)
+                            {
+                                radarLOALSearching = true;
+                                startDirection = GetForwardTransform();
+                            }
                             TargetAcquired = true;
 
                             TargetPosition = radarTarget.predictedPositionWithChaffFactor(chaffEffectivity);
@@ -1232,10 +1236,14 @@ namespace BDArmory.Weapons.Missiles
                 {
                     radarTarget = TargetSignatureData.noTarget;
                     TargetAcquired = true;
-                    TargetPosition = transform.position + (MissileReferenceTransform.forward * 5000);//this should not be startPosition, else semiActives like the AIM-120 will suddenly veer off-course the moment parent radar guidance ends if no lock, vs continuing on current course
+                    TargetPosition = transform.position + (startDirection * 5000);
                     TargetVelocity = vessel.Velocity(); // Set the relative target velocity to 0.
                     TargetAcceleration = Vector3.zero;
-                    radarLOALSearching = true;
+                    if (radarLOALSearching)
+                    {
+                        radarLOALSearching = true;
+                        startDirection = GetForwardTransform();
+                    }
                     _radarFailTimer += Time.fixedDeltaTime;
                     if (_radarFailTimer > radarTimeout)
                     {
@@ -1255,7 +1263,13 @@ namespace BDArmory.Weapons.Missiles
                 if (_radarFailTimer < radarTimeout)
                 {
                     if (radarLOAL)
-                        radarLOALSearching = true;
+                    {
+                        if (radarLOALSearching)
+                        {
+                            radarLOALSearching = true;
+                            startDirection = GetForwardTransform();
+                        }
+                    }
                     else
                     {
                         _radarFailTimer += Time.fixedDeltaTime;

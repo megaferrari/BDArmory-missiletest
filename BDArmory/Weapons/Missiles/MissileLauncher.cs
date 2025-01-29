@@ -1641,6 +1641,16 @@ namespace BDArmory.Weapons.Missiles
             }
         }
 
+        void Update()
+        {
+            if (!HighLogic.LoadedSceneIsFlight) return;
+            if (reloadRoutine != null)
+            {
+                reloadTimer = Mathf.Min(reloadTimer + TimeWarp.fixedDeltaTime / reloadableRail.reloadTime, 1);
+                gauge.UpdateReloadMeter(reloadTimer);
+            }
+        }
+
         public override void OnFixedUpdate()
         {
             base.OnFixedUpdate();
