@@ -2111,7 +2111,7 @@ namespace BDArmory.Weapons.Missiles
 
                         if (activeRadarRange < 0 && torpedo)
                             heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, new Ray(transform.position, tempTargetPos - transform.position), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias,
-                                SourceVessel ? /*null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>() FIXMEAI */ SourceVessel.ActiveController().WM : null, targetVessel);
+                                SourceVessel ? SourceVessel.ActiveController().WM : null, targetVessel);
                         else
                             heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, new Ray(transform.position, tempTargetPos - transform.position), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, SourceVessel ? SourceVessel.ActiveController().WM : null, targetVessel);
                         if (heatTarget.exists && CheckTargetEngagementEnvelope(heatTarget.targetInfo))
