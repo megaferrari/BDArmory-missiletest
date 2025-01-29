@@ -1178,7 +1178,7 @@ namespace BDArmory.UI
             TargetInfo info = v.gameObject.GetComponent<TargetInfo>();
             if (!info)
             {
-                using (var mf = VesselModuleRegistry.GetModules<MissileFire>(v).GetEnumerator())
+                using (var mf = VesselModuleRegistry.GetMissileFires(v).GetEnumerator())
                     while (mf.MoveNext())
                     {
                         if (mf.Current == null) continue;

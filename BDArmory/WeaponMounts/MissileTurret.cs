@@ -78,12 +78,12 @@ namespace BDArmory.WeaponMounts
 
         MissileFire wm;
 
-        public MissileFire weaponManager
+        public MissileFire weaponManager // FIXMEAI
         {
             get
             {
                 if (wm && wm.vessel == vessel) return wm;
-                wm = vessel.ActiveController().WM; // FIXMEAI bad caching
+                wm = vessel.ActiveController().WM;
                 return wm;
             }
         }

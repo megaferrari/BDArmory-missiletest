@@ -264,12 +264,12 @@ namespace BDArmory.Weapons
         public ModuleTurret turret;
         MissileFire mf;
 
-        public MissileFire weaponManager
+        public MissileFire weaponManager // FIXMEAI
         {
             get
             {
                 if (mf) return mf;
-                mf = vessel.ActiveController().WM; // FIXMEAI Bad caching
+                mf = vessel.ActiveController().WM;
                 return mf;
             }
         }
@@ -3349,12 +3349,12 @@ namespace BDArmory.Weapons
         bool WMgrAuthorized()
         {
             MissileFire manager = BDArmorySetup.Instance.ActiveWeaponManager;
-            if (manager != null && manager.vessel == vessel)
+            if (manager != null && manager.vessel == vessel) // Manual firing
             {
                 if (manager.hasSingleFired) return false;
                 else return true;
             }
-            else
+            else // AI firing
             {
                 return true;
             }

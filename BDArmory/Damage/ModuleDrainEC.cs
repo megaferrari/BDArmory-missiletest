@@ -49,14 +49,14 @@ namespace BDArmory.Damage
                 {
                     command.minimumCrew /= 10; //more elegant than a dict storing every crew part's cap to restore to original amount
                 }
-                var AI = p.FindModuleImplementing<IBDAIControl>();
+                var AI = p.FindModuleImplementing<IBDAIControl>(); // FIXMEAI This needs to remember which AI was active and only reactivate that one
                 if (AI != null && initialAIState)
                 {
                     AI.ActivatePilot(); //It's Alive!
                     initialAIState = false;
                 }
                 var WM = p.FindModuleImplementing<MissileFire>();
-                if (WM != null && initialWMState)
+                if (WM != null && initialWMState) // FIXMEAI This should remember the initial WM state (guardMode) for each WM
                 {
                     WM.guardMode = true;
                     WM.debilitated = false;

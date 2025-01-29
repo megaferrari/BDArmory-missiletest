@@ -859,7 +859,6 @@ namespace BDArmory.Utils
         #endregion
     }
 
-    // FIXMEAI Replace VesselModule.Get...AI() calls with vessel.ActiveController()...AI calls and similar.
     // FIXMEAI Make a PR before merging so that the others can review the (quite significant) changes.
     /// <summary>
     /// This class maintains an overview and control of which WM and AI modules are the primary ones controlling a vessel.
@@ -884,7 +883,7 @@ namespace BDArmory.Utils
 
         static Dictionary<Vessel, ActiveController> registry = [];
 
-        public MissileFire WM { get; private set; }
+        public MissileFire WM { get; private set; } // Use this for accessing the primary WM. Use VesselModuleRegistry.GetMissileFires to get all WMs on a craft.
         public IBDAIControl AI { get; private set; } // The active AI (if any).
         public BDModulePilotAI PilotAI { get; private set; } // The primary or most recently active pilot AI.
         public BDModuleSurfaceAI SurfaceAI { get; private set; } // The primary or most recently active surface AI.
