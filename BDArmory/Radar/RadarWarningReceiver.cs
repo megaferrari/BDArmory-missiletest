@@ -8,6 +8,7 @@ using BDArmory.Settings;
 using BDArmory.Targeting;
 using BDArmory.UI;
 using BDArmory.Utils;
+using BDArmory.Extensions;
 
 namespace BDArmory.Radar
 {
@@ -37,8 +38,6 @@ namespace BDArmory.Radar
         }
 
         string[] iconLabels = new string[] { "S", "F", "A", "M", "M", "D", "So", "T", "T", "J" };
-
-        public MissileFire weaponManager; // FIXMEAI
 
         // This field may not need to be persistent.  It was combining display with active RWR status.
         [KSPField(isPersistant = true)] public bool rwrEnabled;
@@ -158,10 +157,6 @@ namespace BDArmory.Radar
                     {
                         if (mf.Current == null) continue;
                         mf.Current.rwr = this; // Set the rwr on all weapon managers to this.
-                        if (!weaponManager)
-                        {
-                            weaponManager = mf.Current; // Set the first found weapon manager as the one in control.
-                        }
                     }
                 //if (rwrEnabled) EnableRWR();
                 EnableRWR();
@@ -214,6 +209,7 @@ namespace BDArmory.Radar
         {
             if (referenceTransform == null) return;
             if (part == null || !part.isActiveAndEnabled) return;
+            var weaponManager = vessel.ActiveController().WM;
             if (weaponManager == null) return;
             if (!omniDetection && !radar) return;
 
@@ -227,7 +223,7 @@ namespace BDArmory.Radar
                         true, RWRThreatTypes.MissileLaunch)));
                 PlayWarningSound(RWRThreatTypes.MissileLaunch);
 
-                if (weaponManager && weaponManager.guardMode)
+                if (weaponManager.guardMode)
                 {
                     //weaponManager.FireAllCountermeasures(Random.Range(1, 2)); // Was 2-4, but we don't want to take too long doing this initial dump before other routines kick in
                     weaponManager.incomingThreatPosition = source;
@@ -238,71 +234,70 @@ namespace BDArmory.Radar
 
         void ReceivePing(Vessel v, Vector3 source, RWRThreatTypes type, float persistTime)
         {
-            if (v == null || v.packed || !v.loaded || !v.isActiveAndEnabled) return;
+            if (v == null || v.packed || !v.loaded || !v.isActiveAndEnabled || v != vessel) return;
             if (referenceTransform == null) return;
+            var weaponManager = vessel.ActiveController().WM;
             if (weaponManager == null) return;
+            if (!rwrEnabled) return;
 
-            if (rwrEnabled && vessel && v == vessel)
+            //if we are airborne or on land, no Sonar or SLW type weapons on the RWR!
+            if ((type == RWRThreatTypes.Torpedo || type == RWRThreatTypes.TorpedoLock || type == RWRThreatTypes.Sonar) && (vessel.situation != Vessel.Situations.SPLASHED))
             {
-                //if we are airborne or on land, no Sonar or SLW type weapons on the RWR!
-                if ((type == RWRThreatTypes.Torpedo || type == RWRThreatTypes.TorpedoLock || type == RWRThreatTypes.Sonar) && (vessel.situation != Vessel.Situations.SPLASHED))
+                // rwr stays silent...
+                return;
+            }
+
+            if (type == RWRThreatTypes.MissileLaunch || type == RWRThreatTypes.Torpedo)
+            {
+                StartCoroutine(
+                    LaunchWarningRoutine(new TargetSignatureData(Vector3.zero,
+                        RadarUtils.WorldToRadar(source, referenceTransform, RwrDisplayRect, rwrDisplayRange),
+                        Vector3.zero, true, type)));
+                PlayWarningSound(type, (source - vessel.transform.position).sqrMagnitude);
+                return;
+            }
+            else if (type == RWRThreatTypes.MissileLock)
+            {
+                if (weaponManager.guardMode)
                 {
-                    // rwr stays silent...
-                    return;
+                    weaponManager.FireChaff();
+                    weaponManager.missileIsIncoming = true;
+                    // TODO: if torpedo inbound, also fire accoustic decoys (not yet implemented...)
+                }
+            }
+
+            int openIndex = -1;
+            for (int i = 0; i < dataCount; i++)
+            {
+                if (pingsData[i].exists &&
+                    ((Vector2)pingsData[i].position -
+                     RadarUtils.WorldToRadar(source, referenceTransform, RwrDisplayRect, rwrDisplayRange)).sqrMagnitude < (BDArmorySettings.LOGARITHMIC_RADAR_DISPLAY ? 100f : 900f))    //prevent ping spam
+                {
+                    break;
                 }
 
-                if (type == RWRThreatTypes.MissileLaunch || type == RWRThreatTypes.Torpedo)
+                if (!pingsData[i].exists && openIndex == -1)
                 {
-                    StartCoroutine(
-                        LaunchWarningRoutine(new TargetSignatureData(Vector3.zero,
-                            RadarUtils.WorldToRadar(source, referenceTransform, RwrDisplayRect, rwrDisplayRange),
-                            Vector3.zero, true, type)));
-                    PlayWarningSound(type, (source - vessel.transform.position).sqrMagnitude);
-                    return;
+                    openIndex = i;
                 }
-                else if (type == RWRThreatTypes.MissileLock)
+            }
+
+            if (openIndex >= 0)
+            {
+                referenceTransform.rotation = Quaternion.LookRotation(vessel.ReferenceTransform.up,
+                    VectorUtils.GetUpDirection(transform.position));
+
+                pingsData[openIndex] = new TargetSignatureData(Vector3.zero,
+                    RadarUtils.WorldToRadar(source, referenceTransform, RwrDisplayRect, rwrDisplayRange), Vector3.zero,
+                    true, type);
+                pingWorldPositions[openIndex] = source; //FIXME source is improperly defined
+                if (weaponManager.hasAntiRadiationOrdinance)
                 {
-                    if (weaponManager && weaponManager.guardMode)
-                    {
-                        weaponManager.FireChaff();
-                        weaponManager.missileIsIncoming = true;
-                        // TODO: if torpedo inbound, also fire accoustic decoys (not yet implemented...)
-                    }
-                }
+                    BDATargetManager.ReportVessel(AIUtils.VesselClosestTo(source), weaponManager); // Report RWR ping as target for anti-rads
+                } //MissileFire RWR-vessel checks are all (RWR ping position - guardtarget.CoM).Magnitude < 20*20?, could we simplify the more complex vessel aquistion function used here?
+                StartCoroutine(PingLifeRoutine(openIndex, persistTime));
 
-                int openIndex = -1;
-                for (int i = 0; i < dataCount; i++)
-                {
-                    if (pingsData[i].exists &&
-                        ((Vector2)pingsData[i].position -
-                         RadarUtils.WorldToRadar(source, referenceTransform, RwrDisplayRect, rwrDisplayRange)).sqrMagnitude < (BDArmorySettings.LOGARITHMIC_RADAR_DISPLAY ? 100f : 900f))    //prevent ping spam
-                    {
-                        break;
-                    }
-
-                    if (!pingsData[i].exists && openIndex == -1)
-                    {
-                        openIndex = i;
-                    }
-                }
-
-                if (openIndex >= 0)
-                {
-                    referenceTransform.rotation = Quaternion.LookRotation(vessel.ReferenceTransform.up,
-                        VectorUtils.GetUpDirection(transform.position));
-
-                    pingsData[openIndex] = new TargetSignatureData(Vector3.zero,
-                        RadarUtils.WorldToRadar(source, referenceTransform, RwrDisplayRect, rwrDisplayRange), Vector3.zero,
-                        true, type);   
-                    pingWorldPositions[openIndex] = source; //FIXME source is improperly defined
-                    if (weaponManager.hasAntiRadiationOrdinance)
-                    {
-                        BDATargetManager.ReportVessel(AIUtils.VesselClosestTo(source), weaponManager); // Report RWR ping as target for anti-rads
-                    } //MissileFire RWR-vessel checks are all (RWR ping position - guardtarget.CoM).Magnitude < 20*20?, could we simplify the more complex vessel aquistion function used here?
-                    StartCoroutine(PingLifeRoutine(openIndex, persistTime));
-
-                    PlayWarningSound(type, (source - vessel.transform.position).sqrMagnitude);
-                }
+                PlayWarningSound(type, (source - vessel.transform.position).sqrMagnitude);
             }
         }
 

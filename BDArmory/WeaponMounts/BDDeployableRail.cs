@@ -52,17 +52,16 @@ namespace BDArmory.WeaponMounts
             get { return rdyMissile; }
         }
 
-        MissileFire wm;
-
-        public MissileFire weaponManager // FIXMEAI
+        MissileFire WeaponManager
         {
             get
             {
-                if (wm && wm.vessel == vessel) return wm;
-                wm = vessel.ActiveController().WM;
-                return wm;
+                if (_weaponManager == null || !_weaponManager.IsPrimaryWM || _weaponManager.vessel != vessel)
+                    _weaponManager = vessel && vessel.loaded ? vessel.ActiveController().WM : null;
+                return _weaponManager;
             }
         }
+        MissileFire _weaponManager;
 
         [KSPAction("Toggle deployment")]
         public void AGToggleRail(KSPActionParam param) => ToggleRail();
@@ -390,7 +389,8 @@ namespace BDArmory.WeaponMounts
             {
                 PrepMissileForFire(missileIndex);
 
-                if (weaponManager)
+                var wm = WeaponManager;
+                if (wm)
                 {
                     wm.SendTargetDataToMissile(missileChildren[missileIndex], targetVessel, true, targetData, true);
                     wm.PreviousMissile = missileChildren[missileIndex];
@@ -402,7 +402,7 @@ namespace BDArmory.WeaponMounts
 
                 UpdateMissileChildren();
 
-                if (wm)
+                if (wm) // If the primary WM changes, the list will automatically update.
                 {
                     wm.UpdateList();
                 }

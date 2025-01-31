@@ -625,6 +625,7 @@ namespace BDArmory.Control
             {
                 // check for enemy targets and engage
                 // not checking for guard mode, because if guard mode is off now you can select a target manually and if it is of opposing team, the AI will try to engage while you can man the turrets
+                var weaponManager = WeaponManager;
                 if (weaponManager && targetVessel != null && !BDArmorySettings.PEACE_MODE)
                 {
                     leftPath = true;
@@ -858,6 +859,7 @@ namespace BDArmory.Control
 
         void Tactical()
         {
+            var weaponManager = WeaponManager;
             // enable RCS if we're in combat
             vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, weaponManager && targetVessel && !BDArmorySettings.PEACE_MODE
                 && (weaponManager.selectedWeapon != null || (vessel.CoM - targetVessel.CoM).sqrMagnitude < MaxEngagementRange * MaxEngagementRange)
@@ -969,6 +971,7 @@ namespace BDArmory.Control
                 if (SurfaceType == AIUtils.VehicleMovementType.Submarine)
                 {
                     float targetAlt = CombatAltitude;
+                    var weaponManager = WeaponManager;
                     if (weaponManager != null && weaponManager.currentTarget != null && weaponManager.selectedWeapon != null)
                     {
                         switch (weaponManager.selectedWeapon.GetWeaponClass())
@@ -1157,6 +1160,7 @@ namespace BDArmory.Control
         Vector3 PredictCollisionWithVessel(Vessel v, float maxTime, float interval)
         {
             //evasive will handle avoiding missiles
+            var weaponManager = WeaponManager;
             if ((weaponManager && v == weaponManager.incomingMissileVessel)
                 || v.rootPart.FindModuleImplementing<MissileBase>() != null)
                 return Vector3.zero;

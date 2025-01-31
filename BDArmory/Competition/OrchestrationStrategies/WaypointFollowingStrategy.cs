@@ -104,7 +104,7 @@ namespace BDArmory.Competition.OrchestrationStrategies
                 yield return new WaitWhile(() => BDACompetitionMode.Instance.competitionIsActive); //DoUpdate handles the deathmatch half of the combat waypoint race and ends things when only 1 team left
             }
             else
-                yield return new WaitWhile(() => BDACompetitionMode.Instance.competitionIsActive && pilots.Any(pilot => pilot != null && pilot.weaponManager != null && pilot.IsRunningWaypoints && pilot.TakingOff || (!pilot.TakingOff && !(pilot.vessel.Landed || pilot.vessel.Splashed)))); 
+                yield return new WaitWhile(() => BDACompetitionMode.Instance.competitionIsActive && pilots.Any(pilot => pilot != null && pilot.WeaponManager != null && pilot.IsRunningWaypoints && pilot.TakingOff || (!pilot.TakingOff && !(pilot.vessel.Landed || pilot.vessel.Splashed)))); 
             var endedAt = Planetarium.GetUniversalTime();
 
             BDACompetitionMode.Instance.competitionStatus.Add("Waypoints competition finished. Scores:");
@@ -138,7 +138,7 @@ namespace BDArmory.Competition.OrchestrationStrategies
             else //increment team each heat
             {
                 char T = (char)(Convert.ToUInt16('A') + BDATournament.Instance.currentHeat);
-                pilots[0].weaponManager.SetTeam(BDTeam.Get(T.ToString()));
+                pilots[0].WeaponManager.SetTeam(BDTeam.Get(T.ToString()));
             }
             if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == 55)
             {
@@ -377,7 +377,7 @@ namespace BDArmory.Competition.OrchestrationStrategies
             Debug.Log("[WayPointTracer] setting up Renderer");
             Transform tf = this.transform;
             tracerRenderer = tf.gameObject.AddOrGetComponent<LineRenderer>();
-            Color Color = BDTISetup.Instance.ColorAssignments[AI.weaponManager.Team.Name]; //hence the incrementing teams in One-at-a-Time mode
+            Color Color = BDTISetup.Instance.ColorAssignments[AI.WeaponManager.Team.Name]; //hence the incrementing teams in One-at-a-Time mode
             tracerRenderer.material = new Material(Shader.Find("KSP/Particles/Alpha Blended"));
             tracerRenderer.material.SetColor("_TintColor", Color);
             tracerRenderer.material.mainTexture = GameDatabase.Instance.GetTexture("BDArmory/Textures/laser", false);

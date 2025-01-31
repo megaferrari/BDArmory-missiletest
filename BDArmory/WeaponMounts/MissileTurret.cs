@@ -76,17 +76,16 @@ namespace BDArmory.WeaponMounts
         //special
         [KSPField] public bool activeMissileOnly = false;
 
-        MissileFire wm;
-
-        public MissileFire weaponManager // FIXMEAI
+        MissileFire WeaponManager
         {
             get
             {
-                if (wm && wm.vessel == vessel) return wm;
-                wm = vessel.ActiveController().WM;
-                return wm;
+                if (_weaponManager == null || !_weaponManager.IsPrimaryWM || _weaponManager.vessel != vessel)
+                    _weaponManager = vessel && vessel.loaded ? vessel.ActiveController().WM : null;
+                return _weaponManager;
             }
         }
+        MissileFire _weaponManager;
 
         IEnumerator DeployAnimation(bool forward)
         {
@@ -338,7 +337,8 @@ namespace BDArmory.WeaponMounts
             }
             else
             {
-                if (weaponManager && wm.guardMode)
+                var wm = WeaponManager;
+                if (wm && wm.guardMode)
                 {
                     return;
                 }
@@ -354,7 +354,8 @@ namespace BDArmory.WeaponMounts
         {
             slaved = false;
 
-            if (weaponManager && wm.slavingTurrets && wm.CurrentMissile)
+            var wm = WeaponManager;
+            if (wm && wm.slavingTurrets && wm.CurrentMissile)
             {
                 slaved = true;
                 //slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(wm.CurrentMissile, wm.slavedPosition, wm.slavedVelocity);
@@ -535,14 +536,15 @@ namespace BDArmory.WeaponMounts
             {
                 PrepMissileForFire(index);
 
-                if (weaponManager)
+                var wm = WeaponManager;
+                if (wm)
                 {
                     wm.SendTargetDataToMissile(missileChildren[index], targetVessel, true, targetData, true);
                     wm.PreviousMissile = missileChildren[index];
                 }
                 missileChildren[index].FireMissile();
                 StartCoroutine(MissileRailRoutine(missileChildren[index])); //turret is stil getting thrusted away despite this being behind a !relaodableRail conditional. investigate
-                if (wm)
+                if (wm) // If the primary WM changes, the list will automatically update.
                 {
                     wm.UpdateList();
                 }

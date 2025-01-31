@@ -270,7 +270,7 @@ namespace BDArmory.UI
                 if (FlightGlobals.ActiveVessel == null) yield break;
             }
             // Now, get the new AI and update stuff.
-            ActiveAI = FlightGlobals.ActiveVessel.ActiveController().AI as BDGenericAIBase; // FIXMEAI Check that this works properly and clean up.
+            ActiveAI = FlightGlobals.ActiveVessel.ActiveController().AI as BDGenericAIBase; // FIXMEAI Check that this works properly and clean up. Convert to use ActiveController enums where possible.
             activeAIType = ActiveAI == null ? ActiveAIType.None : ActiveAI.aiType switch
             {
                 AIType.PilotAI => ActiveAIType.PilotAI,

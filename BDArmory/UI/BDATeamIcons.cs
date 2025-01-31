@@ -197,6 +197,8 @@ namespace BDArmory.UI
             GUIUtils.DrawRectangle(upRect, color);
             GUI.matrix = guiMatrix;
         }
+        
+        // FIXME Most of this should be moved to LateUpdate to generate what needs to be rendered once per frame, which OnGUI then renders.
         void OnGUI()
         {
             if ((HighLogic.LoadedSceneIsFlight && BDArmorySetup.GAME_UI_ENABLED && !MapView.MapIsEnabled && BDTISettings.TEAMICONS) || HighLogic.LoadedSceneIsFlight && !BDArmorySetup.GAME_UI_ENABLED && !MapView.MapIsEnabled && BDTISettings.TEAMICONS && BDTISettings.PERSISTANT)
@@ -436,11 +438,8 @@ namespace BDArmory.UI
                                             if (BDTISettings.TELEMETRY)
                                             {
                                                 selectedWeapon = "Using: " + wm.Current.selectedWeaponString;
-                                                AIstate = "No AI";
-                                                if (wm.Current.AI != null)
-                                                {
-                                                    AIstate = "Pilot " + wm.Current.AI.currentStatus;
-                                                }
+                                                var ai = wm.Current.AI;
+                                                AIstate = ai == null ? "No AI" : $"Pilot {ai.currentStatus}";
                                                 Rect telemetryRect = new Rect((guiPos.x + (32 * BDTISettings.ICONSCALE)), guiPos.y + 32, 200, 32);
                                                 Rect shadowRect = new Rect((telemetryRect.x + 1), telemetryRect.y + 1, 100, 32);
                                                 GUI.Label(shadowRect, selectedWeapon, DropshadowStyle);

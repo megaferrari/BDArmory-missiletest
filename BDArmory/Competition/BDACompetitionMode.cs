@@ -494,17 +494,17 @@ namespace BDArmory.Competition
                     if (loadedVessels.Current == null || !loadedVessels.Current.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(loadedVessels.Current.vesselType))
                         continue;
                     IBDAIControl pilot = loadedVessels.Current.ActiveController().AI;
-                    if (pilot == null || !pilot.weaponManager || pilot.weaponManager.Team.Neutral)
+                    if (pilot == null || pilot.WeaponManager == null || pilot.WeaponManager.Team.Neutral)
                         continue;
                     //so, for NPC on NPC violence prevention - have NPCs set to be allies of each other, or set to the same team? Should also probably have a toggle for if NPCs are friends w/ each other
 
-                    if (!string.IsNullOrEmpty(BDArmorySettings.REMOTE_ORC_NPCS_TEAM) && loadedVessels.Current.GetName().Contains(BDArmorySettings.REMOTE_ORCHESTRATION_NPC_SWAPPER)) pilot.weaponManager.SetTeam(BDTeam.Get(BDArmorySettings.REMOTE_ORC_NPCS_TEAM));
+                    if (!string.IsNullOrEmpty(BDArmorySettings.REMOTE_ORC_NPCS_TEAM) && loadedVessels.Current.GetName().Contains(BDArmorySettings.REMOTE_ORCHESTRATION_NPC_SWAPPER)) pilot.WeaponManager.SetTeam(BDTeam.Get(BDArmorySettings.REMOTE_ORC_NPCS_TEAM));
 
-                    if (!pilots.TryGetValue(pilot.weaponManager.Team, out List<IBDAIControl> teamPilots))
+                    if (!pilots.TryGetValue(pilot.WeaponManager.Team, out List<IBDAIControl> teamPilots))
                     {
                         teamPilots = new List<IBDAIControl>();
-                        pilots.Add(pilot.weaponManager.Team, teamPilots);
-                        if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log("[BDArmory.BDACompetitionMode:" + CompetitionID.ToString() + "]: Adding Team " + pilot.weaponManager.Team.Name);
+                        pilots.Add(pilot.WeaponManager.Team, teamPilots);
+                        if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log("[BDArmory.BDACompetitionMode:" + CompetitionID.ToString() + "]: Adding Team " + pilot.WeaponManager.Team.Name);
                     }
                     teamPilots.Add(pilot);
                     if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log("[BDArmory.BDACompetitionMode:" + CompetitionID.ToString() + "]: Adding Pilot " + pilot.vessel.GetName());
@@ -520,10 +520,10 @@ namespace BDArmory.Competition
                 pilot.vessel.ActionGroups.ToggleGroup(KM_dictAG[10]); // Modular Missiles use lower AGs (1-3) for staging, use a high AG number to not affect them
                 pilot.ActivatePilot();
                 pilot.CommandTakeOff();
-                if (pilot.weaponManager.guardMode)
+                if (pilot.WeaponManager.guardMode)
                 {
-                    pilot.weaponManager.ToggleGuardMode();
-                    pilot.weaponManager.SetTarget(null);
+                    pilot.WeaponManager.ToggleGuardMode();
+                    pilot.WeaponManager.SetTarget(null);
                 }
                 if (!BDArmorySettings.NO_ENGINES && SpawnUtils.CountActiveEngines(pilot.vessel) == 0) // Find vessels that didn't activate their engines on AG10 and fire their next stage.
                 {
@@ -714,12 +714,12 @@ namespace BDArmory.Competition
 
             var leaders = new List<IBDAIControl>();
             var leaderNames = RefreshPilots(out pilots, out leaders, false);
-            while (leaders.Any(leader => leader == null || leader.weaponManager == null || leader.weaponManager.wingCommander == null || leader.weaponManager.wingCommander.weaponManager == null))
+            while (leaders.Any(leader => leader == null || leader.WeaponManager == null || leader.WeaponManager.wingCommander == null || leader.WeaponManager.wingCommander.WeaponManager == null))
             {
                 yield return new WaitForFixedUpdate();
-                if (leaders.Any(leader => leader == null || leader.weaponManager == null))
+                if (leaders.Any(leader => leader == null || leader.WeaponManager == null))
                 {
-                    var survivingLeaders = leaders.Where(l => l != null && l.weaponManager != null).Select(l => l.vessel.vesselName).ToList();
+                    var survivingLeaders = leaders.Where(l => l != null && l.WeaponManager != null).Select(l => l.vessel.vesselName).ToList();
                     var missingLeaders = leaderNames.Where(l => !survivingLeaders.Contains(l)).ToList();
                     var message = "A team leader disappeared during competition start-up, " + (startDespiteFailures ? "continuing anyway" : "aborting") + ": " + string.Join(", ", missingLeaders);
                     Debug.LogWarning("[BDArmory.BDACompetitionMode]: " + message);
@@ -738,7 +738,7 @@ namespace BDArmory.Competition
                 }
             }
             foreach (var leader in leaders)
-                leader.weaponManager.wingCommander.CommandAllFollow();
+                leader.WeaponManager.wingCommander.CommandAllFollow();
 
             if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == 67)
             { // For S6R7 switch to piñata teams and enable guard mode prior to take-off to avoid orbiting issues.
@@ -749,14 +749,14 @@ namespace BDArmory.Competition
                     {
                         if (!pilot.vessel.GetName().Contains(BDArmorySettings.PINATA_NAME))
                         {
-                            pilot.weaponManager.SetTeam(BDTeam.Get("PinataPoppers"));
-                            pilot.weaponManager.guardMode = true; // Enable guard mode prior to take-off to avoid orbiting issues.
+                            pilot.WeaponManager.SetTeam(BDTeam.Get("PinataPoppers"));
+                            pilot.WeaponManager.guardMode = true; // Enable guard mode prior to take-off to avoid orbiting issues.
                         }
                         else
                         {
-                            pilot.weaponManager.SetTeam(BDTeam.Get("Pinata"));
+                            pilot.WeaponManager.SetTeam(BDTeam.Get("Pinata"));
                         }
-                        Scores.ScoreData[pilot.vessel.vesselName].team = pilot.weaponManager.Team.Name;
+                        Scores.ScoreData[pilot.vessel.vesselName].team = pilot.WeaponManager.Team.Name;
                     }
                     leaderNames = RefreshPilots(out pilots, out leaders, true);
                 }
@@ -765,9 +765,9 @@ namespace BDArmory.Competition
             //wait till the leaders are ready to engage (airborne for PilotAI)
             while (true)
             {
-                if (leaders.Any(leader => leader == null || leader.weaponManager == null))
+                if (leaders.Any(leader => leader == null || leader.WeaponManager == null))
                 {
-                    var survivingLeaders = leaders.Where(l => l != null && l.weaponManager != null).Select(l => l.vessel.vesselName).ToList();
+                    var survivingLeaders = leaders.Where(l => l != null && l.WeaponManager != null).Select(l => l.vessel.vesselName).ToList();
                     var missingLeaders = leaderNames.Where(l => !survivingLeaders.Contains(l)).ToList();
                     var message = "A team leader disappeared during competition start-up, " + (startDespiteFailures ? "continuing anyway" : "aborting") + ": " + string.Join(", ", missingLeaders);
                     Debug.LogWarning("[BDArmory.BDACompetitionMode]: " + message);
@@ -817,16 +817,16 @@ namespace BDArmory.Competition
                     foreach (var pilot in GetAllPilots())
                     {
                         if (!pilot.vessel.GetName().Contains(BDArmorySettings.PINATA_NAME))
-                            pilot.weaponManager.SetTeam(BDTeam.Get("PinataPoppers"));
+                            pilot.WeaponManager.SetTeam(BDTeam.Get("PinataPoppers"));
                         else
                         {
-                            pilot.weaponManager.SetTeam(BDTeam.Get("Pinata"));
+                            pilot.WeaponManager.SetTeam(BDTeam.Get("Pinata"));
                             if (FlightGlobals.ActiveVessel != pilot.vessel)
                             {
                                 LoadedVesselSwitcher.Instance.ForceSwitchVessel(pilot.vessel);
                             }
                         }
-                        Scores.ScoreData[pilot.vessel.vesselName].team = pilot.weaponManager.Team.Name;
+                        Scores.ScoreData[pilot.vessel.vesselName].team = pilot.WeaponManager.Team.Name;
                     }
                     leaderNames = RefreshPilots(out pilots, out leaders, true);
                 }
@@ -864,9 +864,9 @@ namespace BDArmory.Competition
             {
                 waiting = false;
 
-                if (leaders.Any(leader => leader == null || leader.weaponManager == null))
+                if (leaders.Any(leader => leader == null || leader.WeaponManager == null))
                 {
-                    var survivingLeaders = leaders.Where(l => l != null && l.weaponManager != null).Select(l => l.vessel.vesselName).ToList();
+                    var survivingLeaders = leaders.Where(l => l != null && l.WeaponManager != null).Select(l => l.vessel.vesselName).ToList();
                     var missingLeaders = leaderNames.Where(l => !survivingLeaders.Contains(l)).ToList();
                     var message = "A team leader disappeared during competition start-up, " + (startDespiteFailures ? "continuing anyway" : "aborting") + ": " + string.Join(", ", missingLeaders);
                     Debug.LogWarning("[BDArmory.BDACompetitionMode]: " + message);
@@ -886,7 +886,7 @@ namespace BDArmory.Competition
 
                 try // Somehow, if a vessel gets destroyed during competition start, the following can throw a null reference exception despite checking for nulls! This is due to the IBDAIControl.transform getter.
                 {
-                    if (startDespiteFailures && pilots.Values.SelectMany(p => p).Any(p => p == null || p.weaponManager == null)) leaderNames = RefreshPilots(out pilots, out leaders, true);
+                    if (startDespiteFailures && pilots.Values.SelectMany(p => p).Any(p => p == null || p.WeaponManager == null)) leaderNames = RefreshPilots(out pilots, out leaders, true);
                     foreach (var leader in leaders)
                     {
                         foreach (var otherLeader in leaders)
@@ -898,7 +898,7 @@ namespace BDArmory.Competition
                         }
 
                         // Increase the distance for large teams
-                        if (!pilots.ContainsKey(leader.weaponManager.Team))
+                        if (!pilots.ContainsKey(leader.WeaponManager.Team))
                         {
                             var message = "The teams were changed during competition start-up, aborting";
                             competitionStatus.Set("Competition: " + message);
@@ -907,8 +907,8 @@ namespace BDArmory.Competition
                             StopCompetition();
                             yield break;
                         }
-                        var teamDistance = BDArmorySettings.COMPETITION_INTRA_TEAM_SEPARATION_BASE + BDArmorySettings.COMPETITION_INTRA_TEAM_SEPARATION_PER_MEMBER * pilots[leader.weaponManager.Team].Count;
-                        foreach (var pilot in pilots[leader.weaponManager.Team])
+                        var teamDistance = BDArmorySettings.COMPETITION_INTRA_TEAM_SEPARATION_BASE + BDArmorySettings.COMPETITION_INTRA_TEAM_SEPARATION_PER_MEMBER * pilots[leader.WeaponManager.Team].Count;
+                        foreach (var pilot in pilots[leader.WeaponManager.Team])
                             if (pilot != null
                                     && pilot.currentCommand == PilotCommands.Follow
                                     && pilot.vessel.CoM.FurtherFromThan(pilot.commandLeader.vessel.CoM, teamDistance))
@@ -923,7 +923,7 @@ namespace BDArmory.Competition
                     Debug.LogWarning("[BDArmory.BDACompetitionMode]: Exception thrown in DogfightCompetitionModeRoutine: " + e.Message + "\n" + e.StackTrace);
                     try
                     {
-                        var survivingLeaders = leaders.Where(l => l != null && l.weaponManager != null).Select(l => l.vessel.vesselName).ToList();
+                        var survivingLeaders = leaders.Where(l => l != null && l.WeaponManager != null).Select(l => l.vessel.vesselName).ToList();
                         var missingLeaders = leaderNames.Where(l => !survivingLeaders.Contains(l)).ToList();
                         message = "A team leader disappeared during competition start-up, " + (startDespiteFailures ? "continuing anyway" : "aborting") + ": " + string.Join(", ", missingLeaders);
                     }
@@ -949,7 +949,7 @@ namespace BDArmory.Competition
             previousNumberCompetitive = 2; // For entering into tag mode
 
             //start the match
-            if (startDespiteFailures && pilots.Values.SelectMany(p => p).Any(p => p == null || p.weaponManager == null)) leaderNames = RefreshPilots(out pilots, out leaders, true);
+            if (startDespiteFailures && pilots.Values.SelectMany(p => p).Any(p => p == null || p.WeaponManager == null)) leaderNames = RefreshPilots(out pilots, out leaders, true);
             foreach (var teamPilots in pilots.Values)
             {
                 if (teamPilots == null)
@@ -1008,11 +1008,11 @@ namespace BDArmory.Competition
                     {
                         if (pilot == null) continue;
 
-                        if (!pilot.weaponManager.guardMode)
-                            pilot.weaponManager.ToggleGuardMode();
+                        if (!pilot.WeaponManager.guardMode)
+                            pilot.WeaponManager.ToggleGuardMode();
 
-                        //foreach (var leader in leaders)
-                        //BDATargetManager.ReportVessel(pilot.vessel, leader.weaponManager);
+                        // foreach (var leader in leaders)
+                        //     BDATargetManager.ReportVessel(pilot.vessel, leader.WeaponManager);
 
                         pilot.ReleaseCommand();
                         pilot.CommandAttack(centerGPS);
@@ -1033,14 +1033,14 @@ namespace BDArmory.Competition
             {
                 if (vessel == null || !vessel.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType)) continue;
                 var pilot = vessel.ActiveController().AI;
-                if (pilot == null || pilot.weaponManager == null)
+                if (pilot == null || pilot.WeaponManager == null)
                 {
                     VesselModuleRegistry.OnVesselModified(vessel, true);
                     pilot = vessel.ActiveController().AI;
-                    if (pilot == null || pilot.weaponManager == null) continue; // Unfixable, ignore the vessel.
+                    if (pilot == null || pilot.WeaponManager == null) continue; // Unfixable, ignore the vessel.
                 }
                 if (IsValidVessel(vessel) != InvalidVesselReason.None) continue;
-                if (pilot.weaponManager.Team.Neutral) continue; // Ignore the neutrals.
+                if (pilot.WeaponManager.Team.Neutral) continue; // Ignore the neutrals.
                 pilots.Add(pilot);
                 if (uniqueVesselNames.Contains(vessel.vesselName))
                 {
@@ -1066,14 +1066,14 @@ namespace BDArmory.Competition
         List<string> RefreshPilots(out Dictionary<BDTeam, List<IBDAIControl>> pilots, out List<IBDAIControl> leaders, bool followLeaders)
         {
             var allPilots = GetAllPilots();
-            var teams = allPilots.Select(p => p.weaponManager.Team).ToHashSet(); // Unique list
-            pilots = teams.ToDictionary(t => t, t => allPilots.Where(p => p.weaponManager.Team == t).ToList());
+            var teams = allPilots.Select(p => p.WeaponManager.Team).ToHashSet(); // Unique list
+            pilots = teams.ToDictionary(t => t, t => allPilots.Where(p => p.WeaponManager.Team == t).ToList());
             leaders = pilots.Select(kvp => kvp.Value.First()).ToList();
             if (followLeaders)
             {
                 foreach (var leader in leaders)
                     if (leader.currentCommand != PilotCommands.Free)
-                        leader.weaponManager.wingCommander.CommandAllFollow();
+                        leader.WeaponManager.wingCommander.CommandAllFollow();
             }
             return leaders.Select(l => l.vessel.vesselName).ToList();
         }
@@ -1800,10 +1800,10 @@ namespace BDArmory.Competition
                                         }
                                         foreach (var pilot in pilots)
                                         {
-                                            if (pilot.weaponManager != null && pilot.weaponManager.guardMode != newState)
+                                            if (pilot.WeaponManager != null && pilot.WeaponManager.guardMode != newState)
                                             {
-                                                pilot.weaponManager.ToggleGuardMode();
-                                                if (!pilot.weaponManager.guardMode) pilot.weaponManager.SetTarget(null);
+                                                pilot.WeaponManager.ToggleGuardMode();
+                                                if (!pilot.WeaponManager.guardMode) pilot.WeaponManager.SetTarget(null);
                                             }
                                         }
                                         break;
@@ -1818,10 +1818,10 @@ namespace BDArmory.Competition
                             {
                                 foreach (var pilot in pilots)
                                 {
-                                    if (pilot.weaponManager != null)
+                                    if (pilot.WeaponManager != null)
                                     {
-                                        pilot.weaponManager.ToggleGuardMode();
-                                        if (!pilot.weaponManager.guardMode) pilot.weaponManager.SetTarget(null);
+                                        pilot.WeaponManager.ToggleGuardMode();
+                                        if (!pilot.WeaponManager.guardMode) pilot.WeaponManager.SetTarget(null);
                                     }
                                     if (BDArmorySettings.HACK_INTAKES) SpawnUtils.HackIntakes(pilot.vessel, true);
                                     if (BDArmorySettings.MUTATOR_MODE) SpawnUtils.ApplyMutators(pilot.vessel, true);
@@ -1978,11 +1978,11 @@ namespace BDArmory.Competition
                                 if (!string.IsNullOrEmpty(BDArmorySettings.PINATA_NAME) && hasPinata)
                                 {
                                     if (!pilot.vessel.GetName().Contains(BDArmorySettings.PINATA_NAME))
-                                        pilot.weaponManager.SetTeam(BDTeam.Get("PinataPoppers"));
+                                        pilot.WeaponManager.SetTeam(BDTeam.Get("PinataPoppers"));
                                     else
-                                        pilot.weaponManager.SetTeam(BDTeam.Get("Pinata"));
+                                        pilot.WeaponManager.SetTeam(BDTeam.Get("Pinata"));
                                 }
-                                Scores.ScoreData[pilot.vessel.vesselName].team = pilot.weaponManager.Team.Name;
+                                Scores.ScoreData[pilot.vessel.vesselName].team = pilot.WeaponManager.Team.Name;
                             }
                             break;
                         }
@@ -2153,7 +2153,7 @@ namespace BDArmory.Competition
                     if (loadedVessels.Current == null || !loadedVessels.Current.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(loadedVessels.Current.vesselType))
                         continue;
                     IBDAIControl pilot = loadedVessels.Current.ActiveController().AI;
-                    if (pilot == null || !pilot.weaponManager || pilot.weaponManager.Team.Neutral)
+                    if (pilot == null || !pilot.WeaponManager || pilot.WeaponManager.Team.Neutral)
                         continue;
 
                     var vesselName = loadedVessels.Current.GetName();
@@ -2166,9 +2166,9 @@ namespace BDArmory.Competition
                     var averageSpeed = vData.AverageSpeed / vData.averageCount;
                     var averageAltitude = vData.AverageAltitude / vData.averageCount;
                     averageSpeed = averageAltitude + (averageSpeed * averageSpeed / 200); // kinetic & potential energy
-                    if (pilot.weaponManager != null)
+                    if (pilot.WeaponManager != null)
                     {
-                        if (!pilot.weaponManager.guardMode) averageSpeed *= 0.5;
+                        if (!pilot.WeaponManager.guardMode) averageSpeed *= 0.5;
                     }
 
                     bool vesselNotFired = (Planetarium.GetUniversalTime() - vData.lastFiredTime) > 120; // if you can't shoot in 2 minutes you're at the front of line
@@ -2339,7 +2339,8 @@ namespace BDArmory.Competition
             foreach (var weaponManager in LoadedVesselSwitcher.Instance.WeaponManagers.SelectMany(tm => tm.Value).ToList())
             {
                 if (weaponManager == null || weaponManager.vessel == null) continue;
-                if (weaponManager.AI != null && !((BDGenericAIBase)weaponManager.AI).IsRunningWaypoints) continue;
+                var ai = weaponManager.AI as BDGenericAIBase;
+                if (ai == null || !ai.IsRunningWaypoints) continue;
                 var player = weaponManager.vessel.vesselName;
                 if (!Scores.Players.Contains(player)) continue;
                 if (Scores.ScoreData[player].waypointsReached.Count == 0) // Hasn't reached the first waypoint.
@@ -2379,10 +2380,10 @@ namespace BDArmory.Competition
         {
             yield return new WaitUntilFixed(condition);
             if (pilot == null || pilot.vessel == null) yield break;
-            if (pilot.weaponManager != null && !pilot.weaponManager.guardMode)
+            if (pilot.WeaponManager != null && !pilot.WeaponManager.guardMode)
             {
                 competitionStatus.Add($"Enabling guard mode for {pilot.vessel.vesselName}");
-                pilot.weaponManager.ToggleGuardMode();
+                pilot.WeaponManager.ToggleGuardMode();
             }
         }
 
@@ -2666,7 +2667,8 @@ namespace BDArmory.Competition
                     pilotActions[vesselName] = "";
 
                     // try to create meaningful activity strings
-                    if (mf.AI != null && mf.AI.currentStatus != null && BDArmorySettings.DISPLAY_COMPETITION_STATUS)
+                    var ai = mf.AI;
+                    if (ai != null && ai.currentStatus != null && BDArmorySettings.DISPLAY_COMPETITION_STATUS)
                     {
                         pilotActions[vesselName] = "";
                         if (mf.vessel.LandedOrSplashed)
@@ -2676,13 +2678,13 @@ namespace BDArmory.Competition
                             else
                                 pilotActions[vesselName] = " is splashed";
                         }
-                        var activity = mf.AI.currentStatus;
+                        var activity = ai.currentStatus;
                         if (activity == "Taking off")
                             pilotActions[vesselName] = " is taking off";
                         else if (activity == "Follow")
                         {
-                            if (mf.AI.commandLeader != null && mf.AI.commandLeader.vessel != null)
-                                pilotActions[vesselName] = " is following " + mf.AI.commandLeader.vessel.GetName();
+                            if (ai.commandLeader != null && ai.commandLeader.vessel != null)
+                                pilotActions[vesselName] = " is following " + ai.commandLeader.vessel.GetName();
                         }
                         else if (activity.StartsWith("Gain Alt"))
                             pilotActions[vesselName] = " is gaining altitude";
@@ -3048,7 +3050,7 @@ namespace BDArmory.Competition
                             if (loadedVessels.Current == null || !loadedVessels.Current.loaded || VesselModuleRegistry.IgnoredVesselTypes.Contains(loadedVessels.Current.vesselType)) // || vessel.packed) // Allow packed craft to avoid the packed craft being considered dead (e.g., when command seats spawn).
                                 continue;
                             IBDAIControl pilot = loadedVessels.Current.ActiveController().AI;
-                            if (pilot == null || !pilot.weaponManager || pilot.weaponManager.Team.Neutral) continue;
+                            if (pilot == null || !pilot.WeaponManager || pilot.WeaponManager.Team.Neutral) continue;
                             if (((BDGenericAIBase)pilot).IsRunningWaypoints)
                             {
                                 runningWPs = true;
@@ -3873,15 +3875,51 @@ namespace BDArmory.Competition
             foreach (var pilot in pilots)
             {
                 if (!Scores.Players.Contains(pilot.vessel.GetName())) { Debug.Log("[BDArmory.BDACompetitionMode]: Scores doesn't contain " + pilot.vessel.GetName()); continue; }
-                pilot.weaponManager.SetTeam(BDTeam.Get(T.ToString()));
+                pilot.WeaponManager.SetTeam(BDTeam.Get(T.ToString()));
                 Scores.ScoreData[pilot.vessel.GetName()].tagIsIt = false;
                 pilot.vessel.ActionGroups.ToggleGroup(KM_dictAG[9]); // Trigger AG9 on becoming "NOT IT"
                 T++;
             }
             foreach (var pilot in pilots)
-                pilot.weaponManager.ForceScan(); // Update targets.
+                pilot.WeaponManager.ForceScan(); // Update targets.
             startTag = true;
         }
+        #endregion
+
+        #region Active Controller
+        // FIXMEAI This section needs work.
+        public void AddToCompetitionWhenReady(MissileFire weaponManager) => StartCoroutine(AddToCompetitionWhenReadyCoroutine(weaponManager));
+        IEnumerator AddToCompetitionWhenReadyCoroutine(MissileFire weaponManager)
+        {
+            Vessel vessel = weaponManager.vessel;
+            var start = Time.time;
+            yield return new WaitWhileFixed(() => IsValidVessel(vessel) == InvalidVesselReason.None && (string.IsNullOrEmpty(vessel.vesselName) || !vessel.loaded) && Time.time - start < 10);
+
+            if (Time.time - start < 10 && IsValidVessel(vessel) == InvalidVesselReason.None && !Scores.Players.Contains(vessel.vesselName) && !vessel.vesselName.Contains(" Fighter_"))
+            {
+                // FIXMEAI Detached parts with AI/WM where the parent no longer them shouldn't count as new. (E.g., detached combat seats that weren't the root part.)
+                weaponManager.UpdateList();
+                if (vessel.vesselType == VesselType.Plane && vessel.vesselName.EndsWith(" Plane")) // FIXMEAI This needs to be updated similar to vessel.StripTypeFromName()
+                {
+                    vessel.vesselName = vessel.vesselName.Remove(vessel.vesselName.Length - 6) + " Fighter";
+                    int i = 1;
+                    var potentialName = vessel.vesselName + $"_{i}";
+                    while (Scores.Players.Contains(potentialName))
+                    {
+                        ++i;
+                        potentialName = vessel.vesselName + $"_{i}";
+                    }
+                    vessel.vesselName = potentialName;
+                }
+                Scores.AddPlayer(vessel);
+                Debug.Log($"DEBUG Adding {vessel.vesselName} to the competition.");
+                if (weaponManager.guardMode) { weaponManager.ToggleGuardMode(); weaponManager.ToggleGuardMode(); } // Disable, then re-enable guard mode to reset weapon stuff.
+                var ai = weaponManager.AI;
+                if (ai != null) { ai.ActivatePilot(); } // Make sure the AI is active.
+            }
+        }
+
+
         #endregion
 
         public void CheckMemoryUsage() // DEBUG

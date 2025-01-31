@@ -204,14 +204,16 @@ namespace BDArmory.UI
             List<ModuleTargetingCamera>.Enumerator cam = ActiveLasers.GetEnumerator();
             while (cam.MoveNext())
             {
-                if (cam.Current == null || cam.Current.weaponManager == null) continue;
-                if (cam.Current.weaponManager.Team != team) continue;
+                if (cam.Current == null) continue;
+                var wm = cam.Current.WeaponManager;
+                if (cam.Current == null || wm == null) continue;
+                if (wm.Team != team) continue;
                 if (parentOnly && !(cam.Current.vessel == vessel || cam.Current.vessel == sourceVessel)) continue;
                 if (!cam.Current.cameraEnabled || !cam.Current.groundStabilized || !cam.Current.surfaceDetected ||
                     cam.Current.gimbalLimitReached) continue;
 
                 float angle = Vector3.Angle(missilePosition, cam.Current.groundTargetPosition - position);
-                float tgtRadius = Mathf.Max(cam.Current.weaponManager.currentTarget ? cam.Current.weaponManager.currentTarget.Vessel.GetRadius() : 20, 20);
+                float tgtRadius = Mathf.Max(wm.currentTarget ? wm.currentTarget.Vessel.GetRadius() : 20, 20);
                 if (!(angle < maxOffBoresight) || !(angle < smallestAngle) ||
                     !CanSeePosition(cam.Current.groundTargetPosition, vessel.transform.position,
                         (vessel.transform.position + missilePosition), tgtRadius)) continue;

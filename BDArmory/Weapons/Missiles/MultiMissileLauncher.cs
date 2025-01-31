@@ -63,7 +63,7 @@ namespace BDArmory.Weapons.Missiles
         AnimationState deployState;
         public ModuleMissileRearm missileSpawner = null;
         MissileLauncher missileLauncher = null;
-        MissileFire wpm = null; // FIXMEAI
+        MissileFire wpm = null; // Assigned when fired and then not updated even if the parent craft changes their primary WM.
         private int tubesFired = 0;
         [KSPField(isPersistant = true)]
         private bool LoadoutModified = false;

@@ -350,30 +350,14 @@ namespace BDArmory.Weapons.Missiles
         [KSPAction("Fire Missile")]
         public void AGFire(KSPActionParam param)
         {
-            if (BDArmorySetup.Instance.ActiveWeaponManager != null && BDArmorySetup.Instance.ActiveWeaponManager.vessel == vessel) BDArmorySetup.Instance.ActiveWeaponManager.SendTargetDataToMissile(this, null);
-            if (missileTurret)
-            {
-                missileTurret.FireMissile(this, null);
-            }
-            else if (rotaryRail)
-            {
-                rotaryRail.FireMissile(this, null);
-            }
-            else if (deployableRail)
-            {
-                deployableRail.FireMissile(this, null);
-            }
-            else
-            {
-                FireMissile();
-            }
-            if (BDArmorySetup.Instance.ActiveWeaponManager != null) BDArmorySetup.Instance.ActiveWeaponManager.UpdateList();
+            GuiFire();
         }
 
         [KSPEvent(guiActive = true, guiName = "#LOC_BDArmory_FireMissile", active = true)]//Fire Missile
         public void GuiFire()
         {
-            if (BDArmorySetup.Instance.ActiveWeaponManager != null && BDArmorySetup.Instance.ActiveWeaponManager.vessel == vessel) BDArmorySetup.Instance.ActiveWeaponManager.SendTargetDataToMissile(this, null);
+            var weaponManager = vessel.ActiveController().WM;
+            if (weaponManager != null) weaponManager.SendTargetDataToMissile(this, null);
             if (missileTurret)
             {
                 missileTurret.FireMissile(this, null);
@@ -390,7 +374,7 @@ namespace BDArmory.Weapons.Missiles
             {
                 FireMissile();
             }
-            if (BDArmorySetup.Instance.ActiveWeaponManager != null) BDArmorySetup.Instance.ActiveWeaponManager.UpdateList();
+            if (weaponManager != null) weaponManager.UpdateList();
         }
 
         [KSPEvent(guiActive = true, guiActiveEditor = false, active = true, guiName = "#LOC_BDArmory_Jettison")]//Jettison
@@ -399,7 +383,8 @@ namespace BDArmory.Weapons.Missiles
             if (missileTurret) return;
             if (multiLauncher && !multiLauncher.permitJettison) return;
             part.decouple(0);
-            if (BDArmorySetup.Instance.ActiveWeaponManager != null) BDArmorySetup.Instance.ActiveWeaponManager.UpdateList();
+            var weaponManager = vessel.ActiveController().WM;
+            if (weaponManager != null) weaponManager.UpdateList();
         }
 
         [KSPAction("Jettison")]

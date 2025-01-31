@@ -697,14 +697,16 @@ namespace BDArmory.Weapons.Missiles
         [KSPField(isPersistant = true, guiName = "#LOC_BDArmory_GPSTarget")]//GPS Target
         public string gpsTargetName = "Unknown"; // Can't have an empty name as it breaks KSP's flightstate autosave.
 
-
-
         void PickGPSTarget()
         {
             gpsSet = true;
             Fields["gpsTargetName"].guiActive = true;
-            gpsTargetName = BDArmorySetup.Instance.ActiveWeaponManager.designatedGPSInfo.name;
-            assignedGPSCoords = BDArmorySetup.Instance.ActiveWeaponManager.designatedGPSCoords;
+            var weaponManager = vessel.ActiveController().WM;
+            if (weaponManager)
+            {
+                gpsTargetName = weaponManager.designatedGPSInfo.name;
+                assignedGPSCoords = weaponManager.designatedGPSCoords;
+            }
         }
 
         public Vector3d UpdateGPSTarget()

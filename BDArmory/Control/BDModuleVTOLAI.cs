@@ -413,6 +413,7 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
 
             // check for enemy targets and engage
             // not checking for guard mode, because if guard mode is off now you can select a target manually and if it is of opposing team, the AI will try to engage while you can man the turrets
+            var weaponManager = WeaponManager;
             if (weaponManager && targetVessel != null && !BDArmorySettings.PEACE_MODE)
             {
                 leftPath = true;
@@ -641,6 +642,7 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
 
         void Tactical()
         {
+            var weaponManager = WeaponManager;
             // enable RCS if we're in combat
             vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, weaponManager && targetVessel && !BDArmorySettings.PEACE_MODE
                 && (weaponManager.selectedWeapon != null || (vessel.CoM - targetVessel.CoM).sqrMagnitude < MaxEngagementRange * MaxEngagementRange)
@@ -831,8 +833,9 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
 
         Vector3? PredictCollisionWithVessel(Vessel v, float maxTime, float interval)
         {
+            var weaponManager = WeaponManager;
             //evasive will handle avoiding missiles
-            if (v == weaponManager.incomingMissileVessel
+            if (weaponManager && v == weaponManager.incomingMissileVessel
                 || v.rootPart.FindModuleImplementing<MissileBase>() != null)
                 return null;
 

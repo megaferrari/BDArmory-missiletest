@@ -25,16 +25,32 @@ namespace BDArmory.Weapons.Missiles
 
         private PartModule _targetDecoupler;
 
-        private readonly Vessel _targetVessel = new Vessel();
+        private readonly Vessel _targetVessel = new();
 
         private Transform _velocityTransform;
 
         public Vessel LegacyTargetVessel;
 
-        private MissileFire weaponManager = null; // FIXMEAI
-        private bool mfChecked = false;
+        MissileFire WeaponManager
+        {
+            get
+            {
+                if (!_noWM && (_weaponManager == null || !_weaponManager.IsPrimaryWM || _weaponManager.vessel != vessel))
+                {
+                    if (vessel && vessel.loaded)
+                    {
+                        _weaponManager = vessel.ActiveController().WM;
+                        _noWM = _weaponManager == null;
+                    }
+                    else _weaponManager = null;
+                }
+                return _weaponManager;
+            }
+        }
+        MissileFire _weaponManager;
+        bool _noWM = false; // If no WM is found the first time, don't check again.
 
-        private readonly List<Part> _vesselParts = new List<Part>();
+        private readonly List<Part> _vesselParts = [];
 
         #region KSP FIELDS
 
@@ -186,7 +202,7 @@ namespace BDArmory.Weapons.Missiles
                     GuidanceMode = GuidanceModes.Orbital;
                     GuidanceLabel = "Orbital";
                     break;
-				case 8:
+                case 8:
                     GuidanceMode = GuidanceModes.AAMLoft;
                     GuidanceLabel = "AAM Loft";
                     break;
@@ -917,13 +933,13 @@ namespace BDArmory.Weapons.Missiles
                 Vector3 targetAcceleration = TargetAcceleration;
                 Vector3 targetVelocity = TargetVelocity + Time.fixedDeltaTime * targetAcceleration;
                 Vector3 targetPosition = TargetPosition + TimeWarp.fixedDeltaTime * targetVelocity;
-                
+
                 Vector3 targetVector = targetPosition - vessel.CoM;
                 Vector3 relVel = vessel.Velocity() - targetVelocity;
 
                 Vector3 relVelNrm = relVel.normalized;
                 Vector3 interceptVector;
-                float relVelmag = relVel.magnitude;  
+                float relVelmag = relVel.magnitude;
 
                 // Calculate max accel
                 Vector3 propulsionVector = vessel.transform.InverseTransformDirection(-GetFireVector(engines, rcsThrusters, -forwardDir));
@@ -999,7 +1015,7 @@ namespace BDArmory.Weapons.Missiles
             rcsThrusters = VesselModuleRegistry.GetModules<ModuleRCS>(vessel);
 
             // Set up clearance maneuver
-            vacuumClearanceState = (engines.Any() && vessel.InVacuum()) ? VacuumClearanceStates.Clearing : VacuumClearanceStates.Cleared; 
+            vacuumClearanceState = (engines.Any() && vessel.InVacuum()) ? VacuumClearanceStates.Clearing : VacuumClearanceStates.Cleared;
 
             // Get a probe core and align its reference transform with the propulsion vector.
             ModuleCommand commander = VesselModuleRegistry.GetModuleCommand(vessel);
@@ -1162,11 +1178,11 @@ namespace BDArmory.Weapons.Missiles
             DetonationDistanceState = DetonationDistanceStates.Cruising;
             BDATargetManager.FiredMissiles.Remove(this);
             MissileState = MissileStates.Idle;
-            if (mfChecked && weaponManager != null)
+            var weaponManager = WeaponManager;
+            if (weaponManager != null && weaponManager.guardFiringMissile)
             {
                 if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.BDModularGuidance]: disabling target lock for {vessel.vesselName}");
                 weaponManager.guardFiringMissile = false; // Disable target lock.
-                mfChecked = false;
             }
         }
 
@@ -1204,12 +1220,8 @@ namespace BDArmory.Weapons.Missiles
             debugString.Length = 0;
             if (guidanceActive && MissileReferenceTransform != null && _velocityTransform != null)
             {
-                if (!mfChecked)
-                {
-                    weaponManager = vessel.ActiveController().WM;
-                    mfChecked = true;
-                }
-                if (mfChecked && weaponManager != null && !weaponManager.guardFiringMissile)
+                var weaponManager = WeaponManager;
+                if (weaponManager != null && !weaponManager.guardFiringMissile)
                 {
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.BDModularGuidance]: enabling target lock for {vessel.vesselName}");
                     weaponManager.guardFiringMissile = true; // Enable target lock.
@@ -1234,15 +1246,12 @@ namespace BDArmory.Weapons.Missiles
                     case 1:
                         newTargetPosition = AAMGuidance();
                         break;
-
                     case 2:
                         newTargetPosition = AGMGuidance();
                         break;
-
                     case 3:
                         newTargetPosition = CruiseGuidance();
                         break;
-
                     case 4:
                         newTargetPosition = BallisticGuidance();
                         break;
@@ -1325,7 +1334,7 @@ namespace BDArmory.Weapons.Missiles
                         }
                         else
                             s.mainThrottle = Throttle;
-                        
+
                         // Update SAS
                         if (attitude == Vector3.zero) return;
 
@@ -1495,12 +1504,9 @@ namespace BDArmory.Weapons.Missiles
         [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "#LOC_BDArmory_FireMissile", active = true)]//Fire Missile
         public override void FireMissile()
         {
-            if (BDArmorySetup.Instance.ActiveWeaponManager != null &&
-                BDArmorySetup.Instance.ActiveWeaponManager.vessel == vessel)
-            {
-                if (targetVessel == null)
-                    BDArmorySetup.Instance.ActiveWeaponManager.SendTargetDataToMissile(this, null);
-            }
+            var weaponManager = WeaponManager; // Parent plane's WM
+            if (weaponManager != null && targetVessel == null)
+                weaponManager.SendTargetDataToMissile(this, null);
 
             if (!HasFired)
             {
@@ -1513,7 +1519,7 @@ namespace BDArmory.Weapons.Missiles
 
                 BDATargetManager.FiredMissiles.Add(this);
 
-                var wpm = vessel.ActiveController().WM;
+                var wpm = WeaponManager; // MM's WM
                 if (wpm != null)
                 {
                     Team = wpm.Team;
@@ -1544,10 +1550,8 @@ namespace BDArmory.Weapons.Missiles
                 }
                 if (BDArmorySettings.CAMERA_SWITCH_INCLUDE_MISSILES && SourceVessel.isActiveVessel) LoadedVesselSwitcher.Instance.ForceSwitchVessel(vessel);
             }
-            if (BDArmorySetup.Instance.ActiveWeaponManager != null)
-            {
-                BDArmorySetup.Instance.ActiveWeaponManager.UpdateList();
-            }
+            if (weaponManager != null)
+                weaponManager.UpdateList();
         }
 
         private void IncreaseTolerance()
@@ -1609,7 +1613,7 @@ namespace BDArmory.Weapons.Missiles
         [KSPEvent(guiActive = true, guiActiveEditor = false, active = true, guiName = "#LOC_BDArmory_Jettison")]//Jettison
         public override void Jettison()
         {
-            if (_targetDecoupler == null || !_targetDecoupler || !(_targetDecoupler is IStageSeparator)) return;
+            if (_targetDecoupler == null || !_targetDecoupler || _targetDecoupler is not IStageSeparator) return;
 
             ModuleDecouple decouple = _targetDecoupler as ModuleDecouple;
             if (decouple != null)
@@ -1623,8 +1627,9 @@ namespace BDArmory.Weapons.Missiles
                 ((ModuleAnchoredDecoupler)_targetDecoupler).Decouple();
             }
 
-            if (BDArmorySetup.Instance.ActiveWeaponManager != null)
-                BDArmorySetup.Instance.ActiveWeaponManager.UpdateList();
+            var weaponManager = WeaponManager;
+            if (weaponManager != null)
+                weaponManager.UpdateList();
         }
 
         public override float GetBlastRadius()

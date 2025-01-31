@@ -809,16 +809,17 @@ namespace BDArmory.VesselSpawning
             var weaponManager = vessel.ActiveController().WM;
             if (weaponManager != null)
             {
-                if (weaponManager.AI != null)
+                var ai = weaponManager.AI;
+                if (ai != null)
                 {
-                    weaponManager.AI.ActivatePilot();
-                    weaponManager.AI.CommandTakeOff();
+                    ai.ActivatePilot();
+                    ai.CommandTakeOff();
                     if (withInitialVelocity)
                     {
-                        var pilot = weaponManager.AI as BDModulePilotAI;
+                        var pilot = ai as BDModulePilotAI;
                         if (pilot != null) { vessel.SetWorldVelocity(pilot.idleSpeed * vessel.transform.up); }
                     }
-                    var orbitalAI = weaponManager.AI as BDModuleOrbitalAI;
+                    var orbitalAI = ai as BDModuleOrbitalAI;
                     if (orbitalAI && vessel.altitude > vessel.mainBody.MinSafeAltitude()) // In space with an orbital AI. Set it in a circular orbit.
                     {
                         Vector3d orbitVelocity = Math.Sqrt(FlightGlobals.getGeeForceAtPosition(vessel.CoM, vessel.mainBody).magnitude * (vessel.mainBody.Radius + vessel.altitude)) * FlightGlobals.currentMainBody.getRFrmVel(vessel.CoM).normalized;
@@ -970,7 +971,8 @@ namespace BDArmory.VesselSpawning
 
             // Enable guard mode if a competition is active.
             if (BDACompetitionMode.Instance.competitionIsActive && !weaponManager.guardMode) weaponManager.ToggleGuardMode();
-            weaponManager.AI.ReleaseCommand();
+            var ai = weaponManager.AI;
+            if (ai != null) ai.ReleaseCommand();
             weaponManager.ForceScan();
 
             if (ContinuousSpawning.Instance.vesselsSpawningContinuously)

@@ -1880,6 +1880,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
             {
                 if (lastExtendTargetPosition != null) lastExtendTargetPosition -= BDKrakensbane.FloatingOriginOffsetNonKrakensbane;
             }
+            var weaponManager = WeaponManager;
             if (weaponManager && weaponManager.guardMode && weaponManager.staleTarget)
             {
                 targetStalenessTimer += Time.fixedDeltaTime;
@@ -1923,7 +1924,8 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
             useVelRollTarget = false;
 
             // landed and still, chill out
-            if (vessel.LandedOrSplashed && standbyMode && weaponManager && (BDATargetManager.GetClosestTarget(this.weaponManager) == null || BDArmorySettings.PEACE_MODE)) //TheDog: replaced querying of targetdatabase with actual check if a target can be detected
+            var weaponManager = WeaponManager;
+            if (vessel.LandedOrSplashed && standbyMode && weaponManager && (BDATargetManager.GetClosestTarget(weaponManager) == null || BDArmorySettings.PEACE_MODE)) //TheDog: replaced querying of targetdatabase with actual check if a target can be detected
             {
                 //s.mainThrottle = 0;
                 //vessel.ActionGroups.SetGroup(KSPActionGroup.Brakes, true);
@@ -2020,6 +2022,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
                 extendAbortTimer += TimeWarp.fixedDeltaTime;
                 if (extendAbortTimer > 0) extendAbortTimer = 0;
             }
+            var weaponManager = WeaponManager;
             if (weaponManager != null)
             {
                 bool evadeMissile = weaponManager.incomingMissileTime <= weaponManager.evadeThreshold;
@@ -2168,7 +2171,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
             if (CheckExtend())
             {
                 weaponManager.ForceScan();
-                evasiveTimer = 0;                
+                evasiveTimer = 0;
                 FlyExtend(s, lastExtendTargetPosition);
                 return;
             }
@@ -2176,6 +2179,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
 
         bool PredictCollisionWithVessel(Vessel v, float maxTime, out Vector3 badDirection)
         {
+            var weaponManager = WeaponManager;
             if (vessel == null || v == null || v == (weaponManager != null ? weaponManager.incomingMissileVessel : null)
                 || v.rootPart.FindModuleImplementing<MissileBase>() != null) //evasive will handle avoiding missiles
             {
@@ -2228,7 +2232,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
 
             // If they're also in ramming speed and trying to ram us, then just aim straight for them until the last moment.
             var targetAI = v.ActiveController().PilotAI;
-            if (timeToCPA > 1f && targetAI != null && targetAI.ramming)
+            if (timeToCPA > 1f && targetAI != null && targetAI.pilotEnabled && targetAI.ramming)
             {
                 var targetWM = v.ActiveController().WM;
                 if (targetWM != null && targetWM.currentTarget != null && targetWM.currentTarget.Vessel == vessel && Vector3.Dot(vessel.srf_vel_direction, v.srf_vel_direction) < -0.866f) // They're trying to ram us and are mostly head-on! Two can play at that game!
@@ -2262,6 +2266,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
             float strafingDistance = -1f;
             float relativeVelocity = (float)(vessel.srf_velocity - v.srf_velocity).magnitude;
 
+            var weaponManager = WeaponManager;
             if (weaponManager)
             {
                 if (!weaponManager.staleTarget) staleTargetVelocity = Vector3.zero; //if actively tracking target, reset last known velocity vector
@@ -2322,8 +2327,8 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
                                 {
                                     if (weaponManager.firedMissiles < weaponManager.maxMissilesOnTarget)
                                         strafingDistance = Mathf.Max(0f, distanceToTarget - missile.engageRangeMax); //slow to strafing speed so torps survive hitting the water
-                                }                                
-                            }                            
+                                }
+                            }
                             if (weaponManager.firedMissiles >= weaponManager.maxMissilesOnTarget) finalBombingAlt = bombingAltitude; //have craft break off as soon as torps away so AI doesn't continue to fly towards enemy guns
                             if (!divebombing || missile.GetWeaponClass() == WeaponClasses.SLW) //don't divebomb w/ torpedoes
                             {
@@ -2571,6 +2576,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
 
         void FlyToPosition(FlightCtrlState s, Vector3 targetPosition, bool overrideThrottle = false)
         {
+            var weaponManager = WeaponManager;
             //test poststall (before FlightPosition is called so we're using the right steerMode)
             float AoA = Vector3.Angle(vessel.ReferenceTransform.up, vessel.Velocity());
             if (AoA > postStallAoA)
@@ -2855,6 +2861,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
         bool CheckExtend(ExtendChecks checkType = ExtendChecks.All)
         {
             // Sanity checks.
+            var weaponManager = WeaponManager;
             if (weaponManager == null)
             {
                 StopExtending("no weapon manager");
@@ -2921,7 +2928,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
 
             // Dropping a bomb.
             if (extending && (extendingReason == "bombs away!" || extendingReason == "too close to bomb"))
-                //weaponManager.CurrentMissile && weaponManager.CurrentMissile.GetWeaponClass() == WeaponClasses.Bomb) // Run away from the bomb!
+            //weaponManager.CurrentMissile && weaponManager.CurrentMissile.GetWeaponClass() == WeaponClasses.Bomb) // Run away from the bomb!
             {
                 extendDistance = extendRequestMinDistance; //4500; //what, are we running from nukes? blast radius * 1.5 should be sufficient
                 extendDesiredMinAltitude = Mathf.Min(finalBombingAlt, minAltitude);
@@ -3247,6 +3254,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
         {
             if (s == null) return;
             if (vessel == null) return;
+            var weaponManager = WeaponManager;
             if (weaponManager == null) return;
 
             SetStatus("Evading");
@@ -3256,7 +3264,6 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
                 debugString.AppendLine($"Threat Distance: {weaponManager.incomingMissileDistance}");
             }
             evading = true;
-            steerMode = SteerModes.NormalFlight;
             if (!wasEvading) evasionNonlinearityDirection = Mathf.Sign(UnityEngine.Random.Range(-1f, 1f));
 
             bool hasABEngines = speedController.multiModeEngines.Count > 0;
@@ -3264,199 +3271,196 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
             collisionDetectionTicker += 2;
             if (BDArmorySettings.DEBUG_LINES) debugBreakDirection = default;
 
-            if (weaponManager)
+            steerMode = SteerModes.Manoeuvering;
+            if (weaponManager.isFlaring)
             {
-                steerMode = SteerModes.Manoeuvering;
-                if (weaponManager.isFlaring)
+                useAB = vessel.srfSpeed < minSpeed;
+                useBrakes = false;
+                float targetSpeed = minSpeed;
+                if (weaponManager.isChaffing)
+                    targetSpeed = maxSpeed;
+                AdjustThrottle(targetSpeed, false, useAB);
+            }
+
+            if (weaponManager.incomingMissileVessel != null && (weaponManager.ThreatClosingTime(weaponManager.incomingMissileVessel) <= weaponManager.evadeThreshold)) // Missile evasion
+            {
+                Vector3 targetDirection;
+                bool overrideThrottle = false;
+                if ((weaponManager.ThreatClosingTime(weaponManager.incomingMissileVessel) <= 1.5f) && (!weaponManager.isChaffing)) // Missile is about to impact, pull a hard turn
                 {
-                    useAB = vessel.srfSpeed < minSpeed;
-                    useBrakes = false;
-                    float targetSpeed = minSpeed;
-                    if (weaponManager.isChaffing)
-                        targetSpeed = maxSpeed;
-                    AdjustThrottle(targetSpeed, false, useAB);
+                    if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($"Missile about to impact! pull away!");
+
+                    AdjustThrottle(maxSpeed, false, !weaponManager.isFlaring);
+
+                    Vector3 cross = Vector3.Cross(weaponManager.incomingMissileVessel.transform.position - vesselTransform.position, vessel.Velocity()).normalized;
+                    if (Vector3.Dot(cross, -vesselTransform.forward) < 0)
+                    {
+                        cross = -cross;
+                    }
+                    targetDirection = (50 * vessel.Velocity() / vessel.srfSpeed + 100 * cross).normalized;
                 }
-
-                if (weaponManager.incomingMissileVessel != null && (weaponManager.ThreatClosingTime(weaponManager.incomingMissileVessel) <= weaponManager.evadeThreshold)) // Missile evasion
+                else // Fly at 90 deg to missile to put max distance between ourselves and dispensed flares/chaff
                 {
-                    Vector3 targetDirection;
-                    bool overrideThrottle = false;
-                    if ((weaponManager.ThreatClosingTime(weaponManager.incomingMissileVessel) <= 1.5f) && (!weaponManager.isChaffing)) // Missile is about to impact, pull a hard turn
+                    // Break off at 90 deg to missile
+                    Vector3 threatDirection = -1f * weaponManager.incomingMissileVessel.Velocity();
+                    threatDirection = threatDirection.ProjectOnPlanePreNormalized(upDirection);
+                    float sign = Vector3.SignedAngle(threatDirection, vessel.Velocity().ProjectOnPlanePreNormalized(upDirection), upDirection);
+                    Vector3 breakDirection = Vector3.Cross(Mathf.Sign(sign) * upDirection, threatDirection).ProjectOnPlanePreNormalized(upDirection); // Break left or right depending on which side the missile is coming in on.
+
+                    // Missile kinematics check to see if alternate break directions are better (crank or turn around and run)
+                    bool dive = true;
+                    if (evasionMissileKinematic && !vessel.InNearVacuum())
                     {
-                        if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($"Missile about to impact! pull away!");
-
-                        AdjustThrottle(maxSpeed, false, !weaponManager.isFlaring);
-
-                        Vector3 cross = Vector3.Cross(weaponManager.incomingMissileVessel.transform.position - vesselTransform.position, vessel.Velocity()).normalized;
-                        if (Vector3.Dot(cross, -vesselTransform.forward) < 0)
-                        {
-                            cross = -cross;
-                        }
-                        targetDirection = (50 * vessel.Velocity() / vessel.srfSpeed + 100 * cross).normalized;
+                        breakDirection = MissileKinematicEvasion(breakDirection, threatDirection);
+                        if (kinematicEvasionState != KinematicEvasionStates.NotchDive)
+                            dive = false;
                     }
-                    else // Fly at 90 deg to missile to put max distance between ourselves and dispensed flares/chaff
+                    else
+                        if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine("Breaking from missile threat!");
+
+                    // Dive to gain energy and hopefully lead missile into ground when not in space
+                    if (!vessel.InNearVacuum() && dive)
                     {
-                        // Break off at 90 deg to missile
-                        Vector3 threatDirection = -1f * weaponManager.incomingMissileVessel.Velocity();
-                        threatDirection = threatDirection.ProjectOnPlanePreNormalized(upDirection);
-                        float sign = Vector3.SignedAngle(threatDirection, vessel.Velocity().ProjectOnPlanePreNormalized(upDirection), upDirection);
-                        Vector3 breakDirection = Vector3.Cross(Mathf.Sign(sign) * upDirection, threatDirection).ProjectOnPlanePreNormalized(upDirection); // Break left or right depending on which side the missile is coming in on.
+                        float diveScale = Mathf.Max(1000f, 2f * turnRadius);
+                        float angle = Mathf.Clamp((float)vessel.radarAltitude - minAltitude, 0, diveScale) / diveScale * 90;
+                        float angleAdjMissile = Mathf.Max(Mathf.Asin(((float)vessel.radarAltitude - (float)weaponManager.incomingMissileVessel.radarAltitude) /
+                            weaponManager.incomingMissileDistance) * Mathf.Rad2Deg, 0f); // Don't dive into the missile if it's coming from below
+                        angle = Mathf.Clamp(angle - angleAdjMissile, 0, 75) * Mathf.Deg2Rad;
+                        breakDirection = Vector3.RotateTowards(breakDirection, -upDirection, angle, 0);
+                    }
+                    if (BDArmorySettings.DEBUG_LINES) debugBreakDirection = breakDirection;
 
-                        // Missile kinematics check to see if alternate break directions are better (crank or turn around and run)
-                        bool dive = true;
-                        if (evasionMissileKinematic && !vessel.InNearVacuum())
-                        {
-                            breakDirection = MissileKinematicEvasion(breakDirection, threatDirection);
-                            if (kinematicEvasionState != KinematicEvasionStates.NotchDive)
-                                dive = false;
-                        }
+                    // Rotate target direction towards break direction, starting with 15 deg, and increasing to maxAllowedAoA as missile gets closer
+                    float rotAngle = Mathf.Deg2Rad * Mathf.Lerp(Mathf.Min(maxAllowedAoA, 90), 15f, Mathf.Clamp01(weaponManager.incomingMissileTime / weaponManager.evadeThreshold));
+                    targetDirection = Vector3.RotateTowards(vesselTransform.up, breakDirection, rotAngle, 0).normalized;
+
+                    if (weaponManager.isFlaring)
+                        if (!hasABEngines)
+                            AdjustThrottle(maxSpeed, false, useAB, false, 0.66f);
                         else
-                            if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine("Breaking from missile threat!");
-
-                        // Dive to gain energy and hopefully lead missile into ground when not in space
-                        if (!vessel.InNearVacuum() && dive)
-                        {
-                            float diveScale = Mathf.Max(1000f, 2f * turnRadius);
-                            float angle = Mathf.Clamp((float)vessel.radarAltitude - minAltitude, 0, diveScale) / diveScale * 90;
-                            float angleAdjMissile = Mathf.Max(Mathf.Asin(((float)vessel.radarAltitude - (float)weaponManager.incomingMissileVessel.radarAltitude) /
-                                weaponManager.incomingMissileDistance) * Mathf.Rad2Deg, 0f); // Don't dive into the missile if it's coming from below
-                            angle = Mathf.Clamp(angle - angleAdjMissile, 0, 75) * Mathf.Deg2Rad;
-                            breakDirection = Vector3.RotateTowards(breakDirection, -upDirection, angle, 0);
-                        }
-                        if (BDArmorySettings.DEBUG_LINES) debugBreakDirection = breakDirection;
-
-                        // Rotate target direction towards break direction, starting with 15 deg, and increasing to maxAllowedAoA as missile gets closer
-                        float rotAngle = Mathf.Deg2Rad * Mathf.Lerp(Mathf.Min(maxAllowedAoA, 90), 15f, Mathf.Clamp01(weaponManager.incomingMissileTime / weaponManager.evadeThreshold));
-                        targetDirection = Vector3.RotateTowards(vesselTransform.up, breakDirection, rotAngle, 0).normalized;
-
-                        if (weaponManager.isFlaring)
-                            if (!hasABEngines)
-                                AdjustThrottle(maxSpeed, false, useAB, false, 0.66f);
-                            else
-                                AdjustThrottle(maxSpeed, false, useAB);
-                        else
-                        {
-                            useAB = true;
                             AdjustThrottle(maxSpeed, false, useAB);
-                        }
-                        overrideThrottle = true;
+                    else
+                    {
+                        useAB = true;
+                        AdjustThrottle(maxSpeed, false, useAB);
                     }
+                    overrideThrottle = true;
+                }
+                if (belowMinAltitude)
+                {
+                    float rise = 0.5f * Mathf.Max(5f, (float)vessel.srfSpeed * 0.25f) * Mathf.Max(speedController.TWR, 1f); // Add some climb like in TakeOff (at half the rate) to get back above min altitude.
+                    targetDirection += rise * upDirection;
+
+                    float verticalComponent = Vector3.Dot(targetDirection, upDirection);
+                    if (verticalComponent < 0) // If we're below minimum altitude, enforce the evade direction to gain altitude.
+                    {
+                        targetDirection += -2f * verticalComponent * upDirection;
+                    }
+                }
+                RCSEvade(s, targetDirection);//add spacemode RCS dodging; missile evasion, fire in targetDirection
+                FlyToPosition(s, vesselTransform.position + targetDirection * 100, overrideThrottle);
+                return;
+            }
+            else if (weaponManager.underFire)
+            {
+                if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.Append($"Dodging gunfire");
+                float threatDirectionFactor = Vector3.Dot(vesselTransform.up, threatRelativePosition.normalized);
+                //Vector3 axis = -Vector3.Cross(vesselTransform.up, threatRelativePosition);
+                // FIXME When evading while in waypoint following mode, the breakTarget ought to be roughly in the direction of the waypoint.
+
+                Vector3 breakTarget = threatRelativePosition * 2f;       //for the most part, we want to turn _towards_ the threat in order to increase the rel ang vel and get under its guns
+
+                if (weaponManager.incomingThreatVessel != null && weaponManager.incomingThreatVessel.LandedOrSplashed) // Surface threat.
+                {
+                    // Break horizontally away at maxAoA initially, then directly away once past 90°.
+                    breakTarget = Vector3.RotateTowards(vessel.srf_vel_direction, -threatRelativePosition, maxAllowedAoA * Mathf.Deg2Rad, 0);
+                    if (threatDirectionFactor > 0)
+                        breakTarget = breakTarget.ProjectOnPlanePreNormalized(upDirection);
+                    breakTarget = breakTarget.normalized * 100f;
+                    var breakTargetAlt = BodyUtils.GetRadarAltitudeAtPos(vessel.transform.position + breakTarget);
+                    if (breakTargetAlt > defaultAltitude) breakTarget -= (breakTargetAlt - defaultAltitude) * upDirection;
+                    if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($" from ground target.");
+                }
+                else // Airborne threat.
+                {
+                    if (threatDirectionFactor > 0.9f)     //within 28 degrees in front
+                    { // This adds +-500/(threat distance) to the left or right relative to the breakTarget vector, regardless of the size of breakTarget
+                        breakTarget += 500f / threatRelativePosition.magnitude * Vector3.Cross(threatRelativePosition.normalized, Mathf.Sign(Mathf.Sin((float)vessel.missionTime / 2)) * vessel.upAxis);
+                        if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($" from directly ahead!");
+                        RCSEvade(s, new Vector3(1 * evasionNonlinearityDirection, 0, 0));//add spacemode RCS dodging; forward incoming fire, flank L/R
+                    }
+                    else if (threatDirectionFactor < -0.9) //within ~28 degrees behind
+                    {
+                        float threatDistanceSqr = threatRelativePosition.sqrMagnitude;
+                        if (threatDistanceSqr > 400 * 400)
+                        { // This sets breakTarget 1500m ahead and 500m down, then adds a 1000m offset at 90° to ahead based on missionTime. If the target is kinda close, brakes are also applied.
+                            breakTarget = vesselTransform.up * 1500 - 500 * vessel.upAxis;
+                            breakTarget += Mathf.Sin((float)vessel.missionTime / 2) * vesselTransform.right * 1000 - Mathf.Cos((float)vessel.missionTime / 2) * vesselTransform.forward * 1000;
+                            if (threatDistanceSqr > 800 * 800)
+                            {
+                                if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($" from behind afar; engaging barrel roll");
+                            }
+                            else
+                            {
+                                if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($" from behind moderate distance; engaging aggressvie barrel roll and braking");
+                                AdjustThrottle(minSpeed, true, false);
+                            }
+                            RCSEvade(s, new Vector3(Mathf.Sin((float)vessel.missionTime / 2), Mathf.Cos((float)vessel.missionTime / 2), 0));//add spacemode RCS dodging; aft incoming fire, orbit about prograde
+                        }
+                        else
+                        { // This sets breakTarget to the attackers position, then applies an up to 500m offset to the right or left (relative to the vessel) for the first half of the default evading period, then sets the breakTarget to be 150m right or left of the attacker.
+                            breakTarget = threatRelativePosition;
+                            if (evasiveTimer < 1.5f)
+                                breakTarget += Mathf.Sin((float)vessel.missionTime * 2) * vesselTransform.right * 500;
+                            else
+                                breakTarget += -Math.Sign(Mathf.Sin((float)vessel.missionTime * 2)) * vesselTransform.right * 150;
+
+                            if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($" from directly behind and close; breaking hard");
+                            AdjustThrottle(minSpeed, true, false); // Brake to slow down and turn faster while breaking target
+                            RCSEvade(s, new Vector3(0, 0, -1));//add spacemode RCS dodging; fire available retrothrusters
+                        }
+                    }
+                    else
+                    {
+                        float threatDistanceSqr = threatRelativePosition.sqrMagnitude;
+                        if (threatDistanceSqr < 400 * 400) // Within 400m to the side.
+                        { // This sets breakTarget to be behind the attacker (relative to the evader) with a small offset to the left or right.
+                            breakTarget += Mathf.Sin((float)vessel.missionTime * 2) * vesselTransform.right * 100;
+
+                            if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($" from near side; turning towards attacker");
+                        }
+                        else // More than 400m to the side.
+                        { // This sets breakTarget to be 1500m ahead, then adds a 1000m offset at 90° to ahead.
+                            breakTarget = vesselTransform.up * 1500;
+                            breakTarget += Mathf.Sin((float)vessel.missionTime / 2) * vesselTransform.right * 1000 - Mathf.Cos((float)vessel.missionTime / 2) * vesselTransform.forward * 1000;
+                            if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($" from far side; engaging barrel roll");
+                            RCSEvade(s, new Vector3(0, 1 * evasionNonlinearityDirection, 0));//add spacemode RCS dodging; flank incoming fire, flank U/D
+                        }
+                    }
+
+                    float threatAltitudeDiff = Vector3.Dot(threatRelativePosition, vessel.upAxis);
+                    if (threatAltitudeDiff > 500)
+                        breakTarget += threatAltitudeDiff * vessel.upAxis;      //if it's trying to spike us from below, don't go crazy trying to dive below it
+                    else
+                        breakTarget += -150 * vessel.upAxis;   //dive a bit to escape
+
                     if (belowMinAltitude)
                     {
                         float rise = 0.5f * Mathf.Max(5f, (float)vessel.srfSpeed * 0.25f) * Mathf.Max(speedController.TWR, 1f); // Add some climb like in TakeOff (at half the rate) to get back above min altitude.
-                        targetDirection += rise * upDirection;
+                        breakTarget += rise * upDirection;
 
-                        float verticalComponent = Vector3.Dot(targetDirection, upDirection);
-                        if (verticalComponent < 0) // If we're below minimum altitude, enforce the evade direction to gain altitude.
+                        float breakTargetVerticalComponent = Vector3.Dot(breakTarget, upDirection);
+                        if (breakTargetVerticalComponent < 0) // If we're below minimum altitude, enforce the evade direction to gain altitude.
                         {
-                            targetDirection += -2f * verticalComponent * upDirection;
+                            breakTarget += -2f * breakTargetVerticalComponent * upDirection;
                         }
                     }
-                    RCSEvade(s, targetDirection);//add spacemode RCS dodging; missile evasion, fire in targetDirection
-                    FlyToPosition(s, vesselTransform.position + targetDirection * 100, overrideThrottle);
-                    return;
                 }
-                else if (weaponManager.underFire)
-                {
-                    if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.Append($"Dodging gunfire");
-                    float threatDirectionFactor = Vector3.Dot(vesselTransform.up, threatRelativePosition.normalized);
-                    //Vector3 axis = -Vector3.Cross(vesselTransform.up, threatRelativePosition);
-                    // FIXME When evading while in waypoint following mode, the breakTarget ought to be roughly in the direction of the waypoint.
 
-                    Vector3 breakTarget = threatRelativePosition * 2f;       //for the most part, we want to turn _towards_ the threat in order to increase the rel ang vel and get under its guns
-
-                    if (weaponManager.incomingThreatVessel != null && weaponManager.incomingThreatVessel.LandedOrSplashed) // Surface threat.
-                    {
-                        // Break horizontally away at maxAoA initially, then directly away once past 90°.
-                        breakTarget = Vector3.RotateTowards(vessel.srf_vel_direction, -threatRelativePosition, maxAllowedAoA * Mathf.Deg2Rad, 0);
-                        if (threatDirectionFactor > 0)
-                            breakTarget = breakTarget.ProjectOnPlanePreNormalized(upDirection);
-                        breakTarget = breakTarget.normalized * 100f;
-                        var breakTargetAlt = BodyUtils.GetRadarAltitudeAtPos(vessel.transform.position + breakTarget);
-                        if (breakTargetAlt > defaultAltitude) breakTarget -= (breakTargetAlt - defaultAltitude) * upDirection;
-                        if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($" from ground target.");
-                    }
-                    else // Airborne threat.
-                    {
-                        if (threatDirectionFactor > 0.9f)     //within 28 degrees in front
-                        { // This adds +-500/(threat distance) to the left or right relative to the breakTarget vector, regardless of the size of breakTarget
-                            breakTarget += 500f / threatRelativePosition.magnitude * Vector3.Cross(threatRelativePosition.normalized, Mathf.Sign(Mathf.Sin((float)vessel.missionTime / 2)) * vessel.upAxis);
-                            if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($" from directly ahead!");
-                            RCSEvade(s, new Vector3(1 * evasionNonlinearityDirection, 0, 0));//add spacemode RCS dodging; forward incoming fire, flank L/R
-                        }
-                        else if (threatDirectionFactor < -0.9) //within ~28 degrees behind
-                        {
-                            float threatDistanceSqr = threatRelativePosition.sqrMagnitude;
-                            if (threatDistanceSqr > 400 * 400)
-                            { // This sets breakTarget 1500m ahead and 500m down, then adds a 1000m offset at 90° to ahead based on missionTime. If the target is kinda close, brakes are also applied.
-                                breakTarget = vesselTransform.up * 1500 - 500 * vessel.upAxis;
-                                breakTarget += Mathf.Sin((float)vessel.missionTime / 2) * vesselTransform.right * 1000 - Mathf.Cos((float)vessel.missionTime / 2) * vesselTransform.forward * 1000;
-                                if (threatDistanceSqr > 800 * 800)
-                                {
-                                    if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($" from behind afar; engaging barrel roll");
-                                }
-                                else
-                                {
-                                    if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($" from behind moderate distance; engaging aggressvie barrel roll and braking");
-                                    AdjustThrottle(minSpeed, true, false);
-                                }
-                                RCSEvade(s, new Vector3(Mathf.Sin((float)vessel.missionTime / 2), Mathf.Cos((float)vessel.missionTime / 2), 0));//add spacemode RCS dodging; aft incoming fire, orbit about prograde
-                            }
-                            else
-                            { // This sets breakTarget to the attackers position, then applies an up to 500m offset to the right or left (relative to the vessel) for the first half of the default evading period, then sets the breakTarget to be 150m right or left of the attacker.
-                                breakTarget = threatRelativePosition;
-                                if (evasiveTimer < 1.5f)
-                                    breakTarget += Mathf.Sin((float)vessel.missionTime * 2) * vesselTransform.right * 500;
-                                else
-                                    breakTarget += -Math.Sign(Mathf.Sin((float)vessel.missionTime * 2)) * vesselTransform.right * 150;
-
-                                if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($" from directly behind and close; breaking hard");
-                                AdjustThrottle(minSpeed, true, false); // Brake to slow down and turn faster while breaking target
-                                RCSEvade(s, new Vector3(0, 0, -1));//add spacemode RCS dodging; fire available retrothrusters
-                            }
-                        }
-                        else
-                        {
-                            float threatDistanceSqr = threatRelativePosition.sqrMagnitude;
-                            if (threatDistanceSqr < 400 * 400) // Within 400m to the side.
-                            { // This sets breakTarget to be behind the attacker (relative to the evader) with a small offset to the left or right.
-                                breakTarget += Mathf.Sin((float)vessel.missionTime * 2) * vesselTransform.right * 100;
-
-                                if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($" from near side; turning towards attacker");
-                            }
-                            else // More than 400m to the side.
-                            { // This sets breakTarget to be 1500m ahead, then adds a 1000m offset at 90° to ahead.
-                                breakTarget = vesselTransform.up * 1500;
-                                breakTarget += Mathf.Sin((float)vessel.missionTime / 2) * vesselTransform.right * 1000 - Mathf.Cos((float)vessel.missionTime / 2) * vesselTransform.forward * 1000;
-                                if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($" from far side; engaging barrel roll");
-                                RCSEvade(s, new Vector3(0, 1 * evasionNonlinearityDirection, 0));//add spacemode RCS dodging; flank incoming fire, flank U/D
-                            }
-                        }
-
-                        float threatAltitudeDiff = Vector3.Dot(threatRelativePosition, vessel.upAxis);
-                        if (threatAltitudeDiff > 500)
-                            breakTarget += threatAltitudeDiff * vessel.upAxis;      //if it's trying to spike us from below, don't go crazy trying to dive below it
-                        else
-                            breakTarget += -150 * vessel.upAxis;   //dive a bit to escape
-
-                        if (belowMinAltitude)
-                        {
-                            float rise = 0.5f * Mathf.Max(5f, (float)vessel.srfSpeed * 0.25f) * Mathf.Max(speedController.TWR, 1f); // Add some climb like in TakeOff (at half the rate) to get back above min altitude.
-                            breakTarget += rise * upDirection;
-
-                            float breakTargetVerticalComponent = Vector3.Dot(breakTarget, upDirection);
-                            if (breakTargetVerticalComponent < 0) // If we're below minimum altitude, enforce the evade direction to gain altitude.
-                            {
-                                breakTarget += -2f * breakTargetVerticalComponent * upDirection;
-                            }
-                        }
-                    }
-
-                    breakTarget = GetLimitedClimbDirectionForSpeed(breakTarget);
-                    breakTarget += vessel.transform.position;
-                    FlyToPosition(s, FlightPosition(breakTarget, minAltitude));
-                    return;
-                }
+                breakTarget = GetLimitedClimbDirectionForSpeed(breakTarget);
+                breakTarget += vessel.transform.position;
+                FlyToPosition(s, FlightPosition(breakTarget, minAltitude));
+                return;
             }
 
             Vector3 target = (vessel.srfSpeed < 200) ? FlightPosition(vessel.transform.position, minAltitude) : vesselTransform.position;
@@ -3478,6 +3482,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
             float safeDistMult = 10f;
 
             // Get missile information
+            var weaponManager = WeaponManager;
             MissileBase missile = VesselModuleRegistry.GetMissileBase(weaponManager.incomingMissileVessel);
             float missileKinematicTime = missile.GetKinematicTime();
             float missileKinematicSpeed = missile.GetKinematicSpeed();
@@ -4297,7 +4302,8 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
                 vertFactor += Vector3.Dot(targetVessel.Velocity() / targetVessel.srfSpeed, (targetVessel.ReferenceTransform.position - vesselTransform.position).normalized) * 0.3f; //the target moving away from us encourages upward motion, moving towards us encourages downward motion
             else
                 vertFactor += 0.4f;
-            vertFactor -= (weaponManager != null && weaponManager.underFire) ? 0.5f : 0; //being under fire encourages going downwards as well, to gain energy
+            var weaponManager = WeaponManager;
+            if (weaponManager && weaponManager.underFire) vertFactor -= 0.5f; //being under fire encourages going downwards as well, to gain energy
 
             float alt = (float)vessel.radarAltitude;
             vertFactor = Mathf.Clamp(vertFactor, -2, 2);
@@ -4354,7 +4360,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
             float pointRadarAlt = BodyUtils.GetRadarAltitudeAtPos(targetPosition, true); //return 0 when over water
             if (pointRadarAlt < minAlt)//  && !isBombing)
             {
-                float adjustment = (minAlt - pointRadarAlt); 
+                float adjustment = (minAlt - pointRadarAlt);
                 if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($"Target position is below minAlt. Adjusting by {adjustment}");
                 return targetPosition + (adjustment * upDirection);
             }
@@ -4366,7 +4372,8 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
 
         Vector3 LongRangeAltitudeCorrection(Vector3 targetPosition)
         {
-            var scale = weaponManager is not null ? Mathf.Max(2500f, weaponManager.gunRange) : 2500f;
+            var weaponManager = WeaponManager;
+            var scale = weaponManager != null ? Mathf.Max(2500f, weaponManager.gunRange) : 2500f;
             if (isBombing) scale *= 2; // Double the scale when bombing.
             var scaledDistance = (targetPosition - vessel.transform.position).magnitude / scale;
             if (scaledDistance <= 1) return targetPosition; // No modification if the target is within the gun range.
@@ -4534,6 +4541,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
             }
             else if (command == PilotCommands.Attack)
             {
+                var weaponManager = WeaponManager;
                 if (targetVessel != null)
                 {
                     ReleaseCommand(false);
@@ -4706,7 +4714,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
         {
             this.AI = AI;
             if (AI.vessel == null) { Debug.LogError($"[BDArmory.BDModulePilotAI.PIDAutoTuning]: PIDAutoTuning triggered on null vessel!"); return; }
-            WM = AI.vessel.ActiveController().WM;
+            WM = AI.vessel.ActiveController().WM; // Set only once, as it shouldn't change during autotuning.
             partCount = AI.vessel.Parts.Count;
             maxObservedSpeed = AI.idleSpeed;
         }
@@ -4717,7 +4725,7 @@ UI_FloatRange(minValue = 100f, maxValue = 2000, stepIncrement = 10f, scene = UI_
 
         #region Internal parameters
         BDModulePilotAI AI; // The AI being tuned.
-        MissileFire WM; // The attached WM (if trying to tune while in combat — not recommended currently). FIXMEAI
+        MissileFire WM; // The attached WM (if trying to tune while in combat — not recommended currently).
         float timeout = 15; // Measure for at most 15s.
         float pointingTolerance = 0.1f; // Pointing tolerance for stopping measurements.
         float rollTolerance = 5f; // Roll tolerance for stopping measurements.

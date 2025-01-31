@@ -273,10 +273,11 @@ namespace BDArmory.UI
             foreach (var weaponManager in autopilotsToToggle)
             {
                 if (weaponManager == null) continue;
-                if (weaponManager.AI == null) continue;
+                var ai = weaponManager.AI;
+                if (ai == null) continue;
                 if (_autoPilotEnabled)
                 {
-                    weaponManager.AI.ActivatePilot();
+                    ai.ActivatePilot();
                     // Utils.fireNextNonEmptyStage(weaponManager.vessel);
                     // Trigger AG10 and then activate all engines if nothing was set on AG10.
                     weaponManager.vessel.ActionGroups.ToggleGroup(BDACompetitionMode.KM_dictAG[10]);
@@ -288,7 +289,7 @@ namespace BDArmory.UI
                 }
                 else
                 {
-                    weaponManager.AI.DeactivatePilot();
+                    ai.DeactivatePilot();
                 }
             }
         }
@@ -765,10 +766,11 @@ namespace BDArmory.UI
                 VSEntryString.Append(")");
             }
 
-            if (wm.AI != null && wm.AI.currentStatus != null)
+            var ai = wm.AI;
+            if (ai != null && ai.currentStatus != null)
             {
-                // postStatus += " " + wm.AI.currentStatus;
-                VSEntryString.Append($" {wm.AI.currentStatus}");
+                // postStatus += " " + AI.currentStatus;
+                VSEntryString.Append($" {ai.currentStatus}");
             }
             float targetDistance = 5000;
             if (wm.currentTarget != null)
@@ -851,9 +853,9 @@ namespace BDArmory.UI
                 wm.ToggleGuardMode();
 
             //AI toggle
-            if (wm.AI != null)
+            if (ai != null)
             {
-                GUIStyle aiStyle = new GUIStyle(wm.AI.pilotEnabled ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);
+                GUIStyle aiStyle = new GUIStyle(ai.pilotEnabled ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);
                 if (wm.underFire)
                 {
                     var distance = Vector3.Distance(wm.vessel.GetWorldPos3D(), wm.incomingThreatPosition);
@@ -874,8 +876,8 @@ namespace BDArmory.UI
                     _buttonHeight);
                 if (GUI.Button(aiButtonRect, "P", aiStyle))
                 {
-                    wm.AI.TogglePilot();
-                    if (Event.current.button == 1 && !wm.AI.pilotEnabled) // Right click, trigger AG10 / activate engines
+                    ai.TogglePilot();
+                    if (Event.current.button == 1 && !ai.pilotEnabled) // Right click, trigger AG10 / activate engines
                     {
                         // Trigger AG10 and then activate all engines if nothing was set on AG10.
                         wm.vessel.ActionGroups.ToggleGroup(BDACompetitionMode.KM_dictAG[10]);
@@ -1277,15 +1279,21 @@ namespace BDArmory.UI
                                     vesselScore = Math.Abs(vesselScore);
                                     float HP = 0;
                                     float WreckFactor = 0;
-                                    var AI = wm.Current.vessel.ActiveController().PilotAI;
-                                    var OAI = wm.Current.vessel.ActiveController().OrbitalAI;
+                                    var ai = wm.Current.AI;
+                                    BDModulePilotAI PAI = null;
+                                    BDModuleOrbitalAI OAI = null;
+                                    if (ai != null && ai.pilotEnabled) switch (ai.aiType)
+                                        {
+                                            case AIType.PilotAI: PAI = ai as BDModulePilotAI; break;
+                                            case AIType.OrbitalAI: OAI = ai as BDModuleOrbitalAI; break;
+                                        }
 
                                     // If we're running a waypoints competition (without combat), only focus on vessels still running waypoints.
                                     if (BDACompetitionMode.Instance.competitionType == CompetitionType.WAYPOINTS)
                                     {
-                                        if (AI == null || (BDArmorySettings.WAYPOINT_GUARD_INDEX < 0 && !AI.IsRunningWaypoints)) continue;
-                                        vesselScore *= 2f - Mathf.Clamp01((float)wm.Current.vessel.speed / AI.maxSpeed); // For waypoints races, craft going near their max speed are more interesting.
-                                        vesselScore *= Mathf.Max(0.5f, 1f - 15.8f / BDAMath.Sqrt(AI.waypointRange)); // Favour craft the are approaching a gate (capped at 1km).
+                                        if (PAI == null || (BDArmorySettings.WAYPOINT_GUARD_INDEX < 0 && !PAI.IsRunningWaypoints)) continue;
+                                        vesselScore *= 2f - Mathf.Clamp01((float)wm.Current.vessel.speed / PAI.maxSpeed); // For waypoints races, craft going near their max speed are more interesting.
+                                        vesselScore *= Mathf.Max(0.5f, 1f - 15.8f / BDAMath.Sqrt(PAI.waypointRange)); // Favour craft the are approaching a gate (capped at 1km).
                                     }
 
                                     HP = wm.Current.currentHP / wm.Current.totalHP;
@@ -1296,7 +1304,7 @@ namespace BDArmory.UI
                                     if (wm.Current.vessel.verticalSpeed < -30) //falling out of the sky? Could be an intact plane diving to default alt, could be a cockpit
                                     {
                                         WreckFactor += 0.5f;
-                                        if (AI == null || wm.Current.vessel.radarAltitude < AI.defaultAltitude) //craft is uncontrollably diving, not returning from high alt to cruising alt
+                                        if (PAI == null || wm.Current.vessel.radarAltitude < PAI.defaultAltitude) //craft is uncontrollably diving, not returning from high alt to cruising alt
                                         {
                                             WreckFactor += 0.5f;
                                         }
@@ -1333,7 +1341,7 @@ namespace BDArmory.UI
                                         targetDistance = Vector3.Distance(wm.Current.vessel.GetWorldPos3D(), wm.Current.currentTarget.position);
                                         if (!wm.Current.HasWeaponsAndAmmo()) // no remaining weapons
                                         {
-                                            if (!BDArmorySettings.DISABLE_RAMMING && AI != null && AI.allowRamming) //ramming's fun to watch
+                                            if (!BDArmorySettings.DISABLE_RAMMING && PAI != null && PAI.allowRamming) //ramming's fun to watch
                                             {
                                                 vesselScore *= (0.031623f * BDAMath.Sqrt(targetDistance) / 2);
                                             }

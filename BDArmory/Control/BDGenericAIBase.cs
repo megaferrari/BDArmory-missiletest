@@ -31,7 +31,16 @@ namespace BDArmory.Control
         public bool pilotOn;
         protected Vessel activeVessel;
 
-        public MissileFire weaponManager { get; protected set; } // FIXMEAI
+        public MissileFire WeaponManager
+        {
+            get
+            {
+                if (_weaponManager == null || !_weaponManager.IsPrimaryWM || _weaponManager.vessel != vessel)
+                    _weaponManager = vessel && vessel.loaded ? vessel.ActiveController().WM : null;
+                return _weaponManager;
+            }
+        }
+        MissileFire _weaponManager;
 
         /// <summary>
         /// The default is BDAirspeedControl. If you want to use something else, just override ActivatePilot  (and, potentially, DeactivatePilot), and make it use something else.
@@ -273,7 +282,6 @@ namespace BDArmory.Control
                 GameEvents.onPartDie.Add(OnPartDie);
 
                 activeVessel = vessel;
-                UpdateWeaponManager();
                 axisGroupsModule = vessel.FindVesselModuleImplementingBDA<AxisGroupsModule>(); // Look for an axis group module so we can set the axis groups when setting the flight control state.
                 if (axisGroupsModule != null) hasAxisGroupsModule = true;
 
@@ -333,45 +341,25 @@ namespace BDArmory.Control
                     activeVessel.OnJustAboutToBeDestroyed -= DeactivatePilot;
                 if (vessel)
                     vessel.OnJustAboutToBeDestroyed += DeactivatePilot;
-                if (weaponManager != null && weaponManager.vessel == activeVessel)
-                {
-                    if (this.Equals(weaponManager.AI))
-                        weaponManager.AI = null;
-                    UpdateWeaponManager();
-                }
+                activeVessel = vessel;
             }
-
-            activeVessel = vessel;
         }
 
         #endregion events
 
         #region utilities
 
-        protected void UpdateWeaponManager() // FIXMEAI
-        {
-            VesselModuleRegistry.OnVesselModified(vessel);
-            weaponManager = vessel.ActiveController().WM;
-            if (weaponManager != null)
-                weaponManager.AI = this;
-        }
-
         protected void GetGuardTarget()
         {
-            if (weaponManager == null || weaponManager.vessel != vessel)
-                UpdateWeaponManager();
-            if (weaponManager != null && weaponManager.vessel == vessel)
+            var weaponManager = WeaponManager;
+            if (weaponManager == null) return;
+            if (weaponManager.guardMode && weaponManager.currentTarget != null)
             {
-                if (weaponManager.guardMode && weaponManager.currentTarget != null)
-                {
-                    targetVessel = weaponManager.currentTarget.Vessel;
-                }
-                else
-                {
-                    targetVessel = null;
-                }
-                weaponManager.AI = this;
-                return;
+                targetVessel = weaponManager.currentTarget.Vessel;
+            }
+            else
+            {
+                targetVessel = null;
             }
         }
 
@@ -380,6 +368,7 @@ namespace BDArmory.Control
         /// </summary>
         protected virtual void GetGuardNonTarget()
         {
+            var weaponManager = WeaponManager;
             if (weaponManager && weaponManager.guardMode && !targetVessel)
             {
                 // select target based on competition style
@@ -396,6 +385,7 @@ namespace BDArmory.Control
         /// </summary>
         protected void GetNonGuardTarget()
         {
+            var weaponManager = WeaponManager;
             if (weaponManager != null && !weaponManager.guardMode)
             {
                 if (vessel.targetObject != null)
@@ -591,6 +581,7 @@ namespace BDArmory.Control
                 if (BDArmorySettings.DEBUG_AI) Debug.Log(string.Format("[BDArmory.BDGenericAIBase]: Reached waypoint {0} with range {1}; active index{2} of {3}", activeWaypointIndex, deviation, activeWaypointIndex * (activeWaypointLap - 1), waypoints.Count * waypointLapLimit));
                 BDACompetitionMode.Instance.Scores.RegisterWaypointReached(vessel.vesselName, waypointCourseIndex, activeWaypointIndex, activeWaypointLap, waypointLapLimit, deviation);
 
+                var weaponManager = WeaponManager;
                 if (BDArmorySettings.WAYPOINT_GUARD_INDEX >= 0 && !weaponManager.guardMode && activeWaypointIndex + (waypoints.Count * (activeWaypointLap - 1)) >= Mathf.Min(BDArmorySettings.WAYPOINT_GUARD_INDEX, waypoints.Count * waypointLapLimit)) //allow guard activating, i.e. halfway through lap2), guarantee guard activation after last guate
                 {
                     // activate guard mode   

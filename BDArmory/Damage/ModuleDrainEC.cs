@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -10,6 +11,7 @@ using BDArmory.Targeting;
 using BDArmory.UI;
 using BDArmory.Utils;
 using BDArmory.Weapons;
+using BDArmory.Extensions;
 
 namespace BDArmory.Damage
 {
@@ -23,8 +25,10 @@ namespace BDArmory.Damage
         private bool disabled = false; //prevent further EMP buildup while rebooting
         public bool bricked = false; //He's dead, jeb
         private float rebootTimer = 15;
-        private bool initialAIState = false; //if for whatever reason players are manually firing EMPs at targets with AI/WM disabled, don't enable them when vessel reboots
-        private bool initialWMState = false;
+
+        //if for whatever reason players are manually firing EMPs at targets with AI/WM disabled, don't enable them when vessel reboots
+        private IBDAIControl activeAI = null;
+        private List<MissileFire> activeWMs = [];
 
         private void EnableVessel()
         {
@@ -49,20 +53,18 @@ namespace BDArmory.Damage
                 {
                     command.minimumCrew /= 10; //more elegant than a dict storing every crew part's cap to restore to original amount
                 }
-                var AI = p.FindModuleImplementing<IBDAIControl>(); // FIXMEAI This needs to remember which AI was active and only reactivate that one
-                if (AI != null && initialAIState)
-                {
-                    AI.ActivatePilot(); //It's Alive!
-                    initialAIState = false;
-                }
-                var WM = p.FindModuleImplementing<MissileFire>();
-                if (WM != null && initialWMState) // FIXMEAI This should remember the initial WM state (guardMode) for each WM
-                {
-                    WM.guardMode = true;
-                    WM.debilitated = false;
-                    initialWMState = false;
-                }
             }
+
+            // Previously enabled active AI is still attached, fire it up again.
+            if (activeAI != null && activeAI.vessel == vessel)
+                activeAI.ActivatePilot();
+            activeAI = null;
+
+            // Restore the guardMode state of the WMs.
+            foreach (var wm in VesselModuleRegistry.GetMissileFires(vessel).Where(wm => wm != null)) wm.debilitated = false;
+            foreach (var wm in activeWMs) wm.guardMode = true;
+            activeWMs.Clear();
+
             vessel.ActionGroups.ToggleGroup(KSPActionGroup.Custom10); // restart engines
             if (!VesselModuleRegistry.GetModuleEngines(vessel).Any(engine => engine.EngineIgnited)) // Find vessels that didn't activate their engines on AG10 and fire their next stage.
             {
@@ -143,6 +145,21 @@ namespace BDArmory.Damage
         private void DisableVessel()
         {
             rebootTimer = BDArmorySettings.WEAPON_FX_DURATION;
+
+            // Store the active AI if there was one.
+            var AI = vessel.ActiveController().AI;
+            activeAI = (AI != null && AI.pilotEnabled) ? AI : null;
+            if (AI != null && AI.pilotEnabled) AI.DeactivatePilot(); //disable AI
+
+            // Store the guardMode state of the WMs.
+            activeWMs.Clear();
+            foreach (var wm in VesselModuleRegistry.GetMissileFires(vessel).Where(wm => wm != null))
+            {
+                if (wm.guardMode) activeWMs.Add(wm);
+                wm.guardMode = false; //disable guardmode
+                wm.debilitated = true; //for weapon selection and targeting;
+            }
+
             foreach (Part p in vessel.parts)
             {
                 var camera = p.FindModuleImplementing<ModuleTargetingCamera>();
@@ -186,19 +203,6 @@ namespace BDArmory.Damage
                     command.minimumCrew *= 10; //disable vessel control
                 }
 
-                var AI = p.FindModuleImplementing<IBDAIControl>();
-                if (AI != null)
-                {
-                    if (AI.pilotEnabled) initialAIState = true;
-                    AI.DeactivatePilot(); //disable AI
-                }
-                var WM = p.FindModuleImplementing<MissileFire>();
-                if (WM != null)
-                {
-                    if (WM.guardMode) initialWMState = true;
-                    WM.guardMode = false; //disable guardmode
-                    WM.debilitated = true; //for weapon selection and targeting;
-                }
                 PartResource r = p.Resources.Where(pr => pr.resourceName == "ElectricCharge").FirstOrDefault();
                 if (r != null)
                 {

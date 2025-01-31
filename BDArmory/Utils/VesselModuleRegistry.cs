@@ -863,12 +863,72 @@ namespace BDArmory.Utils
     /// <summary>
     /// This class maintains an overview and control of which WM and AI modules are the primary ones controlling a vessel.
     /// The primary AI is either the one that was most recently activated or the one closest to the root of the vessel.
+    /// 
+    /// Usage tips:
+    /// 1. Access pattern for parts that need the primary WM every frame (about 6x faster than querying vessel.ActiveController().WM each time):
+    ///   MissileFire WeaponManager
+    ///   {
+    ///       get
+    ///       {
+    ///           if (_weaponManager == null || !_weaponManager.IsPrimaryWM || _weaponManager.vessel != vessel)
+    ///               _weaponManager = vessel && vessel.loaded ? vessel.ActiveController().WM : null;
+    ///           return _weaponManager;
+    ///       }
+    ///   }
+    ///   MissileFire _weaponManager;
+    /// Note: Take a local copy if accessing it repeatedly without the possibility of it changing.
+    ///   
+    /// 2. Access pattern for parts that need the primary AI every frame:
+    ///   public IBDAIControl AI
+    ///   {
+    ///     get
+    ///     {
+    ///       if (_AI == null || !_AI.pilotEnabled || _AI.vessel != vessel) _AI = vessel.ActiveController().AI;
+    ///       return _AI;
+    ///     }
+    ///   }
+    ///   IBDAIControl _AI;
+    /// Note: Take a local copy if accessing it repeatedly without the possibility of it changing.
+    ///   
+    /// 3. Accessing a field of the active AI, depending on the AI's type:
+    ///   var ai = vessel.ActiveController().AI;
+    ///   var myField = ai != null && ai.pilotEnabled ? ai.aiType switch
+    ///   {
+    ///     AIType.PilotAI => (ai as BDModulePilotAI).myField,
+    ///     AIType.SurfaceAI => (ai as BDModuleSurfaceAI).myField,
+    ///     AIType.VTOLAI => (ai as BDModuleVTOLAI).myField,
+    ///     AIType.OrbitalAI => (ai as BDModuleOrbitalAI).myField,
+    ///     _ => default
+    ///   } : default;
+    /// 
+    /// 4. Accessing the active AI as a specific type:
+    ///   var ai = vessel.ActiveController().AI;
+    ///   var pilotAI = ai != null && ai.pilotEnabled && ai.aiType == AIType.PilotAI ? ai as BDModulePilotAI : null;
+    ///   
+    /// 5. Accessing the active AI as multiple types when switching on AI.aiType isn't appropriate:
+    ///   var ai = vessel.ActiveController().AI;
+    ///   BDModulePilotAI pilotAI = null;
+    ///   BDModuleSurfaceAI surfaceAI = null;
+    ///   BDModuleVTOLAI vtolAI = null;
+    ///   BDModuleOrbitalAI orbitalAI = null;
+    ///   if (ai != null && ai.pilotEnabled) switch(ai.aiType)
+    ///     {
+    ///       case AIType.PilotAI: pilotAI = ai as BDModulePilotAI; break;
+    ///       case AIType.SurfaceAI: surfaceAI = ai as BDModuleSurfaceAI; break;
+    ///       case AIType.VTOLAI: vtolAI = ai as BDModuleVTOLAI; break;
+    ///       case AIType.OrbitalAI: orbitalAI = ai as BDModuleOrbitalAI; break;
+    ///     }
+    ///   
+    /// 6. Accessing the primary AI of a certain type (regardless of which type is active):
+    ///   var pilotAI = vessel.ActiveController().PilotAI;
+    ///   if (pilotAI && pilotAI.pilotEnabled) {}
     /// </summary>
     public class ActiveController : VesselModule
     {
         /// <summary>
         /// Get the active controller vessel module for the vessel.
         /// Note: there is an extension method vessel.GetActiveController().
+        /// This is slightly faster than going via VesselModuleRegistry.GetMissileFire(vessel).
         /// </summary>
         /// <param name="vessel"></param>
         /// <returns></returns>
@@ -884,7 +944,8 @@ namespace BDArmory.Utils
         static Dictionary<Vessel, ActiveController> registry = [];
 
         public MissileFire WM { get; private set; } // Use this for accessing the primary WM. Use VesselModuleRegistry.GetMissileFires to get all WMs on a craft.
-        public IBDAIControl AI { get; private set; } // The active AI (if any).
+        public IBDAIControl AI { get; private set; } // The active AI (if any are active) or the closest AI to the root.
+        // FIXMEAI Check the places that the following are called from. They should verify that the pilot is enabled.
         public BDModulePilotAI PilotAI { get; private set; } // The primary or most recently active pilot AI.
         public BDModuleSurfaceAI SurfaceAI { get; private set; } // The primary or most recently active surface AI.
         public BDModuleVTOLAI VTOLAI { get; private set; } // The primary or most recently active VTOL AI.
@@ -906,7 +967,9 @@ namespace BDArmory.Utils
             WM = VesselModuleRegistry.GetMissileFire(Vessel);
             foreach (var wm in VesselModuleRegistry.GetMissileFires(Vessel)) wm.IsPrimaryWM = wm == WM;
 
-            // Update the AIs. Find the primary of each type of AI and disable all the rest, reactivating the current one if necessary.
+            // Update the AIs.
+            // Find the primary of each type of AI: the first active one or the first one, sorted by proximity to the root.
+            // Then disable all but the overall primary (the first active primary in the order: pilot, surface, VTOL, orbital), reactivating the it if necessary (as deactivating the others may have side effects).
             PilotAI = VesselModuleRegistry.GetBDModulePilotAIs(vessel).Where(ai => ai.pilotEnabled).FirstOrDefault(); // Select the first active one.
             if (PilotAI == null) PilotAI = VesselModuleRegistry.GetBDModulePilotAI(Vessel); // Or default to the first one.
             SurfaceAI = VesselModuleRegistry.GetBDModuleSurfaceAIs(vessel).Where(ai => ai.pilotEnabled).FirstOrDefault();

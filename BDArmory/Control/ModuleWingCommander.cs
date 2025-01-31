@@ -15,7 +15,16 @@ namespace BDArmory.Control
 {
     public class ModuleWingCommander : PartModule
     {
-        public MissileFire weaponManager; // FIXMEAI
+        public MissileFire WeaponManager
+        {
+            get
+            {
+                if (_weaponManager == null || !_weaponManager.IsPrimaryWM || _weaponManager.vessel != vessel)
+                    _weaponManager = vessel && vessel.loaded ? vessel.ActiveController().WM : null;
+                return _weaponManager;
+            }
+        }
+        MissileFire _weaponManager;
 
         public List<IBDAIControl> friendlies;
 
@@ -94,8 +103,6 @@ namespace BDArmory.Control
                 yield return null;
             }
 
-            weaponManager = part.FindModuleImplementing<MissileFire>();
-
             RefreshFriendlies();
             RefreshWingmen();
             LoadWingmen();
@@ -121,7 +128,8 @@ namespace BDArmory.Control
 
         void RefreshFriendlies()
         {
-            if (!weaponManager) return;
+            var wm = WeaponManager;
+            if (!wm) return;
             friendlies = new List<IBDAIControl>();
             using (var vs = BDATargetManager.LoadedVessels.GetEnumerator())
                 while (vs.MoveNext())
@@ -132,7 +140,7 @@ namespace BDArmory.Control
                     var ac = vs.Current.ActiveController();
                     if (ac == null) continue; // Since this is called on vessel destroy, we need to check that the vessel module isn't null.
                     if (ac.AI == null) continue;
-                    if (ac.WM == null || ac.WM.Team != weaponManager.Team) continue;
+                    if (ac.WM == null || ac.WM.Team != wm.Team) continue;
                     friendlies.Add(ac.AI);
                 }
 
@@ -155,7 +163,8 @@ namespace BDArmory.Control
                 focusIndexes.Clear();
                 return;
             }
-            wingmen.RemoveAll(w => w == null || (w.weaponManager && w.weaponManager.Team != weaponManager.Team));
+            var wm = WeaponManager;
+            wingmen.RemoveAll(wingman => wingman == null || (wingman.WeaponManager && wingman.WeaponManager.Team != wm.Team));
 
             List<int> uniqueIndexes = new List<int>();
             List<int>.Enumerator fIndexes = focusIndexes.GetEnumerator();
@@ -168,7 +177,7 @@ namespace BDArmory.Control
                 }
             }
             fIndexes.Dispose();
-            focusIndexes = new List<int>(uniqueIndexes);
+            focusIndexes = [.. uniqueIndexes];
         }
 
         void SaveWingmen(ConfigNode cfg)

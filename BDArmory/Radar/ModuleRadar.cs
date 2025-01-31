@@ -46,7 +46,7 @@ namespace BDArmory.Radar
         [KSPField]
         public double resourceDrain = 0.825;        //resource (EC/sec) usage of active radar
 
-        [KSPField] 
+        [KSPField]
         public string resourceName = "ElectricCharge";
 
         private int resourceID;
@@ -314,15 +314,14 @@ namespace BDArmory.Radar
         //vessel
         private MissileFire wpmr;
 
-        public MissileFire weaponManager // FIXMEAI
+        public MissileFire WeaponManager
         {
             get
             {
-                if (wpmr != null && wpmr.vessel == vessel) return wpmr;
-                wpmr = vessel.ActiveController().WM;
+                if (wpmr == null || !wpmr.IsPrimaryWM || wpmr.vessel != vessel)
+                    wpmr = vessel && vessel.loaded ? vessel.ActiveController().WM : null;
                 return wpmr;
             }
-            set { wpmr = value; }
         }
 
         public VesselRadarData vesselRadarData;
@@ -350,14 +349,13 @@ namespace BDArmory.Radar
             if (vessel == null) return;
             //myVesselID = vessel.id.ToString();
 
-            if (vesselRadarData != null && vesselRadarData.vessel == vessel) return;
-            vesselRadarData = vessel.gameObject.GetComponent<VesselRadarData>();
+            if (vesselRadarData != null && vesselRadarData.vessel == vessel && vesselRadarData.weaponManager == WeaponManager) return;
 
+            vesselRadarData = vessel.gameObject.GetComponent<VesselRadarData>();
             if (vesselRadarData == null)
-            {
                 vesselRadarData = vessel.gameObject.AddComponent<VesselRadarData>();
-                vesselRadarData.weaponManager = weaponManager;
-            }
+
+            vesselRadarData.weaponManager = WeaponManager;
         }
 
         public void EnableRadar()
@@ -365,17 +363,16 @@ namespace BDArmory.Radar
             EnsureVesselRadarData();
             radarEnabled = true;
 
-            var mf = vessel.ActiveController().WM;
-            if (mf != null && vesselRadarData != null) vesselRadarData.weaponManager = mf;
             UpdateToggleGuiName();
             vesselRadarData.AddRadar(this);
-            if (mf != null)
+            var wm = WeaponManager;
+            if (wm != null)
             {
-                if (mf.guardMode) vesselRadarData.LinkAllRadars();
+                if (wm.guardMode) vesselRadarData.LinkAllRadars();
                 if (sonarMode == SonarModes.None)
-                    mf._radarsEnabled = true;
+                    wm._radarsEnabled = true;
                 else if (sonarMode == SonarModes.Active)
-                    mf._sonarsEnabled = true;
+                    wm._sonarsEnabled = true;
             }
         }
 
@@ -401,18 +398,18 @@ namespace BDArmory.Radar
                 vrd.Current.UnlinkDisabledRadar(this);
             }
             vrd.Dispose();
+            var weaponManager = WeaponManager;
             using (var loadedvessels = BDATargetManager.LoadedVessels.GetEnumerator())
                 while (loadedvessels.MoveNext())
                 {
                     BDATargetManager.ClearRadarReport(loadedvessels.Current, weaponManager); //reset radar contact status
                 }
-            var mf = vessel.ActiveController().WM;
-            if (mf != null)
+            if (weaponManager != null)
             {
-                if (mf.radars.Count > 1)
+                if (weaponManager.radars.Count > 1)
                 {
                     bool detectorsEnabled = false;
-                    using (List<ModuleRadar>.Enumerator rd = mf.radars.GetEnumerator())
+                    using (List<ModuleRadar>.Enumerator rd = weaponManager.radars.GetEnumerator())
                         while (rd.MoveNext())
                         {
                             if (rd.Current == null || rd.Current.sonarMode != sonarMode) continue;
@@ -427,16 +424,16 @@ namespace BDArmory.Radar
                         }
 
                     if (sonarMode == SonarModes.None)
-                        mf._radarsEnabled = detectorsEnabled;
+                        weaponManager._radarsEnabled = detectorsEnabled;
                     else if (sonarMode == SonarModes.Active)
-                        mf._sonarsEnabled = detectorsEnabled;
+                        weaponManager._sonarsEnabled = detectorsEnabled;
                 }
                 else
                 {
                     if (sonarMode == SonarModes.None)
-                        mf._radarsEnabled = false;
+                        weaponManager._radarsEnabled = false;
                     else if (sonarMode == SonarModes.Active)
-                        mf._sonarsEnabled = false;
+                        weaponManager._sonarsEnabled = false;
                 }
             }
         }
@@ -658,6 +655,7 @@ namespace BDArmory.Radar
 
         void UpdateSlaveData()
         {
+            var weaponManager = WeaponManager;
             if (slaveTurrets && weaponManager)
             {
                 weaponManager.slavingTurrets = true;
@@ -737,7 +735,7 @@ namespace BDArmory.Radar
         void Scan()
         {
             float angleDelta = scanRotationSpeed * Time.fixedDeltaTime;
-            RadarUtils.RadarUpdateScanLock(weaponManager, currentAngle, referenceTransform, angleDelta, referenceTransform.position, this, false, ref attemptedLocks);
+            RadarUtils.RadarUpdateScanLock(WeaponManager, currentAngle, referenceTransform, angleDelta, referenceTransform.position, this, false, ref attemptedLocks);
 
             if (omnidirectional)
             {
@@ -807,7 +805,7 @@ namespace BDArmory.Radar
                 angle = -angle;
             }
             TargetSignatureData.ResetTSDArray(ref attemptedLocks);
-            RadarUtils.RadarUpdateScanLock(weaponManager, angle, referenceTransform, lockAttemptFOV, referenceTransform.position, this, true, ref attemptedLocks, signalPersistTime);
+            RadarUtils.RadarUpdateScanLock(WeaponManager, angle, referenceTransform, lockAttemptFOV, referenceTransform.position, this, true, ref attemptedLocks, signalPersistTime);
 
             for (int i = 0; i < attemptedLocks.Length; i++)
             {
@@ -1062,6 +1060,7 @@ namespace BDArmory.Radar
                     rad.Current.slaveTurrets = false;
                 }
 
+            var weaponManager = WeaponManager;
             if (weaponManager)
             {
                 weaponManager.slavingTurrets = false;

@@ -513,6 +513,7 @@ namespace BDArmory.Control
                         break;
                     case StatusMode.Withdrawing:
                         {
+                            var weaponManager = WeaponManager;
                             // Determine the direction.
                             Vector3 averagePos = Vector3.zero;
                             using (List<TargetInfo>.Enumerator target = BDATargetManager.TargetList(weaponManager.Team).GetEnumerator())
@@ -586,6 +587,7 @@ namespace BDArmory.Control
         void Maneuver()
         {
             Vector3 rcsVector = Vector3.zero;
+            var weaponManager = WeaponManager;
 
             switch (currentStatusMode)
             {
@@ -938,6 +940,7 @@ namespace BDArmory.Control
                 float timeToIntercept = vessel.TimeToCPA(toIntercept, targetVessel.GetObtVelocity(), targetVessel.perturbation, (float)vessel.orbit.period / 4f); // Avoid checking too far ahead (in case of multiple intercepts)
                 float cpaDistSqr = AIUtils.PredictPosition(relPos, relVel, relAccel, timeToIntercept).sqrMagnitude;
                 float interceptRangeMargin = Mathf.Min(interceptRanges.z * (1f + interceptMargin + (useReverseThrust ? 0.25f : 0f)), interceptRanges.y); // Extra margin when reverse thrusting since still facing target
+                var weaponManager = WeaponManager;
                 if (cpaDistSqr < weaponManager.gunRange * weaponManager.gunRange) // Gun range intercept, balance between throttle actions and intercept accuracy
                     maintainThrottle = relPos.sqrMagnitude < (interceptRangeMargin * interceptRangeMargin) || // Within intercept range margin
                         (maintainThrottle && Vector3.Dot(relPos, relVel) > 0f) || // Moving away from target faster than target speed, timeToIntecept == 0 does not always work here because it's possible we are on an orbit with two intersection points
@@ -1000,6 +1003,7 @@ namespace BDArmory.Control
                     debugString.AppendLine($"Missile Launch Fail Timer: {missileTryLaunchTime:G2}s");
                 }
                 debugString.AppendLine($"Evasive {evasiveTimer}s");
+                var weaponManager = WeaponManager;
                 if (weaponManager) debugString.AppendLine($"Threat Sqr Distance: {weaponManager.incomingThreatDistanceSqr}");
             }
         }
@@ -1013,6 +1017,7 @@ namespace BDArmory.Control
                 reverseEngines.Any(e => e != null && e.EngineIgnited && e.isOperational && !e.flameout);
             vessel.GetConnectedResourceTotals(ECID, out double EcCurrent, out double ecMax);
             hasEC = EcCurrent > 0 || CheatOptions.InfiniteElectricity;
+            var weaponManager = WeaponManager;
             hasWeapons = (weaponManager != null) && weaponManager.HasWeaponsAndAmmo();
 
             // Check on command status
@@ -1153,17 +1158,21 @@ namespace BDArmory.Control
                     ReleaseCommand(false);
                     return;
                 }
-                else if (weaponManager.underAttack || weaponManager.underFire)
+                else
+                {
+                    var weaponManager = WeaponManager;
+                    if (weaponManager.underAttack || weaponManager.underFire)
                 {
                     ReleaseCommand(false);
                     return;
-                }
+                }}
             }
         }
 
         void EvasionStatus()
         {
             evadingGunfire = false;
+            var weaponManager = WeaponManager;
 
             // Return if evading missile or ramming
             if (weaponManager == null || currentStatusMode == StatusMode.Evading || currentStatusMode == StatusMode.Ramming)
@@ -1205,7 +1214,7 @@ namespace BDArmory.Control
 
         private bool CheckWithdraw()
         {
-            var nearest = BDATargetManager.GetClosestTarget(weaponManager);
+            var nearest = BDATargetManager.GetClosestTarget(WeaponManager);
             if (nearest == null) return false;
 
             return RelVel(vessel, nearest.Vessel).sqrMagnitude < 200 * 200;
@@ -1255,6 +1264,7 @@ namespace BDArmory.Control
             {
                 Vector3 toTarget = target.CoM - vessel.CoM;
                 bool escaping = targetAI.currentStatusMode == StatusMode.Withdrawing;
+                var weaponManager = WeaponManager;
 
                 canIntercept = !escaping || // It is not trying to escape.
                     toTarget.sqrMagnitude < weaponManager.gunRange * weaponManager.gunRange || // It is already in range.
@@ -1338,6 +1348,7 @@ namespace BDArmory.Control
             float minRange = MinEngagementRange;
             float maxRange = Mathf.Max(minRange * 1.2f, ForceFiringRange);
             bool usingProjectile = true;
+            var weaponManager = WeaponManager;
             if (weaponManager != null)
             {
                 bool checkAllWeapons = false;
@@ -1406,6 +1417,7 @@ namespace BDArmory.Control
 
             // Check gun/laser can fire soon, we are within guard and weapon engagement ranges, and we are under the firing speed
             float targetSqrDist = FromTo(vessel, targetVessel).sqrMagnitude;
+            var weaponManager = WeaponManager;
             return GunFiringSpeedCheck() && gun.CanFireSoon() &&
                 (targetSqrDist <= gun.GetEngagementRangeMax() * gun.GetEngagementRangeMax()) &&
                 (targetSqrDist <= weaponManager.gunRange * weaponManager.gunRange);
@@ -1456,6 +1468,7 @@ namespace BDArmory.Control
         {
             // Return true if a valid recent firing solution exists, if the solution exists, also return that value
             bool validRecentSolution = false;
+            var weaponManager = WeaponManager;
 
             if (lastFiringSolution == Vector3.zero) // Throttle was used recently, no valid firing solution exists, even if previousGun != null
             {
@@ -1527,6 +1540,7 @@ namespace BDArmory.Control
 
         bool PredictCollisionWithVessel(Vessel v, float maxTime, out Vector3 badDirection)
         {
+            var weaponManager = WeaponManager;
             if (vessel == null || v == null ||
                 (weaponManager != null && v == weaponManager.incomingMissileVessel) ||
                 (v.rootPart != null && v.rootPart.FindModuleImplementing<MissileBase>() != null) ||  //evasive will handle avoiding missiles
@@ -1655,6 +1669,7 @@ namespace BDArmory.Control
         {
             if (!((evadingGunfire && evasionEngines) && (currentStatusMode == StatusMode.Maneuvering || currentStatusMode == StatusMode.Firing))) return;
 
+            var weaponManager = WeaponManager;
             Vector3 relVelProjected = Vector3.ProjectOnPlane(weaponManager.incomingThreatVessel ? RelVel(vessel, weaponManager.incomingThreatVessel) : vessel.GetObtVelocity(), threatRelativePosition);
             Vector3 evasionDir = evasionErraticness * Vector3.Project(evasionNonLinearityDirection, relVelProjected).normalized;
             Vector3 thrustDir = (fc.thrustDirection == Vector3.zero ? fc.attitude : fc.thrustDirection);
@@ -1689,6 +1704,7 @@ namespace BDArmory.Control
             }
             else if (evadingGunfire && evasionRCS) // Quickly move RCS vector
             {
+                var weaponManager = WeaponManager;
                 Vector3 relVelProjected = Vector3.ProjectOnPlane(weaponManager.incomingThreatVessel ? RelVel(vessel, weaponManager.incomingThreatVessel) : vessel.GetObtVelocity(), threatRelativePosition);
                 inputVec = Vector3.Cross(Vector3.Project(evasionNonLinearityDirection, relVelProjected), threatRelativePosition).normalized;
                 fc.rcsLerpRate = 100f / Time.fixedDeltaTime; // instant changes, don't Lerp

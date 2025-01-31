@@ -24,10 +24,10 @@ namespace BDArmory.Radar
         internal bool resizingWindow = false;
 
         public Rect RADARresizeRect = new Rect(
-            BDArmorySetup.WindowRectRadar.width - (17 * BDArmorySettings.RADAR_WINDOW_SCALE),
-            BDArmorySetup.WindowRectRadar.height - (17 * BDArmorySettings.RADAR_WINDOW_SCALE),
-            (16 * BDArmorySettings.RADAR_WINDOW_SCALE),
-            (16 * BDArmorySettings.RADAR_WINDOW_SCALE));
+            BDArmorySetup.WindowRectRadar.width - 17 * BDArmorySettings.RADAR_WINDOW_SCALE,
+            BDArmorySetup.WindowRectRadar.height - 17 * BDArmorySettings.RADAR_WINDOW_SCALE,
+            16 * BDArmorySettings.RADAR_WINDOW_SCALE,
+            16 * BDArmorySettings.RADAR_WINDOW_SCALE);
 
         private int rCount;
 
@@ -50,7 +50,7 @@ namespace BDArmory.Radar
 
         private bool drawGUI;
 
-        public MissileFire weaponManager; // FIXMEAI
+        public MissileFire weaponManager; // This is set and updated externally by ModuleIRST and ModuleRadar, but otherwise does not update dynamically.
         public bool canReceiveRadarData;
 
         //GUI
@@ -599,7 +599,7 @@ namespace BDArmory.Radar
                 {
                     radarsToRemove.Add(radar.Current);
                 }
-                else if (!radar.Current.weaponManager || (weaponManager && radar.Current.weaponManager.Team != weaponManager.Team))
+                else if (!radar.Current.WeaponManager || (weaponManager && radar.Current.WeaponManager.Team != weaponManager.Team))
                 {
                     radarsToRemove.Add(radar.Current);
                 }
@@ -625,9 +625,13 @@ namespace BDArmory.Radar
                 {
                     IRSTsToRemove.Add(irst.Current);
                 }
-                else if (!irst.Current.weaponManager || (weaponManager && irst.Current.weaponManager.Team != weaponManager.Team))
+                else
                 {
-                    IRSTsToRemove.Add(irst.Current);
+                    var irstWM = irst.Current.WeaponManager;
+                    if (!irstWM || (weaponManager && irstWM.Team != weaponManager.Team))
+                    {
+                        IRSTsToRemove.Add(irst.Current);
+                    }
                 }
             }
             irst.Dispose();

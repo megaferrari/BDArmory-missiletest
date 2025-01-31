@@ -27,7 +27,16 @@ namespace BDArmory.Control
         #region Declarations
 
         [KSPField(guiName = "#LOC_BDArmory_WM_IsPrimaryWM", guiActive = true), UI_Label(scene = UI_Scene.All)]
-        public bool IsPrimaryWM = true; // Is this the WM that's controlling this vessel? Gets set by ActiveControllerVesselModule.
+        bool _isPrimaryWM = true;
+        public bool IsPrimaryWM // Is this the WM that's controlling this vessel? Gets set by ActiveControllerVesselModule.
+        {
+            get { return _isPrimaryWM; }
+            set
+            {
+                if (_isPrimaryWM != (_isPrimaryWM = value)) // If the primary WM changed, immediately update our lists.
+                    UpdateList();
+            }
+        }
 
         //weapons
         private List<IBDWeapon> weaponTypes = [];
@@ -382,12 +391,18 @@ namespace BDArmory.Control
         }
 
         //AIPilot
-        public IBDAIControl AI;
-
-        // some extending related code still uses pilotAI, which is implementation specific and does not make sense to include in the interface
-        private BDModulePilotAI pilotAI { get { return AI as BDModulePilotAI; } }
-
-        private BDModuleVTOLAI vtolAI { get { return AI as BDModuleVTOLAI; } }
+        public IBDAIControl AI
+        {
+            get
+            {
+                if (_AI == null || !_AI.pilotEnabled || _AI.vessel != vessel) _AI = vessel.ActiveController().AI;
+                return _AI;
+            }
+        }
+        IBDAIControl _AI;
+        // Use: "var pilotAI = PilotAI;" to get a local copy for repeated use. If multiple types are needed in the same block, use the switch pattern in ActiveController.
+        BDModulePilotAI PilotAI { get { var ai = AI; return ai != null && ai.pilotEnabled && ai.aiType == AIType.PilotAI ? ai as BDModulePilotAI : null; } }
+        BDModuleSurfaceAI SurfaceAI { get { var ai = AI; return ai != null && ai.pilotEnabled && ai.aiType == AIType.SurfaceAI ? ai as BDModuleSurfaceAI : null; } }
 
         public float timeBombReleased;
         float bombFlightTime;
@@ -1288,12 +1303,6 @@ namespace BDArmory.Control
 
                 StartCoroutine(MissileWarningResetRoutine());
 
-                if (vessel.isActiveVessel)
-                {
-                    BDArmorySetup.Instance.ActiveWeaponManager = this;
-                    BDArmorySetup.Instance.ConfigTextFields();
-                }
-
                 UpdateVolume();
                 BDArmorySetup.OnVolumeChange += UpdateVolume;
                 BDArmorySetup.OnSavedSettings += ClampVisualRange;
@@ -1321,8 +1330,6 @@ namespace BDArmory.Control
                     ((UI_FloatPowerRange)Fields["gunRange"].uiControlFlight).onFieldChanged = UpdateVisualGunRangeSqr;
                     UpdateVisualGunRangeSqr(null, null);
                 }
-
-                AI = vessel.ActiveController().AI; //VesselModuleRegistry.GetIBDAIControl(vessel, true); FIXMEAI This is being cached.
 
                 modulesNeedRefreshing = true;
                 cmPrioritiesNeedRefreshing = true;
@@ -1382,7 +1389,7 @@ namespace BDArmory.Control
                     boreRing.transform.SetPositionAndRotation(transform.position, transform.rotation);
                     boreRing.transform.localScale = Vector3.zero;
                     r_ring = boreRing.GetComponent<Renderer>();
-                    Debug.Log("[BDArmory.MissileFire]: boresight set up.");
+                    if (BDArmorySettings.DEBUG_AI) Debug.Log("[BDArmory.MissileFire]: boresight set up.");
                 }
                 /*
                 if (boresights[1] != null)
@@ -1391,7 +1398,7 @@ namespace BDArmory.Control
                     boreRadarRing.transform.SetPositionAndRotation(transform.position, transform.rotation);
                     boreRadarRing.transform.localScale = Vector3.zero;
                     r_rRing = boreRadarRing.GetComponentInChildren<Renderer>();
-                    Debug.Log("[BDArmory.MissileFire]: radar boresight set up.");
+                    if (BDArmorySettings.DEBUG_AI) Debug.Log("[BDArmory.MissileFire]: radar boresight set up.");
                 }
                 */
             }
@@ -1454,20 +1461,21 @@ namespace BDArmory.Control
             }
         }
 
-        void OnVesselCreate(Vessel v)
+        void OnVesselCreate(Vessel v) // FIXMEAI This doesn't belong here now, but rather in ActiveController
         {
             if (v == null || vessel != v) return;
-            if (AI != null && AI.weaponManager != this) // Tell the previous WM to update its modules (not actually sure this is the previous WM...).
+            var ai = AI;
+            if (ai != null && ai.WeaponManager != this) // Tell the previous WM to update its modules (not actually sure this is the previous WM...).
             {
-                var parentAIWasActive = AI.pilotEnabled;
-                var parentWMWasActive = AI.weaponManager.guardMode;
-                AI.weaponManager.RefreshModules("parent vessel");
-                if (AI != null && AI.weaponManager != null) // After refreshing modules, the AI and WM might not be the same!
+                var parentAIWasActive = ai.pilotEnabled;
+                var parentWMWasActive = ai.WeaponManager.guardMode;
+                ai.WeaponManager.RefreshModules("parent vessel");
+                if (ai != null && ai.WeaponManager != null) // After refreshing modules, the AI and WM might not be the same!
                 {
-                    if (parentAIWasActive) AI.ActivatePilot(); // Enable the new AI if the parent was active.
-                    else AI.DeactivatePilot();
+                    if (parentAIWasActive) ai.ActivatePilot(); // Enable the new AI if the parent was active.
+                    else ai.DeactivatePilot();
                     guardMode = parentWMWasActive; // Enable the new WM if the parent was active.
-                    AI.weaponManager.UpdateList();
+                    ai.WeaponManager.UpdateList();
                 }
             }
             RefreshModules("vessel creation");
@@ -1476,38 +1484,7 @@ namespace BDArmory.Control
             weaponsListNeedsUpdating = true;
             cmPrioritiesNeedRefreshing = true;
             if (BDACompetitionMode.Instance.competitionIsActive)
-                StartCoroutine(AddToCompetitionWhenReady());
-        }
-
-        IEnumerator AddToCompetitionWhenReady()
-        {
-            var wait = new WaitForFixedUpdate();
-            var start = Time.time;
-            while (BDACompetitionMode.Instance.IsValidVessel(vessel) == BDACompetitionMode.InvalidVesselReason.None && (string.IsNullOrEmpty(vessel.vesselName) || !vessel.loaded) && Time.time - start < 10)
-            {
-                yield return wait;
-            }
-            if (Time.time - start < 10 && BDACompetitionMode.Instance.IsValidVessel(vessel) == BDACompetitionMode.InvalidVesselReason.None && !BDACompetitionMode.Instance.Scores.Players.Contains(vessel.vesselName) && !vessel.vesselName.Contains(" Fighter_"))
-            {
-                // FIXMEAI Detached parts with AI/WM where the parent no longer them shouldn't count as new. (E.g., detached combat seats that weren't the root part.)
-                UpdateList();
-                if (vessel.vesselType == VesselType.Plane && vessel.vesselName.EndsWith(" Plane"))
-                {
-                    vessel.vesselName = vessel.vesselName.Remove(vessel.vesselName.Length - 6) + " Fighter";
-                    int i = 1;
-                    var potentialName = vessel.vesselName + $"_{i}";
-                    while (BDACompetitionMode.Instance.Scores.Players.Contains(potentialName))
-                    {
-                        ++i;
-                        potentialName = vessel.vesselName + $"_{i}";
-                    }
-                    vessel.vesselName = potentialName;
-                }
-                BDACompetitionMode.Instance.Scores.AddPlayer(vessel);
-                Debug.Log($"DEBUG Adding {vessel.vesselName} to the competition."); // FIXMEAI This may no tbe appropriate here now that we have ActiveController.
-                if (guardMode) { ToggleGuardMode(); ToggleGuardMode(); } // Disable, then re-enable guard mode to reset weapon stuff.
-                if (AI != null) { AI.ActivatePilot(); } // Make sure the AI is active.
-            }
+                BDACompetitionMode.Instance.AddToCompetitionWhenReady(this);
         }
 
         void OnVesselPartCountChanged(Vessel v)
@@ -2256,14 +2233,7 @@ namespace BDArmory.Control
 
         IEnumerator StartupListUpdater()
         {
-            while (!FlightGlobals.ready || (vessel is not null && (vessel.packed || !vessel.loaded)))
-            {
-                yield return null;
-                if (vessel.isActiveVessel)
-                {
-                    BDArmorySetup.Instance.ActiveWeaponManager = this;
-                }
-            }
+            yield return new WaitWhileFixed(() => !FlightGlobals.ready || vessel != null || vessel.packed || !vessel.loaded);
             UpdateList();
         }
 
@@ -3239,6 +3209,14 @@ namespace BDArmory.Control
             while (guardTarget && Time.time - bombStartTime < bombAttemptDuration && weaponIndex > 0 &&
                  weaponArray[weaponIndex].GetWeaponClass() == WeaponClasses.Bomb && firedMissiles < maxMissilesOnTarget)
             {
+                BDModulePilotAI pilotAI = null;
+                BDModuleVTOLAI vtolAI = null;
+                var ai = AI;
+                if (ai != null && ai.pilotEnabled) switch (ai.aiType)
+                    {
+                        case AIType.PilotAI: pilotAI = ai as BDModulePilotAI; break;
+                        case AIType.VTOLAI: vtolAI = ai as BDModuleVTOLAI; break;
+                    }
                 Vector3 leadTarget = guardTarget.CoM;
                 if (bombFlightTime > 0)
                 {
@@ -3946,6 +3924,7 @@ namespace BDArmory.Control
             UpdateList();
             if (DisengageAfterFiring)
             {
+                var pilotAI = PilotAI;
                 if (pilotAI)
                 {
                     pilotAI.RequestExtend("Nuke away!", guardTarget, missile.StandOffDistance * 1.25f, guardTarget.CoM, ignoreCooldown: true); // Extend from projected detonation site if within blast radius
@@ -4880,7 +4859,6 @@ namespace BDArmory.Control
             modulesNeedRefreshing = false;
             cmPrioritiesNeedRefreshing = true;
             VesselModuleRegistry.OnVesselModified(vessel); // Make sure the registry is up-to-date.
-            AI = vessel.ActiveController().AI;
             // Debug.Log($"DEBUG Refreshing modules on {vessel} with AI {AI} ({AI.part.persistentId}) and WM {this} ({part.persistentId}, primary: {IsPrimaryWM}){(tag != null ? $" from {tag}" : null)}");
             _radars = VesselModuleRegistry.GetModules<ModuleRadar>(vessel);
             if (_radars != null)
@@ -5055,6 +5033,7 @@ namespace BDArmory.Control
             {
                 if (!vessel.LandedOrSplashed)
                 {
+                    var pilotAI = PilotAI;
                     if (pilotAI && pilotAI.IsExtending)
                     {
                         potentialTarget = BDATargetManager.GetAirToAirTargetAbortExtend(this, 1500, 0.2f);
@@ -5066,6 +5045,7 @@ namespace BDArmory.Control
                         targetDebugText = " is engaging an airborne target with ";
                     }
                 }
+                // FIXMEAI This is overriding the above!
                 potentialTarget = BDATargetManager.GetLeastEngagedTarget(this);
                 targetDebugText = " is engaging the least engaged target with ";
             }
@@ -5091,6 +5071,7 @@ namespace BDArmory.Control
                 }
                 else if (!BDArmorySettings.DISABLE_RAMMING)
                 {
+                    var pilotAI = PilotAI;
                     if (!HasWeaponsAndAmmo() && pilotAI != null && pilotAI.allowRamming && !(!pilotAI.allowRammingGroundTargets && potentialTarget.Vessel.LandedOrSplashed))
                     {
                         if (BDArmorySettings.DEBUG_AI)
@@ -5416,10 +5397,11 @@ namespace BDArmory.Control
             if (!target)
                 return false;
 
-            if (AI != null && AI.pilotEnabled && !AI.CanEngage())
+            var ai = AI;
+            if (ai != null && ai.pilotEnabled && !ai.CanEngage()) // AI exists and is enabled, but can't engage.
                 return false;
 
-            if ((target.isMissile) && (target.isSplashed || target.isUnderwater))
+            if (target.isMissile && (target.isSplashed || target.isUnderwater))
                 return false; // Don't try to engage torpedos, it doesn't work
 
             // Part 2: check weapons against individual target types
@@ -5438,8 +5420,7 @@ namespace BDArmory.Control
             int targetWeaponPriority = -1;
             bool candidateAGM = false;
             bool candidateAntiRad = false;
-            // var surfaceAI = VesselModuleRegistry.GetModule<BDModuleSurfaceAI>(vessel); // Get the surface AI if the vessel has one.
-            var surfaceAI = vessel.ActiveController().SurfaceAI; // FIXMEAI This and the AI above should be using the active AI and checking its type, otherwise a secondary inactive surface AI will screw with this.
+            var surfaceAI = SurfaceAI;
             if (target.isMissile)
             {
                 // iterate over weaponTypesMissile and pick suitable one based on engagementRange (and dynamic launch zone for missiles)
@@ -7296,10 +7277,13 @@ namespace BDArmory.Control
                 }
                 target.Engage(this);
                 if (target != null && !target.isMissile)
+                {
+                    var pilotAI = PilotAI;
                     if (pilotAI && pilotAI.IsExtending && target.Vessel != pilotAI.extendTarget)
                     {
                         pilotAI.StopExtending("changed target"); // Only stop extending if the target is different from the extending target
                     }
+                }
                 currentTarget = target;
                 guardTarget = target.Vessel;
                 if (multiTargetNum > 1 || multiMissileTgtNum > 1)
@@ -8021,6 +8005,14 @@ namespace BDArmory.Control
                                 Vector3 missileReferencePosition = CurrentMissile.MissileReferenceTransform.position;
                                 if (selectedWeapon.GetWeaponClass() == WeaponClasses.SLW && !vessel.Splashed)
                                 {
+                                    BDModulePilotAI pilotAI = null;
+                                    BDModuleVTOLAI vtolAI = null;
+                                    var ai = AI;
+                                    if (ai != null && ai.pilotEnabled) switch (ai.aiType)
+                                        {
+                                            case AIType.PilotAI: pilotAI = ai as BDModulePilotAI; break;
+                                            case AIType.VTOLAI: vtolAI = ai as BDModuleVTOLAI; break;
+                                        }
                                     if (pilotAI && vessel.altitude > pilotAI.finalBombingAlt * 1.2f) launchAuthorized = false; //don't torpedo bomb from high up, the torp's won't survive water impact
                                     //if flying with air-drop torps, adjust aimer pos based on predicted water impact point. torps aren't AAMs
                                     if (vtolAI && vessel.altitude > 120) launchAuthorized = false;
@@ -8091,6 +8083,7 @@ namespace BDArmory.Control
                         else if (selectedWeapon != null && selectedWeapon.GetWeaponClass() == WeaponClasses.Bomb)
                         {
                             bool launchAuthorized = true;
+                            var pilotAI = PilotAI;
                             if (pilotAI && pilotAI.divebombing && vessel.altitude > (guardTarget.LandedOrSplashed ? pilotAI.minAltitude + ((pilotAI.defaultAltitude - pilotAI.minAltitude) / 2) : pilotAI.finalBombingAlt + 500)) launchAuthorized = false; //don't release dive bombs unless already dived more than half the distance between bombing alt and min alt, or 500m above aerial divebomb alt
                             MissileLauncher ml = selectedWeapon as MissileLauncher;
                             if (ml && vessel.altitude < ml.GetBlastRadius()) launchAuthorized = false;
@@ -8321,7 +8314,9 @@ namespace BDArmory.Control
                     incomingMissTime = 0f;
                 }
                 incomingThreatDistanceSqr = (results.threatPosition - vessel.transform.position).sqrMagnitude;
-                if ((pilotAI != null && incomingMissTime >= pilotAI.evasionTimeThreshold && incomingMissDistance < pilotAI.evasionThreshold) || AI != null && pilotAI == null) // If we haven't been under fire long enough, ignore gunfire
+                var pilotAI = PilotAI;
+                var ai = AI;
+                if ((pilotAI && incomingMissTime >= pilotAI.evasionTimeThreshold && incomingMissDistance < pilotAI.evasionThreshold) || ai != null && ai.aiType != AIType.PilotAI) // If we haven't been under fire long enough, ignore gunfire
                 {
                     FireOCM(false); //enable visual countermeasures if under fire
                 }
@@ -9096,7 +9091,8 @@ namespace BDArmory.Control
         /// <returns>true if AI might fire</returns>
         bool AIMightDirectFire()
         {
-            return AI != null && AI.pilotEnabled && AI.CanEngage() && guardTarget && AI.IsValidFixedWeaponTarget(guardTarget);
+            var ai = AI;
+            return ai != null && ai.pilotEnabled && ai.CanEngage() && guardTarget && ai.IsValidFixedWeaponTarget(guardTarget);
         }
 
         #endregion Guard
@@ -9119,58 +9115,59 @@ namespace BDArmory.Control
             float finalDistance = distance;
             //vessel.LandedOrSplashed ? distance : distance/2; //decrease distance requirement if airborne
 
-            using (var weapon = VesselModuleRegistry.GetModules<ModuleWeapon>(vessel).GetEnumerator())
-                while (weapon.MoveNext())
+            var ai = AI;
+            using var weapon = VesselModuleRegistry.GetModules<ModuleWeapon>(vessel).GetEnumerator();
+            while (weapon.MoveNext())
+            {
+                if (weapon.Current == null) continue;
+                if (weapon.Current.GetShortName() != selectedWeapon.GetShortName()) continue;
+                float gimbalTolerance = vessel.LandedOrSplashed ? 0 : 15;
+                if (((ai != null && ai.pilotEnabled && ai.CanEngage()) || (TargetInTurretRange(weapon.Current.turret, gimbalTolerance, default, weapon.Current))) && weapon.Current.maxEffectiveDistance >= finalDistance)
                 {
-                    if (weapon.Current == null) continue;
-                    if (weapon.Current.GetShortName() != selectedWeapon.GetShortName()) continue;
-                    float gimbalTolerance = vessel.LandedOrSplashed ? 0 : 15;
-                    if (((AI != null && AI.pilotEnabled && AI.CanEngage()) || (TargetInTurretRange(weapon.Current.turret, gimbalTolerance, default, weapon.Current))) && weapon.Current.maxEffectiveDistance >= finalDistance)
+                    if (weapon.Current.isOverheated)
                     {
-                        if (weapon.Current.isOverheated)
-                        {
-                            if (BDArmorySettings.DEBUG_WEAPONS)
-                            {
-                                Debug.Log($"[BDArmory.MissileFire]: {selectedWeapon} is overheated!");
-                            }
-                            return -1;
-                        }
-                        if (weapon.Current.isReloading)
-                        {
-                            if (BDArmorySettings.DEBUG_WEAPONS)
-                            {
-                                Debug.Log($"[BDArmory.MissileFire]: {selectedWeapon} is reloading!");
-                            }
-                            return -1;
-                        }
-                        if (!weapon.Current.hasGunner)
-                        {
-                            if (BDArmorySettings.DEBUG_WEAPONS)
-                            {
-                                Debug.Log($"[BDArmory.MissileFire]: {selectedWeapon} has no gunner!");
-                            }
-                            return -1;
-                        }
-                        if (CheckAmmo(weapon.Current) || BDArmorySettings.INFINITE_AMMO)
-                        {
-                            if (BDArmorySettings.DEBUG_WEAPONS)
-                            {
-                                Debug.Log($"[BDArmory.MissileFire]: {selectedWeapon} is valid!");
-                            }
-                            return 1;
-                        }
                         if (BDArmorySettings.DEBUG_WEAPONS)
                         {
-                            Debug.Log($"[BDArmory.MissileFire]: {selectedWeapon} has no ammo.");
+                            Debug.Log($"[BDArmory.MissileFire]: {selectedWeapon} is overheated!");
                         }
                         return -1;
                     }
+                    if (weapon.Current.isReloading)
+                    {
+                        if (BDArmorySettings.DEBUG_WEAPONS)
+                        {
+                            Debug.Log($"[BDArmory.MissileFire]: {selectedWeapon} is reloading!");
+                        }
+                        return -1;
+                    }
+                    if (!weapon.Current.hasGunner)
+                    {
+                        if (BDArmorySettings.DEBUG_WEAPONS)
+                        {
+                            Debug.Log($"[BDArmory.MissileFire]: {selectedWeapon} has no gunner!");
+                        }
+                        return -1;
+                    }
+                    if (CheckAmmo(weapon.Current) || BDArmorySettings.INFINITE_AMMO)
+                    {
+                        if (BDArmorySettings.DEBUG_WEAPONS)
+                        {
+                            Debug.Log($"[BDArmory.MissileFire]: {selectedWeapon} is valid!");
+                        }
+                        return 1;
+                    }
                     if (BDArmorySettings.DEBUG_WEAPONS)
                     {
-                        Debug.Log($"[BDArmory.MissileFire]: {selectedWeapon} cannot reach target ({distance} vs {weapon.Current.maxEffectiveDistance}, yawRange: {weapon.Current.yawRange}). Continuing.");
+                        Debug.Log($"[BDArmory.MissileFire]: {selectedWeapon} has no ammo.");
                     }
-                    //else return 0;
+                    return -1;
                 }
+                if (BDArmorySettings.DEBUG_WEAPONS)
+                {
+                    Debug.Log($"[BDArmory.MissileFire]: {selectedWeapon} cannot reach target ({distance} vs {weapon.Current.maxEffectiveDistance}, yawRange: {weapon.Current.yawRange}). Continuing.");
+                }
+                //else return 0;
+            }
             return 2;
         }
 
