@@ -5045,9 +5045,11 @@ namespace BDArmory.Control
                         targetDebugText = " is engaging an airborne target with ";
                     }
                 }
-                // FIXMEAI This is overriding the above!
-                potentialTarget = BDATargetManager.GetLeastEngagedTarget(this);
-                targetDebugText = " is engaging the least engaged target with ";
+                else
+                {
+                    potentialTarget = BDATargetManager.GetLeastEngagedTarget(this);
+                    targetDebugText = " is engaging the least engaged target with ";
+                }
             }
 
             if (potentialTarget)
