@@ -362,6 +362,7 @@ namespace BDArmory.UI
                 (float, float, float, float, bool, bool) GetLimits(UI_FloatRange uic)
                 {
                     if (uic is UI_FloatSemiLogRange) (minValue, maxValue, rounding, sigFig, withZero, reducedPrecisionAtMin) = (uic as UI_FloatSemiLogRange).GetLimits();
+                    else if (uic is UI_FloatLogRange) (minValue, maxValue, rounding, sigFig) = (uic as UI_FloatLogRange).GetLimits(); // (min, max, 0, steps)
                     else if (uic is UI_FloatPowerRange) (minValue, maxValue, rounding, sigFig) = (uic as UI_FloatPowerRange).GetLimits();
                     else
                     {
@@ -829,7 +830,7 @@ namespace BDArmory.UI
             return new Rect(contentInnerMargin + pos / of * (contentWidth - gap * (of - 1f) - 2f * contentInnerMargin) + pos * gap, lines * entryHeight, 1f / of * (contentWidth - gap * (of - 1f) - 2f * contentInnerMargin), entryHeight);
         }
 
-        enum ContentType { FloatSlider, SemiLogSlider, Toggle, Button };
+        enum ContentType { FloatSlider, SemiLogSlider, FloatLogSlider, Toggle, Button };
         float ContentEntry(ContentType contentType, float line, float width, ref float value, string fieldName, string baseLOC, string formattedValue, bool splitContext = false)
         {
             switch (contentType)
@@ -872,6 +873,34 @@ namespace BDArmory.UI
                             var cache = cacheSemiLogLimits[fieldName];
                             if (value != (value = GUIUtils.HorizontalSemiLogSlider(SettingSliderRect(line, width), value, min, max, sigFig, withZero, reducedPrecisionAtMin, ref cache)) && rounding > 0)
                                 value = BDAMath.RoundToUnit(value, rounding);
+                        }
+                        else
+                        {
+                            var field = inputFields[fieldName];
+                            field.tryParseValue(GUI.TextField(SettingTextRect(line, width), field.possibleValue, 8, field.style));
+                            value = (float)field.currentValue;
+                        }
+                        if (contextTipsEnabled)
+                        {
+                            if (splitContext)
+                            {
+                                GUI.Label(ContextLabelRect(++line), StringUtils.Localize($"#LOC_BDArmory_AIWindow_{baseLOC}_ContextLow"), Label);
+                                GUI.Label(ContextLabelRectRight(line, width), StringUtils.Localize($"#LOC_BDArmory_AIWindow_{baseLOC}_ContextHigh"), contextLabelRight);
+                            }
+                            else GUI.Label(ContextLabelRect(++line, width), StringUtils.Localize($"#LOC_BDArmory_AIWindow_{baseLOC}_Context"), contextLabel);
+                        }
+                        ++line;
+                    }
+                    break;
+                case ContentType.FloatLogSlider:
+                    {
+                        GUI.Label(SettinglabelRect(line), StringUtils.Localize($"#LOC_BDArmory_AIWindow_{baseLOC}") + ": " + formattedValue, Label);
+                        if (!NumFieldsEnabled)
+                        {
+                            var (min, max, _, steps, _, _) = GetFieldLimits(fieldName);
+                            if (!cacheSemiLogLimits.ContainsKey(fieldName)) { cacheSemiLogLimits[fieldName] = null; }
+                            var cache = cacheSemiLogLimits[fieldName];
+                            value = GUIUtils.HorizontalFloatLogSlider(SettingSliderRect(line, width), value, min, max, (int)steps, ref cache);
                         }
                         else
                         {
@@ -1080,7 +1109,7 @@ namespace BDArmory.UI
 
                                         pidLines = ContentEntry(ContentType.FloatSlider, pidLines, contentWidth, ref AI.autoTuningOptionNumSamples, nameof(AI.autoTuningOptionNumSamples), "PIDAutoTuningNumSamples", $"{AI.autoTuningOptionNumSamples:0}", splitContext: true);
                                         pidLines = ContentEntry(ContentType.FloatSlider, pidLines, contentWidth, ref AI.autoTuningOptionFastResponseRelevance, nameof(AI.autoTuningOptionFastResponseRelevance), "PIDAutoTuningFastResponseRelevance", $"{AI.autoTuningOptionFastResponseRelevance:G3}", splitContext: true);
-                                        pidLines = ContentEntry(ContentType.FloatSlider, pidLines, contentWidth, ref AI.autoTuningOptionInitialLearningRate, nameof(AI.autoTuningOptionInitialLearningRate), "PIDAutoTuningInitialLearningRate", $"{AI.autoTuningOptionInitialLearningRate:G3}");
+                                        pidLines = ContentEntry(ContentType.FloatLogSlider, pidLines, contentWidth, ref AI.autoTuningOptionInitialLearningRate, nameof(AI.autoTuningOptionInitialLearningRate), "PIDAutoTuningInitialLearningRate", $"{AI.autoTuningOptionInitialLearningRate:G3}");
                                         pidLines = ContentEntry(ContentType.FloatSlider, pidLines, contentWidth, ref AI.autoTuningOptionInitialRollRelevance, nameof(AI.autoTuningOptionInitialRollRelevance), "PIDAutoTuningInitialRollRelevance", $"{AI.autoTuningOptionInitialRollRelevance:G3}");
                                         pidLines = ContentEntry(ContentType.FloatSlider, pidLines, contentWidth, ref AI.autoTuningAltitude, nameof(AI.autoTuningAltitude), "PIDAutoTuningAltitude", $"{AI.autoTuningAltitude:0}");
                                         pidLines = ContentEntry(ContentType.FloatSlider, pidLines, contentWidth, ref AI.autoTuningSpeed, nameof(AI.autoTuningSpeed), "PIDAutoTuningSpeed", $"{AI.autoTuningSpeed:0}");

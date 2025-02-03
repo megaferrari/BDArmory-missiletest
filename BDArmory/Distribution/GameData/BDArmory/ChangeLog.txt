@@ -1,4 +1,6 @@
 ﻿IMPROVEMENTS / FIXES
+- AI:
+	- Fix the PID auto-tuner's "Initial Learning Rate" slider in the AI GUI.
 - Detectors:
 	- Display non-zero RCS <= 0.01m^2 as dBsm instead of square meters for more precision.
 
