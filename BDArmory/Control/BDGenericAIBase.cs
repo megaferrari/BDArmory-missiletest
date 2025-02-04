@@ -23,7 +23,7 @@ namespace BDArmory.Control
     public abstract class BDGenericAIBase : PartModule, IBDAIControl, IBDWMModule
     {
         #region declarations
-        public virtual AIType aiType { get; }
+        public virtual AIType aiType => AIType.GenericAI;
         public bool pilotEnabled => pilotOn;
 
         // separate private field for pilot On, because properties cannot be KSPFields

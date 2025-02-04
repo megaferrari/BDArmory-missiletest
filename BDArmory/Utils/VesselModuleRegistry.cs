@@ -480,7 +480,7 @@ namespace BDArmory.Utils
         /// Get the proximity to the root part.
         /// </summary>
         /// <param name="part"></param>
-        /// <returns>Proximity to the root part or -1 if no root part was found.</returns>
+        /// <returns>Proximity to the root part or int.MaxValue if no root part was found.</returns>
         public static int ProximityToRoot(Part part)
         {
             int proximity = 0;
@@ -491,7 +491,7 @@ namespace BDArmory.Utils
                 ++proximity;
             }
             if (currentPart is null)
-                return -1;
+                return int.MaxValue;
             return proximity;
         }
 
@@ -1022,6 +1022,7 @@ namespace BDArmory.Utils
                     AI.ActivatePilot(); // Reactivate the AI in case deactivating the others disabled any common stuff.
                 }
             }
+            if (BDArmoryAIGUI.Instance != null) BDArmoryAIGUI.Instance.checkForAI = true; // Update the AI GUI on the next frame.
             TimingManager.FixedUpdateAdd(TimingManager.TimingStage.Precalc, UpdateVesselType); // Reclassify the vessel if needed on the next frame.
         }
 

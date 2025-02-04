@@ -35,7 +35,7 @@ namespace BDArmory.UI
         const float _windowMargin = 4;
         const float contentTop = 10;
         const float entryHeight = 20;
-        bool checkForAI = false; // Flag to indicate that a new check for AI needs to happen (instead of responding to every event).
+        public bool checkForAI = false; // Flag to indicate that a new check for AI needs to happen (instead of responding to every event).
 
         int Drivertype = 0;
         int broadsideDir = 0;
@@ -45,12 +45,11 @@ namespace BDArmory.UI
         public BDModuleOrbitalAI.PIDModeTypes[] PIDModeTypes = (BDModuleOrbitalAI.PIDModeTypes[])Enum.GetValues(typeof(BDModuleOrbitalAI.PIDModeTypes)); // Get the PID mode as an array of enum values.
         public BDModuleOrbitalAI.RollModeTypes[] RollModeTypes = (BDModuleOrbitalAI.RollModeTypes[])Enum.GetValues(typeof(BDModuleOrbitalAI.RollModeTypes)); // Get the roll mode as an array of enum values.
 
-        // FIXMEAI This can use AIType with ActiveController for simpler code.
-        public enum ActiveAIType { PilotAI, SurfaceAI, VTOLAI, OrbitalAI, None }; // Order of priority of AIs.
-        public ActiveAIType activeAIType = ActiveAIType.None;
-        public BDGenericAIBase ActiveAI;
+        public AIType activeAIType = AIType.None;
+        public BDGenericAIBase ActiveAI; // Note: we don't use the usual ActiveController pattern as we need more control for the numeric input fields.
+        List<IBDAIControl> AIs = []; // A list of the AIs for use in the Editor.
 
-        Dictionary<ActiveAIType, Vector2> scrollViewVectors = [];
+        Dictionary<AIType, Vector2> scrollViewVectors = [];
         private Vector2 scrollInfoVector;
 
         public static BDArmoryAIGUI Instance;
@@ -159,6 +158,8 @@ namespace BDArmory.UI
             BDAWindowSettingsField.Save(); // Save window settings.
             if (button != null) button.SetFalse(false);
             if (HighLogic.LoadedSceneIsEditor) GUIUtils.PreventClickThrough(BDArmorySetup.WindowRectAI, "AIGUI lock", true);
+            AIs.Clear();
+            AISelectionComboBox = null;
         }
 
         void Dummy()
@@ -190,21 +191,21 @@ namespace BDArmory.UI
 
         void OnVesselModified(Vessel v) // Active AI was on a part that got detached from the active vessel.
         {
-            if (!windowBDAAIGUIEnabled || activeAIType == ActiveAIType.None) return;
+            if (!windowBDAAIGUIEnabled || activeAIType == AIType.None) return;
             if (v == null) return;
             if (v.isActiveVessel && (ActiveAI == null || ActiveAI.vessel != v)) // Was an active vessel with an AI, but the AI is now gone or on another vessel.
             {
-                activeAIType = ActiveAIType.None;
+                activeAIType = AIType.None;
                 checkForAI = true;
             }
         }
 
         void OnPartDestroyed(Part p)
         {
-            if (!windowBDAAIGUIEnabled || activeAIType == ActiveAIType.None) return;
+            if (!windowBDAAIGUIEnabled || activeAIType == AIType.None) return;
             if (ActiveAI == null) // We had an AI, but now it's gone...
             {
-                activeAIType = ActiveAIType.None;
+                activeAIType = AIType.None;
                 checkForAI = true;
             }
         }
@@ -216,37 +217,16 @@ namespace BDArmory.UI
 
         private void OnEditorPartPlacedEvent(Part p)
         {
+            if (!windowBDAAIGUIEnabled) return;
             if (p == null) return;
-
-            foreach (var aiType in Enum.GetValues(typeof(ActiveAIType)) as ActiveAIType[]) // Check for AIs in the order defined in the enum.
-            {
-                if (aiType == activeAIType && ActiveAI != null) return; // We have an active AI of this type already.
-                BDGenericAIBase aiQuery = aiType switch
-                {
-                    ActiveAIType.PilotAI => p.FindModuleImplementing<BDModulePilotAI>(),
-                    ActiveAIType.SurfaceAI => p.FindModuleImplementing<BDModuleSurfaceAI>(),
-                    ActiveAIType.VTOLAI => p.FindModuleImplementing<BDModuleVTOLAI>(),
-                    ActiveAIType.OrbitalAI => p.FindModuleImplementing<BDModuleOrbitalAI>(),
-                    _ => null
-                };
-                if (aiQuery == null) continue; // None of this type found.
-                activeAIType = aiType;
-                ActiveAI = aiQuery;
-                SetInputFields(aiType);
-                SetChooseOptionSliders();
-                return;
-            }
-            // Nothing found.
-            activeAIType = ActiveAIType.None;
-            ActiveAI = null;
+            GetAIEditor(); // We need to check if we have a new AI or if the ordering has changed.
         }
 
         private void OnEditorPartDeletedEvent(Part p)
         {
-            if (activeAIType != ActiveAIType.None || ActiveAI != null) // If we had an active AI, we need to check to see if it's disappeared.
-            {
+            if (!windowBDAAIGUIEnabled) return;
+            if (activeAIType != AIType.None) // If we had an active AI, we need to check to see if it's disappeared.
                 GetAIEditor(); // We can't just check the part as it's now null.
-            }
         }
 
         void GetAI()
@@ -259,10 +239,10 @@ namespace BDArmory.UI
         Coroutine _getAICoroutine;
         IEnumerator GetAICoroutine()
         {
-            // Then, reset all the fields as this is only occurring on vessel change, so they need resetting anyway.
             ActiveAI = null;
-            activeAIType = ActiveAIType.None;
+            activeAIType = AIType.None;
             inputFields = null;
+            AISelectionComboBox = null;
             var tic = Time.time;
             if (FlightGlobals.ActiveVessel == null)
             {
@@ -270,34 +250,10 @@ namespace BDArmory.UI
                 if (FlightGlobals.ActiveVessel == null) yield break;
             }
             // Now, get the new AI and update stuff.
-            ActiveAI = FlightGlobals.ActiveVessel.ActiveController().AI as BDGenericAIBase; // FIXMEAI Check that this works properly and clean up. Convert to use ActiveController enums where possible.
-            activeAIType = ActiveAI == null ? ActiveAIType.None : ActiveAI.aiType switch
-            {
-                AIType.PilotAI => ActiveAIType.PilotAI,
-                AIType.SurfaceAI => ActiveAIType.SurfaceAI,
-                AIType.VTOLAI => ActiveAIType.VTOLAI,
-                AIType.OrbitalAI => ActiveAIType.OrbitalAI,
-                _ => ActiveAIType.None
-            };
+            ActiveAI = FlightGlobals.ActiveVessel.ActiveController().AI as BDGenericAIBase;
+            activeAIType = ActiveAI == null ? AIType.None : ActiveAI.aiType;
             SetInputFields(activeAIType);
             SetChooseOptionSliders();
-            // foreach (var aiType in Enum.GetValues(typeof(ActiveAIType)) as ActiveAIType[])
-            // {
-            //     BDGenericAIBase aiQuery = aiType switch
-            //     {
-            //         ActiveAIType.PilotAI => VesselModuleRegistry.GetBDModulePilotAI(FlightGlobals.ActiveVessel, true),
-            //         ActiveAIType.SurfaceAI => VesselModuleRegistry.GetBDModuleSurfaceAI(FlightGlobals.ActiveVessel, true),
-            //         ActiveAIType.VTOLAI => VesselModuleRegistry.GetModule<BDModuleVTOLAI>(FlightGlobals.ActiveVessel, true),
-            //         ActiveAIType.OrbitalAI => VesselModuleRegistry.GetModule<BDModuleOrbitalAI>(FlightGlobals.ActiveVessel, true),
-            //         _ => null
-            //     };
-            //     if (aiQuery == null) continue; // None of this type found.
-            //     activeAIType = aiType;
-            //     ActiveAI = aiQuery;
-            //     SetInputFields(aiType);
-            //     SetChooseOptionSliders();
-            //     yield break;
-            // }
         }
 
         void GetAIEditor()
@@ -308,42 +264,51 @@ namespace BDArmory.UI
         Coroutine _getAIEditorCoroutine;
         IEnumerator GetAIEditorCoroutine()
         {
+            AISelectionComboBox = null; // Clear the combobox to reset it.
             var tic = Time.time;
             if (EditorLogic.fetch.ship == null || EditorLogic.fetch.ship.Parts == null)
                 yield return new WaitUntilFixed(() => (EditorLogic.fetch.ship != null && EditorLogic.fetch.ship.Parts != null) || Time.time - tic > 1); // Give it up to a second to find the editor ship and parts.
-            if (EditorLogic.fetch.ship != null && EditorLogic.fetch.ship.Parts != null)
+            var ship = EditorLogic.fetch.ship;
+            if (ship != null && ship.Parts != null)
             {
-                foreach (var p in EditorLogic.fetch.ship.Parts) // Take the AIs in the order they were placed on the ship.
+                AIs = [.. ship.Parts.SelectMany(part => part.FindModulesImplementing<IBDAIControl>()).Where(ai => ai != null)];
+                if (AIs.Count > 0)
                 {
-                    foreach (var aiType in Enum.GetValues(typeof(ActiveAIType)) as ActiveAIType[])
-                    {
-                        List<BDGenericAIBase> aiQuery = aiType switch
-                        {
-                            ActiveAIType.PilotAI => p.FindModulesImplementing<BDModulePilotAI>().ConvertAll(ai => ai as BDGenericAIBase),
-                            ActiveAIType.SurfaceAI => p.FindModulesImplementing<BDModuleSurfaceAI>().ConvertAll(ai => ai as BDGenericAIBase),
-                            ActiveAIType.VTOLAI => p.FindModulesImplementing<BDModuleVTOLAI>().ConvertAll(ai => ai as BDGenericAIBase),
-                            ActiveAIType.OrbitalAI => p.FindModulesImplementing<BDModuleOrbitalAI>().ConvertAll(ai => ai as BDGenericAIBase),
-                            _ => null
-                        };
-                        if (aiQuery == null || aiQuery.Count == 0) continue; // None of this type found.
-                        foreach (var ai in aiQuery)
-                        {
-                            if (ai == null) continue;
-                            if (ai == ActiveAI) yield break; // We found the current active AI!
-                            activeAIType = aiType;
-                            ActiveAI = ai;
-                            SetInputFields(aiType);
-                            SetChooseOptionSliders();
-                            yield break;
-                        }
-                    }
+                    var rootPart = ship.Parts.First(); while (rootPart.parent != null) rootPart = rootPart.parent;
+                    AIs.Sort((m1, m2) => ProximityToRoot(m1.part, rootPart).CompareTo(ProximityToRoot(m2.part, rootPart))); // Same sorting as ActiveController with no active AIs.
+                    if (ActiveAI == AIs.First() as BDGenericAIBase) yield break; // It's the same AI, do nothing.
+                    ActiveAI = AIs.First() as BDGenericAIBase; // Switch back to the primary AI.
+                    activeAIType = ActiveAI.aiType;
+                    SetInputFields(activeAIType);
+                    SetChooseOptionSliders();
+                    yield break;
                 }
             }
 
             // No AIs were found, clear everything.
-            activeAIType = ActiveAIType.None;
+            activeAIType = AIType.None;
             ActiveAI = null;
             inputFields = null;
+            AIs.Clear();
+        }
+
+        /// <summary>
+        /// Get the proximity to the root part.
+        /// </summary>
+        /// <param name="part"></param>
+        /// <returns>Proximity to the root part or int.MaxValue if not connected to the root part.</returns>
+        public static int ProximityToRoot(Part part, Part root)
+        {
+            int proximity = 0;
+            Part currentPart = part;
+            while (currentPart != null && currentPart != root)
+            {
+                currentPart = currentPart.parent;
+                ++proximity;
+            }
+            if (currentPart == null)
+                return int.MaxValue;
+            return proximity;
         }
 
         /// <summary>
@@ -353,7 +318,7 @@ namespace BDArmory.UI
         /// <param name="gAI">The AI.</param>
         /// <param name="fieldName">The name of the field to look at.</param>
         /// <returns>value, minValue, maxValue, (rounding, sigFig, withZero)</returns>
-        (float, float, float, (float, float, bool, bool)) GetAIFieldLimits(ActiveAIType aiType, BDGenericAIBase gAI, string fieldName)
+        (float, float, float, (float, float, bool, bool)) GetAIFieldLimits(AIType aiType, BDGenericAIBase gAI, string fieldName)
         {
             float value = 0, minValue = 0, maxValue = 0, rounding = 0, sigFig = 0;
             bool withZero = false, reducedPrecisionAtMin = false;
@@ -374,7 +339,7 @@ namespace BDArmory.UI
                 }
                 switch (aiType)
                 {
-                    case ActiveAIType.PilotAI:
+                    case AIType.PilotAI:
                         {
                             var AI = gAI as BDModulePilotAI;
                             var uic = (HighLogic.LoadedSceneIsFlight ? AI.Fields[fieldName].uiControlFlight : AI.Fields[fieldName].uiControlEditor) as UI_FloatRange;
@@ -382,7 +347,7 @@ namespace BDArmory.UI
                             value = (float)typeof(BDModulePilotAI).GetField(fieldName).GetValue(AI);
                         }
                         break;
-                    case ActiveAIType.SurfaceAI:
+                    case AIType.SurfaceAI:
                         {
                             var AI = gAI as BDModuleSurfaceAI;
                             var uic = (HighLogic.LoadedSceneIsFlight ? AI.Fields[fieldName].uiControlFlight : AI.Fields[fieldName].uiControlEditor) as UI_FloatRange;
@@ -390,7 +355,7 @@ namespace BDArmory.UI
                             value = (float)typeof(BDModuleSurfaceAI).GetField(fieldName).GetValue(AI);
                         }
                         break;
-                    case ActiveAIType.VTOLAI:
+                    case AIType.VTOLAI:
                         {
                             var AI = gAI as BDModuleVTOLAI;
                             var uic = (HighLogic.LoadedSceneIsFlight ? AI.Fields[fieldName].uiControlFlight : AI.Fields[fieldName].uiControlEditor) as UI_FloatRange;
@@ -398,7 +363,7 @@ namespace BDArmory.UI
                             value = (float)typeof(BDModuleVTOLAI).GetField(fieldName).GetValue(AI);
                         }
                         break;
-                    case ActiveAIType.OrbitalAI:
+                    case AIType.OrbitalAI:
                         {
                             var AI = gAI as BDModuleOrbitalAI;
                             var uic = (HighLogic.LoadedSceneIsFlight ? AI.Fields[fieldName].uiControlFlight : AI.Fields[fieldName].uiControlEditor) as UI_FloatRange;
@@ -437,18 +402,18 @@ namespace BDArmory.UI
         /// Note: only UI_FloatRange derived entries should be included here.
         /// </summary>
         /// <param name="aiType">The type of the currently active AI.</param>
-        void SetInputFields(ActiveAIType aiType)
+        void SetInputFields(AIType aiType)
         {
             // Note: We use nameof(AI.field) to get the fieldname to avoid typos.
             switch (aiType)
             {
-                case ActiveAIType.PilotAI:
+                case AIType.PilotAI:
                     {
                         var AI = ActiveAI as BDModulePilotAI;
                         if (AI == null)
                         {
                             Debug.LogError($"[BDArmory.BDArmoryAIGUI]: Mismatch between AI type and actual AI.");
-                            activeAIType = ActiveAIType.None;
+                            activeAIType = AIType.None;
                             inputFields = null;
                             return;
                         }
@@ -541,13 +506,13 @@ namespace BDArmory.UI
                         showSection[Section.UpToEleven] = AI.UpToEleven;
                     }
                     break;
-                case ActiveAIType.SurfaceAI:
+                case AIType.SurfaceAI:
                     {
                         var AI = ActiveAI as BDModuleSurfaceAI;
                         if (AI == null)
                         {
                             Debug.LogError($"[BDArmory.BDArmoryAIGUI]: Mismatch between AI type and actual AI.");
-                            activeAIType = ActiveAIType.None;
+                            activeAIType = AIType.None;
                             inputFields = null;
                             return;
                         }
@@ -572,13 +537,13 @@ namespace BDArmory.UI
                         showSection[Section.UpToEleven] = AI.UpToEleven;
                     }
                     break;
-                case ActiveAIType.VTOLAI:
+                case AIType.VTOLAI:
                     {
                         var AI = ActiveAI as BDModuleVTOLAI;
                         if (AI == null)
                         {
                             Debug.LogError($"[BDArmory.BDArmoryAIGUI]: Mismatch between AI type and actual AI.");
-                            activeAIType = ActiveAIType.None;
+                            activeAIType = AIType.None;
                             inputFields = null;
                             return;
                         }
@@ -604,13 +569,13 @@ namespace BDArmory.UI
                         showSection[Section.UpToEleven] = AI.UpToEleven;
                     }
                     break;
-                case ActiveAIType.OrbitalAI:
+                case AIType.OrbitalAI:
                     {
                         var AI = ActiveAI as BDModuleOrbitalAI;
                         if (AI == null)
                         {
                             Debug.LogError($"[BDArmory.BDArmoryAIGUI]: Mismatch between AI type and actual AI.");
-                            activeAIType = ActiveAIType.None;
+                            activeAIType = AIType.None;
                             inputFields = null;
                             return;
                         }
@@ -656,10 +621,10 @@ namespace BDArmory.UI
             }
             switch (activeAIType)
             {
-                case ActiveAIType.PilotAI: SetInputFieldValues(ActiveAI as BDModulePilotAI, fromInputFields); break;
-                case ActiveAIType.SurfaceAI: SetInputFieldValues(ActiveAI as BDModuleSurfaceAI, fromInputFields); break;
-                case ActiveAIType.VTOLAI: SetInputFieldValues(ActiveAI as BDModuleVTOLAI, fromInputFields); break;
-                case ActiveAIType.OrbitalAI: SetInputFieldValues(ActiveAI as BDModuleOrbitalAI, fromInputFields); break;
+                case AIType.PilotAI: SetInputFieldValues(ActiveAI as BDModulePilotAI, fromInputFields); break;
+                case AIType.SurfaceAI: SetInputFieldValues(ActiveAI as BDModuleSurfaceAI, fromInputFields); break;
+                case AIType.VTOLAI: SetInputFieldValues(ActiveAI as BDModuleVTOLAI, fromInputFields); break;
+                case AIType.OrbitalAI: SetInputFieldValues(ActiveAI as BDModuleOrbitalAI, fromInputFields); break;
                 default: return;
             }
         }
@@ -710,20 +675,20 @@ namespace BDArmory.UI
             if (ActiveAI == null) return;
             switch (activeAIType)
             {
-                case ActiveAIType.SurfaceAI:
+                case AIType.SurfaceAI:
                     {
                         var AI = ActiveAI as BDModuleSurfaceAI;
                         Drivertype = VehicleMovementTypes.IndexOf(AI.SurfaceType);
                         broadsideDir = AI.orbitDirections.IndexOf(AI.OrbitDirectionName);
                     }
                     break;
-                case ActiveAIType.VTOLAI:
+                case AIType.VTOLAI:
                     {
                         var AI = ActiveAI as BDModuleVTOLAI;
                         broadsideDir = AI.orbitDirections.IndexOf(AI.OrbitDirectionName);
                     }
                     break;
-                case ActiveAIType.OrbitalAI:
+                case AIType.OrbitalAI:
                     {
                         var AI = ActiveAI as BDModuleOrbitalAI;
                         pidMode = AI.pidModes.IndexOf(AI.pidMode);
@@ -744,7 +709,7 @@ namespace BDArmory.UI
             if (HighLogic.LoadedSceneIsFlight) BDArmorySetup.SetGUIOpacity();
             if (resizingWindow && Event.current.type == EventType.MouseUp) { resizingWindow = false; }
             if (BDArmorySettings.UI_SCALE_ACTUAL != 1) GUIUtility.ScaleAroundPivot(BDArmorySettings.UI_SCALE_ACTUAL * Vector2.one, BDArmorySetup.WindowRectAI.position);
-            BDArmorySetup.WindowRectAI = GUI.Window(GUIUtility.GetControlID(FocusType.Passive), BDArmorySetup.WindowRectAI, WindowRectAI, "", BDArmorySetup.BDGuiSkin.window);//"BDA Weapon Manager"
+            BDArmorySetup.WindowRectAI = GUI.Window(GUIUtility.GetControlID(FocusType.Passive), BDArmorySetup.WindowRectAI, WindowAIGUI, "", BDArmorySetup.BDGuiSkin.window);//"BDA Weapon Manager"
             if (HighLogic.LoadedSceneIsFlight) BDArmorySetup.SetGUIOpacity(false);
         }
 
@@ -789,9 +754,9 @@ namespace BDArmory.UI
         const float labelWidth = 200;
         const float sliderIndent = contentInnerMargin + labelWidth;
 
-        Rect TitleButtonRect(float offset)
+        Rect TitleButtonRect(float offset, float width = 1)
         {
-            return new Rect((ColumnWidth * 2) - _windowMargin - (offset * _buttonSize), _windowMargin, _buttonSize, _buttonSize);
+            return new Rect((ColumnWidth * 2) - _windowMargin - (offset * _buttonSize), _windowMargin, width * _buttonSize, _buttonSize);
         }
         Rect SubsectionRect(float line)
         {
@@ -934,16 +899,49 @@ namespace BDArmory.UI
             return line;
         }
         readonly Dictionary<string, (float, float)[]> cacheSemiLogLimits = [];
-        void WindowRectAI(int windowID)
+
+        BDGUIComboBox AISelectionComboBox;
+        int AISelectionIndex = -1;
+        void UpdateAISelectionComboBox(Rect rect)
+        {
+            if (!(HighLogic.LoadedSceneIsEditor || HighLogic.LoadedSceneIsFlight)) return;
+            var primaryAI = (HighLogic.LoadedSceneIsFlight && FlightGlobals.ActiveVessel != null) ? FlightGlobals.ActiveVessel.ActiveController().AI : null;
+            var ais = HighLogic.LoadedSceneIsEditor ? AIs : VesselModuleRegistry.GetIBDAIControls(FlightGlobals.ActiveVessel);
+            GUIContent[] listContent = [.. ais.Select(ai => new GUIContent(ai == primaryAI ? $"* {ai.aiType} *" : $"{ai.aiType}"))];
+            if (listContent.Length > 0)
+            {
+                AISelectionComboBox = new BDGUIComboBox(rect, rect, new GUIContent(ActiveAI as IBDAIControl == primaryAI ? $"* {ActiveAI.aiType} *" : $"{ActiveAI.aiType}"), listContent, (listContent.Length + 1) * _buttonSize + 2 * _windowMargin, BDArmorySetup.BDGuiSkin.button, 1);
+                AISelectionIndex = AISelectionComboBox.SetSelectedItemIndex(ais.FindIndex(ai => ai.pilotEnabled));
+            }
+            else
+                AISelectionComboBox = null;
+        }
+
+        void WindowAIGUI(int windowID)
         {
             if (HighLogic.LoadedSceneIsEditor) GUIUtils.PreventClickThrough(BDArmorySetup.WindowRectAI, "AIGUI lock");
             float windowColumns = 2;
             float contentIndent = contentMargin + columnIndent;
             float contentWidth = 2 * ColumnWidth - 2 * contentMargin - columnIndent;
 
-            GUI.DragWindow(new Rect(_windowMargin + _buttonSize * 6, 0, 2 * ColumnWidth - 2 * _windowMargin - 10 * _buttonSize, _windowMargin + _buttonSize));
-
-            GUI.Label(new Rect(100, contentTop, contentWidth, entryHeight), StringUtils.Localize("#LOC_BDArmory_AIWindow_title"), Title);
+            GUI.DragWindow(new Rect(contentIndent + _windowMargin, _windowMargin, contentWidth + _windowMargin - 4 * _buttonSize, _windowMargin + _buttonSize));
+            GUI.Label(new Rect(contentIndent, contentTop, contentWidth - 4 * _buttonSize, entryHeight), StringUtils.Localize("#LOC_BDArmory_AIWindow_title"), Title);
+            #region AI Selection
+            if (ActiveAI != null)
+            {
+                if (AISelectionComboBox == null) UpdateAISelectionComboBox(new Rect(contentMargin, _windowMargin, columnIndent, _buttonSize));
+                if (AISelectionComboBox != null && AISelectionIndex != (AISelectionIndex = AISelectionComboBox.Show()))
+                {
+                    Debug.Log($"DEBUG AISelectionIndex {AISelectionIndex}");
+                    ActiveAI = (
+                        HighLogic.LoadedSceneIsEditor ? AIs[AISelectionIndex]
+                        : VesselModuleRegistry.GetIBDAIControls(FlightGlobals.ActiveVessel).Skip(AISelectionIndex).First()
+                    ) as BDGenericAIBase;
+                    activeAIType = ActiveAI.aiType;
+                    SetInputFields(activeAIType);
+                }
+            }
+            #endregion
 
             if (GUI.Button(TitleButtonRect(1), "X", windowBDAAIGUIEnabled ? BDArmorySetup.BDGuiSkin.button : BDArmorySetup.BDGuiSkin.box)) //Exit Button
             {
@@ -960,7 +958,8 @@ namespace BDArmory.UI
                 SyncInputFieldsNow(!NumFieldsEnabled);
             }
 
-            if (activeAIType == ActiveAIType.None || ActiveAI == null)
+            float minHeight = 0;
+            if (activeAIType == AIType.None || ActiveAI == null)
             {
                 GUI.Label(new Rect(contentMargin, contentTop + (1.75f * entryHeight), contentWidth, entryHeight),
                    StringUtils.Localize("#LOC_BDArmory_AIWindow_NoAI"), Title);// "No AI found."
@@ -971,49 +970,35 @@ namespace BDArmory.UI
                 contentHeight = 0;
                 switch (activeAIType)
                 {
-                    case ActiveAIType.PilotAI:
+                    case AIType.PilotAI:
                         {
                             var AI = ActiveAI as BDModulePilotAI;
-                            if (AI == null) { Debug.LogError($"[BDArmory.BDArmoryAIGUI]: AI module mismatch!"); activeAIType = ActiveAIType.None; break; }
+                            if (AI == null) { Debug.LogError($"[BDArmory.BDArmoryAIGUI]: AI module mismatch!"); activeAIType = AIType.None; break; }
 
+                            if (AISelectionComboBox == null || !AISelectionComboBox.IsOpen)
                             { // Section buttons
-                                GUIStyle saveStyle = BDArmorySetup.BDGuiSkin.button;
-                                if (GUI.Button(new Rect(_windowMargin, _windowMargin, _buttonSize * 3, _buttonSize), "Save", saveStyle))
-                                {
-                                    AI.StoreSettings();
-                                }
-
-                                if (AI.Events["RestoreSettings"].active == true)
-                                {
-                                    GUIStyle restoreStyle = BDArmorySetup.BDGuiSkin.button;
-                                    if (GUI.Button(new Rect(_windowMargin + _buttonSize * 3, _windowMargin, _buttonSize * 3, _buttonSize), "Restore", restoreStyle))
-                                    {
-                                        AI.RestoreSettings();
-                                    }
-                                }
-
                                 float line = 1.5f;
                                 showSection[Section.PID] = GUI.Toggle(SubsectionRect(line), showSection[Section.PID], StringUtils.Localize("#LOC_BDArmory_AIWindow_PID"), showSection[Section.PID] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"PiD"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Altitude] = GUI.Toggle(SubsectionRect(line), showSection[Section.Altitude], StringUtils.Localize("#LOC_BDArmory_AIWindow_Altitudes"), showSection[Section.Altitude] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Altitude"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Speed] = GUI.Toggle(SubsectionRect(line), showSection[Section.Speed], StringUtils.Localize("#LOC_BDArmory_AIWindow_Speeds"), showSection[Section.Speed] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Speed"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Control] = GUI.Toggle(SubsectionRect(line), showSection[Section.Control], StringUtils.Localize("#LOC_BDArmory_AIWindow_Control"), showSection[Section.Control] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Control"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Evasion] = GUI.Toggle(SubsectionRect(line), showSection[Section.Evasion], StringUtils.Localize("#LOC_BDArmory_AIWindow_EvadeExtend"), showSection[Section.Evasion] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Evasion"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Terrain] = GUI.Toggle(SubsectionRect(line), showSection[Section.Terrain], StringUtils.Localize("#LOC_BDArmory_AIWindow_Terrain"), showSection[Section.Terrain] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Terrain"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Ramming] = GUI.Toggle(SubsectionRect(line), showSection[Section.Ramming], StringUtils.Localize("#LOC_BDArmory_AIWindow_Ramming"), showSection[Section.Ramming] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Ramming"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Misc] = GUI.Toggle(SubsectionRect(line), showSection[Section.Misc], StringUtils.Localize("#LOC_BDArmory_AIWindow_Misc"), showSection[Section.Misc] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Misc"
 
                                 line += 1.5f;
@@ -1023,11 +1008,32 @@ namespace BDArmory.UI
                                 {
                                     SetInputFields(activeAIType);
                                 }
+
+                                #region Store/Restore
+                                line += 1.5f;
+                                GUIStyle saveStyle = BDArmorySetup.BDGuiSkin.button;
+                                if (GUI.Button(SubsectionRect(line), "Save", saveStyle))
+                                {
+                                    AI.StoreSettings();
+                                }
+
+                                if (AI.Events["RestoreSettings"].active == true)
+                                {
+                                    line += 1f;
+                                    GUIStyle restoreStyle = BDArmorySetup.BDGuiSkin.button;
+                                    if (GUI.Button(SubsectionRect(line), "Restore", restoreStyle))
+                                    {
+                                        AI.RestoreSettings();
+                                    }
+                                }
+                                #endregion
+
+                                minHeight = contentTop + (line + 1f) * entryHeight + _windowMargin;
                             }
 
                             if (showSection[Section.PID] || showSection[Section.Altitude] || showSection[Section.Speed] || showSection[Section.Control] || showSection[Section.Evasion] || showSection[Section.Terrain] || showSection[Section.Ramming] || showSection[Section.Misc])
                             {
-                                scrollViewVectors[ActiveAIType.PilotAI] = GUI.BeginScrollView(new Rect(contentIndent, contentTop + entryHeight * 1.5f, ColumnWidth * 2 - contentIndent, WindowHeight - entryHeight * 1.5f - 2 * contentTop), scrollViewVectors.GetValueOrDefault(ActiveAIType.PilotAI), new Rect(0, 0, contentWidth - contentMargin * 2, height + contentTop));
+                                scrollViewVectors[AIType.PilotAI] = GUI.BeginScrollView(new Rect(contentIndent, contentTop + entryHeight * 1.5f, ColumnWidth * 2 - contentIndent, WindowHeight - entryHeight * 1.5f - 2 * contentTop), scrollViewVectors.GetValueOrDefault(AIType.PilotAI), new Rect(0, 0, contentWidth - contentMargin * 2, height + contentTop));
 
                                 GUI.BeginGroup(new Rect(contentMargin, 0, contentWidth - contentMargin * 2, height + 2 * contentBorder), GUIContent.none, BDArmorySetup.BDGuiSkin.box); //darker box
 
@@ -1528,22 +1534,23 @@ StringUtils.Localize("#LOC_BDArmory_AIWindow_DiveBomb"), AI.divebombing ? BDArmo
                             }
                         }
                         break;
-                    case ActiveAIType.SurfaceAI:
+                    case AIType.SurfaceAI:
                         {
                             var AI = ActiveAI as BDModuleSurfaceAI;
-                            if (AI == null) { Debug.LogError($"[BDArmory.BDArmoryAIGUI]: AI module mismatch!"); activeAIType = ActiveAIType.None; break; }
+                            if (AI == null) { Debug.LogError($"[BDArmory.BDArmoryAIGUI]: AI module mismatch!"); activeAIType = AIType.None; break; }
 
+                            if (AISelectionComboBox == null || !AISelectionComboBox.IsOpen)
                             { // Section buttons
                                 float line = 1.5f;
                                 showSection[Section.PID] = GUI.Toggle(SubsectionRect(line), showSection[Section.PID], StringUtils.Localize("#LOC_BDArmory_AIWindow_PID"), showSection[Section.PID] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"PiD"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Speed] = GUI.Toggle(SubsectionRect(line), showSection[Section.Speed], StringUtils.Localize("#LOC_BDArmory_AIWindow_Speeds"), showSection[Section.Speed] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Speed"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Control] = GUI.Toggle(SubsectionRect(line), showSection[Section.Control], StringUtils.Localize("#LOC_BDArmory_AIWindow_Control"), showSection[Section.Control] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Control"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Combat] = GUI.Toggle(SubsectionRect(line), showSection[Section.Combat], StringUtils.Localize("#LOC_BDArmory_AIWindow_Combat"), showSection[Section.Combat] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Combat"
 
                                 line += 1.5f;
@@ -1553,12 +1560,14 @@ StringUtils.Localize("#LOC_BDArmory_AIWindow_DiveBomb"), AI.divebombing ? BDArmo
                                 {
                                     SetInputFields(activeAIType);
                                 }
+
+                                minHeight = contentTop + (line + 1f) * entryHeight + _windowMargin;
                             }
 
                             { // Controls panel
-                                scrollViewVectors[ActiveAIType.SurfaceAI] = GUI.BeginScrollView(
+                                scrollViewVectors[AIType.SurfaceAI] = GUI.BeginScrollView(
                                     new Rect(contentMargin + 100, contentTop + entryHeight * 1.5f, (ColumnWidth * 2) - 100 - contentMargin, WindowHeight - entryHeight * 1.5f - 2 * contentTop),
-                                    scrollViewVectors.GetValueOrDefault(ActiveAIType.SurfaceAI),
+                                    scrollViewVectors.GetValueOrDefault(AIType.SurfaceAI),
                                     new Rect(0, 0, ColumnWidth * 2 - 120 - contentMargin * 2, height + contentTop)
                                 );
 
@@ -1756,25 +1765,26 @@ StringUtils.Localize("#LOC_BDArmory_AIWindow_DiveBomb"), AI.divebombing ? BDArmo
                             }
                         }
                         break;
-                    case ActiveAIType.VTOLAI:
+                    case AIType.VTOLAI:
                         {
                             var AI = ActiveAI as BDModuleVTOLAI;
-                            if (AI == null) { Debug.LogError($"[BDArmory.BDArmoryAIGUI]: AI module mismatch!"); activeAIType = ActiveAIType.None; break; }
+                            if (AI == null) { Debug.LogError($"[BDArmory.BDArmoryAIGUI]: AI module mismatch!"); activeAIType = AIType.None; break; }
 
+                            if (AISelectionComboBox == null || !AISelectionComboBox.IsOpen)
                             { // Section buttons
                                 float line = 1.5f;
                                 showSection[Section.PID] = GUI.Toggle(SubsectionRect(line), showSection[Section.PID], StringUtils.Localize("#LOC_BDArmory_AIWindow_PID"), showSection[Section.PID] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"PiD"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Altitude] = GUI.Toggle(SubsectionRect(line), showSection[Section.Altitude], StringUtils.Localize("#LOC_BDArmory_AIWindow_Altitudes"), showSection[Section.Altitude] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Altitude"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Speed] = GUI.Toggle(SubsectionRect(line), showSection[Section.Speed], StringUtils.Localize("#LOC_BDArmory_AIWindow_Speeds"), showSection[Section.Speed] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Speed"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Control] = GUI.Toggle(SubsectionRect(line), showSection[Section.Control], StringUtils.Localize("#LOC_BDArmory_AIWindow_Control"), showSection[Section.Control] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Control"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Combat] = GUI.Toggle(SubsectionRect(line), showSection[Section.Combat], StringUtils.Localize("#LOC_BDArmory_AIWindow_Combat"), showSection[Section.Combat] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Combat"
 
                                 line += 1.5f;
@@ -1784,13 +1794,15 @@ StringUtils.Localize("#LOC_BDArmory_AIWindow_DiveBomb"), AI.divebombing ? BDArmo
                                 {
                                     SetInputFields(activeAIType);
                                 }
+
+                                minHeight = contentTop + (line + 1f) * entryHeight + _windowMargin;
                             }
 
                             if (showSection[Section.PID] || showSection[Section.Altitude] || showSection[Section.Speed] || showSection[Section.Control] || showSection[Section.Combat]) // Controls panel
                             {
-                                scrollViewVectors[ActiveAIType.VTOLAI] = GUI.BeginScrollView(
+                                scrollViewVectors[AIType.VTOLAI] = GUI.BeginScrollView(
                                     new Rect(contentMargin + 100, contentTop + entryHeight * 1.5f, (ColumnWidth * 2) - 100 - contentMargin, WindowHeight - entryHeight * 1.5f - 2 * contentTop),
-                                    scrollViewVectors.GetValueOrDefault(ActiveAIType.VTOLAI),
+                                    scrollViewVectors.GetValueOrDefault(AIType.VTOLAI),
                                     new Rect(0, 0, ColumnWidth * 2 - 120 - contentMargin * 2, height + contentTop)
                                 );
 
@@ -1932,33 +1944,36 @@ StringUtils.Localize("#LOC_BDArmory_AIWindow_DiveBomb"), AI.divebombing ? BDArmo
                             }
                         }
                         break;
-                    case ActiveAIType.OrbitalAI:
+                    case AIType.OrbitalAI:
                         {
                             var AI = ActiveAI as BDModuleOrbitalAI;
-                            if (AI == null) { Debug.LogError($"[BDArmory.BDArmoryAIGUI]: AI module mismatch!"); activeAIType = ActiveAIType.None; break; }
+                            if (AI == null) { Debug.LogError($"[BDArmory.BDArmoryAIGUI]: AI module mismatch!"); activeAIType = AIType.None; break; }
 
+                            if (AISelectionComboBox == null || !AISelectionComboBox.IsOpen)
                             { // Section buttons
                                 float line = 1.5f;
                                 showSection[Section.PID] = GUI.Toggle(SubsectionRect(line), showSection[Section.PID], StringUtils.Localize("#LOC_BDArmory_AIWindow_PID"), showSection[Section.PID] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"PiD"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Combat] = GUI.Toggle(SubsectionRect(line), showSection[Section.Combat], StringUtils.Localize("#LOC_BDArmory_AIWindow_Combat"), showSection[Section.Combat] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Combat"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Speed] = GUI.Toggle(SubsectionRect(line), showSection[Section.Speed], StringUtils.Localize("#LOC_BDArmory_AIWindow_Speeds"), showSection[Section.Speed] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Speed"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Control] = GUI.Toggle(SubsectionRect(line), showSection[Section.Control], StringUtils.Localize("#LOC_BDArmory_AIWindow_Control"), showSection[Section.Control] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Control"
 
-                                line += 1.5f;
+                                line += 1.2f;
                                 showSection[Section.Evasion] = GUI.Toggle(SubsectionRect(line), showSection[Section.Evasion], StringUtils.Localize("#LOC_BDArmory_AIWindow_EvadeExtend"), showSection[Section.Evasion] ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);//"Evasion"
+
+                                minHeight = contentTop + (line + 1f) * entryHeight + _windowMargin;
                             }
 
                             if (showSection[Section.PID] || showSection[Section.Combat] || showSection[Section.Speed] || showSection[Section.Control] || showSection[Section.Evasion]) // Controls panel
                             {
-                                scrollViewVectors[ActiveAIType.OrbitalAI] = GUI.BeginScrollView(
+                                scrollViewVectors[AIType.OrbitalAI] = GUI.BeginScrollView(
                                     new Rect(contentMargin + 100, contentTop + entryHeight * 1.5f, (ColumnWidth * 2) - 100 - contentMargin, WindowHeight - entryHeight * 1.5f - 2 * contentTop),
-                                    scrollViewVectors.GetValueOrDefault(ActiveAIType.OrbitalAI),
+                                    scrollViewVectors.GetValueOrDefault(AIType.OrbitalAI),
                                     new Rect(0, 0, ColumnWidth * 2 - 120 - contentMargin * 2, height + contentTop)
                                 );
 
@@ -2215,6 +2230,8 @@ StringUtils.Localize("#LOC_BDArmory_AIWindow_DiveBomb"), AI.divebombing ? BDArmo
                 }
             }
             WindowWidth = Mathf.Lerp(WindowWidth, windowColumns * ColumnWidth, 0.15f);
+            if (minHeight == 0 && AISelectionComboBox != null) minHeight = 2 * _windowMargin + _buttonSize + AISelectionComboBox.Height;
+            WindowHeight = Mathf.Max(WindowHeight, minHeight);
 
             #region Resizing
             var resizeRect = new Rect(WindowWidth - 16, WindowHeight - 16, 16, 16);
@@ -2227,7 +2244,7 @@ StringUtils.Localize("#LOC_BDArmory_AIWindow_DiveBomb"), AI.divebombing ? BDArmo
             if (Event.current.type == EventType.Repaint && resizingWindow)
             {
                 WindowHeight += Mouse.delta.y / BDArmorySettings.UI_SCALE_ACTUAL;
-                WindowHeight = Mathf.Max(WindowHeight, 305);
+                WindowHeight = Mathf.Max(WindowHeight, minHeight);
                 if (BDArmorySettings.DEBUG_OTHER) GUI.Label(new Rect(WindowWidth / 2, WindowHeight - 26, WindowWidth / 2 - 26, 26), $"Resizing: {Mathf.Round(WindowHeight * BDArmorySettings.UI_SCALE_ACTUAL)}", Label);
             }
             #endregion

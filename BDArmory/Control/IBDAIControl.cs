@@ -2,7 +2,7 @@
 
 namespace BDArmory.Control
 {
-    public enum AIType { GenericAI, PilotAI, SurfaceAI, VTOLAI, OrbitalAI };
+    public enum AIType { None, GenericAI, PilotAI, SurfaceAI, VTOLAI, OrbitalAI };
     public interface IBDAIControl
     {
         #region PartModule
