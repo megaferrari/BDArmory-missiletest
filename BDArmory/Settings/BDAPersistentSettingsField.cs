@@ -194,11 +194,11 @@ namespace BDArmory.Settings
                 }
                 else if (type == typeof(Rect))
                 {
-                    string[] strings = value.Split(',');
-                    int xVal = int.Parse(strings[0].Split(':')[1].Split('.')[0]);
-                    int yVal = int.Parse(strings[1].Split(':')[1].Split('.')[0]);
-                    int wVal = int.Parse(strings[2].Split(':')[1].Split('.')[0]);
-                    int hVal = int.Parse(strings[3].Split(':')[1].Split('.')[0]);
+                    string[] strings = value.Trim(['(', ')', ' ']).Split(',');
+                    float xVal = float.Parse(strings[0].Split(':')[1]);
+                    float yVal = float.Parse(strings[1].Split(':')[1]);
+                    float wVal = float.Parse(strings[2].Split(':')[1]);
+                    float hVal = float.Parse(strings[3].Split(':')[1]);
                     Rect rectVal = new Rect
                     {
                         x = xVal,
