@@ -4,6 +4,7 @@
 	- Adjust colour of vessel status and target strings in the vessel switcher for better visibility.
 - AI:
 	- Fix the PID auto-tuner's "Initial Learning Rate" slider in the AI GUI.
+	- Improvements to pilot follow mode to improve stability.
 - Detectors:
 	- Display non-zero RCS <= 0.01m^2 as dBsm instead of square meters for more precision.
 
