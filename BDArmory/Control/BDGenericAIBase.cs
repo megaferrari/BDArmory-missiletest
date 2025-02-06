@@ -605,18 +605,27 @@ namespace BDArmory.Control
                 UpdateWaypoint(); // Call ourselves again for the new waypoint to follow.
                 //Modify AI maxSpeed if the gate we just pased has a speed limit
                 float mSpeed = WaypointCourses.CourseLocations[waypointCourseIndex].waypoints[activeWaypointIndex].maxSpeed;
-                var pilotAI = vessel.ActiveController().PilotAI; // Get the pilot AI if the vessel has one.
-                var surfaceAI = vessel.ActiveController().SurfaceAI; // Get the surface AI if the vessel has one.
-                var vtolAI = vessel.ActiveController().VTOLAI; // Get the VTOL AI if the vessel has one.
-                var orbitalAI = vessel.ActiveController().OrbitalAI; // Get the Orbital AI if the vessel has one.
-                if (pilotAI != null)
-                {
-                    pilotAI.maxSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed;
-                    pilotAI.OnMaxSpeedChanged();
-                }
-                if (surfaceAI != null) surfaceAI.MaxSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed;
-                //if (vtolAI != null) vtolAI.MaxSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed; //VTOL AI really needs expanding to actually include behavior beyond stationary hovering; could do WPs, but only if it has a fixed horizontal thrusters under IndependantThrottle...
-                //if (orbitalAI != null) orbitalAI.ManeuverSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed; //Don' think WPs would work, period, with an orbital reference frame?
+                var ai = vessel.ActiveController().AI;
+                if (ai != null) switch (ai.aiType)
+                    {
+                        case AIType.PilotAI:
+                            var pilotAI = ai as BDModulePilotAI;
+                            pilotAI.maxSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed;
+                            pilotAI.OnMaxSpeedChanged();
+                            break;
+                        case AIType.SurfaceAI:
+                            var surfaceAI = ai as BDModuleSurfaceAI;
+                            surfaceAI.MaxSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed;
+                            break;
+                        case AIType.VTOLAI:
+                            // var vtolAI = ai as BDModuleVTOLAI;
+                            // vtolAI.MaxSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed; //VTOL AI really needs expanding to actually include behavior beyond stationary hovering; could do WPs, but only if it has a fixed horizontal thrusters under IndependantThrottle...
+                            break;
+                        case AIType.OrbitalAI:
+                            // var orbitalAI = ai as BDModuleOrbitalAI;
+                            // orbitalAI.ManeuverSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed; //Don' think WPs would work, period, with an orbital reference frame?
+                            break;
+                    }
             }
         }
 

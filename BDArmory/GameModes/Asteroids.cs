@@ -887,7 +887,7 @@ namespace BDArmory.GameModes
                             foreach (var vessel in LoadedVesselSwitcher.Instance.WeaponManagers.SelectMany(tm => tm.Value).Where(wm => wm != null && wm.vessel != null).Select(wm => wm.vessel))
                             {
                                 var oai = vessel.ActiveController().OrbitalAI;
-                                if ((oai == null || !oai.HasPropulsion) && (vessel.CoM - averagePosition).sqrMagnitude > 2 * radiusSqr) // Beyond sqrt(2) field radius.
+                                if ((oai == null || !oai.pilotEnabled || !oai.HasPropulsion) && (vessel.CoM - averagePosition).sqrMagnitude > 2 * radiusSqr) // Beyond sqrt(2) field radius.
                                     StartCoroutine(BDACompetitionMode.Instance.DelayedGMKill(vessel, BDArmorySettings.COMPETITION_GM_KILL_TIME, " crippled and significantly beyond asteroid field range. Terminated by GM."));
                             }
                         }

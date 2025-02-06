@@ -172,6 +172,7 @@ namespace BDArmory.UI
             {
                 ToggleAIGUI();
             }
+            if (!windowBDAAIGUIEnabled) return;
             if (checkForAI) // Only happens during flight.
             {
                 GetAI();

@@ -605,7 +605,7 @@ namespace BDArmory.Targeting
 
             if (!vessel) return true;
             var orbitalAI = myMf.vessel.ActiveController().OrbitalAI;
-            if (orbitalAI == null)
+            if (orbitalAI == null || !orbitalAI.pilotEnabled)
                 return true;
 
             Orbit o = myMf.vessel.orbit;

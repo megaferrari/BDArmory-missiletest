@@ -34,9 +34,18 @@ namespace BDArmory.Control
             set
             {
                 if (_isPrimaryWM != (_isPrimaryWM = value)) // If the primary WM changed, immediately update our lists.
-                    UpdateList();
+                {
+                    RefreshModules(); // Refresh all our module lists.
+                    UpdateList(); // Update the weapons lists.
+                    RefreshCMPriorities(); // Refresh the CM priorities.
+                }
             }
         }
+        public MissileFire ParentWM { get { return _parentWM; }
+        set{ StartCoroutine(SetParentWM(value)); } } // Keep a link to the parent WM so detached vessels can copy their state when they detach.
+        MissileFire _parentWM;
+        IEnumerator SetParentWM(MissileFire wm) // Set the parent WM at the end of the frame so that the previous value remains valid until the end of the frame.
+        { yield return new WaitForEndOfFrame(); _parentWM = wm; }
 
         //weapons
         private List<IBDWeapon> weaponTypes = [];
@@ -1313,7 +1322,6 @@ namespace BDArmory.Control
                 rippleGunCount = [];
                 queuedLaunches = [];
 
-                GameEvents.onVesselCreate.Add(OnVesselCreate);
                 GameEvents.onPartJointBreak.Add(OnPartJointBreak);
                 GameEvents.onPartDie.Add(OnPartDie);
                 GameEvents.onVesselPartCountChanged.Add(UpdateMaxGunRange);
@@ -1439,7 +1447,6 @@ namespace BDArmory.Control
                     Destroy(this); // Force this module to be removed from the gameObject as something is holding onto part references and causing a memory leak.
                     GameEvents.onPartDie.Remove(OnPartDie);
                     GameEvents.onPartJointBreak.Remove(OnPartJointBreak);
-                    GameEvents.onVesselCreate.Remove(OnVesselCreate);
                 }
                 catch (Exception e)
                 {
@@ -1450,7 +1457,6 @@ namespace BDArmory.Control
             modulesNeedRefreshing = true;
             weaponsListNeedsUpdating = true;
             cmPrioritiesNeedRefreshing = true;
-            // UpdateList();
             if (vessel != null)
             {
                 var TI = vessel.gameObject.GetComponent<TargetInfo>();
@@ -1461,32 +1467,6 @@ namespace BDArmory.Control
             }
         }
 
-        void OnVesselCreate(Vessel v) // FIXMEAI This doesn't belong here now, but rather in ActiveController
-        {
-            if (v == null || vessel != v) return;
-            var ai = AI;
-            if (ai != null && ai.WeaponManager != this) // Tell the previous WM to update its modules (not actually sure this is the previous WM...).
-            {
-                var parentAIWasActive = ai.pilotEnabled;
-                var parentWMWasActive = ai.WeaponManager.guardMode;
-                ai.WeaponManager.RefreshModules("parent vessel");
-                if (ai != null && ai.WeaponManager != null) // After refreshing modules, the AI and WM might not be the same!
-                {
-                    if (parentAIWasActive) ai.ActivatePilot(); // Enable the new AI if the parent was active.
-                    else ai.DeactivatePilot();
-                    guardMode = parentWMWasActive; // Enable the new WM if the parent was active.
-                    ai.WeaponManager.UpdateList();
-                }
-            }
-            RefreshModules("vessel creation");
-            // Debug.Log($"DEBUG New vessel {vessel} created with AI {AI} ({(AI != null ? AI.part.persistentId : null)}) and WM {this} ({this.part.persistentId})");
-            // modulesNeedRefreshing = true;
-            weaponsListNeedsUpdating = true;
-            cmPrioritiesNeedRefreshing = true;
-            if (BDACompetitionMode.Instance.competitionIsActive)
-                BDACompetitionMode.Instance.AddToCompetitionWhenReady(this);
-        }
-
         void OnVesselPartCountChanged(Vessel v)
         {
             if (v == null || vessel != v) return;
@@ -1495,7 +1475,6 @@ namespace BDArmory.Control
             cmPrioritiesNeedRefreshing = true;
         }
 
-        // FIXME This triggers for each WM on the combined plane. The non-primary WMs ought to be disabled until they're the primary WM.
         void OnPartJointBreak(PartJoint j, float breakForce)
         {
             if (!part)
@@ -2085,7 +2064,6 @@ namespace BDArmory.Control
         {
             BDArmorySetup.OnVolumeChange -= UpdateVolume;
             BDArmorySetup.OnSavedSettings -= ClampVisualRange;
-            GameEvents.onVesselCreate.Remove(OnVesselCreate);
             GameEvents.onPartJointBreak.Remove(OnPartJointBreak);
             GameEvents.onPartDie.Remove(OnPartDie);
             GameEvents.onVesselPartCountChanged.Remove(UpdateMaxGunRange);

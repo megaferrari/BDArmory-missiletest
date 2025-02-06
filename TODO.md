@@ -14,6 +14,8 @@
 	- Rename only conflicting vessels as "<vesselname>_N (<teamname>)" where "_N" only applies within the team.
 	- Will require preprocessing all vessels in the tournament to identify which ones need renaming and using this during spawns.
 - Fix ramming ground targets
+- Vessel naming for multi-craft needs a rework to respect VESSELNAMING on parts.
+	- Move vessel renaming out of spawning and manage vessel names from within the tournament class
 
 - Wiki entries
 	- Auto-Tuning

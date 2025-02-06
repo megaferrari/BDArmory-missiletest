@@ -422,7 +422,7 @@ namespace BDArmory.Control
                 if (engine.throttleLocked || !engine.allowShutdown || !engine.allowRestart) continue; // Ignore engines that can't be throttled, shutdown, or restart
                 if (VesselSpawning.SpawnUtils.IsModularMissilePart(engine.part)) continue; // Ignore modular missile engines.
                 if (engineIndependentThrottleState.ContainsKey(engine.part.persistentId)) continue; // don't re-add engines
-                engineIndependentThrottleState.Add(engine.part.persistentId, new (engine.independentThrottle, engine.independentThrottlePercentage, engine.thrustPercentage));
+                engineIndependentThrottleState.Add(engine.part.persistentId, new(engine.independentThrottle, engine.independentThrottlePercentage, engine.thrustPercentage));
             }
             UpdateEngineLists(true); // Update engine list, turn off reverse engines if active
             return true;
@@ -1162,10 +1162,11 @@ namespace BDArmory.Control
                 {
                     var weaponManager = WeaponManager;
                     if (weaponManager.underAttack || weaponManager.underFire)
-                {
-                    ReleaseCommand(false);
-                    return;
-                }}
+                    {
+                        ReleaseCommand(false);
+                        return;
+                    }
+                }
             }
         }
 
@@ -1260,7 +1261,7 @@ namespace BDArmory.Control
             // Is it worth us chasing a withdrawing ship?
             BDModuleOrbitalAI targetAI = target.ActiveController().OrbitalAI;
 
-            if (targetAI)
+            if (targetAI && targetAI.pilotEnabled)
             {
                 Vector3 toTarget = target.CoM - vessel.CoM;
                 bool escaping = targetAI.currentStatusMode == StatusMode.Withdrawing;
@@ -1329,7 +1330,7 @@ namespace BDArmory.Control
             if (!speedWithinLimits)
             {
                 BDModuleOrbitalAI targetAI = targetVessel.ActiveController().OrbitalAI;
-                if (targetAI != null)
+                if (targetAI && targetAI.pilotEnabled)
                     speedWithinLimits = targetAI.ManeuverSpeed > ManeuverSpeed && targetAI.targetVessel == vessel && RelVel(targetVessel, vessel).sqrMagnitude > ManeuverSpeed * ManeuverSpeed; // Target is targeting us, set to maneuver faster, and is maneuvering faster
             }
             return cpa.sqrMagnitude < interceptRangeTolSqr && speedWithinLimits;
@@ -1504,7 +1505,7 @@ namespace BDArmory.Control
 
                 // If our target is targeting us and is maneuvering at a speed slower than our fire speed, set speed target as slighly above their maneuver speed
                 BDModuleOrbitalAI targetAI = targetVessel.ActiveController().OrbitalAI;
-                if (targetAI != null && targetAI.targetVessel == vessel && targetAI.ManeuverSpeed < firingSpeed)
+                if (targetAI && targetAI.pilotEnabled && targetAI.targetVessel == vessel && targetAI.ManeuverSpeed < firingSpeed)
                     speedTarget = Mathf.Max(1.05f * targetAI.ManeuverSpeed, speedTarget);
             }
 

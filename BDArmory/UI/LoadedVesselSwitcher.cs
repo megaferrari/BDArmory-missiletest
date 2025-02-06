@@ -48,6 +48,7 @@ namespace BDArmory.UI
         private Dictionary<string, float> cameraScores = [];
 
         private bool upToDateWMs = false;
+        public void UpdateWMs() { upToDateWMs = false; } // Update the WMs on the next frame.
         public SortedList<string, List<MissileFire>> WeaponManagers
         {
             get

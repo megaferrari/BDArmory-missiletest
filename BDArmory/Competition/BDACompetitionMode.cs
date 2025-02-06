@@ -2802,11 +2802,12 @@ namespace BDArmory.Competition
                         }
                         if (mf.guardMode) // If we're in guard mode, check to see if we should disable it.
                         {
-                            var pilotAI = vessel.ActiveController().PilotAI; // Get the pilot AI if the vessel has one.
-                            var surfaceAI = vessel.ActiveController().SurfaceAI; // Get the surface AI if the vessel has one.
-                            var vtolAI = vessel.ActiveController().VTOLAI; // Get the VTOL AI if the vessel has one.
-                            var orbitalAI = vessel.ActiveController().OrbitalAI; // Get the Orbital AI if the vessel has one.
-                            if ((pilotAI == null && surfaceAI == null && vtolAI == null && orbitalAI == null) || (mf.outOfAmmo && (BDArmorySettings.DISABLE_RAMMING || !((pilotAI != null && pilotAI.allowRamming) || (orbitalAI != null && orbitalAI.allowRamming))))) // if we've lost the AI or the vessel is out of weapons/ammo and ramming is not allowed.
+                            if (ai == null || mf.outOfAmmo && (BDArmorySettings.DISABLE_RAMMING || ai.aiType switch
+                            {
+                                AIType.PilotAI => !(ai as BDModulePilotAI).allowRamming,
+                                AIType.OrbitalAI => !(ai as BDModuleOrbitalAI).allowRamming,
+                                _ => true
+                            })) // if we've lost the AI or the vessel is out of weapons/ammo and ramming is not allowed.
                                 mf.guardMode = false;
                         }
                     }
@@ -3898,6 +3899,7 @@ namespace BDArmory.Competition
             if (Time.time - start < 10 && IsValidVessel(vessel) == InvalidVesselReason.None && !Scores.Players.Contains(vessel.vesselName) && !vessel.vesselName.Contains(" Fighter_"))
             {
                 // FIXMEAI Detached parts with AI/WM where the parent no longer them shouldn't count as new. (E.g., detached combat seats that weren't the root part.)
+                // Also, missiles with WMs shouldn't be added.
                 weaponManager.UpdateList();
                 if (vessel.vesselType == VesselType.Plane && vessel.vesselName.EndsWith(" Plane")) // FIXMEAI This needs to be updated similar to vessel.StripTypeFromName()
                 {

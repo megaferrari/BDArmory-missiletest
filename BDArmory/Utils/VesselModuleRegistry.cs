@@ -945,7 +945,8 @@ namespace BDArmory.Utils
 
         public MissileFire WM { get; private set; } // Use this for accessing the primary WM. Use VesselModuleRegistry.GetMissileFires to get all WMs on a craft.
         public IBDAIControl AI { get; private set; } // The active AI (if any are active) or the closest AI to the root.
-        // FIXMEAI Check the places that the following are called from. They should verify that the pilot is enabled.
+
+        // Note: If using these below, check that ai.pilotEnabled is true to see if it's the active AI.
         public BDModulePilotAI PilotAI { get; private set; } // The primary or most recently active pilot AI.
         public BDModuleSurfaceAI SurfaceAI { get; private set; } // The primary or most recently active surface AI.
         public BDModuleVTOLAI VTOLAI { get; private set; } // The primary or most recently active VTOL AI.
@@ -990,7 +991,7 @@ namespace BDArmory.Utils
                 if (string.IsNullOrEmpty(vesselName)) vesselName = "new vessel";
                 Debug.Log($"[BDArmory.ActiveController]: ActiveController modules updated on {(string.IsNullOrEmpty(vesselName) ? Vessel.rootPart.partInfo.name : vesselName)} ({Vessel.vesselType}), WM: {WM != null}, PilotAI: {PilotAI != null}, SurfaceAI: {SurfaceAI != null}, VTOLAI: {VTOLAI != null}, OrbitalAI: {OrbitalAI != null}, AI: {AI}");
             }
-            LoadedVesselSwitcher.Instance.UpdateList();
+            LoadedVesselSwitcher.Instance.UpdateWMs(); // Flag the the WMs in the VS need refreshing.
         }
 
         /// <summary>
@@ -1106,6 +1107,19 @@ namespace BDArmory.Utils
             GameEvents.onVesselPartCountChanged.Add(OnVesselPartCountChanged);
             TimingManager.FixedUpdateAdd(TimingManager.TimingStage.Precalc, UpdateModules);
             UpdateModules();
+
+            if (WM != null)
+            {
+                // If the vessel detached from a craft that had an active WM/AI, then we should activate the current WM/AI (if it has one).
+                if (WM.ParentWM != null && WM.ParentWM.IsPrimaryWM)
+                {
+                    // FIXMEAI
+                }
+                if (BDACompetitionMode.Instance.competitionIsActive)
+                {
+                    BDACompetitionMode.Instance.AddToCompetitionWhenReady(WM);
+                }
+            }
         }
 
         /// <summary>

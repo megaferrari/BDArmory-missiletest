@@ -2581,8 +2581,8 @@ namespace BDArmory.UI
                         if (BDArmorySettings.DEBUG_OTHER && GUI.Button(SLineRect(++line), StringUtils.Localize("#LOC_BDArmory_Settings_ResetScrollZoom"))) GUIUtils.ResetScrollRate(); // Reset scroll-zoom.
                         if (BDArmorySettings.DEBUG_AI && GUI.Button(SLineRect(++line), "Debug Extending")) // Debug why a vessel is stuck in extending.
                         {
-                            var AI = FlightGlobals.ActiveVessel.ActiveController().PilotAI;
-                            if (AI != null && AI.pilotEnabled) AI.DebugExtending();
+                            var pilotAI = FlightGlobals.ActiveVessel.ActiveController().PilotAI;
+                            if (pilotAI != null && pilotAI.pilotEnabled) pilotAI.DebugExtending();
                         }
                         if (BDArmorySettings.DEBUG_OTHER && HighLogic.LoadedSceneIsEditor && GUI.Button(SLineRect(++line), "Dump parts"))
                         {
