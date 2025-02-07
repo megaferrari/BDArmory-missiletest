@@ -966,7 +966,11 @@ namespace BDArmory.Utils
 
             // Set only the closest WM to the root part as the active WM.
             WM = VesselModuleRegistry.GetMissileFire(Vessel);
-            foreach (var wm in VesselModuleRegistry.GetMissileFires(Vessel)) wm.IsPrimaryWM = wm == WM;
+            foreach (var wm in VesselModuleRegistry.GetMissileFires(Vessel))
+            {
+                wm.IsPrimaryWM = wm == WM;
+                if (!wm.IsPrimaryWM) wm.ParentWM = WM;
+            }
 
             // Update the AIs.
             // Find the primary of each type of AI: the first active one or the first one, sorted by proximity to the root.
@@ -1113,7 +1117,13 @@ namespace BDArmory.Utils
                 // If the vessel detached from a craft that had an active WM/AI, then we should activate the current WM/AI (if it has one).
                 if (WM.ParentWM != null && WM.ParentWM.IsPrimaryWM)
                 {
-                    // FIXMEAI
+                    // Copy the parent vessel's WM and AI state.
+                    WM.guardMode = WM.ParentWM.guardMode;
+                    if (AI != null && WM.ParentWM.AI != null)
+                    {
+                        if (WM.ParentWM.AI.pilotEnabled) AI.ActivatePilot();
+                        else AI.DeactivatePilot();
+                    }
                 }
                 if (BDACompetitionMode.Instance.competitionIsActive)
                 {

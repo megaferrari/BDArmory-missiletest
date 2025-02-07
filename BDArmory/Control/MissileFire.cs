@@ -38,14 +38,20 @@ namespace BDArmory.Control
                     RefreshModules(); // Refresh all our module lists.
                     UpdateList(); // Update the weapons lists.
                     RefreshCMPriorities(); // Refresh the CM priorities.
+                    if (_isPrimaryWM) SetParentWM(null);
                 }
             }
         }
-        public MissileFire ParentWM { get { return _parentWM; }
-        set{ StartCoroutine(SetParentWM(value)); } } // Keep a link to the parent WM so detached vessels can copy their state when they detach.
+        public MissileFire ParentWM
+        {
+            get { return _parentWM; }
+            set { StartCoroutine(SetParentWM(value)); }
+        } // Keep a link to the parent WM so detached vessels can copy their state when they detach.
         MissileFire _parentWM;
         IEnumerator SetParentWM(MissileFire wm) // Set the parent WM at the end of the frame so that the previous value remains valid until the end of the frame.
-        { yield return new WaitForEndOfFrame(); _parentWM = wm; }
+        {
+            yield return new WaitForEndOfFrame(); _parentWM = wm == this ? null : wm;
+        }
 
         //weapons
         private List<IBDWeapon> weaponTypes = [];
