@@ -8556,7 +8556,7 @@ namespace BDArmory.Control
                     }
                 }
             }
-            Debug.Log($"[BDArmory.MissileFire - {(this.vessel != null ? vessel.GetName() : "null")}] tgtcount: {PDBulletTgts.Count + PDRktTgts.Count + PDMslTgts.Count}, APS count: {APScount}; interceptor count: {missileCount}");
+            //Debug.Log($"[BDArmory.MissileFire - {(this.vessel != null ? vessel.GetName() : "null")}] tgtcount: {PDBulletTgts.Count + PDRktTgts.Count + PDMslTgts.Count}, APS count: {APScount}; interceptor count: {missileCount}");
             if (APScount + missileCount <= 0)
             {
                 PDScanTimer = -100;
@@ -8681,8 +8681,6 @@ namespace BDArmory.Control
                                                         weapon.Current.tgtRocket = null;
                                                         break;
                                                     }
-                                                    else
-                                                        //Debug.Log($"[BDArmory.MissileLauncher] Turret {weapon.Current.WeaponName} out of range!");
                                                 }
                                         }
                                         TurretID++;

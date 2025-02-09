@@ -1599,7 +1599,7 @@ namespace BDArmory.UI
                     //Debug.Log($"[BDArmory.BDAtargetManager - {(mf.vessel != null ? mf.vessel.GetName() : "null")}] closestMissileThreat, checking {target.Current.Vessel.name}");
                     if (target.Current && target.Current.Vessel && target.Current.isMissile && mf.CanSeeTarget(target.Current))
                     {
-                        Debug.Log($"[BDArmory.BDAtargetManager - {(mf.vessel != null ? mf.vessel.GetName() : "null")}] closestMissileThreat, {target.Current.Vessel.name} is missile...");
+                        //Debug.Log($"[BDArmory.BDAtargetManager - {(mf.vessel != null ? mf.vessel.GetName() : "null")}] closestMissileThreat, {target.Current.Vessel.name} is missile...");
                         if (RadarUtils.MissileIsThreat(target.Current.MissileBaseModule, mf, false))
                         {
                             //if (target.Current.NumFriendliesEngaging(mf.Team) >= 0) continue;
