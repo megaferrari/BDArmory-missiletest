@@ -3132,7 +3132,7 @@ namespace BDArmory.Weapons.Missiles
             /*
             if (targetVessel != null)
             {
-                using (var wpm = VesselModuleRegistry.GetModules<MissileFire>(targetVessel).GetEnumerator())
+                using (var wpm = VesselModuleRegistry.GetMissileFires(targetVessel).GetEnumerator())
                     while (wpm.MoveNext())
                     {
                         if (wpm.Current == null) continue;

@@ -1011,7 +1011,7 @@ namespace BDArmory.Control
             if (HighLogic.LoadedSceneIsFlight)
             {
                 SetTarget(null); // Without this, friendliesEngaging never gets updated
-                using (var wpnMgr = VesselModuleRegistry.GetModules<MissileFire>(vessel).GetEnumerator())
+                using (var wpnMgr = VesselModuleRegistry.GetMissileFires(vessel).GetEnumerator())
                     while (wpnMgr.MoveNext())
                     {
                         if (wpnMgr.Current == null) continue;

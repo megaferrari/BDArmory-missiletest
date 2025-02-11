@@ -152,7 +152,7 @@ namespace BDArmory.Radar
                     WindowRectRWRInitialized = true;
                 }
 
-                using (var mf = VesselModuleRegistry.GetModules<MissileFire>(vessel).GetEnumerator())
+                using (var mf = VesselModuleRegistry.GetMissileFires(vessel).GetEnumerator())
                     while (mf.MoveNext())
                     {
                         if (mf.Current == null) continue;
