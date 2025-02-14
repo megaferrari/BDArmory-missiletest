@@ -724,7 +724,8 @@ namespace BDArmory.Weapons.Missiles
                     TargetSignatureData t = TargetSignatureData.noTarget;
                     TargetPosition = Vector3.zero;
                     UpdateLaserTarget(); //available cam for new GPS coords?
-                    if (TargetPosition == Vector3.zero && vrd && vrd.locked)//no cam; available radar lock?
+                    //Debug.Log($"[MissileBase] GPS vrd: {vrd != null}; vrd lock: {vrd && vrd.locked}");
+                    if (vrd && vrd.locked)//no cam; available radar lock? 
                     {
                         List<TargetSignatureData> possibleTargets = vrd.GetLockedTargets();
                         for (int i = 0; i < possibleTargets.Count; i++)
@@ -733,6 +734,7 @@ namespace BDArmory.Weapons.Missiles
                                 t = possibleTargets[i];
                         }
                         if (t.exists) TargetPosition = t.position;
+                        //Debug.Log($"[MissileBase] GPS targetPosition is{TargetPosition.x:F2}, {TargetPosition.x:F2}, {TargetPosition.z:F2}");
                     }
                     if (TargetPosition != Vector3.zero)
                     {
@@ -745,7 +747,7 @@ namespace BDArmory.Weapons.Missiles
 
                             if (gpsUpdates == 0) // Constant updates
                             {
-                                gpsTargetCoords_ = VectorUtils.WorldPositionToGeoCoords(targetVessel.Vessel.CoM, targetVessel.Vessel.mainBody);
+                                gpsTargetCoords_ = VectorUtils.WorldPositionToGeoCoords(TargetPosition, targetVessel.Vessel.mainBody);
                                 targetGPSCoords = gpsTargetCoords_;
                             }
                             else // Update every gpsUpdates seconds
@@ -754,7 +756,7 @@ namespace BDArmory.Weapons.Missiles
                                 if (updateCount > gpsUpdateCounter)
                                 {
                                     gpsUpdateCounter++;
-                                    gpsTargetCoords_ = VectorUtils.WorldPositionToGeoCoords(targetVessel.Vessel.CoM, targetVessel.Vessel.mainBody);
+                                    gpsTargetCoords_ = VectorUtils.WorldPositionToGeoCoords(TargetPosition, targetVessel.Vessel.mainBody);
                                     targetGPSCoords = gpsTargetCoords_;
                                 }
                             }

@@ -3164,6 +3164,7 @@ namespace BDArmory.Weapons
                 return false;
             }
             if (BDArmorySettings.INFINITE_AMMO) return true;
+            bool secondaryAmmo = false;
             if (secondaryAmmoPerShot != 0)
             {
                 if (!(secECResource && CheatOptions.InfiniteElectricity)) //else skip to main ammo as EC is accounted for
@@ -3171,8 +3172,12 @@ namespace BDArmory.Weapons
                     vessel.GetConnectedResourceTotals(ECID, out double EcCurrent, out double ecMax);
                     if (EcCurrent > secondaryAmmoPerShot * (secECResource ? 0.95f : 1))
                     {
-                        part.RequestResource(ECID, secondaryAmmoPerShot, (secECResource || !BDArmorySettings.WEAPONS_RESPECT_CROSSFEED) ? ResourceFlowMode.ALL_VESSEL : ResourceFlowMode.STACK_PRIORITY_SEARCH);
-                        if (requestResourceAmount == 0) return true; //weapon only uses secondaryAmmoName for some reason?
+                        secondaryAmmo = true;
+                        if (requestResourceAmount == 0) //weapon only uses secondaryAmmoName for some reason?
+                        {
+                            part.RequestResource(ECID, secondaryAmmoPerShot, (secECResource || !BDArmorySettings.WEAPONS_RESPECT_CROSSFEED) ? ResourceFlowMode.ALL_VESSEL : ResourceFlowMode.STACK_PRIORITY_SEARCH);
+                            return true;
+                        }
                     }
                     else
                     {
@@ -3182,7 +3187,14 @@ namespace BDArmory.Weapons
                     //else return true; //this is causing weapons thath have ECPerShot + standard ammo (railguns, etc) to not consume ammo, only EC
                 }
             }
-            if ((electricResource && CheatOptions.InfiniteElectricity)) return true;
+            if ((electricResource && CheatOptions.InfiniteElectricity))
+            {
+                if (secondaryAmmo) //secondary ammo isn't electricity, so consume requisite ammount
+                {
+                    part.RequestResource(ECID, secondaryAmmoPerShot, (secECResource || !BDArmorySettings.WEAPONS_RESPECT_CROSSFEED) ? ResourceFlowMode.ALL_VESSEL : ResourceFlowMode.STACK_PRIORITY_SEARCH);
+                }
+                return true;
+            }
             else
             {
                 GetAmmoCount(AmmoID, out double ammoCurrent, out double ammoMax);
@@ -3190,6 +3202,10 @@ namespace BDArmory.Weapons
                 if (ammoCount >= AmmoPerShot * 0.995f) //catch floating point errors from fractional ammo spread across multiple boxes
                                                        // TODO?? Change code to some sort of list of ammoboxes to only draw from box with current highest resouce amount to do proper integer reductions?
                 {
+                    if (secondaryAmmo) //moving this here so weapon only drains secondary Ammo if primary ammo also exists
+                    {
+                        part.RequestResource(ECID, secondaryAmmoPerShot, (secECResource || !BDArmorySettings.WEAPONS_RESPECT_CROSSFEED) ? ResourceFlowMode.ALL_VESSEL : ResourceFlowMode.STACK_PRIORITY_SEARCH);
+                    }
                     if (part.RequestResource(ammoName.GetHashCode(), (double)AmmoPerShot, (electricResource || !BDArmorySettings.WEAPONS_RESPECT_CROSSFEED) ? ResourceFlowMode.ALL_VESSEL : externalAmmo ? (BDArmorySettings.WEAPONS_RESPECT_CROSSFEED ? ResourceFlowMode.STACK_PRIORITY_SEARCH : ResourceFlowMode.ALL_VESSEL) : ResourceFlowMode.NO_FLOW) > 0) //for guns with internal ammo supplies and no external, only draw from the weapon part
                     {
                         return true;

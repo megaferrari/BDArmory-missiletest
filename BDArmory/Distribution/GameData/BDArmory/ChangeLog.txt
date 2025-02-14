@@ -8,6 +8,8 @@
 -Weapons:
 	-Removed the 'Engage Missile' toggle from APS/Dual-Purpose APS turrets as these weapons don't use it.
 	-Fix custom ammo belts not cycling ammo type in some situations.
+	-Fix weapons using a secondary ammo consuming secondary ammo when primary ammo missing.
+	-Fix tracers on guns with tracerlength > 0 extending behind gun on firing.
 	-Missiles: 
 		-Fix AAMLoft implementation for MMGs.
 		-Fix reload gauge for reloadable launchers.

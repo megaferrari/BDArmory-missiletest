@@ -2386,7 +2386,7 @@ namespace BDArmory.Control
                                         }
                                         else
                                         {
-                                            // if a low lock capacity radar , and it already has a lock on another target, TLT will return false, because the radar already at lock cap
+                                            // if a low lock capacity radar, and it already has a lock on another target, TLT will return false, because the radar already at lock cap
                                             // end result: radar lock stuck on wrong target; need unlock, then lock if lock num = max locks
                                             //if availableLocks, tryLocktarget, else, unlock target -> try locktarget
                                             /*if (MaxradarLocks <= possibleTargets.Count) //not currently checking if available radar locks are viable, e.g. a rear-facing radar w/ lock capability
@@ -7669,6 +7669,10 @@ namespace BDArmory.Control
                         {
                             dumbfire = true;
                             validTarget = true;
+                        }
+                        if (vesselRadarData)
+                        {
+                            ml.vrd = vesselRadarData;
                         }
                         break;
                     }
