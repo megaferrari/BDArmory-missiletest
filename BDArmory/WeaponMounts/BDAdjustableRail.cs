@@ -28,7 +28,7 @@ namespace BDArmory.WeaponMounts
             if (launcher)
             {
                 var tempTransform = part.FindModelTransform(launcher.launchTransformName);
-                if (!tempTransform.IsChildOf(railLengthTransform))
+                if (tempTransform.IsChildOf(railLengthTransform))
                     launchTransform = tempTransform;
             }
             railLengthTransform.localScale = new Vector3(1, railLength, 1);
