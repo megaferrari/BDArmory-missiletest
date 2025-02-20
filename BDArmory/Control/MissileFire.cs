@@ -320,8 +320,7 @@ namespace BDArmory.Control
         bool showBombAimer;
         List<(Vector3, Texture2D, float, float)> missileAimerUI = []; // GUIUtils.DrawTextureOnWorldPos arguments: (position, texture, size, wobble)
 
-        public static Dictionary<int, ObjectPool> boresights = new Dictionary<int, ObjectPool>();
-        GameObject boreRing;
+        static GameObject boreRing;
         Renderer r_ring;
         //GameObject boreRadarRing;
         //Renderer r_rRing;
@@ -1328,27 +1327,26 @@ namespace BDArmory.Control
                     SF = (ModuleSpaceFriction)vessel.rootPart.AddModule("ModuleSpaceFriction");
                 }
                 //either have this added on spawn to allow vessels to respond to space hack settings getting toggled, or have the Spacefriction module it's own separate part
-
-                var ring = GameDatabase.Instance.GetModel("BDArmory/Models/boresight/boresight");
-                if (ring == null)
+                if (boreRing == null)
                 {
-                    Debug.LogError("[BDArmory.MissileFire]: model BDArmory/Models/boresight/boresight not found.");
-                    ring = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    var dc = ring.GetComponent<Collider>();
-                    if (dc)
+                    boreRing = GameDatabase.Instance.GetModel("BDArmory/Models/boresight/boresight");
+                    if (boreRing == null)
                     {
-                        dc.enabled = false;
-                        Destroy(dc);
+                        Debug.LogError("[BDArmory.MissileFire]: model BDArmory/Models/boresight/boresight not found.");
+                        boreRing = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                        var dc = boreRing.GetComponent<Collider>();
+                        if (dc)
+                        {
+                            dc.enabled = false;
+                            Destroy(dc);
+                        }
                     }
                 }
-
                 //Renderer d = ring.GetComponentInChildren<Renderer>();
                 //if (d != null)
                 //{
                 //d.material = new Material(Shader.Find("KSP/Particles/Alpha Blended"));
                 //d.material.SetColor("_TintColor", Color.green);
-                ring.SetActive(false);
-                boresights[0] = ObjectPool.CreateObjectPool(ring, 1, true, true);
                 //}
                 /*
                 var radarRing = GameDatabase.Instance.GetModel("BDArmory/Models/boresight/radarBoresight");
@@ -1372,13 +1370,12 @@ namespace BDArmory.Control
                     boresights[1] = ObjectPool.CreateObjectPool(radarRing, 1, true, true);
                 }    
                 */
-                if (boresights[0] != null)
+                if (ShowBoreRing(false))
                 {
-                    boreRing = boresights[0].GetPooledObject();
                     boreRing.transform.SetPositionAndRotation(transform.position, transform.rotation);
                     boreRing.transform.localScale = Vector3.zero;
                     r_ring = boreRing.GetComponent<Renderer>();
-                    Debug.Log("[BDArmory.MissileFire]: boresight set up.");
+                    if (BDArmorySettings.DEBUG_AI) Debug.Log("[BDArmory.MissileFire]: boresight set up.");
                 }
                 /*
                 if (boresights[1] != null)
@@ -1584,24 +1581,25 @@ namespace BDArmory.Control
                     MissileLauncher msl = CurrentMissile as MissileLauncher;
                     if (vessel.altitude > msl.GetBlastRadius())
                     {
-                        boreRing.SetActive(true);
-                        Quaternion rotation = Quaternion.LookRotation(FlightCamera.fetch.mainCamera.transform.forward, boreRing.transform.forward);
-                        boreRing.transform.SetPositionAndRotation(bombAimerPosition, rotation);
-                        if (guardTarget && (msl.guidanceActive && foundCam && (foundCam.groundTargetPosition - guardTarget.transform.position).sqrMagnitude <= 100))
-                            missileAimerUI.Add((bombAimerPosition, BDArmorySetup.Instance.largeGreenCircleTexture, 256, 3));
-                        boreRing.transform.localScale = Mathf.Min(150, msl.GetBlastRadius() * 0.68f) / 10 * Vector3.one; //ring model has 10m radius. GBR uses a min of 0.68x radius for single bombs
+                        if (ShowBoreRing(true))
+                        {
+                            Quaternion rotation = Quaternion.LookRotation(FlightCamera.fetch.mainCamera.transform.forward, boreRing.transform.forward);
+                            boreRing.transform.SetPositionAndRotation(bombAimerPosition, rotation);
+                            if (guardTarget && (msl.guidanceActive && foundCam && (foundCam.groundTargetPosition - guardTarget.transform.position).sqrMagnitude <= 100))
+                                missileAimerUI.Add((bombAimerPosition, BDArmorySetup.Instance.largeGreenCircleTexture, 256, 3));
+                            boreRing.transform.localScale = Mathf.Min(150, msl.GetBlastRadius() * 0.68f) / 10 * Vector3.one; //ring model has 10m radius. GBR uses a min of 0.68x radius for single bombs
+                        }
                         missileAimerUI.Add((bombAimerPosition, BDArmorySetup.Instance.greenCross, 48, 0));
                         if (guardTarget) missileAimerUI.Add((AIUtils.PredictPosition(guardTarget, bombFlightTime, immediate: false), BDArmorySetup.Instance.greenDotTexture, 6, 3));
                     }
                     else
                     {
-                        boreRing.SetActive(false);
                         missileAimerUI.Add((bombAimerPosition, BDArmorySetup.Instance.greenSpikedPointCircleTexture, 128, 0));
                     }
                 }
                 else
                 {
-                    boreRing.SetActive(false);
+                    ShowBoreRing(false);
                     //float dynamicBoresight = ml.maxOffBoresight * ((vessel.LandedOrSplashed || (guardTarget && guardTarget.LandedOrSplashed) || ml.uncagedLock) ? 0.75f : 0.35f); // for larger boresights (> ~60 or so) may want thinner ring model so ring isn't stupidly thick at larger scale.
                     // boresights > 90 or so may want to simply be capped, else they'll fill the whole screen for something that has a 120deg bore, or a 180deg, or a 240deg, or whatever
                     //dynamicBoresight = Mathf.Clamp(dynamicBoresight, 1, 90);
@@ -1813,7 +1811,7 @@ namespace BDArmory.Control
             }
             else
             {
-                boreRing.SetActive(false);
+                ShowBoreRing(false);
                 //boreRadarRing.SetActive(false);
             }
         }
@@ -2048,7 +2046,7 @@ namespace BDArmory.Control
             GameEvents.onEditorPartPlaced.Remove(UpdateMaxGunRange);
             GameEvents.onEditorPartDeleted.Remove(UpdateMaxGunRange);
             TimingManager.FixedUpdateRemove(TimingManager.TimingStage.Earlyish, PointDefence);
-            if (boreRing != null) boreRing.SetActive(false);
+            if (boreRing != null) ShowBoreRing(false);
             //if (boreRadarRing != null) boreRadarRing.SetActive(false);
         }
 
@@ -8552,12 +8550,8 @@ namespace BDArmory.Control
             {
                 foreach (var incomingMissile in results.incomingMissiles)
                 {
-                    if (incomingMissile.vessel != null)
-                    {
-                        TargetInfo tInfo;
-                        if ((tInfo = incomingMissile.vessel.gameObject.GetComponent<TargetInfo>()))
-                            PDMslTgts.Add(tInfo);
-                    }
+                    if (incomingMissile.vessel != null && incomingMissile.vessel.gameObject.TryGetComponent<TargetInfo>(out var tInfo))
+                        PDMslTgts.Add(tInfo);
                 }
             }
             //Debug.Log($"[BDArmory.MissileFire - {(this.vessel != null ? vessel.GetName() : "null")}] tgtcount: {PDBulletTgts.Count + PDRktTgts.Count + PDMslTgts.Count}, APS count: {APScount}; interceptor count: {missileCount}");
@@ -9341,6 +9335,13 @@ namespace BDArmory.Control
         #endregion Turret
 
         #region Aimer
+        bool ShowBoreRing(bool visible)
+        {
+            if (!vessel.isActiveVessel) return false; // We're not in control.
+            if (!showBombAimer) return false; //tachnically, this should only be appearing when aiming bombs. Would need to edit this if a dynamic ring is ever implemented for missile boresights
+            boreRing.SetActive(visible);
+            return true; // We're in control.
+        }
 
         string bombAimerDebugString = "";
         float BombAimer()
