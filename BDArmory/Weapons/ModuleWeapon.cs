@@ -5146,7 +5146,7 @@ namespace BDArmory.Weapons
                             targetAcquired = true;
                             targetAcquisitionType = TargetAcquisitionType.Radar;
                             radarTarget = true;
-                            if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.ModuleWeapon - {shortName} is tracking target {targetData.vessel.name} via radarlock from {targetData.lockedByRadar.part.partInfo.title}");
+                            if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.ModuleWeapon - {shortName} is tracking target {targetData.vessel.vesselName} via radarlock from {targetData.lockedByRadar.part.partInfo.title}");
                             return;
                         }
                         else //no lock for our secondary target? slave turret to a lock we do have
@@ -5171,7 +5171,7 @@ namespace BDArmory.Weapons
                                 }
                                 targetAcquired = true;
                                 targetAcquisitionType = TargetAcquisitionType.Slaved;
-                                Debug.Log($"[BDArmory.ModuleWeapon - {shortName} had no lock for  {visualTargetVessel.name}; slaving to primary lock on {weaponManager.slavedTarget.vessel.name}");
+                                if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.ModuleWeapon - {shortName} had no lock for  {visualTargetVessel.vesselName}; slaving to primary lock on {weaponManager.slavedTarget.vessel.name}");
                                 return;
                             }
                         }
