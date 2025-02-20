@@ -1588,9 +1588,9 @@ namespace BDArmory.Control
                             if (guardTarget && (msl.guidanceActive && foundCam && (foundCam.groundTargetPosition - guardTarget.transform.position).sqrMagnitude <= 100))
                                 missileAimerUI.Add((bombAimerPosition, BDArmorySetup.Instance.largeGreenCircleTexture, 256, 3));
                             boreRing.transform.localScale = Mathf.Min(150, msl.GetBlastRadius() * 0.68f) / 10 * Vector3.one; //ring model has 10m radius. GBR uses a min of 0.68x radius for single bombs
+                            missileAimerUI.Add((bombAimerPosition, BDArmorySetup.Instance.greenCross, 48, 0));
+                            if (guardTarget) missileAimerUI.Add((AIUtils.PredictPosition(guardTarget, bombFlightTime, immediate: false), BDArmorySetup.Instance.greenDotTexture, 6, 3));
                         }
-                        missileAimerUI.Add((bombAimerPosition, BDArmorySetup.Instance.greenCross, 48, 0));
-                        if (guardTarget) missileAimerUI.Add((AIUtils.PredictPosition(guardTarget, bombFlightTime, immediate: false), BDArmorySetup.Instance.greenDotTexture, 6, 3));
                     }
                     else
                     {
@@ -9338,7 +9338,6 @@ namespace BDArmory.Control
         bool ShowBoreRing(bool visible)
         {
             if (!vessel.isActiveVessel) return false; // We're not in control.
-            if (!showBombAimer) return false; //tachnically, this should only be appearing when aiming bombs. Would need to edit this if a dynamic ring is ever implemented for missile boresights
             boreRing.SetActive(visible);
             return true; // We're in control.
         }
