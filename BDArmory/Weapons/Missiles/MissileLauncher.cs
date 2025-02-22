@@ -1649,8 +1649,8 @@ namespace BDArmory.Weapons.Missiles
             {
                 if (launched && reloadRoutine != null)
                 {
-                    reloadTimer = Mathf.Clamp01(reloadTimer + TimeWarp.deltaTime / reloadableRail.reloadTime);
-                    gauge.UpdateReloadMeter(reloadTimer);
+                    reloadTimer += TimeWarp.deltaTime;
+                    gauge.UpdateReloadMeter(Mathf.Clamp01(reloadTimer / reloadableRail.reloadTime));
                 }
             }
             if (multiLauncher && heatTimer > 0)
