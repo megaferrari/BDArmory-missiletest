@@ -273,7 +273,7 @@ namespace BDArmory.Utils
                             PWType.GetField("aeroUIMass", BindingFlags.Public | BindingFlags.Instance).SetValue(module, (float)Math.Round((liftCoeff / 5f) * (adjustedThickness * 5.56f),3)); //this modifies the IPartMassModifier, so the mass will also change along with the GUI
                         if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.MAX_PWING_LIFT > 0)
                         {
-                            liftCoeff = Mathf.Clamp((float)liftCoeff, 0, BDArmorySettings.MAX_PWING_LIFT + 0.01f); //if Runway Project, check lift is within limit and clamp if not. Adding .01 so it can get caught by the BDA Craft Utilities Tool looking for wings larger than the limit
+                            liftCoeff = Mathf.Clamp((float)liftCoeff, 0, BDArmorySettings.MAX_PWING_LIFT + 0.001f); //if Runway Project, check lift is within limit and clamp if not. Adding .01 so it can get caught by the BDA Craft Utilities Tool looking for wings larger than the limit
                             //f (!WingctrlSrf && !ctrlSrf) PWType.GetField("sharedBaseOffsetRoot", BindingFlags.Public | BindingFlags.Instance).SetValue(module, 0); //irrelevant in pWing 0.46.7
                             if (BDArmorySettings.PWING_THICKNESS_AFFECT_MASS_HP)
                             {
