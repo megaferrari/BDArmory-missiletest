@@ -1247,7 +1247,6 @@ namespace BDArmory.UI
                                     if (!string.IsNullOrEmpty(blacklistedParts)) blacklistedParts += " | ";
                                     blacklistedParts += $"{partName} missing({listedpartCount}/{Mathf.Abs(bQ)})"; //is the part on the white list? if so, add to string for messaging missing parts
                                 }
-                                //Debug.Log($"[VesselCheckDebug] part {kvp.Value[0].partInfo.title} is on blackList, allowed quantity {kvp.Value.Count}/{bQ}");
                             }
                         }
                     }
@@ -1263,11 +1262,9 @@ namespace BDArmory.UI
                                 if (!string.IsNullOrEmpty(boughtParts)) boughtParts += " | ";
                                 boughtParts += $"{kvp.Value.Count}x {kvp.Value[0].partInfo.title}({kvp.Value.Count * pb})"; //make a note for later
                                 priceCkeckoout += (kvp.Value.Count * pb); //and tally total budget spent so far
-                                //Debug.Log($"[VesselCheckDebug] part {kvp.Value[0].partInfo.title} is on pricelist, cost {pb}x{kvp.Value.Count}({kvp.Value.Count * pb})");
                             }
                             else
                             {
-                                //Debug.Log($"[VesselCheckDebug] part {kvp.Value[0].partInfo.title} is not on pricelist!");
                                 notOnPriceList = true;
                             }
                         }
@@ -1323,12 +1320,12 @@ namespace BDArmory.UI
                                         {
                                             break; 
                                         }
-                                        var AIParent = kvp.Value[0].FindParentModuleImplementing<ModuleCommand>();
+                                        ModuleCommand AIParent = null;
+                                        if (kvp.Value[0].parent) AIParent = kvp.Value[0].parent.FindModuleImplementing<ModuleCommand>();
                                         if (AIParent == null)
                                         {
                                             nonCockpitWM = true;
                                         }
-                                        Debug.Log($"[VCDebug]AI part {kvp.Value[0].partInfo.title} is attached to {(kvp.Value[0].parent ? kvp.Value[0].parent.partInfo.title : "null")}(nonCockpit:{nonCockpitWM})");
                                         break;
                                     }
                                 case "BDModulePilotAI":
@@ -1342,7 +1339,6 @@ namespace BDArmory.UI
                                             if (!string.IsNullOrEmpty(blacklistedParts)) blacklistedParts += " | ";
                                             blacklistedParts += $"{kvp.Value[0].partInfo.title}(AI: {kvp.Value.Count}/1)";
                                         }
-
                                         //editorLogic.fetch.ship.parts[0] doesn't account for re-rooting the craft. fetch.ship also doesn't support .rootpart
                                         //if (kvp.Value[0].parent != EditorLogic.fetch.ship.Parts[0] || kvp.Value[0] != EditorLogic.fetch.ship.Parts[0])
                                         var isChair = kvp.Value[0].FindModuleImplementing<KerbalSeat>();
@@ -1459,7 +1455,6 @@ namespace BDArmory.UI
 
                 ScreenMessages.PostScreenMessage(vessellegality);
                 //todo - draw a GUI line to each illegal part?
-                //Debug.Log($"[VesselCheckDebug] evalString {evaluationstring.ToString()}");
             }
         }
 
