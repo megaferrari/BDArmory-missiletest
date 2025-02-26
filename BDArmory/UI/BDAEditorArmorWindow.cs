@@ -10,6 +10,7 @@ using BDArmory.Extensions;
 using BDArmory.Settings;
 using BDArmory.Utils;
 using System.Text;
+using System;
 
 namespace BDArmory.UI
 {
@@ -1404,7 +1405,7 @@ namespace BDArmory.UI
                             evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolEngineCountFloor")} ({engineCount}/{Mathf.Abs(maxEngines)})");
                     }
                     if (maxTWR > 0 && ((maxThrust / (PhysicsGlobals.GravitationalAcceleration * FlightGlobals.GetHomeBody().GeeASL) * EditorLogic.fetch.ship.GetTotalMass())) > maxLtW)
-                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolTWR")} {maxThrust / (EditorLogic.fetch.ship.GetTotalMass() * (PhysicsGlobals.GravitationalAcceleration * FlightGlobals.GetHomeBody().GeeASL))}/{maxTWR}");
+                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolTWR")} {Math.Round(maxThrust / (EditorLogic.fetch.ship.GetTotalMass() * (PhysicsGlobals.GravitationalAcceleration * FlightGlobals.GetHomeBody().GeeASL)), 2)}/{maxTWR}");
                     if (maxLtW > 0 && wingLoadingWet > maxLtW)
                         evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolLTW")} {wingLoadingWet}/{maxLtW}");
                     if (maxStacking > 0 && totalLiftStackRatio * 100 > maxStacking)
