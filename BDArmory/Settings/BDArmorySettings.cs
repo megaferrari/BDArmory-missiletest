@@ -30,13 +30,14 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static bool VESSEL_SWITCHER_WINDOW_SORTING = false;
         [BDAPersistentSettingsField] public static bool VESSEL_SWITCHER_WINDOW_OLD_DISPLAY_STYLE = false;
         [BDAPersistentSettingsField] public static bool VESSEL_SWITCHER_PERSIST_UI = false;
+        [BDAPersistentSettingsField] public static bool VESSEL_SWITCHER_WINDOW_ALIGNED = false;
         [BDAPersistentSettingsField] public static float VESSEL_SPAWNER_WINDOW_WIDTH = 480f;
         [BDAPersistentSettingsField] public static float VESSEL_WAYPOINT_WINDOW_WIDTH = 480f;
         [BDAPersistentSettingsField] public static float EVOLUTION_WINDOW_WIDTH = 350f;
         [BDAPersistentSettingsField] public static float GUI_OPACITY = 1f;                   // Modify the GUI opacity.
-        [BDAPersistentSettingsField] public static float UI_SCALE = 1f; // Global UI scaling
+        [BDAPersistentSettingsField] public static float UI_SCALE = 1f; // Global UI scaling. (Config value for when not following stock.)
         [BDAPersistentSettingsField] public static bool UI_SCALE_FOLLOWS_STOCK = true; // Global UI scaling follows stock
-        public static float _UI_SCALE => UI_SCALE_FOLLOWS_STOCK ? GameSettings.UI_SCALE : UI_SCALE;
+        public static float UI_SCALE_ACTUAL => UI_SCALE_FOLLOWS_STOCK ? GameSettings.UI_SCALE : UI_SCALE; // Use this one in code.
         public static float PREVIOUS_UI_SCALE = 1f; // For tracking changes
         #endregion
 
@@ -254,10 +255,14 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static bool NO_ENGINES = false;
         [BDAPersistentSettingsField] public static bool WAYPOINTS_MODE = false;         // Waypoint section of Vessel Spawner Window.
         [BDAPersistentSettingsField] public static string PINATA_NAME = "Pinata";
-        [BDAPersistentSettingsField] public static bool G_LIMITS = false;
-        [BDAPersistentSettingsField] public static bool PART_GLIMIT = false;
-        [BDAPersistentSettingsField] public static bool KERB_GLIMIT = false;
-        [BDAPersistentSettingsField] public static float G_TOLERANCE = 0.4f;                       // Adjust the GToleranceMult to set Max G endurance of all kerbs to a desired amount
+        [BDAPersistentSettingsField] public static bool G_LIMITS = false;               // Override KSP's G-force limits. If disabled, then KSP's settings are independent from BDA's.
+        [BDAPersistentSettingsField] public static bool PART_GLIMIT = false;            // Part G-force limits.
+        [BDAPersistentSettingsField] public static bool KERB_GLIMIT = false;            // Kerbal G-force limits.
+        [BDAPersistentSettingsField] public static float G_TOLERANCE = 1f;              // Adjust the GToleranceMult to set Max G endurance of all kerbs to a desired amount
+        // G-Force Limits last adjusted from the Game Difficulty settings.
+        public static bool _PART_GLIMIT = false; // Part G-force limits.
+        public static bool _KERB_GLIMIT = false; // Kerbal G-force limits.
+        public static float _G_TOLERANCE = 1f;   // Adjust the GToleranceMult to set Max G endurance of all kerbs to a desired amount
         #endregion
 
         #region Battle Damage settings
@@ -313,7 +318,7 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static string REMOTE_CLIENT_SECRET = "";                                      // Token used to authorize remote orchestration client
         [BDAPersistentSettingsField] public static string COMPETITION_HASH = "";                                          // Competition hash used for orchestration
         [BDAPersistentSettingsField] public static float REMOTE_INTERHEAT_DELAY = 30;                                     // Delay between heats.
-        [BDAPersistentSettingsField] public static int RUNWAY_PROJECT_ROUND = 10;                                         // RWP round index.
+        [BDAPersistentSettingsField] public static int RUNWAY_PROJECT_ROUND = 0;                                          // RWP round index.
         [BDAPersistentSettingsField] public static string REMOTE_ORCHESTRATION_NPC_SWAPPER = "Rammer";
         [BDAPersistentSettingsField] public static string REMOTE_ORC_NPCS_TEAM = "";
         #endregion
