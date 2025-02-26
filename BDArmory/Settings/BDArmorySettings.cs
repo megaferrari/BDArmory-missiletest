@@ -255,10 +255,14 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static bool NO_ENGINES = false;
         [BDAPersistentSettingsField] public static bool WAYPOINTS_MODE = false;         // Waypoint section of Vessel Spawner Window.
         [BDAPersistentSettingsField] public static string PINATA_NAME = "Pinata";
-        [BDAPersistentSettingsField] public static bool G_LIMITS = false;
-        [BDAPersistentSettingsField] public static bool PART_GLIMIT = false;
-        [BDAPersistentSettingsField] public static bool KERB_GLIMIT = false;
-        [BDAPersistentSettingsField] public static float G_TOLERANCE = 0.4f;                       // Adjust the GToleranceMult to set Max G endurance of all kerbs to a desired amount
+        [BDAPersistentSettingsField] public static bool G_LIMITS = false;               // Override KSP's G-force limits. If disabled, then KSP's settings are independent from BDA's.
+        [BDAPersistentSettingsField] public static bool PART_GLIMIT = false;            // Part G-force limits.
+        [BDAPersistentSettingsField] public static bool KERB_GLIMIT = false;            // Kerbal G-force limits.
+        [BDAPersistentSettingsField] public static float G_TOLERANCE = 1f;              // Adjust the GToleranceMult to set Max G endurance of all kerbs to a desired amount
+        // G-Force Limits last adjusted from the Game Difficulty settings.
+        public static bool _PART_GLIMIT = false; // Part G-force limits.
+        public static bool _KERB_GLIMIT = false; // Kerbal G-force limits.
+        public static float _G_TOLERANCE = 1f;   // Adjust the GToleranceMult to set Max G endurance of all kerbs to a desired amount
         #endregion
 
         #region Battle Damage settings
