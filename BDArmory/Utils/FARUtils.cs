@@ -235,9 +235,9 @@ namespace BDArmory.Utils
                         float width = ((float)PWType.GetField("sharedBaseWidthRoot", BindingFlags.Public | BindingFlags.Instance).GetValue(module) + (float)PWType.GetField("sharedBaseWidthTip", BindingFlags.Public | BindingFlags.Instance).GetValue(module));
                         int edgeLeadingType = Mathf.RoundToInt((float)PWType.GetField("sharedEdgeTypeLeading", BindingFlags.Public | BindingFlags.Instance).GetValue(module));
                         int edgeTrailingType = Mathf.RoundToInt((float)PWType.GetField("sharedEdgeTypeTrailing", BindingFlags.Public | BindingFlags.Instance).GetValue(module));
-                        float edgeWidth = ((!ctrlSrf && edgeLeadingType >= 2 ? 
+                        float edgeWidth = ((!ctrlSrf && edgeLeadingType >= 2 ?
                             ((float)PWType.GetField("sharedEdgeWidthLeadingTip", BindingFlags.Public | BindingFlags.Instance).GetValue(module) +
-                        (float)PWType.GetField("sharedEdgeWidthLeadingRoot", BindingFlags.Public | BindingFlags.Instance).GetValue(module)) : 0)                            
+                        (float)PWType.GetField("sharedEdgeWidthLeadingRoot", BindingFlags.Public | BindingFlags.Instance).GetValue(module)) : 0)
                         + (ctrlSrf || edgeTrailingType >= 2 ? ((float)PWType.GetField("sharedEdgeWidthTrailingTip", BindingFlags.Public | BindingFlags.Instance).GetValue(module) +
                         (float)PWType.GetField("sharedEdgeWidthTrailingRoot", BindingFlags.Public | BindingFlags.Instance).GetValue(module)) : 0));
                         float thickness = 0.18f; //thickness (averge) of the wing
@@ -250,7 +250,7 @@ namespace BDArmory.Utils
                             {
                                 adjustedThickness = Mathf.Pow(thickness / 2.5f, 2.75f); //this follows stock mass scaling, up to about 3.75m parts
                                 if (adjustedThickness >= 0.15f) adjustedThickness += 0.45f;
-                                else adjustedThickness += (adjustedThickness * 1.66f) + 0.188f; 
+                                else adjustedThickness += (adjustedThickness * 1.66f) + 0.188f;
                             }
                             else
                                 adjustedThickness = Mathf.Max(thickness, 0.05f);                //2.5x2.5x0.938 tank: .5t; pWing: .36t - needs adjustedThickness of 1.35 instead of 0.96
@@ -264,16 +264,16 @@ namespace BDArmory.Utils
                         //if (PWAssyVersion != "0.44.0.0") //PWings now have edge colliders, unnecessary
                         if (!BDArmorySettings.PWING_EDGE_LIFT && !ctrlSrf) //if part !controlsurface, remove lift/mass from edges to bring inline with stock boards
                         {
-							aeroVolume = (0.786f * length * (width / 2) * Mathf.Clamp(adjustedThickness, 0, 0.275f)); //original .7 was based on errorneous 2x4 wingboard dimensions; stock reference wing area is 1.875x3.75m
-							liftCoeff = (length * (width / 2f)) / 3.515f;
+                            aeroVolume = (0.786f * length * (width / 2) * Mathf.Clamp(adjustedThickness, 0, 0.275f)); //original .7 was based on errorneous 2x4 wingboard dimensions; stock reference wing area is 1.875x3.75m
+                            liftCoeff = (length * (width / 2f)) / 3.515f;
                         }
                         if (!ctrlSrf && !WingctrlSrf)
-                            PWType.GetField("aeroUIMass", BindingFlags.Public | BindingFlags.Instance).SetValue(module, (float)Math.Round((liftCoeff / 10f) * (adjustedThickness * 5.56f),3)); //Adjust PWing GUI mass readout
+                            PWType.GetField("aeroUIMass", BindingFlags.Public | BindingFlags.Instance).SetValue(module, (float)Math.Round((liftCoeff / 10f) * (adjustedThickness * 5.56f), 3)); //Adjust PWing GUI mass readout
                         else
-                            PWType.GetField("aeroUIMass", BindingFlags.Public | BindingFlags.Instance).SetValue(module, (float)Math.Round((liftCoeff / 5f) * (adjustedThickness * 5.56f),3)); //this modifies the IPartMassModifier, so the mass will also change along with the GUI
+                            PWType.GetField("aeroUIMass", BindingFlags.Public | BindingFlags.Instance).SetValue(module, (float)Math.Round((liftCoeff / 5f) * (adjustedThickness * 5.56f), 3)); //this modifies the IPartMassModifier, so the mass will also change along with the GUI
                         if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.MAX_PWING_LIFT > 0)
                         {
-                            liftCoeff = Mathf.Clamp((float)liftCoeff, 0, BDArmorySettings.MAX_PWING_LIFT + 0.01f); //if Runway Project, check lift is within limit and clamp if not. Adding .01 so it can get caught by the BDA Craft Utilities Tool looking for wings larger than the limit
+                            liftCoeff = Mathf.Clamp((float)liftCoeff, 0, BDArmorySettings.MAX_PWING_LIFT + (HighLogic.LoadedSceneIsEditor ? 1e-4f : 0f)); //if Runway Project, check lift is within limit and clamp if not. Adding 1e-4f in editor scenes so it can get caught by the BDA Craft Utilities Tool looking for wings larger than the limit without displaying a larger number in the PAW
                             //f (!WingctrlSrf && !ctrlSrf) PWType.GetField("sharedBaseOffsetRoot", BindingFlags.Public | BindingFlags.Instance).SetValue(module, 0); //irrelevant in pWing 0.46.7
                             if (BDArmorySettings.PWING_THICKNESS_AFFECT_MASS_HP)
                             {
@@ -291,7 +291,7 @@ namespace BDArmory.Utils
                                 }
                             }
                         }
-                        PWType.GetField("stockLiftCoefficient", BindingFlags.Public | BindingFlags.Instance).SetValue(module, isAeroSrf ? (float)Math.Round(liftCoeff,2) : 0f); //adjust PWing GUI lift readout
+                        PWType.GetField("stockLiftCoefficient", BindingFlags.Public | BindingFlags.Instance).SetValue(module, isAeroSrf ? (float)Math.Round(liftCoeff, 2) : 0f); //adjust PWing GUI lift readout
                         if (!FerramAerospace.CheckForFAR()) part.Modules.GetModule<ModuleLiftingSurface>().deflectionLiftCoeff = (float)Math.Round(liftCoeff, 2);
                         if (part.name.Contains("B9.Aero.Wing.Procedural.Panel") || !isAeroSrf) //if Josue's noLift PWings PR never gets folded in, here's an alternative using an MM'ed PWing structural panel part
                         {
@@ -309,14 +309,14 @@ namespace BDArmory.Utils
                             if (BDArmorySettings.PWING_THICKNESS_AFFECT_MASS_HP && FerramAerospace.CheckForFAR()) //PWings disables massMod if FAR, so need to re-add the additional mass from thickness
                             {
                                 float massToAdd = 0;
-                                massToAdd = ((float)liftCoeff / ((!ctrlSrf && !WingctrlSrf) ? 10 : 5)) * (adjustedThickness * 2.8f) - 
+                                massToAdd = ((float)liftCoeff / ((!ctrlSrf && !WingctrlSrf) ? 10 : 5)) * (adjustedThickness * 2.8f) -
                                     ((float)liftCoeff / ((!ctrlSrf && !WingctrlSrf) ? 10 : 5)) * (0.36f * 3);
                                 if (BDArmorySettings.DEBUG_OTHER) Debug.Log($"[BDArmory.FARUtils]: massToAdd {massToAdd} for {part.name}.");
 
                                 massToAdd += part.partInfo.partPrefab.mass; //this gets subtracted out in the WingProcedural GetModuleMass, so need to add it here to get proper mass addition
                                 if (massToAdd > 0)
                                 {
-                                    PWType.GetField("aeroUIMass", BindingFlags.Public | BindingFlags.Instance).SetValue(module, massToAdd); 
+                                    PWType.GetField("aeroUIMass", BindingFlags.Public | BindingFlags.Instance).SetValue(module, massToAdd);
                                     PWType.GetField("sharedArmorRatio", BindingFlags.Public | BindingFlags.Instance).SetValue(module, 100);
                                 }
                             }
