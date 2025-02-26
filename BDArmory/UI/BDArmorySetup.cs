@@ -230,6 +230,7 @@ namespace BDArmory.UI
 
         bool drawCursor;
         Texture2D cursorTexture = GameDatabase.Instance.GetTexture(textureDir + "aimer", false);
+        bool temporarilyShowMouse = false;
 
         private Texture2D dti;
 
@@ -326,6 +327,16 @@ namespace BDArmory.UI
             get
             {
                 return gspct ? gspct : gspct = GameDatabase.Instance.GetTexture(textureDir + "greenSpikedCircle", false);
+            }
+        }
+
+        private Texture2D gC;
+
+        public Texture2D greenCross
+        {
+            get
+            {
+                return gC ? gC : gC = GameDatabase.Instance.GetTexture(textureDir + "greenCross", false);
             }
         }
 
@@ -677,6 +688,7 @@ namespace BDArmory.UI
 #if DEBUG
                 if (BDInputUtils.GetKeyDown(BDInputSettingsFields.DEBUG_CLEAR_DEV_CONSOLE)) Debug.ClearDeveloperConsole();
 #endif
+                if (temporarilyShowMouse != (temporarilyShowMouse = BDInputUtils.GetKey(BDInputSettingsFields.TEMPORARILY_SHOW_MOUSE))) UpdateCursorState();
             }
             else if (HighLogic.LoadedSceneIsEditor)
             {
@@ -720,6 +732,12 @@ namespace BDArmory.UI
 
         public void UpdateCursorState()
         {
+            if (temporarilyShowMouse)
+            {
+                drawCursor = false;
+                Cursor.visible = true;
+                return;
+            }
             if (ActiveWeaponManager == null)
             {
                 drawCursor = false;
@@ -833,9 +851,11 @@ namespace BDArmory.UI
                 BDAPersistentSettingsField.Load();
                 BDInputSettingsFields.LoadSettings();
                 TournamentScores.LoadWeights();
+                ContinuousSpawning.LoadWeights();
                 SanitiseSettings();
                 RWPSettings.Load();
                 CompSettings.Load();
+                VesselSpawnerField.Load();
                 BDArmorySettings.ready = true;
                 if (BDAEditorArmorWindow.Instance)
                 {
@@ -868,6 +888,7 @@ namespace BDArmory.UI
 
                 BDInputSettingsFields.SaveSettings();
                 TournamentScores.SaveWeights();
+                ContinuousSpawning.SaveWeights();
 
                 if (OnSavedSettings != null)
                 {
@@ -909,7 +930,7 @@ namespace BDArmory.UI
             {
                 var guiMatrix = GUI.matrix; // Store and restore the GUI.matrix so we can apply a different scaling for the WM window.
                 if (scalingUI && Mouse.Left.GetButtonUp()) scalingUI = false; // Don't rescale the settings window until the mouse is released otherwise it messes with the slider.
-                if (!scalingUI) { oldUIScale = BDArmorySettings.UI_SCALE; BDArmorySettings.PREVIOUS_UI_SCALE = BDArmorySettings.UI_SCALE; }
+                if (!scalingUI) { oldUIScale = BDArmorySettings.UI_SCALE_ACTUAL; BDArmorySettings.PREVIOUS_UI_SCALE = BDArmorySettings.UI_SCALE; }
                 if (oldUIScale != 1) GUIUtility.ScaleAroundPivot(oldUIScale * Vector2.one, WindowRectSettings.position);
                 WindowRectSettings = GUI.Window(129419, WindowRectSettings, WindowSettings, GUIContent.none, settingsTitleStyle);
                 GUI.matrix = guiMatrix;
@@ -929,7 +950,7 @@ namespace BDArmory.UI
 
             if (!windowBDAToolBarEnabled || !HighLogic.LoadedSceneIsFlight) return;
             SetGUIOpacity();
-            if (BDArmorySettings._UI_SCALE != 1) GUIUtility.ScaleAroundPivot(BDArmorySettings._UI_SCALE * Vector2.one, WindowRectToolbar.position);
+            if (BDArmorySettings.UI_SCALE_ACTUAL != 1) GUIUtility.ScaleAroundPivot(BDArmorySettings.UI_SCALE_ACTUAL * Vector2.one, WindowRectToolbar.position);
             WindowRectToolbar = GUI.Window(321, WindowRectToolbar, WindowBDAToolbar, "", BDGuiSkin.window);//"BDA Weapon Manager"
             SetGUIOpacity(false);
             GUIUtils.UseMouseEventInRect(WindowRectToolbar);
@@ -1855,8 +1876,8 @@ namespace BDArmory.UI
                     if (ActiveWeaponManager.radars.Count > 0)
                     {
                         numberOfModules++;
-                        string Radarlabel = StringUtils.Localize("#LOC_BDArmory_DynamicRadar", (ActiveWeaponManager.DynamicRadarOverride ? StringUtils.Localize("#LOC_BDArmory_false") : StringUtils.Localize("#LOC_BDArmory_true")));//"Dynamic Radar vs ARMs: True, False
-                        if (GUI.Button(new Rect(leftIndent, +(moduleLines * entryHeight), columnWidth - 2 * leftIndent, entryHeight), Radarlabel, ActiveWeaponManager.DynamicRadarOverride ? BDGuiSkin.box : BDGuiSkin.button))
+                        string Radarlabel = $"{StringUtils.Localize("#LOC_BDArmory_DynamicRadar")}: {(ActiveWeaponManager.DynamicRadarOverride ? StringUtils.Localize("#LOC_BDArmory_false") : StringUtils.Localize("#LOC_BDArmory_true"))}";//"Dynamic Radar vs ARMs: True, False
+                        if (GUI.Button(new Rect(leftIndent, +(moduleLines * entryHeight), columnWidth - 2 * leftIndent, entryHeight), Radarlabel, ActiveWeaponManager.DynamicRadarOverride ? BDGuiSkin.button : BDGuiSkin.box))
                         {
                             ActiveWeaponManager.DynamicRadarOverride = !ActiveWeaponManager.DynamicRadarOverride;
                         }
@@ -1950,6 +1971,7 @@ namespace BDArmory.UI
                         while (jammer.MoveNext())
                         {
                             if (jammer.Current == null) continue;
+                            if (jammer.Current.isMissileECM) continue;
                             if (jammer.Current.alwaysOn) continue;
 
                             numberOfModules++;
@@ -2391,7 +2413,7 @@ namespace BDArmory.UI
             if (BDArmorySettings.GRAPHICS_UI_SETTINGS_TOGGLE)
             {
                 line += 0.2f;
-                GUI.Label(SQuarterRect(++line, 0), $"{StringUtils.Localize("#LOC_BDArmory_Settings_UIScale")}: {BDArmorySettings._UI_SCALE:0.00}x", leftLabel); // UI Scale
+                GUI.Label(SQuarterRect(++line, 0), $"{StringUtils.Localize("#LOC_BDArmory_Settings_UIScale")}: {BDArmorySettings.UI_SCALE_ACTUAL:0.00}x", leftLabel); // UI Scale
                 BDArmorySettings.UI_SCALE_FOLLOWS_STOCK = GUI.Toggle(SQuarterRect(line, 1), BDArmorySettings.UI_SCALE_FOLLOWS_STOCK, $"{StringUtils.Localize("#LOC_BDArmory_Settings_UIScaleFollowsStock")}");
                 if (!BDArmorySettings.UI_SCALE_FOLLOWS_STOCK)
                 {
@@ -4219,7 +4241,7 @@ namespace BDArmory.UI
             settingsWidth = origSettingsWidth - 2 * settingsMargin;
             settingsHeight = origSettingsHeight - 100;
             Rect viewRect = new Rect(2, 20, settingsWidth + GUI.skin.verticalScrollbar.fixedWidth, settingsHeight);
-            Rect scrollerRect = new Rect(0, 0, settingsWidth - GUI.skin.verticalScrollbar.fixedWidth - 1, inputFields != null ? (inputFields.Length + 13) * settingsLineHeight : settingsHeight);
+            Rect scrollerRect = new Rect(0, 0, settingsWidth - GUI.skin.verticalScrollbar.fixedWidth - 1, inputFields != null ? (inputFields.Length + 2 * 9) * settingsLineHeight : settingsHeight);
 
             _displayViewerPosition = GUI.BeginScrollView(viewRect, _displayViewerPosition, scrollerRect, false, true);
 
@@ -4255,6 +4277,11 @@ namespace BDArmory.UI
 
             GUI.Label(SLineRect(line++), $"- {StringUtils.Localize("#LOC_BDArmory_InputSettings_TimeScaling")} -", centerLabel);//Time Scaling
             InputSettingsList("TIME_", ref inputID, ref line);
+            ++line;
+
+            GUI.Label(SLineRect(line++), $"- {StringUtils.Localize("#LOC_BDArmory_InputSettings_TemporarilyShowMouse")} -", centerLabel);//Temporarily Show Mouse
+            InputSettingsList("SHOW_MOUSE", ref inputID, ref line);
+            ++line;
             GUI.EndScrollView();
 
             line = settingsHeight / settingsLineHeight;
@@ -4353,6 +4380,7 @@ namespace BDArmory.UI
                 // Switch visible/hidden window rects
                 _WindowRectScoresUIVisible = WindowRectScores;
                 if (_WindowRectScoresUIHidden != default) WindowRectScores = _WindowRectScoresUIHidden;
+                if (ScoreWindow.Instance.autoResizingWindow) WindowRectScores.height = _WindowRectScoresUIVisible.height;
                 _WindowRectVesselSwitcherUIVisible = WindowRectVesselSwitcher;
                 if (_WindowRectVesselSwitcherUIHidden != default) WindowRectVesselSwitcher = _WindowRectVesselSwitcherUIHidden;
             }
@@ -4369,6 +4397,7 @@ namespace BDArmory.UI
                 // Switch visible/hidden window rects
                 _WindowRectScoresUIHidden = WindowRectScores;
                 if (_WindowRectScoresUIVisible != default) WindowRectScores = _WindowRectScoresUIVisible;
+                if (ScoreWindow.Instance.autoResizingWindow) WindowRectScores.height = _WindowRectScoresUIHidden.height;
                 _WindowRectVesselSwitcherUIHidden = WindowRectVesselSwitcher;
                 if (_WindowRectVesselSwitcherUIVisible != default) WindowRectVesselSwitcher = _WindowRectVesselSwitcherUIVisible;
             }

@@ -98,8 +98,7 @@ namespace BDArmory.Targeting
             {
                 if (!vessel) return false;
                 if (vessel.situation == Vessel.Situations.SPLASHED) return true;
-                else
-                    return false;
+                return false;
             }
         }
 
@@ -177,6 +176,8 @@ namespace BDArmory.Targeting
                 return false;
             }
         }
+
+        public List<(string, float)> debugTargetPriorities = []; // Debug info for target priorities.
 
         void Awake()
         {
@@ -601,7 +602,7 @@ namespace BDArmory.Targeting
         public bool SafeOrbitalIntercept(MissileFire myMf)
         {
             // For orbital AI craft, avoid intercepting targets if we are descending and the maneuver will bring our own periapsis to an unsafe altitude
-            
+
             if (!vessel) return true;
             var orbitalAI = VesselModuleRegistry.GetModule<BDModuleOrbitalAI>(myMf.vessel);
             if (orbitalAI == null)

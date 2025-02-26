@@ -25,22 +25,24 @@ namespace BDArmory.Settings
 				//{"KERBAL_SAFETY", 1},
 				//{"KERBAL_SAFETY_INVENTORY", 2},
 				//{"RESET_ARMOUR", true},
-				//{"MAX_PWING_LIFT", 4.54},
 				//all of the Physics Constants?
 				{"AUTONOMOUS_COMBAT_SEATS", false},
+				{"BATTLEDAMAGE", true},
 				{"DESTROY_UNCONTROLLED_WMS", true},
 				{"DISABLE_RAMMING", false},
 				{"HACK_INTAKES", true},
 				{"HP_THRESHOLD", 2000},
-				{"MAX_ARMOR_LIMIT", 10},
 				{"INFINITE_AMMO", false},
 				{"INFINITE_ORDINANCE", false}, // Note: don't set inf fuel or inf EC as those are used during autotuning and are handled differently in order to sync with the cheats menu.
+				{"MAX_ARMOR_LIMIT", 10},
+				{"MAX_PWING_LIFT", 4.54},
 				{"MAX_SAS_TORQUE", 30},
+				{"OUT_OF_AMMO_KILL_TIME", 60},
+				{"PWING_EDGE_LIFT", true},
 				{"PWING_THICKNESS_AFFECT_MASS_HP", true},
 				{"VESSEL_SPAWN_FILL_SEATS", 1},
 				{"VESSEL_SPAWN_RANDOM_ORDER", true},
 				{"VESSEL_SPAWN_REASSIGN_TEAMS", true},
-				{"OUT_OF_AMMO_KILL_TIME", 60},
 				{"BATTLEDAMAGE", true},
 				{"PWING_EDGE_LIFT", true},
 			}},
@@ -141,7 +143,7 @@ namespace BDArmory.Settings
 				{"VESSEL_SPAWN_DISTANCE", 45},
 				{"COMPETITION_KILL_TIMER", 10},
 				{"COMPETITION_DURATION", 5},
-				{"VESSEL_SPAWN_GEOCOORDS", new Vector3d(33.911, -172.7)},
+				{"VESSEL_SPAWN_GEOCOORDS", new Vector2d(33.911, -172.7)},
 			}},
 			{70,new(){
 				{"ASTEROID_FIELD", true},
@@ -230,6 +232,7 @@ namespace BDArmory.Settings
 		{
 			if (!RWPOverrides.ContainsKey(0)) return;
 			if (BDArmorySettings.DEBUG_OTHER) Debug.Log($"[BDArmory.RWPSettings]: Setting RWP setting filters");
+			if (!RWPOverrides.ContainsKey(BDArmorySettings.RUNWAY_PROJECT_ROUND)) BDArmorySettings.RUNWAY_PROJECT_ROUND = 0; // Sanity check the round number.
 			currentFilter.Clear();
 			var fields = typeof(BDArmorySettings).GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
 			foreach (var field in fields)
@@ -397,7 +400,7 @@ namespace BDArmory.Settings
 						Debug.LogError($"[BDArmory.RWPSettings]: Unknown field {fieldNode.name} when loading RWP settings.");
 						continue;
 					}
-					var fieldValue = BDAPersistentSettingsField.ParseValue(field.FieldType, fieldNode.value);
+					var fieldValue = BDAPersistentSettingsField.ParseValue(field.FieldType, fieldNode.value, fieldNode.name);
 					RWPOverrides[round][fieldNode.name] = fieldValue; // Add or set the override.
 				}
 			}
