@@ -1,4 +1,7 @@
 ﻿IMPROVEMENTS / FIXES
+- General:
+	- Fix colliders on the AWACS Radar when using legless variant.
+	- Update the logic for syncing advanced 'Game Difficulty' settings to respect custom G-limit settings.
 - UI:
 	- Add an alternate layout to the entries in the vessel switcher, togglable via the ↔ button.
 	- Adjust colour of vessel status and target strings in the vessel switcher for better visibility.
@@ -9,14 +12,28 @@
 - AI:
 	- Improvements to pilot follow mode to improve stability.
 	- Fix check for overriding terrain avoidance when ramming ground targets.
+	- The AI targeting priority 'Aerial Target Preference' now considers craft flatspinning or otherwise possessing negligible horizontal velocity lower than 200m from the ground as semi-ground targets for target filtering.
+- Competition:
+	- Adjust the default score weights for rockets to be more inline with that of bullets.
+- Countermeasures:
+	- Fix flares and smoke CMs ejecting sideways.
 - Detectors:
 	- Display non-zero RCS <= 0.01m^2 as dBsm instead of square meters for more precision.
 - Weapons:
-	- Fix weapon custom belt behavior.
+	- Removed the 'Engage Missile' toggle from APS/Dual-Purpose APS turrets as these weapons don't use it.
+	- Fix custom ammo belts not cycling ammo type in some situations.
+	- Fix weapons using a secondary ammo consuming secondary ammo when primary ammo missing.
+	- Fix tracers on guns with tracerlength > 0 extending behind gun on firing.
+	- Radar slaving multiple turrets when turret multi-targeting > 1 now sees if a radar lock exists for each secondary target, instead of overriding multi-targeting and aiming all guns to the primary lock.
+	- Fix Point Defense guns not firing on incoming missiles.
 	- Missiles:
 		- Added "hasIFF" field to missiles allowing for missile seekers without IFF functionality. Defaults to true.
-- Competition:
-	- Adjust the default score weights for rockets to be more inline with that of bullets.
+		- Fix AAMLoft implementation for MMGs.
+		- Fix reload gauge for reloadable launchers.
+		- Add dynamic ordinance offset for reloadable rails so larger missiles no longer clip into rails/hardpoint mounts.
+		- Fix lock-less Radar missiles doing a loop isntead of going straight.
+		- Fix Reload Gauge on reloadable launchers.
+		- Fix Account For Mass/Cost not applying to Missile magazines.
 
 v1.9.0.0
 IMPROVEMENTS / FIXES
