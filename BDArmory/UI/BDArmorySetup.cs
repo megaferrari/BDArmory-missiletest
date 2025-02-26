@@ -99,6 +99,7 @@ namespace BDArmory.UI
         //particle optimization
         public static int numberOfParticleEmitters = 0;
         public static BDArmorySetup Instance;
+        static GameScenes InScene = GameScenes.CREDITS; // The scene the instance was instantiated in (for duplicate detection).
         public static bool GAME_UI_ENABLED = true;
         public static string Version { get; private set; } = "Unknown";
 
@@ -404,8 +405,19 @@ namespace BDArmory.UI
 
         void Awake()
         {
-            if (Instance != null) Destroy(Instance);
+            if (Instance != null)
+            {
+                if (InScene == HighLogic.LoadedScene)
+                {
+                    // In some scenes (such as the editors) addons get instantiated multiple times if using KSPAddon.Startup.EveryScene.
+                    // This avoids the duplicate instance from messing with our syncing to KSP's settings.
+                    Destroy(this);
+                    return;
+                }
+                Destroy(Instance);
+            }
             Instance = this;
+            InScene = HighLogic.LoadedScene;
             if (!(HighLogic.LoadedSceneIsFlight || HighLogic.LoadedSceneIsEditor))
             {
                 windowSettingsEnabled = false; // Close the settings on other scenes (it's been saved when the other scene was destroyed).
@@ -509,7 +521,7 @@ namespace BDArmory.UI
             compIntraTeamSeparationBase = BDArmorySettings.COMPETITION_INTRA_TEAM_SEPARATION_BASE.ToString();
             compIntraTeamSeparationPerMember = BDArmorySettings.COMPETITION_INTRA_TEAM_SEPARATION_PER_MEMBER.ToString();
             HoSTag = BDArmorySettings.HOS_BADGE;
-            RWPSettings.SyncToGameSettings(); // Re-sync BDA settings to game settings in Start since they get overwritten during scene initialisation.
+            if (HighLogic.LoadedSceneIsFlight || HighLogic.LoadedSceneIsEditor) RWPSettings.SyncWithGameSettings(); // Re-sync BDA settings to game settings in Start since they get overwritten during scene initialisation.
             if (!HighLogic.LoadedSceneIsFlight) OtherUtils.SetTimeOverride(false); // Make sure time override is disabled when switching to any scene other than flight.
 
             if (HighLogic.LoadedSceneIsFlight || HighLogic.LoadedSceneIsEditor)
@@ -723,7 +735,6 @@ namespace BDArmory.UI
             if (windowSettingsEnabled)
             {
                 // LoadConfig(); // Don't reload settings, since they're already loaded and mess with other settings windows.
-                if (HighLogic.CurrentGame != null) advancedParams = HighLogic.CurrentGame.Parameters.CustomParams<GameParameters.AdvancedParams>(); // Grab the current AdvancedParams.
             }
             else
             {
@@ -854,6 +865,7 @@ namespace BDArmory.UI
                 TournamentScores.LoadWeights();
                 ContinuousSpawning.LoadWeights();
                 SanitiseSettings();
+                RWPSettings.SyncWithGameSettings(toKSP: false); // Sync KSP's advanced settings to BDA's backing values before we load any overrides.
                 RWPSettings.Load();
                 CompSettings.Load();
                 VesselSpawnerField.Load();
@@ -3596,24 +3608,30 @@ namespace BDArmory.UI
                 {
                     CheatOptions.InfiniteElectricity = BDArmorySettings.INFINITE_EC;
                 }
-                bool advParamsChanged = false;
-                if (HighLogic.CurrentGame != null) advancedParams = HighLogic.CurrentGame.Parameters.CustomParams<GameParameters.AdvancedParams>(); // Grab the current AdvancedParams.
-                if (!BDArmorySettings.G_LIMITS && (advancedParams.GPartLimits || advancedParams.GKerbalLimits))
-                    BDArmorySettings.G_LIMITS = true;
-                BDArmorySettings.PART_GLIMIT = advancedParams.GPartLimits; // Sync with the Game Difficulty window if the checkbox was toggled there.
-                BDArmorySettings.KERB_GLIMIT = advancedParams.GKerbalLimits;
-                BDArmorySettings.G_TOLERANCE = BDAMath.RoundToUnit(advancedParams.KerbalGToleranceMult * 20.5f, 0.5f);
                 if (BDArmorySettings.G_LIMITS != (BDArmorySettings.G_LIMITS = GUI.Toggle(SLeftRect(line), BDArmorySettings.G_LIMITS, StringUtils.Localize("#LOC_BDArmory_Settings_GLimitsMode"))))//G-Force Limits
                 {
-                    if (!BDArmorySettings.G_LIMITS)
+                    if (BDArmorySettings.G_LIMITS) // Sync the initial override values to the current ones.
                     {
-                        BDArmorySettings.KERB_GLIMIT = false;
-                        BDArmorySettings.PART_GLIMIT = false;
-                        advParamsChanged = true;
+                        RWPSettings.SyncWithGameSettings(toKSP: false); // Update the current backing values from the Game Difficulty.
+                        RWPSettings.SyncWithGameSettings(); // Then override them.
+                    }
+                    else
+                    {
+                        RWPSettings.SyncWithGameSettings(); // Sync so that the Game Difficulty values get reverted to the backing values.
                     }
                 }
                 if (BDArmorySettings.G_LIMITS)
                 {
+                    if (HighLogic.CurrentGame != null)
+                    {
+                        // Sync with the Game Difficulty window if the checkbox was toggled there and update the backing values. (Note: this only happens if the menu is open.)
+                        advancedParams = HighLogic.CurrentGame.Parameters.CustomParams<GameParameters.AdvancedParams>(); // Grab the latest values, in case KSP has changed the instance.
+                        if (BDArmorySettings.PART_GLIMIT != (BDArmorySettings.PART_GLIMIT = advancedParams.GPartLimits)) BDArmorySettings._PART_GLIMIT = BDArmorySettings.PART_GLIMIT;
+                        if (BDArmorySettings.KERB_GLIMIT != (BDArmorySettings.KERB_GLIMIT = advancedParams.GKerbalLimits)) BDArmorySettings._KERB_GLIMIT = BDArmorySettings.KERB_GLIMIT;
+                        if (BDArmorySettings.G_TOLERANCE != (BDArmorySettings.G_TOLERANCE = BDAMath.RoundToUnit(advancedParams.KerbalGToleranceMult * 20.5f, 0.5f))) BDArmorySettings._G_TOLERANCE = BDArmorySettings.G_TOLERANCE;
+                    }
+
+                    bool advParamsChanged = false;
                     if (BDArmorySettings.PART_GLIMIT != (BDArmorySettings.PART_GLIMIT = GUI.Toggle(SLeftRect(++line, 1), BDArmorySettings.PART_GLIMIT, StringUtils.Localize("#autoLOC_140950"))))//Part G-Force Limits
                         advParamsChanged = true;
                     if (BDArmorySettings.KERB_GLIMIT != (BDArmorySettings.KERB_GLIMIT = GUI.Toggle(SRightRect(line, 1), BDArmorySettings.KERB_GLIMIT, StringUtils.Localize("#autoLOC_140953"))))//Kerbal G-Force Limits
@@ -3625,10 +3643,10 @@ namespace BDArmory.UI
                         if (BDArmorySettings.G_TOLERANCE != (BDArmorySettings.G_TOLERANCE = BDAMath.RoundToUnit(GUI.HorizontalSlider(SRightSliderRect(line), BDArmorySettings.G_TOLERANCE, 1f, 40f), 0.5f)))
                             advParamsChanged = true;
                     }
-                }
-                if (advParamsChanged)
-                {
-                    RWPSettings.SyncToGameSettings();
+                    if (advParamsChanged)
+                    {
+                        RWPSettings.SyncWithGameSettings();
+                    }
                 }
                 // Resource steal
                 BDArmorySettings.RESOURCE_STEAL_ENABLED = GUI.Toggle(SLeftRect(++line), BDArmorySettings.RESOURCE_STEAL_ENABLED, StringUtils.Localize("#LOC_BDArmory_Settings_ResourceSteal"));//"Resource Steal"
@@ -5084,6 +5102,11 @@ namespace BDArmory.UI
         /// </summary>
         void OnGameSceneSwitchRequested(GameEvents.FromToAction<GameScenes, GameScenes> fromTo)
         {
+            if (windowSettingsEnabled) ToggleWindowSettings(); // Close the settings window so that the following settings changes don't propagate back into the settings window.
+            if (BDArmorySettings.G_LIMITS && (fromTo.from == GameScenes.EDITOR || fromTo.from == GameScenes.FLIGHT))
+            {
+                RWPSettings.SyncWithGameSettings(restoreOverridesAndSave: true);
+            }
             if (fromTo.from == GameScenes.FLIGHT && fromTo.to != GameScenes.FLIGHT)
             {
                 DisableAllFXAndProjectiles();
