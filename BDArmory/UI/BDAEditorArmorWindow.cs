@@ -1434,7 +1434,7 @@ namespace BDArmory.UI
                         if (!string.IsNullOrEmpty(commandStatus)) commandStatus += ", ";
                         commandStatus += "WM";
                     }
-                    commandStatus += $" {(StringUtils.Localize("#LOC_BDArmory_ArmorToolnonCockpit"))}";
+                    commandStatus += $" {(StringUtils.Localize("#LOC_BDArmory_ArmorToolNonCockpit"))}";
                     //if (nonRootCockpit)
                     //{
                     //    commandStatus += ", which is not a cockpit.";
@@ -1448,7 +1448,7 @@ namespace BDArmory.UI
                         evaluationstring.AppendLine("Vessel legal!");
                 }
                 if (oversizedPWings > 0)
-                    evaluationstring.AppendLine($"{oversizedPWings} {StringUtils.Localize("#LOC_BDArmory_ArmorToolOveredPWings")}");
+                    evaluationstring.AppendLine($"{oversizedPWings} {StringUtils.Localize("#LOC_BDArmory_ArmorToolOversizedPWings")}");
                 ScreenMessages.RemoveMessage(vessellegality);
                 vessellegality.textInstance = null;
                 vessellegality.message = evaluationstring.ToString();
