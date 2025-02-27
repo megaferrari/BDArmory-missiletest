@@ -9,51 +9,51 @@ using BDArmory.UI;
 
 namespace BDArmory.Settings
 {
-	public class CompSettings
-	{
-		// Settings overrides for AI/WM settings for competition rules compliance
+    public class CompSettings
+    {
+        // Settings overrides for AI/WM settings for competition rules compliance
 
-		static readonly string CompSettingsPath = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "GameData/BDArmory/PluginData/Comp_settings.cfg"));
-		static public bool CompOverridesEnabled = false;
+        static readonly string CompSettingsPath = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "GameData/BDArmory/PluginData/Comp_settings.cfg"));
+        static public bool CompOverridesEnabled = false;
         static public bool CompVesselChecksEnabled = false;
         static public bool CompPriceChecksEnabled = false;
         static public bool CompBanChecksEnabled = false;
         public static readonly Dictionary<string, float> CompOverrides = new()
-		{
-				// FIXME there's probably a few more things that could get set here for AI/WM override if needed in specific rounds.
-				//AI Min/max Alt?
-                //AI postStallAoA?
-                //AI allowRamming?
-                //WM gunRange?
-                //WM multiMissileTgtNum
-				{"extensionCutoffTime", -1},
-				{"extendDistanceAirToAir", -1},
-				{"MONOCOCKPIT_VIEWRANGE", -1},
-				{"DUALCOCKPIT_VIEWRANGE", -1},
-				{"guardAngle", -1},
-				{"collisionAvoidanceThreshold", -1},
-				{"vesselCollisionAvoidanceLookAheadPeriod", -1},
-				{"vesselCollisionAvoidanceStrength", -1 },
-				{"idleSpeed", -1},
-				{"DISABLE_SAS", 0}, //0/1 for F/T
+        {
+            // FIXME there's probably a few more things that could get set here for AI/WM override if needed in specific rounds.
+            //AI Min/max Alt?
+            //AI postStallAoA?
+            //AI allowRamming?
+            //WM gunRange?
+            //WM multiMissileTgtNum
+            {"extensionCutoffTime", -1},
+            {"extendDistanceAirToAir", -1},
+            {"MONOCOCKPIT_VIEWRANGE", -1},
+            {"DUALCOCKPIT_VIEWRANGE", -1},
+            {"guardAngle", -1},
+            {"collisionAvoidanceThreshold", -1},
+            {"vesselCollisionAvoidanceLookAheadPeriod", -1},
+            {"vesselCollisionAvoidanceStrength", -1 },
+            {"idleSpeed", -1},
+            {"DISABLE_SAS", 0}, //0/1 for F/T
 		};
         public static readonly Dictionary<string, float> vesselChecks = new()
         {
-				//{"maxStacking", -1}, //wing Stacking %. No limit if -1
-                //{"maxPartCount", -1}, //part count. no limit if -1
-                //{"maxLtW", -1},        //Lift-to-Weight ratio. -1 for no limit   
-                //{"maxTWR", -1},        //Thrust-Weight ratio. -1 for no limit   
-                //{"maxEngines", -1},
-                //{"maxMass", -1},
-                //{"pointBuyBudget", -1}, //for comps with point buy systems for limiting armament/etc. if enabled, will check parts against partPointCosts
-		};
+            //{"maxStacking", -1}, //wing Stacking %. No limit if -1
+            //{"maxPartCount", -1}, //part count. no limit if -1
+            //{"maxLtW", -1},        //Lift-to-Weight ratio. -1 for no limit   
+            //{"maxTWR", -1},        //Thrust-Weight ratio. -1 for no limit   
+            //{"maxEngines", -1},
+            //{"maxMass", -1},
+            //{"pointBuyBudget", -1}, //for comps with point buy systems for limiting armament/etc. if enabled, will check parts against partPointCosts
+        };
         public static readonly Dictionary<string, float> partPointCosts = new()
         {
-                //{"bahaBrowningAnm2", 1},
+            //{"bahaBrowningAnm2", 1},
         };
         public static readonly Dictionary<string, float> partBlacklist = new()
         {
-                //{"bahaCloakingDevice", 2}, //flag craft containing more than allowed number of X
+            //{"bahaCloakingDevice", 2}, //flag craft containing more than allowed number of X
         };
         /// <summary>
         /// Load P:S AI/Wm override settings from file.
