@@ -13,6 +13,7 @@
 	- Improvements to pilot follow mode to improve stability.
 	- Fix check for overriding terrain avoidance when ramming ground targets.
 	- The AI targeting priority 'Aerial Target Preference' now considers craft flatspinning or otherwise possessing negligible horizontal velocity lower than 200m from the ground as semi-ground targets for target filtering.
+	- Adjust the "fixed field" toggles in the AI GUI for auto-tuning the PID axes that are in use.
 - Competition:
 	- Adjust the default score weights for rockets to be more inline with that of bullets.
 - Countermeasures:
