@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System;
 using KSP.UI.Screens;
 using UnityEngine;
 
@@ -9,8 +11,6 @@ using BDArmory.Damage;
 using BDArmory.Extensions;
 using BDArmory.Settings;
 using BDArmory.Utils;
-using System.Text;
-using System;
 
 namespace BDArmory.UI
 {
@@ -1321,7 +1321,7 @@ namespace BDArmory.UI
                                         var isChair = kvp.Value[0].FindModuleImplementing<KerbalSeat>();
                                         if (isChair != null)
                                         {
-                                            break; 
+                                            break;
                                         }
                                         ModuleCommand AIParent = null;
                                         if (kvp.Value[0].parent) AIParent = kvp.Value[0].parent.FindModuleImplementing<ModuleCommand>();
@@ -1477,8 +1477,8 @@ namespace BDArmory.UI
                 }
                 float newCaliber = ProjectileUtils.CalculateDeformation(yieldStrength, bulletEnergy, 30, 1109, 1176, 7850, 0.19f, 0.8f, false);
                 */
-                                        //armorValue = ProjectileUtils.CalculatePenetration(30, newCaliber, 0.388f, 1109, ArmorDuctility, ArmorDensity, ArmorStrength, 30, 0.8f, false);
-                                        armorValue = ProjectileUtils.CalculatePenetration(30, 1109, 0.388f, 0.8f, ArmorStrength, ArmorVfactor, ArmorMu1, ArmorMu2, ArmorMu3); //why is this hardcoded? it needs to be the selected armor mat's vars
+                //armorValue = ProjectileUtils.CalculatePenetration(30, newCaliber, 0.388f, 1109, ArmorDuctility, ArmorDensity, ArmorStrength, 30, 0.8f, false);
+                armorValue = ProjectileUtils.CalculatePenetration(30, 1109, 0.388f, 0.8f, ArmorStrength, ArmorVfactor, ArmorMu1, ArmorMu2, ArmorMu3); //why is this hardcoded? it needs to be the selected armor mat's vars
                 relValue = BDAMath.RoundToUnit(armorValue / steelValue, 0.1f);
                 exploValue = ArmorStrength * (1 + ArmorDuctility) * (ArmorDensity / 1000);
             }

@@ -1,11 +1,6 @@
-using System.Linq;
-using System.Reflection;
 using UnityEngine;
-
 using System.IO;
 using System.Collections.Generic;
-using System;
-using BDArmory.UI;
 
 namespace BDArmory.Settings
 {
