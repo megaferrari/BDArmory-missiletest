@@ -3207,11 +3207,22 @@ namespace BDArmory.UI
                                 SpawnUtils.HackActuators(vessel, BDArmorySettings.RUNWAY_PROJECT);
                             }
                         }
-                        if (HighLogic.LoadedSceneIsEditor && EditorLogic.fetch.ship is not null) GameEvents.onEditorShipModified.Fire(EditorLogic.fetch.ship);
+                        if (HighLogic.LoadedSceneIsEditor)
+                        {
+                            if (EditorLogic.fetch.ship is not null) GameEvents.onEditorShipModified.Fire(EditorLogic.fetch.ship);
+                            if (BDArmorySettings.RUNWAY_PROJECT && BDAEditorArmorWindow.Instance) BDAEditorArmorWindow.Instance.SetupLegalityValues();
+                        }
                     }
                     if (CompSettings.CompOverridesEnabled)
-                        BDArmorySettings.COMP_CONVENIENCE_CHECKS = GUI.Toggle(SRightRect(line), BDArmorySettings.COMP_CONVENIENCE_CHECKS, StringUtils.Localize("Use AI/WM Overrides"));
-
+                    {
+                        if (BDArmorySettings.COMP_CONVENIENCE_CHECKS != (BDArmorySettings.COMP_CONVENIENCE_CHECKS = GUI.Toggle(SLeftRect(++line), BDArmorySettings.COMP_CONVENIENCE_CHECKS, StringUtils.Localize("#LOC_BDArmory_Settings_CompChecks"))))//Runway Project
+                        {
+                            if (HighLogic.LoadedSceneIsEditor)
+                            {
+                                if (BDArmorySettings.COMP_CONVENIENCE_CHECKS && BDAEditorArmorWindow.Instance) BDAEditorArmorWindow.Instance.SetupLegalityValues();
+                            }
+                        }
+                    }
                     if (BDArmorySettings.RUNWAY_PROJECT)
                     {
                         GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_Settings_RunwayProjectRound")}: ({(BDArmorySettings.RUNWAY_PROJECT_ROUND > 10 ? $"S{(BDArmorySettings.RUNWAY_PROJECT_ROUND - 1) / 10}R{(BDArmorySettings.RUNWAY_PROJECT_ROUND - 1) % 10 + 1}" : "—")})", leftLabel); // RWP round
