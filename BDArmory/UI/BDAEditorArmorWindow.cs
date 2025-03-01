@@ -124,6 +124,7 @@ namespace BDArmory.UI
             vesselResources = new List<PartResourceDefinition>();
             GameEvents.onEditorShipModified.Add(OnEditorShipModifiedEvent);
             GameEvents.onEditorPartPlaced.Add(OnEditorPartPlacedEvent);
+            GameEvents.onEditorPartDeleted.Add(OnEditorPartPlacedEvent);
             /*
             var modifiedCaliber = (15) + (15) * (2f * 0.15f * 0.15f);
             float bulletEnergy = ProjectileUtils.CalculateProjectileEnergy(0.388f, 1109);
@@ -273,7 +274,6 @@ namespace BDArmory.UI
 
         private void OnEditorPartPlacedEvent(Part data)
         {
-            if (data is null) return;
             DoVesselLegalityChecks(true);
         }
 
@@ -281,6 +281,7 @@ namespace BDArmory.UI
         {
             GameEvents.onEditorShipModified.Remove(OnEditorShipModifiedEvent);
             GameEvents.onEditorPartPlaced.Remove(OnEditorPartPlacedEvent);
+            GameEvents.onEditorPartDeleted.Remove(OnEditorPartPlacedEvent);
             HideToolbarGUINow();
             if (toolbarButton)
             {
@@ -1189,6 +1190,7 @@ namespace BDArmory.UI
         float maxThrust = 0;
         int weaponmanagers = 0;
         int AIs = 0;
+        ScreenMessage vessellegality = new ScreenMessage("", 7.0f, ScreenMessageStyle.LOWER_CENTER);
 
         void DoVesselLegalityChecks(bool refreshParts, bool buttonTest = false)
         {
@@ -1287,7 +1289,7 @@ namespace BDArmory.UI
                                                 engineCount += kvp.Value.Count;
                                                 Debug.Log($"[VesselCheckDebug] found {kvp.Value.Count} {kvp.Value[0].partInfo.title}");
                                             }
-                                            if (maxTWR > 0) maxThrust += kvp.Value[0].FindModuleImplementing<ModuleEngines>().maxThrust * kvp.Value.Count;
+                                            if (maxTWR > 0) maxThrust += (kvp.Value[0].FindModuleImplementing<ModuleEngines>().maxThrust * kvp.Value[0].FindModuleImplementing<ModuleEngines>().thrustPercentage) * kvp.Value.Count;
                                         }
                                         break;
                                     }
@@ -1304,7 +1306,7 @@ namespace BDArmory.UI
                                     }
                                 case "MissileFire":
                                     {
-                                        weaponmanagers++;
+                                        weaponmanagers += kvp.Value.Count;
                                         if (weaponmanagers > 1) //only 1 WM per vessel. TODO - remember to change this out if Doc ever gets mothership sub-WMs implemented fully
                                         {
                                             if (!string.IsNullOrEmpty(blacklistedParts)) blacklistedParts += " | ";
@@ -1334,7 +1336,7 @@ namespace BDArmory.UI
                                 case "BDModuleVTOLAI":
                                 case "BDModuleOrbitalAI":
                                     {
-                                        AIs++;
+                                        AIs += kvp.Value.Count;
                                         if (AIs > 1) //only 1 WM per vessel. TODO - remember to change this out if Doc ever gets mothership sub-WMs implemented fully
                                         {
                                             if (!string.IsNullOrEmpty(blacklistedParts)) blacklistedParts += " | ";
@@ -1355,8 +1357,7 @@ namespace BDArmory.UI
                                         }
                                         break;
                                     }
-                                case "ModuleCommand":
-                                case "KerbalSeat":
+                                case "ModuleCommand":                                
                                     {
                                         int crewCount = kvp.Value[0].FindModuleImplementing<ModuleCommand>().minimumCrew;
                                         if (crewCount <= 0)
@@ -1391,50 +1392,50 @@ namespace BDArmory.UI
                         }
                     }
                 }
-                StringBuilder evaluationstring = new StringBuilder();
-                ScreenMessage vessellegality = new ScreenMessage("", 7.0f, ScreenMessageStyle.LOWER_CENTER);
+                StringBuilder evaluationstring = new StringBuilder();                
                 if (CompSettings.CompVesselChecksEnabled)
                 {
+                    CalculateTotalLift(); //update wing lading/lift stack values if GUI not open
                     if (maxPartCount > 0 && EditorLogic.fetch.ship.Parts.Count > maxPartCount)
-                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolPartCount")} ({EditorLogic.fetch.ship.Parts.Count}/{maxPartCount})");
+                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolPartCount")} ({EditorLogic.fetch.ship.Parts.Count}/{maxPartCount})"); //"Part count exceeded!"
                     if (engineCount > 0)
                     {
                         if (maxEngines >= 0 && engineCount > maxEngines)
-                            evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolEngineCount")} ({engineCount}/{maxEngines}) - {engineparts}");
+                            evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolEngineCount")} ({engineCount}/{maxEngines}) - {engineparts}"); //Too Many Engines:"
                         if (maxEngines < 0 && engineCount < Mathf.Abs(maxEngines))
-                            evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolEngineCountFloor")} ({engineCount}/{Mathf.Abs(maxEngines)})");
+                            evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolEngineCountFloor")} ({engineCount}/{Mathf.Abs(maxEngines)})"); //"Too Few Engines:"
                     }
-                    if (maxTWR > 0 && ((maxThrust / (PhysicsGlobals.GravitationalAcceleration * FlightGlobals.GetHomeBody().GeeASL) * EditorLogic.fetch.ship.GetTotalMass())) > maxLtW)
-                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolTWR")} {Math.Round(maxThrust / (EditorLogic.fetch.ship.GetTotalMass() * (PhysicsGlobals.GravitationalAcceleration * FlightGlobals.GetHomeBody().GeeASL)), 2)}/{maxTWR}");
+                    if (maxTWR > 0 && Math.Round(((maxThrust / (PhysicsGlobals.GravitationalAcceleration * FlightGlobals.GetHomeBody().GeeASL) * EditorLogic.fetch.ship.GetTotalMass())), 2) > maxLtW)
+                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolTWR")} {Math.Round(maxThrust / (EditorLogic.fetch.ship.GetTotalMass() * (PhysicsGlobals.GravitationalAcceleration * FlightGlobals.GetHomeBody().GeeASL)), 2)}/{maxTWR}"); //"TWR Exceeded:"
                     if (maxLtW > 0 && wingLoadingWet > maxLtW)
-                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolLTW")} {wingLoadingWet}/{maxLtW}");
+                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolLTW")} {wingLoadingWet}/{maxLtW}"); //"LTW Exceeded:"
                     if (maxStacking > 0 && totalLiftStackRatio * 100 > maxStacking)
-                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorLiftStacking")}: {Mathf.RoundToInt(totalLiftStackRatio * 100)}/{maxStacking}%");
+                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorLiftStacking")}: {Mathf.RoundToInt(totalLiftStackRatio * 100)}/{maxStacking}%"); //"Lift Stacking"
                     if (maxMass > 0 && EditorLogic.fetch.ship.GetTotalMass() > maxMass)
-                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolMaxMass")} {EditorLogic.fetch.ship.GetTotalMass()}/{maxMass}");
+                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolMaxMass")} {EditorLogic.fetch.ship.GetTotalMass()}/{maxMass}"); //"Maxx Limit Exceeded:"
                     //max Dimensions?
                 }
                 if (CompSettings.CompPriceChecksEnabled && pointBuyBudget > 0)
                 {
                     if (priceCkeckoout > pointBuyBudget)
-                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolMaxPoints")} ({priceCkeckoout}/{pointBuyBudget}) - {boughtParts}");
+                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolMaxPoints")} ({priceCkeckoout}/{pointBuyBudget}) - {boughtParts}"); //Point Limit Exceeded:
                 }
                 if (CompSettings.CompVesselChecksEnabled || CompSettings.CompBanChecksEnabled)
                 {
                     if (!string.IsNullOrEmpty(blacklistedParts))
-                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolIllegalParts")} - {blacklistedParts}");
+                        evaluationstring.AppendLine($"{StringUtils.Localize("#LOC_BDArmory_ArmorToolIllegalParts")} - {blacklistedParts}"); //"Illegal Parts:"
                 }
 
                 if (nonCockpitAI || nonCockpitWM) // || nonRootCockpit)
                 {
                     string commandStatus = "";
-                    if (nonCockpitAI) commandStatus += "AI";
+                    if (nonCockpitAI) commandStatus += StringUtils.Localize("#LOC_BDArmory_Settings_DebugAI"); //"AI"
                     if (nonCockpitWM)
                     {
                         if (!string.IsNullOrEmpty(commandStatus)) commandStatus += ", ";
-                        commandStatus += "WM";
+                        commandStatus += StringUtils.Localize("#LOC_BDArmory_WMWindow_title"); //"BDA Weapon Manager"
                     }
-                    commandStatus += $" {(StringUtils.Localize("#LOC_BDArmory_ArmorToolNonCockpit"))}";
+                    commandStatus += $" {(StringUtils.Localize("#LOC_BDArmory_ArmorToolNonCockpit"))}"; //"not attached to cockpit"
                     //if (nonRootCockpit)
                     //{
                     //    commandStatus += ", which is not a cockpit.";
@@ -1445,10 +1446,10 @@ namespace BDArmory.UI
                 if (buttonTest)
                 {
                     if (evaluationstring.Length == 0)
-                        evaluationstring.AppendLine("Vessel legal!");
+                        evaluationstring.AppendLine(StringUtils.Localize("#LOC_BDArmory_ArmorToolVesselLegal")); //"Vessel Legal!"
                 }
                 if (oversizedPWings > 0)
-                    evaluationstring.AppendLine($"{oversizedPWings} {StringUtils.Localize("#LOC_BDArmory_ArmorToolOversizedPWings")}");
+                    evaluationstring.AppendLine($"{oversizedPWings} {StringUtils.Localize("#LOC_BDArmory_ArmorToolOversizedPWings")}"); //"pWings exceedeing max Lift - check Lift Visualize"
                 ScreenMessages.RemoveMessage(vessellegality);
                 vessellegality.textInstance = null;
                 vessellegality.message = evaluationstring.ToString();
