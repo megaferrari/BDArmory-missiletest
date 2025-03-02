@@ -99,6 +99,7 @@ namespace BDArmory.UI
         //particle optimization
         public static int numberOfParticleEmitters = 0;
         public static BDArmorySetup Instance;
+        static GameScenes InScene = GameScenes.CREDITS; // The scene the instance was instantiated in (for duplicate detection).
         public static bool GAME_UI_ENABLED = true;
         public static string Version { get; private set; } = "Unknown";
 
@@ -404,8 +405,19 @@ namespace BDArmory.UI
 
         void Awake()
         {
-            if (Instance != null) Destroy(Instance);
+            if (Instance != null)
+            {
+                if (InScene == HighLogic.LoadedScene)
+                {
+                    // In some scenes (such as the editors) addons get instantiated multiple times if using KSPAddon.Startup.EveryScene.
+                    // This avoids the duplicate instance from messing with our syncing to KSP's settings.
+                    Destroy(this);
+                    return;
+                }
+                Destroy(Instance);
+            }
             Instance = this;
+            InScene = HighLogic.LoadedScene;
             if (!(HighLogic.LoadedSceneIsFlight || HighLogic.LoadedSceneIsEditor))
             {
                 windowSettingsEnabled = false; // Close the settings on other scenes (it's been saved when the other scene was destroyed).
@@ -509,7 +521,8 @@ namespace BDArmory.UI
             compIntraTeamSeparationBase = BDArmorySettings.COMPETITION_INTRA_TEAM_SEPARATION_BASE.ToString();
             compIntraTeamSeparationPerMember = BDArmorySettings.COMPETITION_INTRA_TEAM_SEPARATION_PER_MEMBER.ToString();
             HoSTag = BDArmorySettings.HOS_BADGE;
-            RWPSettings.SyncToGameSettings(); // Re-sync BDA settings to game settings in Start since they get overwritten during scene initialisation.
+            if (HighLogic.LoadedSceneIsFlight || HighLogic.LoadedSceneIsEditor) RWPSettings.SyncWithGameSettings(); // Re-sync BDA settings to game settings in Start since they get overwritten during scene initialisation.
+            if (!HighLogic.LoadedSceneIsFlight) OtherUtils.SetTimeOverride(false); // Make sure time override is disabled when switching to any scene other than flight.
 
             if (HighLogic.LoadedSceneIsFlight || HighLogic.LoadedSceneIsEditor)
             { StartCoroutine(ToolbarButtonRoutine()); }
@@ -722,7 +735,6 @@ namespace BDArmory.UI
             if (windowSettingsEnabled)
             {
                 // LoadConfig(); // Don't reload settings, since they're already loaded and mess with other settings windows.
-                if (HighLogic.CurrentGame != null) advancedParams = HighLogic.CurrentGame.Parameters.CustomParams<GameParameters.AdvancedParams>(); // Grab the current AdvancedParams.
             }
             else
             {
@@ -853,10 +865,15 @@ namespace BDArmory.UI
                 TournamentScores.LoadWeights();
                 ContinuousSpawning.LoadWeights();
                 SanitiseSettings();
+                RWPSettings.SyncWithGameSettings(toKSP: false); // Sync KSP's advanced settings to BDA's backing values before we load any overrides.
                 RWPSettings.Load();
                 CompSettings.Load();
                 VesselSpawnerField.Load();
                 BDArmorySettings.ready = true;
+                if (BDAEditorArmorWindow.Instance)
+                {
+                    BDAEditorArmorWindow.Instance.SetupLegalityValues();
+                }
             }
             catch (NullReferenceException e)
             {
@@ -926,7 +943,7 @@ namespace BDArmory.UI
             {
                 var guiMatrix = GUI.matrix; // Store and restore the GUI.matrix so we can apply a different scaling for the WM window.
                 if (scalingUI && Mouse.Left.GetButtonUp()) scalingUI = false; // Don't rescale the settings window until the mouse is released otherwise it messes with the slider.
-                if (!scalingUI) { oldUIScale = BDArmorySettings.UI_SCALE; BDArmorySettings.PREVIOUS_UI_SCALE = BDArmorySettings.UI_SCALE; }
+                if (!scalingUI) { oldUIScale = BDArmorySettings.UI_SCALE_ACTUAL; BDArmorySettings.PREVIOUS_UI_SCALE = BDArmorySettings.UI_SCALE; }
                 if (oldUIScale != 1) GUIUtility.ScaleAroundPivot(oldUIScale * Vector2.one, WindowRectSettings.position);
                 WindowRectSettings = GUI.Window(129419, WindowRectSettings, WindowSettings, GUIContent.none, settingsTitleStyle);
                 GUI.matrix = guiMatrix;
@@ -946,7 +963,7 @@ namespace BDArmory.UI
 
             if (!windowBDAToolBarEnabled || !HighLogic.LoadedSceneIsFlight) return;
             SetGUIOpacity();
-            if (BDArmorySettings._UI_SCALE != 1) GUIUtility.ScaleAroundPivot(BDArmorySettings._UI_SCALE * Vector2.one, WindowRectToolbar.position);
+            if (BDArmorySettings.UI_SCALE_ACTUAL != 1) GUIUtility.ScaleAroundPivot(BDArmorySettings.UI_SCALE_ACTUAL * Vector2.one, WindowRectToolbar.position);
             WindowRectToolbar = GUI.Window(321, WindowRectToolbar, WindowBDAToolbar, "", BDGuiSkin.window);//"BDA Weapon Manager"
             SetGUIOpacity(false);
             GUIUtils.UseMouseEventInRect(WindowRectToolbar);
@@ -2409,7 +2426,7 @@ namespace BDArmory.UI
             if (BDArmorySettings.GRAPHICS_UI_SETTINGS_TOGGLE)
             {
                 line += 0.2f;
-                GUI.Label(SQuarterRect(++line, 0), $"{StringUtils.Localize("#LOC_BDArmory_Settings_UIScale")}: {BDArmorySettings._UI_SCALE:0.00}x", leftLabel); // UI Scale
+                GUI.Label(SQuarterRect(++line, 0), $"{StringUtils.Localize("#LOC_BDArmory_Settings_UIScale")}: {BDArmorySettings.UI_SCALE_ACTUAL:0.00}x", leftLabel); // UI Scale
                 BDArmorySettings.UI_SCALE_FOLLOWS_STOCK = GUI.Toggle(SQuarterRect(line, 1), BDArmorySettings.UI_SCALE_FOLLOWS_STOCK, $"{StringUtils.Localize("#LOC_BDArmory_Settings_UIScaleFollowsStock")}");
                 if (!BDArmorySettings.UI_SCALE_FOLLOWS_STOCK)
                 {
@@ -3225,11 +3242,23 @@ namespace BDArmory.UI
                                 SpawnUtils.HackActuators(vessel, BDArmorySettings.RUNWAY_PROJECT);
                             }
                         }
-                        if (HighLogic.LoadedSceneIsEditor && EditorLogic.fetch.ship is not null) GameEvents.onEditorShipModified.Fire(EditorLogic.fetch.ship);
+                        if (HighLogic.LoadedSceneIsEditor)
+                        {
+                            if (BDArmorySettings.RUNWAY_PROJECT && BDAEditorArmorWindow.Instance) BDAEditorArmorWindow.Instance.SetupLegalityValues();
+                            if (EditorLogic.fetch.ship is not null) GameEvents.onEditorShipModified.Fire(EditorLogic.fetch.ship);                            
+                        }
                     }
                     if (CompSettings.CompOverridesEnabled)
-                        BDArmorySettings.COMP_CONVENIENCE_CHECKS = GUI.Toggle(SRightRect(line), BDArmorySettings.COMP_CONVENIENCE_CHECKS, StringUtils.Localize("Use AI/WM Overrides"));
-
+                    {
+                        if (BDArmorySettings.COMP_CONVENIENCE_CHECKS != (BDArmorySettings.COMP_CONVENIENCE_CHECKS = GUI.Toggle(SRightRect(line), BDArmorySettings.COMP_CONVENIENCE_CHECKS, StringUtils.Localize("#LOC_BDArmory_Settings_CompChecks"))))//Runway Project
+                        {
+                            if (HighLogic.LoadedSceneIsEditor)
+                            {
+                                if (BDArmorySettings.COMP_CONVENIENCE_CHECKS && BDAEditorArmorWindow.Instance) BDAEditorArmorWindow.Instance.SetupLegalityValues();
+                                if (EditorLogic.fetch.ship is not null) GameEvents.onEditorShipModified.Fire(EditorLogic.fetch.ship);
+                            }
+                        }
+                    }
                     if (BDArmorySettings.RUNWAY_PROJECT)
                     {
                         GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_Settings_RunwayProjectRound")}: ({(BDArmorySettings.RUNWAY_PROJECT_ROUND > 10 ? $"S{(BDArmorySettings.RUNWAY_PROJECT_ROUND - 1) / 10}R{(BDArmorySettings.RUNWAY_PROJECT_ROUND - 1) % 10 + 1}" : "—")})", leftLabel); // RWP round
@@ -3595,24 +3624,30 @@ namespace BDArmory.UI
                 {
                     CheatOptions.InfiniteElectricity = BDArmorySettings.INFINITE_EC;
                 }
-                bool advParamsChanged = false;
-                if (HighLogic.CurrentGame != null) advancedParams = HighLogic.CurrentGame.Parameters.CustomParams<GameParameters.AdvancedParams>(); // Grab the current AdvancedParams.
-                if (!BDArmorySettings.G_LIMITS && (advancedParams.GPartLimits || advancedParams.GKerbalLimits))
-                    BDArmorySettings.G_LIMITS = true;
-                BDArmorySettings.PART_GLIMIT = advancedParams.GPartLimits; // Sync with the Game Difficulty window if the checkbox was toggled there.
-                BDArmorySettings.KERB_GLIMIT = advancedParams.GKerbalLimits;
-                BDArmorySettings.G_TOLERANCE = BDAMath.RoundToUnit(advancedParams.KerbalGToleranceMult * 20.5f, 0.5f);
                 if (BDArmorySettings.G_LIMITS != (BDArmorySettings.G_LIMITS = GUI.Toggle(SLeftRect(line), BDArmorySettings.G_LIMITS, StringUtils.Localize("#LOC_BDArmory_Settings_GLimitsMode"))))//G-Force Limits
                 {
-                    if (!BDArmorySettings.G_LIMITS)
+                    if (BDArmorySettings.G_LIMITS) // Sync the initial override values to the current ones.
                     {
-                        BDArmorySettings.KERB_GLIMIT = false;
-                        BDArmorySettings.PART_GLIMIT = false;
-                        advParamsChanged = true;
+                        RWPSettings.SyncWithGameSettings(toKSP: false); // Update the current backing values from the Game Difficulty.
+                        RWPSettings.SyncWithGameSettings(); // Then override them.
+                    }
+                    else
+                    {
+                        RWPSettings.SyncWithGameSettings(); // Sync so that the Game Difficulty values get reverted to the backing values.
                     }
                 }
                 if (BDArmorySettings.G_LIMITS)
                 {
+                    if (HighLogic.CurrentGame != null)
+                    {
+                        // Sync with the Game Difficulty window if the checkbox was toggled there and update the backing values. (Note: this only happens if the menu is open.)
+                        advancedParams = HighLogic.CurrentGame.Parameters.CustomParams<GameParameters.AdvancedParams>(); // Grab the latest values, in case KSP has changed the instance.
+                        if (BDArmorySettings.PART_GLIMIT != (BDArmorySettings.PART_GLIMIT = advancedParams.GPartLimits)) BDArmorySettings._PART_GLIMIT = BDArmorySettings.PART_GLIMIT;
+                        if (BDArmorySettings.KERB_GLIMIT != (BDArmorySettings.KERB_GLIMIT = advancedParams.GKerbalLimits)) BDArmorySettings._KERB_GLIMIT = BDArmorySettings.KERB_GLIMIT;
+                        if (BDArmorySettings.G_TOLERANCE != (BDArmorySettings.G_TOLERANCE = BDAMath.RoundToUnit(advancedParams.KerbalGToleranceMult * 20.5f, 0.5f))) BDArmorySettings._G_TOLERANCE = BDArmorySettings.G_TOLERANCE;
+                    }
+
+                    bool advParamsChanged = false;
                     if (BDArmorySettings.PART_GLIMIT != (BDArmorySettings.PART_GLIMIT = GUI.Toggle(SLeftRect(++line, 1), BDArmorySettings.PART_GLIMIT, StringUtils.Localize("#autoLOC_140950"))))//Part G-Force Limits
                         advParamsChanged = true;
                     if (BDArmorySettings.KERB_GLIMIT != (BDArmorySettings.KERB_GLIMIT = GUI.Toggle(SRightRect(line, 1), BDArmorySettings.KERB_GLIMIT, StringUtils.Localize("#autoLOC_140953"))))//Kerbal G-Force Limits
@@ -3624,10 +3659,10 @@ namespace BDArmory.UI
                         if (BDArmorySettings.G_TOLERANCE != (BDArmorySettings.G_TOLERANCE = BDAMath.RoundToUnit(GUI.HorizontalSlider(SRightSliderRect(line), BDArmorySettings.G_TOLERANCE, 1f, 40f), 0.5f)))
                             advParamsChanged = true;
                     }
-                }
-                if (advParamsChanged)
-                {
-                    RWPSettings.SyncToGameSettings();
+                    if (advParamsChanged)
+                    {
+                        RWPSettings.SyncWithGameSettings();
+                    }
                 }
                 // Resource steal
                 BDArmorySettings.RESOURCE_STEAL_ENABLED = GUI.Toggle(SLeftRect(++line), BDArmorySettings.RESOURCE_STEAL_ENABLED, StringUtils.Localize("#LOC_BDArmory_Settings_ResourceSteal"));//"Resource Steal"
@@ -4376,6 +4411,7 @@ namespace BDArmory.UI
                 // Switch visible/hidden window rects
                 _WindowRectScoresUIVisible = WindowRectScores;
                 if (_WindowRectScoresUIHidden != default) WindowRectScores = _WindowRectScoresUIHidden;
+                if (ScoreWindow.Instance.autoResizingWindow) WindowRectScores.height = _WindowRectScoresUIVisible.height;
                 _WindowRectVesselSwitcherUIVisible = WindowRectVesselSwitcher;
                 if (_WindowRectVesselSwitcherUIHidden != default) WindowRectVesselSwitcher = _WindowRectVesselSwitcherUIHidden;
             }
@@ -4392,6 +4428,7 @@ namespace BDArmory.UI
                 // Switch visible/hidden window rects
                 _WindowRectScoresUIHidden = WindowRectScores;
                 if (_WindowRectScoresUIVisible != default) WindowRectScores = _WindowRectScoresUIVisible;
+                if (ScoreWindow.Instance.autoResizingWindow) WindowRectScores.height = _WindowRectScoresUIHidden.height;
                 _WindowRectVesselSwitcherUIHidden = WindowRectVesselSwitcher;
                 if (_WindowRectVesselSwitcherUIVisible != default) WindowRectVesselSwitcher = _WindowRectVesselSwitcherUIVisible;
             }
@@ -5081,6 +5118,11 @@ namespace BDArmory.UI
         /// </summary>
         void OnGameSceneSwitchRequested(GameEvents.FromToAction<GameScenes, GameScenes> fromTo)
         {
+            if (windowSettingsEnabled) ToggleWindowSettings(); // Close the settings window so that the following settings changes don't propagate back into the settings window.
+            if (BDArmorySettings.G_LIMITS && (fromTo.from == GameScenes.EDITOR || fromTo.from == GameScenes.FLIGHT))
+            {
+                RWPSettings.SyncWithGameSettings(restoreOverridesAndSave: true);
+            }
             if (fromTo.from == GameScenes.FLIGHT && fromTo.to != GameScenes.FLIGHT)
             {
                 DisableAllFXAndProjectiles();

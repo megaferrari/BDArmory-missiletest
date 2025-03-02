@@ -112,8 +112,12 @@ namespace BDArmory.CounterMeasure
                 SetupCM();
 
                 ejectTransform = part.FindModelTransform(ejectTransformName);
-                if (ejectTransform == null)
-                    ejectTransform = part.transform;
+                if (ejectTransform == null) // Create an eject transform that has ejectTransform.forward in the part.transform.up direction
+                {
+                    ejectTransform = new GameObject().transform;
+                    ejectTransform.SetParent(part.transform);
+                    ejectTransform.localRotation = Quaternion.AngleAxis(-90, Vector3.right);
+                }
 
                 if (effectsTransformName != string.Empty)
                 {
