@@ -3252,6 +3252,7 @@ namespace BDArmory.UI
                             if (HighLogic.LoadedSceneIsEditor)
                             {
                                 if (BDArmorySettings.COMP_CONVENIENCE_CHECKS && BDAEditorArmorWindow.Instance) BDAEditorArmorWindow.Instance.SetupLegalityValues();
+                                if (EditorLogic.fetch.ship is not null) GameEvents.onEditorShipModified.Fire(EditorLogic.fetch.ship);
                             }
                         }
                     }
