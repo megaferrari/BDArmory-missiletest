@@ -214,7 +214,7 @@ namespace BDArmory.VesselSpawning
         public static void ApplyRWPonNewVessels(bool enable) => SpawnUtilsInstance.Instance.ApplyRWPonNewVessels(enable);
         public static void ApplyRWP(Vessel vessel) => SpawnUtilsInstance.Instance.ApplyRWP(vessel); // Applying RWP can't be undone
         #endregion
-        #region FJRT Stuff
+        #region CompCheck Stuff
         public static void ApplyCompCheckonNewVessels(bool enable) => SpawnUtilsInstance.Instance.ApplyCompCheckOnNewVessels(enable);
         public static void ApplyCompSettingsChecks(Vessel vessel) => SpawnUtilsInstance.Instance.ApplyCompSettingsChecks(vessel); // Applying these can't be undone
 
