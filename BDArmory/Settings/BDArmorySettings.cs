@@ -362,6 +362,7 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static bool VESSEL_MOVER_DONT_WORRY_ABOUT_COLLISIONS = false; // Don't prevent collisions.
         [BDAPersistentSettingsField] public static bool VESSEL_MOVER_CLOSE_ON_COMPETITION_START = true; // Close when starting a competition.
         [BDAPersistentSettingsField] public static bool VESSEL_MOVER_PLACE_AFTER_SPAWN = false;    // Immediately place vessels after spawning them.
+        [BDAPersistentSettingsField] public static bool VESSEL_MOVER_DECONFLICT_VESSELNAME = true;    // Deconflict the vessel's name after spawning it.
         #endregion
 
         #region Scores

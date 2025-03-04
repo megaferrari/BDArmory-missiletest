@@ -845,7 +845,17 @@ namespace BDArmory.VesselSpawning
                 VesselSpawner.ReservedCrew = crew.Select(crew => crew.name).ToHashSet(); // Reserve the crew so they don't get swapped out.
                 foreach (var c in crew) c.rosterStatus = ProtoCrewMember.RosterStatus.Available; // Set all the requested crew as available.
             }
-            VesselSpawnConfig vesselSpawnConfig = new VesselSpawnConfig(craftUrl, spawnPoint, direction, (float)altitude, initialPitch, false, false, crew: crew);
+            VesselSpawnConfig vesselSpawnConfig = new(
+                craftUrl,
+                spawnPoint,
+                direction,
+                (float)altitude,
+                initialPitch,
+                airborne: false,
+                inOrbit: false,
+                deconflictVesselName: BDArmorySettings.VESSEL_MOVER_DECONFLICT_VESSELNAME,
+                crew: crew
+            );
 
             // Spawn vessel.
             yield return SpawnSingleVessel(vesselSpawnConfig);
@@ -1085,6 +1095,7 @@ namespace BDArmory.VesselSpawning
                         BDArmorySettings.VESSEL_MOVER_CHOOSE_CREW = GUILayout.Toggle(BDArmorySettings.VESSEL_MOVER_CHOOSE_CREW, StringUtils.Localize("#LOC_BDArmory_VesselMover_ChooseCrew"));
                         BDArmorySettings.VESSEL_MOVER_PLACE_AFTER_SPAWN = GUILayout.Toggle(BDArmorySettings.VESSEL_MOVER_PLACE_AFTER_SPAWN, StringUtils.Localize("#LOC_BDArmory_VesselMover_PlaceAfterSpawn"));
                         GUILayout.EndHorizontal();
+                        BDArmorySettings.VESSEL_MOVER_DECONFLICT_VESSELNAME = GUILayout.Toggle(BDArmorySettings.VESSEL_MOVER_DECONFLICT_VESSELNAME, StringUtils.Localize("#LOC_BDArmory_VesselMover_DeconflictVesselName"));
                         break;
                     }
             }

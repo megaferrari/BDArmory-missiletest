@@ -932,7 +932,8 @@ namespace BDArmory.UI
                         // Configure the current custom spawn template.
                         if (CustomTemplateSpawning.Instance.ConfigureTemplate(spawnAndStartCompetition))
                         {
-                            // Spawn the craft and start the competition.
+                            // Spawn the craft and maybe start the competition.
+                            SpawnUtils.ResetVesselNamingDeconfliction();
                             CustomTemplateSpawning.Instance.SpawnCustomTemplate(CustomTemplateSpawning.customSpawnConfig);
                         }
                     }
@@ -966,6 +967,7 @@ namespace BDArmory.UI
                         }
                         else
                         {
+                            SpawnUtils.ResetVesselNamingDeconfliction();
                             CircularSpawning.Instance.SpawnAllVesselsOnce(
                                 BDArmorySettings.VESSEL_SPAWN_WORLDINDEX,
                                 BDArmorySettings.VESSEL_SPAWN_GEOCOORDS.x,

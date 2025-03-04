@@ -336,7 +336,7 @@ namespace BDArmory.FX
                                 var partHitExplosivePart = partHit.GetComponent<BDExplosivePart>();
                                 if (partHitExplosivePart != null && SourceVesselTeam == partHitExplosivePart.Team.Name && !string.IsNullOrEmpty(SourceVesselTeam)) continue; //don't fratricide fellow missiles/bombs in a launched salvo when the first detonates
                             }
-                            if (partHit.mass > 0 && !explosionEventsPartsAdded.Contains(partHit)) 
+                            if (partHit.mass > 0 && !explosionEventsPartsAdded.Contains(partHit))
                             {
                                 var damaged = ProcessPartEvent(partHit, Vector3.Distance(hitCollidersEnu.Current.ClosestPoint(Position), Position), SourceVesselName, explosionEventsPreProcessing, explosionEventsPartsAdded);
                                 // If the explosion derives from a missile explosion, count the parts damaged for missile hit scores.
@@ -344,25 +344,28 @@ namespace BDArmory.FX
                                 {
                                     bool registered = false;
 
-                                    var damagedVesselName = partHit.vessel != null ? partHit.vessel.GetName() : null;
-                                    switch (ExplosionSource)
+                                    if (partHit.vessel != null)
                                     {
-                                        case ExplosionSourceType.Rocket:
-                                            if (BDACompetitionMode.Instance.Scores.RegisterRocketHit(SourceVesselName, damagedVesselName, 1))
-                                                registered = true;
-                                            break;
-                                        case ExplosionSourceType.Missile:
-                                            if (BDACompetitionMode.Instance.Scores.RegisterMissileHit(SourceVesselName, damagedVesselName, 1))
-                                                registered = true;
-                                            break;
-                                        case ExplosionSourceType.Bullet:
-                                            if (isReportingWeapon)
-                                                registered = true;
-                                            break;
+                                        var damagedVesselName = partHit.vessel.GetName();
+                                        switch (ExplosionSource)
+                                        {
+                                            case ExplosionSourceType.Rocket:
+                                                if (BDACompetitionMode.Instance.Scores.RegisterRocketHit(SourceVesselName, damagedVesselName, 1))
+                                                    registered = true;
+                                                break;
+                                            case ExplosionSourceType.Missile:
+                                                if (BDACompetitionMode.Instance.Scores.RegisterMissileHit(SourceVesselName, damagedVesselName, 1))
+                                                    registered = true;
+                                                break;
+                                            case ExplosionSourceType.Bullet:
+                                                if (isReportingWeapon)
+                                                    registered = true;
+                                                break;
+                                        }
+                                        if (registered)
+                                            explosionEventsVesselsHit[damagedVesselName] = explosionEventsVesselsHit.GetValueOrDefault(damagedVesselName) + 1;
+                                        totalPartsHit[damagedVesselName] = totalPartsHit.GetValueOrDefault(damagedVesselName) + 1; // Include non-competition craft (like debris).
                                     }
-                                    if (registered)
-                                        explosionEventsVesselsHit[damagedVesselName] = explosionEventsVesselsHit.GetValueOrDefault(damagedVesselName) + 1;
-                                    totalPartsHit[damagedVesselName] = totalPartsHit.GetValueOrDefault(damagedVesselName) + 1; // Include non-competition craft (like debris).
                                 }
                             }
                         }

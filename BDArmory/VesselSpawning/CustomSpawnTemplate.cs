@@ -154,7 +154,8 @@ namespace BDArmory.VesselSpawning
                     spawnAirborne,
                     spawnInOrbit,
                     customVesselSpawnConfig.teamIndex,
-                    false,
+                    reuseURLVesselName: false,
+                    deconflictVesselName: true,
                     crew
                 ));
             }
@@ -201,13 +202,13 @@ namespace BDArmory.VesselSpawning
             {
                 if (spawnConfig.numberOfTeams == 1) // Folders
                 {
-                    foreach (var vesselName in spawnedVesselURLs.Keys)
-                        SpawnUtils.originalTeams[vesselName] = Path.GetFileName(Path.GetDirectoryName(spawnedVesselURLs[vesselName]));
+                    foreach (var vesselName in SpawnUtils.SpawnedVesselURLs.Keys)
+                        SpawnUtils.originalTeams[vesselName] = Path.GetFileName(Path.GetDirectoryName(SpawnUtils.SpawnedVesselURLs[vesselName]));
                 }
                 else // Files as folders
                 {
-                    foreach (var vesselName in spawnedVesselURLs.Keys)
-                        SpawnUtils.originalTeams[vesselName] = Path.GetFileNameWithoutExtension(spawnedVesselURLs[vesselName]);
+                    foreach (var vesselName in SpawnUtils.SpawnedVesselURLs.Keys)
+                        SpawnUtils.originalTeams[vesselName] = Path.GetFileNameWithoutExtension(SpawnUtils.SpawnedVesselURLs[vesselName]);
                 }
             }
             if (BDArmorySettings.VESSEL_SPAWN_SMART_REASSIGN_TEAMS && spawnConfig.assignTeams && spawnConfig.numberOfTeams == 11)

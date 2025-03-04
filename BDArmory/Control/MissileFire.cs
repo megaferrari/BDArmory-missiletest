@@ -1109,6 +1109,7 @@ namespace BDArmory.Control
             get
             {
                 if ((sw != null && sw.GetPart().vessel == vessel) || weaponIndex <= 0) return sw;
+                sw = null;
                 using (var weapon = VesselModuleRegistry.GetModules<IBDWeapon>(vessel).GetEnumerator())
                     while (weapon.MoveNext())
                     {

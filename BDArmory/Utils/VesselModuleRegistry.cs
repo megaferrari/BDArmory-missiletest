@@ -945,6 +945,7 @@ namespace BDArmory.Utils
 
         public MissileFire WM { get; private set; } // Use this for accessing the primary WM. Use VesselModuleRegistry.GetMissileFires to get all WMs on a craft.
         public IBDAIControl AI { get; private set; } // The active AI (if any are active) or the closest AI to the root.
+        public string SourceVesselURL { get; set; } = null; // The original .craft file this vessel came from, if known. Spawning via BDA's spawners will set this.
 
         // Note: If using these below, check that ai.pilotEnabled is true to see if it's the active AI.
         public BDModulePilotAI PilotAI { get; private set; } // The primary or most recently active pilot AI.
@@ -1118,16 +1119,17 @@ namespace BDArmory.Utils
                 if (WM.ParentWM != null && WM.ParentWM.IsPrimaryWM)
                 {
                     // Copy the parent vessel's WM and AI state.
+                    // Note: we don't need to assign the team as doing so for the parent applies it to all WM on the vessel.
                     WM.guardMode = WM.ParentWM.guardMode;
                     if (AI != null && WM.ParentWM.AI != null)
                     {
                         if (WM.ParentWM.AI.pilotEnabled) AI.ActivatePilot();
                         else AI.DeactivatePilot();
                     }
-                }
-                if (BDACompetitionMode.Instance.competitionIsActive)
-                {
-                    BDACompetitionMode.Instance.AddToCompetitionWhenReady(WM);
+                    if (BDACompetitionMode.Instance.competitionIsActive)
+                    {
+                        BDACompetitionMode.Instance.AddToCompetitionWhenReady(WM);
+                    }
                 }
             }
         }

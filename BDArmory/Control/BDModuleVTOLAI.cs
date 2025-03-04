@@ -494,8 +494,10 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
                                 else
                                 {
                                     targetVelocity = MaxSpeed;
-                                    if (weaponManager != null && weaponManager.selectedWeapon != null && weaponManager.selectedWeapon.GetWeaponClass() == WeaponClasses.Bomb
-                                        || weaponManager.selectedWeapon.GetWeaponClass() == WeaponClasses.SLW)
+                                    if (weaponManager != null && weaponManager.selectedWeapon != null && (
+                                        weaponManager.selectedWeapon.GetWeaponClass() == WeaponClasses.Bomb ||
+                                        weaponManager.selectedWeapon.GetWeaponClass() == WeaponClasses.SLW
+                                    ))
                                         orderedToExtend = true;
                                 }
                             }

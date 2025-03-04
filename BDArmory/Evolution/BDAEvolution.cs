@@ -527,6 +527,7 @@ namespace BDArmory.Evolution
                 var wait = new WaitForFixedUpdate();
                 spawnConfig.craftFiles = null; // We don't want to include the specific craft files in the spawn config.
                 spawnConfig.teamCounts = null;
+                SpawnUtils.ResetVesselNamingDeconfliction();
                 spawner.SpawnAllVesselsOnce(spawnConfig);
                 while (spawner.vesselsSpawning)
                     yield return wait;

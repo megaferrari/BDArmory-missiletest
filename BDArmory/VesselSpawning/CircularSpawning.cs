@@ -109,11 +109,14 @@ namespace BDArmory.VesselSpawning
 
         /// <summary>
         /// A coroutine version of the SpawnAllVesselsOnce function that performs the required prespawn initialisation.
+        /// 
+        /// Note: this is only called via the deprecated RemoteOrchestration SpawnStrategies.
         /// </summary>
         /// <param name="spawnConfig">The spawn config to use.</param>
         public IEnumerator SpawnAllVesselsOnceAsCoroutine(CircularSpawnConfig spawnConfig)
         {
             PreSpawnInitialisation(spawnConfig);
+            SpawnUtils.ResetVesselNamingDeconfliction();
             LogMessage("Triggering vessel spawning at " + spawnConfig.latitude.ToString("G6") + ", " + spawnConfig.longitude.ToString("G6") + ", with altitude " + spawnConfig.altitude + "m.", false);
             yield return SpawnAllVesselsOnceCoroutine(spawnConfig);
         }
@@ -291,14 +294,14 @@ namespace BDArmory.VesselSpawning
                     {
                         case 1: // Assign team names based on folders.
                             {
-                                foreach (var vesselName in spawnedVesselURLs.Keys)
-                                    SpawnUtils.originalTeams[vesselName] = Path.GetFileName(Path.GetDirectoryName(spawnedVesselURLs[vesselName]));
+                                foreach (var vesselName in SpawnUtils.SpawnedVesselURLs.Keys)
+                                    SpawnUtils.originalTeams[vesselName] = Path.GetFileName(Path.GetDirectoryName(SpawnUtils.SpawnedVesselURLs[vesselName]));
                                 break;
                             }
                         case -1: // Assign team names based on craft filename. We can't use vessel name as that can get adjusted above to avoid conflicts.
                             {
-                                foreach (var vesselName in spawnedVesselURLs.Keys)
-                                    SpawnUtils.originalTeams[vesselName] = Path.GetFileNameWithoutExtension(spawnedVesselURLs[vesselName]);
+                                foreach (var vesselName in SpawnUtils.SpawnedVesselURLs.Keys)
+                                    SpawnUtils.originalTeams[vesselName] = Path.GetFileNameWithoutExtension(SpawnUtils.SpawnedVesselURLs[vesselName]);
                                 break;
                             }
                         default: // Specific team assignments.
@@ -374,6 +377,7 @@ namespace BDArmory.VesselSpawning
         {
             while (vesselsSpawningOnceContinuously && BDArmorySettings.VESSEL_SPAWN_CONTINUE_SINGLE_SPAWNING)
             {
+                SpawnUtils.ResetVesselNamingDeconfliction();
                 SpawnAllVesselsOnce(spawnConfig);
                 while (vesselsSpawning)
                     yield return waitForFixedUpdate;
@@ -439,6 +443,7 @@ namespace BDArmory.VesselSpawning
             bool killAllFirst = true;
             List<int> spawnCounts = new List<int>();
             spawnFailureReason = SpawnFailureReason.None;
+            SpawnUtils.ResetVesselNamingDeconfliction();
             // Spawn each team.
             foreach (var spawnConfig in spawnConfigs)
             {

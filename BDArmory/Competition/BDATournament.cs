@@ -1876,7 +1876,7 @@ namespace BDArmory.Competition
             yield return new WaitWhile(() => TournamentCoordinator.Instance.IsRunning && !BDACompetitionMode.Instance.competitionIsActive);
             competitionStarted = true;
             // Register all the active vessels as part of the tournament.
-            foreach (var kvp in spawnerBase.GetSpawnedVesselURLs())
+            foreach (var kvp in SpawnUtils.SpawnedVesselURLs)
                 tournamentState.scores.AddPlayer(kvp.Key, kvp.Value, roundIndex, tournamentState.npcFiles.Contains(kvp.Value));
             yield return new WaitWhile(() => TournamentCoordinator.Instance.IsRunning);
         }
@@ -1903,7 +1903,7 @@ namespace BDArmory.Competition
                         customSpawnConfig.customVesselSpawnConfigs[teamIndex][craftIndex].kerbalName = ""; // Use random crew.
                     }
                 }
-                CustomTemplateSpawning.Instance.SpawnCustomTemplate(customSpawnConfig);
+                CustomTemplateSpawning.Instance.SpawnCustomTemplate(customSpawnConfig); // FIXMEAI Reset name deconfliction?
                 while (CustomTemplateSpawning.Instance.vesselsSpawning)
                     yield return new WaitForFixedUpdate();
                 if (!CustomTemplateSpawning.Instance.vesselSpawnSuccess)
@@ -1916,7 +1916,7 @@ namespace BDArmory.Competition
             }
             else
             {
-                CircularSpawning.Instance.SpawnAllVesselsOnce(tournamentState.rounds[roundIndex][heatIndex] as CircularSpawnConfig);
+                CircularSpawning.Instance.SpawnAllVesselsOnce(tournamentState.rounds[roundIndex][heatIndex] as CircularSpawnConfig); // FIXMEAI this depends on whether we're resetting vessel name deconfliction
                 while (CircularSpawning.Instance.vesselsSpawning)
                     yield return new WaitForFixedUpdate();
                 if (!CircularSpawning.Instance.vesselSpawnSuccess)
@@ -1966,7 +1966,7 @@ namespace BDArmory.Competition
             }
             competitionStarted = true;
             // Register all the active vessels as part of the tournament.
-            foreach (var kvp in spawnerBase.GetSpawnedVesselURLs())
+            foreach (var kvp in SpawnUtils.SpawnedVesselURLs)
                 tournamentState.scores.AddPlayer(kvp.Key, kvp.Value, roundIndex, tournamentState.npcFiles.Contains(kvp.Value));
             // Wait for the competition to finish.
             while (BDACompetitionMode.Instance.competitionIsActive)
