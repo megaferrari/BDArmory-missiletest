@@ -48,8 +48,6 @@ namespace BDArmory.Settings
 				{"VESSEL_SPAWN_FILL_SEATS", 1},
 				{"VESSEL_SPAWN_RANDOM_ORDER", true},
 				{"VESSEL_SPAWN_REASSIGN_TEAMS", true},
-				{"BATTLEDAMAGE", true},
-				{"PWING_EDGE_LIFT", true},
 			}},
 			{17, new(){}},
 			{33, new(){}},
