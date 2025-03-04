@@ -2848,12 +2848,12 @@ namespace BDArmory.Control
 
             if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI)
             {
-                debugString.AppendLine(string.Format("steerMode: {0}, rollError: {1,7:F4}, pitchError: {2,7:F4}, yawError: {3,7:F4}", steerMode, rollError, pitchError, yawError));
+                debugString.AppendLine($"steerMode: {steerMode}, rollError: {rollError,7:F4}°, pitchError: {pitchError,7:F4}°, yawError: {yawError,7:F4}°");
                 debugString.AppendLine($"finalMaxSteer: {finalMaxSteer:G3}, dynAdj: {dynamicAdjustment:G3}");
-                // debugString.AppendLine($"Bank Angle: " + bankAngle);
-                debugString.AppendLine(string.Format("Pitch: P: {0,7:F4}, I: {1,7:F4}, D: {2,7:F4}", pitchProportional, pitchIntegral, pitchDamping));
-                debugString.AppendLine(string.Format("Yaw: P: {0,7:F4}, I: {1,7:F4}, D: {2,7:F4}", yawProportional, yawIntegral, yawDamping));
-                debugString.AppendLine(string.Format("Roll: P: {0,7:F4}, I: {1,7:F4}, D: {2,7:F4}", rollProportional, rollIntegral, rollDamping));
+                // debugString.AppendLine($"Bank Angle: {bankAngle}");
+                debugString.AppendLine($"Pitch: P: {pitchProportional,7:F4}, I: {pitchIntegral,7:F4}, D: {pitchDamping,7:F4}");
+                debugString.AppendLine($"Yaw: P: {yawProportional,7:F4}, I: {yawIntegral,7:F4}, D: {yawDamping,7:F4}");
+                debugString.AppendLine($"Roll: P: {rollProportional,7:F4}, I: {rollIntegral,7:F4}, D: {rollDamping,7:F4}");
                 // debugString.AppendLine($"ω.x: {vessel.angularVelocity.x:F3} rad/s, I.x: {vessel.angularMomentum.x / vessel.angularVelocity.x:F3} kg•m²");
             }
         }
