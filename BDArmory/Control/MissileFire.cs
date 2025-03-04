@@ -1075,7 +1075,16 @@ namespace BDArmory.Control
         {
             get
             {
-                if ((sw != null && sw.GetPart().vessel == vessel) || weaponIndex <= 0) return sw;
+                if (sw != null)
+                {
+                    var gun = sw.GetWeaponModule();
+                    if (gun == null || (!(gun.isReloading || gun.isOverheated || gun.pointingAtSelf || !(gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO))))
+                        if (sw.GetPart().vessel == vessel) return sw;
+                }
+                if (weaponIndex <= 0) return sw;
+                //if ((sw != null && sw.GetPart().vessel == vessel) || weaponIndex <= 0) return sw; //this is going to return the first gun, regardless of overheat/reload state, as long as gun was valid when first selected
+                // should only apply if selected weapon is missile/bomb/slw
+                IBDWeapon candidateGun = null;
                 using (var weapon = VesselModuleRegistry.GetModules<IBDWeapon>(vessel).GetEnumerator())
                     while (weapon.MoveNext())
                     {
@@ -1083,11 +1092,16 @@ namespace BDArmory.Control
                         if (weapon.Current.GetShortName() != selectedWeaponString) continue;
                         if (weapon.Current.GetWeaponClass() == WeaponClasses.Gun || weapon.Current.GetWeaponClass() == WeaponClasses.Rocket || weapon.Current.GetWeaponClass() == WeaponClasses.DefenseLaser)
                         {
+                            sw = weapon.Current; //set this here to ensure a weapon gets elected, in event *all* guns are currently reloading/overheated/etc so Ai continues targeting
                             var gun = weapon.Current.GetWeaponModule();
-                            sw = weapon.Current; //check against salvofiring turrets - if all guns overheat at the same time, turrets get stuck in standby mode
+                            if (gun.useThisWeaponForAim) //Doc also was floating the idea of a 'use this gun' button for aiming, though that would be more a PilotAi thing...
+                            {
+                                candidateGun = weapon.Current;
+                                break;
+                            }
                             if (gun.isReloading || gun.isOverheated || gun.pointingAtSelf || !(gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO)) continue; //instead of returning the first weapon in a weapon group, return the first weapon in a group that actually can fire
-                            //no check for if all weapons in the group are reloading/overheated...
-                            //Doc also was floating the idea of a 'use this gun' button for aiming, though that would be more a PilotAi thing...
+                            //use longest range gun for aiming. Guns with vastly differing aim lead (rockets + lasers, railguns + grenade launchers, etc.) really should not be grouped in the same weapongroup
+                            if (candidateGun == null || weapon.Current.GetEngageRange() > candidateGun.GetEngageRange()) candidateGun = weapon.Current;
                         }
                         if (weapon.Current.GetWeaponClass() == WeaponClasses.Missile || weapon.Current.GetWeaponClass() == WeaponClasses.Bomb || weapon.Current.GetWeaponClass() == WeaponClasses.SLW)
                         {
@@ -1101,6 +1115,7 @@ namespace BDArmory.Control
                         }
                         break;
                     }
+                if (candidateGun != null) sw = candidateGun;
                 return sw;
             }
             set

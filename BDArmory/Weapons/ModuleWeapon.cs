@@ -967,6 +967,37 @@ namespace BDArmory.Weapons
         }
 
         [KSPField(isPersistant = true)]
+        public bool useThisWeaponForAim = false;
+
+        [KSPEvent(guiActive = false, guiActiveEditor = true, guiName = "#LOC_BDArmory_AimOverrideFalse")]//"Aim With This Weapon"
+        public void setAimOverride()
+        {
+            useThisWeaponForAim = !useThisWeaponForAim;
+            if (useThisWeaponForAim == false)
+            {
+                Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideFalse");//"Aim With This Weapon"
+            }
+            else
+            {
+                Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideTrue");//"Revert Aim Override"
+                List<Part>.Enumerator craftPart = EditorLogic.fetch.ship.parts.GetEnumerator();
+                while (craftPart.MoveNext())
+                {
+                    if (craftPart.Current == null) continue;
+                    List<ModuleWeapon>.Enumerator weapon = craftPart.Current.FindModulesImplementing<ModuleWeapon>().GetEnumerator();
+                    while (weapon.MoveNext())
+                    {
+                        if (weapon.Current == null) continue;
+                        if (weapon.Current.GetShortName() != shortName) continue;
+                        weapon.Current.useThisWeaponForAim = false;
+                    }
+                    weapon.Dispose();
+                }
+                craftPart.Dispose();
+            }
+        }
+
+        [KSPField(isPersistant = true)]
         public bool isAPS = false;
 
         [KSPField(isPersistant = true)]
@@ -4840,7 +4871,7 @@ namespace BDArmory.Weapons
             if (!refTransform) return;
 
             Vector3 fwdPos = fireTransforms[0].position + (5 * fireTransforms[0].forward);
-            GUIUtils.DrawLineBetweenWorldPositions(fireTransforms[0].position, fwdPos, 4, Color.green);
+            GUIUtils.DrawLineBetweenWorldPositions(fireTransforms[0].position, fwdPos, useThisWeaponForAim ? 8 : 4, useThisWeaponForAim ? Color.blue : Color.green);
 
             Vector3 referenceDirection = refTransform.up;
             Vector3 refUp = -refTransform.forward;

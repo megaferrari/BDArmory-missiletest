@@ -1210,6 +1210,7 @@ namespace BDArmory.UI
                     //nonRootCockpit = false;
                     weaponmanagers = 0;
                     AIs = 0;
+                    oversizedPWings = 0;
 
                     foreach (var part in EditorLogic.fetch.ship.Parts) //grab a list of parts and their quantity
                     {
