@@ -19,6 +19,7 @@ using BDArmory.WeaponMounts;
 using BDArmory.Weapons.Missiles;
 using BDArmory.Weapons;
 using BDArmory.Bullets;
+using static BDArmory.Weapons.ModuleWeapon;
 
 namespace BDArmory.Control
 {
@@ -1078,13 +1079,15 @@ namespace BDArmory.Control
                 if (sw != null)
                 {
                     var gun = sw.GetWeaponModule();
-                    if (gun == null || (!(gun.isReloading || gun.isOverheated || gun.pointingAtSelf || !(gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO))))
+                    if (gun == null || (gun.useThisWeaponForAim && (gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO)))
                         if (sw.GetPart().vessel == vessel) return sw;
                 }
                 if (weaponIndex <= 0) return sw;
-                //if ((sw != null && sw.GetPart().vessel == vessel) || weaponIndex <= 0) return sw; //this is going to return the first gun, regardless of overheat/reload state, as long as gun was valid when first selected
+                //if ((sw != null && sw.GetPart().vessel == vessel) || weaponIndex <= 0) return sw; //this is going to return the first gun of a weaponGroup, regardless of overheat/reload state, as long as gun was valid when first selected
                 // should only apply if selected weapon is missile/bomb/slw
                 IBDWeapon candidateGun = null;
+                float candidateMuzVel = 0;
+
                 using (var weapon = VesselModuleRegistry.GetModules<IBDWeapon>(vessel).GetEnumerator())
                     while (weapon.MoveNext())
                     {
@@ -1092,16 +1095,27 @@ namespace BDArmory.Control
                         if (weapon.Current.GetShortName() != selectedWeaponString) continue;
                         if (weapon.Current.GetWeaponClass() == WeaponClasses.Gun || weapon.Current.GetWeaponClass() == WeaponClasses.Rocket || weapon.Current.GetWeaponClass() == WeaponClasses.DefenseLaser)
                         {
-                            sw = weapon.Current; //set this here to ensure a weapon gets elected, in event *all* guns are currently reloading/overheated/etc so Ai continues targeting
+                            if (candidateGun == null) candidateGun = weapon.Current; //set this here to ensure a weapon gets elected, in event *all* guns are currently reloading/overheated/etc so Ai continues targeting
                             var gun = weapon.Current.GetWeaponModule();
-                            if (gun.useThisWeaponForAim) //Doc also was floating the idea of a 'use this gun' button for aiming, though that would be more a PilotAi thing...
+                            if (gun.useThisWeaponForAim) 
                             {
-                                candidateGun = weapon.Current;
-                                break;
+                                if (gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO) //don't force aim override if this weapon is no longer viable.
+                                {
+                                    candidateGun = weapon.Current;
+                                    break;
+                                }
                             }
                             if (gun.isReloading || gun.isOverheated || gun.pointingAtSelf || !(gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO)) continue; //instead of returning the first weapon in a weapon group, return the first weapon in a group that actually can fire
-                            //use longest range gun for aiming. Guns with vastly differing aim lead (rockets + lasers, railguns + grenade launchers, etc.) really should not be grouped in the same weapongroup
-                            if (candidateGun == null || weapon.Current.GetEngageRange() > candidateGun.GetEngageRange()) candidateGun = weapon.Current;
+                            //use longest range gun for aiming. Guns with vastly differing aim lead (rockets + lasers, railguns + grenade launchers, etc.) really should not be grouped in the same weapongroup, or at least have range brakcets defined. 
+                            float muzVel = gun.eWeaponType == WeaponTypes.Rocket ? gun.thrust / gun.rocketMass : gun.eWeaponType == WeaponTypes.Ballistic ? gun.bulletVelocity : 300000000;
+                            if (gun.GetEngageRange() >= candidateGun.GetEngageRange()) 
+                            {
+                                if (muzVel / gun.GetEngageRange() > candidateMuzVel) //if both weapons have the same range, which has a lower lead time? 
+                                { 
+                                    candidateGun = weapon.Current;
+                                    candidateMuzVel = muzVel;
+                                }
+                            }
                         }
                         if (weapon.Current.GetWeaponClass() == WeaponClasses.Missile || weapon.Current.GetWeaponClass() == WeaponClasses.Bomb || weapon.Current.GetWeaponClass() == WeaponClasses.SLW)
                         {
@@ -1112,8 +1126,8 @@ namespace BDArmory.Control
                             if (msl.GetEngageRange() != selectedWeaponsEngageRangeMax) continue;
                             if (msl.GetEngageFOV() != selectedWeaponsMissileFOV) continue;
                             sw = weapon.Current;
+                            break;
                         }
-                        break;
                     }
                 if (candidateGun != null) sw = candidateGun;
                 return sw;

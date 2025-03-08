@@ -990,13 +990,17 @@ namespace BDArmory.Weapons
                         if (weapon.Current == null) continue;
                         if (weapon.Current == this) continue; //setting this here instead of craftPart.Current in case part has multiple weapon modules
                         if (weapon.Current.GetShortName() != shortName) continue;
-                        weapon.Current.useThisWeaponForAim = false;
+                        if (weapon.Current.useThisWeaponForAim)
+                        {
+                            weapon.Current.useThisWeaponForAim = false;
+                            weapon.Current.Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideFalse");//"Aim With This Weapon"
+                            GUIUtils.RefreshAssociatedWindows(weapon.Current.part);
+                        }
                     }
                     weapon.Dispose();
                 }
                 craftPart.Dispose();
             }
-            GUIUtils.RefreshAssociatedWindows(part);
         }
 
         [KSPField(isPersistant = true)]
@@ -1863,6 +1867,11 @@ namespace BDArmory.Weapons
                 Fields["detonateAtMinimumDistance"].guiActive = false;
                 Fields["detonateAtMinimumDistance"].guiActiveEditor = false;
             }
+            if (useThisWeaponForAim)
+                Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideTrue");//"Revert Aim Override"
+            else
+                Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideFalse");//"Aim With This Weapon"
+               
             GUIUtils.RefreshAssociatedWindows(part);
         }
 
