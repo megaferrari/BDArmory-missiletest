@@ -13,8 +13,9 @@
 	- Improvements to pilot follow mode to improve stability.
 	- Fix check for overriding terrain avoidance when ramming ground targets.
 	- The AI targeting priority 'Aerial Target Preference' now considers craft flatspinning or otherwise possessing negligible horizontal velocity lower than 200m from the ground as semi-ground targets for target filtering.
-- Competition:
-	- Adjust the default score weights for rockets to be more inline with that of bullets.
+	- AIs set to evade while running waypoint courses will now use evasion non-linearity, if enabled, to provide some dodge capability while stil remaining on-course for the next gate.
+	- Tweaked Gate targeting logic, should reduce last-second control jerk while passing through gates with a high deviation.
+	- Waypoint Race mode now works with Surface and VTOL AI.
 - Countermeasures:
 	- Fix flares and smoke CMs ejecting sideways.
 - Detectors:
@@ -26,6 +27,7 @@
 	- Fix tracers on guns with tracerlength > 0 extending behind gun on firing.
 	- Radar slaving multiple turrets when turret multi-targeting > 1 now sees if a radar lock exists for each secondary target, instead of overriding multi-targeting and aiming all guns to the primary lock.
 	- Fix Point Defense guns not firing on incoming missiles.
+	- Add Aim Override option to set what weapon AI uses for aiming/target lead when using hetergeneous weapon groups/weapons with offsets from centerpoint.
 	- Missiles:
 		- Added "hasIFF" field to missiles allowing for missile seekers without IFF functionality. Defaults to true.
 		- Fix AAMLoft implementation for MMGs.
@@ -34,6 +36,9 @@
 		- Fix lock-less Radar missiles doing a loop isntead of going straight.
 		- Fix Reload Gauge on reloadable launchers.
 		- Fix Account For Mass/Cost not applying to Missile magazines.
+- Competition:
+	- Adjust the default score weights for rockets to be more inline with that of bullets.
+	- Adds a Vessel Legality checker button to the BDA Utilities Tool GUI if 'Runway Project' or 'Use Comp Overrides' gamemodes options are enabled. This will check a craft in the SPH/VAB for part count/engine count/Lift-To-Weight/Thrust-Weight-Ratio/max allowed weaponry/banned parts/etc. Check /BDArmory/PluginData/Comp_settings.cfg fo more info.
 
 v1.9.0.0
 IMPROVEMENTS / FIXES

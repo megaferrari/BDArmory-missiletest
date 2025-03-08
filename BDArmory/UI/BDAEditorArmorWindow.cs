@@ -103,7 +103,7 @@ namespace BDArmory.UI
         float maxLtW = -1;
         float maxTWR = -1;
         float maxMass = -1;
-        int maxEngines = -1;
+        int maxEngines = 999;
         int pointBuyBudget = -1;
 
         Dictionary<string, NumericInputField> thicknessField;
@@ -178,7 +178,7 @@ namespace BDArmory.UI
                     if (CompSettings.vesselChecks.TryGetValue("maxLtW", out float ltw) && mpc > 0) maxLtW = ltw;
                     if (CompSettings.vesselChecks.TryGetValue("maxTWR", out float twr) && mpc > 0) maxTWR = twr;
                     if (CompSettings.vesselChecks.TryGetValue("maxMass", out float m) && m > 0) maxMass = m;
-                    if (CompSettings.vesselChecks.TryGetValue("maxEngines", out float me) && me > 0) maxEngines = Mathf.RoundToInt(me);
+                    if (CompSettings.vesselChecks.TryGetValue("maxEngines", out float me) && me != 999) maxEngines = Mathf.RoundToInt(me);
                 }
                 if (CompSettings.CompPriceChecksEnabled && CompSettings.vesselChecks.TryGetValue("pointBuyBudget", out float pb) && pb > 0) pointBuyBudget = Mathf.RoundToInt(pb);
             }
