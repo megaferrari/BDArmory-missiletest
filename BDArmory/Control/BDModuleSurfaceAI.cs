@@ -816,7 +816,7 @@ namespace BDArmory.Control
                 // goto
                 if (command == PilotCommands.Waypoints)
                 {
-                    Pathfind(waypointPosition);
+                    Pathfind(VectorUtils.WorldPositionToGeoCoords(waypointPosition, vessel.mainBody));                    
                 }
                 else if (leftPath && bypassTarget == null)
                 {
