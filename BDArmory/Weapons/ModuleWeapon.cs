@@ -988,6 +988,7 @@ namespace BDArmory.Weapons
                     while (weapon.MoveNext())
                     {
                         if (weapon.Current == null) continue;
+                        if (weapon.Current == this) continue; //setting this here instead of craftPart.Current in case part has multiple weapon modules
                         if (weapon.Current.GetShortName() != shortName) continue;
                         weapon.Current.useThisWeaponForAim = false;
                     }
@@ -995,6 +996,7 @@ namespace BDArmory.Weapons
                 }
                 craftPart.Dispose();
             }
+            GUIUtils.RefreshAssociatedWindows(part);
         }
 
         [KSPField(isPersistant = true)]
