@@ -1281,9 +1281,9 @@ namespace BDArmory.UI
                                 case "ModuleEnginesFX":
                                     {
                                         if (engineparts.Contains(kvp.Value[0].partInfo.title)) break; //don't grab both moduleEngines for dual-mode engines and double-count them
-                                        if (CompSettings.CompVesselChecksEnabled && maxEngines < maxPartCount || maxTWR > 0)
+                                        if (CompSettings.CompVesselChecksEnabled && maxEngines < 999 || maxTWR > 0)
                                         {
-                                            if (maxEngines < maxPartCount)
+                                            if (maxEngines < 999)
                                             {
                                                 if (!string.IsNullOrEmpty(engineparts)) engineparts += " | ";
                                                 engineparts += $"{kvp.Value.Count}x {kvp.Value[0].partInfo.title}";
