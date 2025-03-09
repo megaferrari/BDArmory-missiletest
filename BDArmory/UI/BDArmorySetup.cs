@@ -870,10 +870,7 @@ namespace BDArmory.UI
                 CompSettings.Load();
                 VesselSpawnerField.Load();
                 BDArmorySettings.ready = true;
-                if (BDAEditorArmorWindow.Instance)
-                {
-                    BDAEditorArmorWindow.Instance.SetupLegalityValues();
-                }
+                if (BDAEditorArmorWindow.Instance) BDAEditorArmorWindow.Instance.SetupLegalityValues();
             }
             catch (NullReferenceException e)
             {
@@ -3245,7 +3242,7 @@ namespace BDArmory.UI
                         if (HighLogic.LoadedSceneIsEditor)
                         {
                             if (BDArmorySettings.RUNWAY_PROJECT && BDAEditorArmorWindow.Instance) BDAEditorArmorWindow.Instance.SetupLegalityValues();
-                            if (EditorLogic.fetch.ship is not null) GameEvents.onEditorShipModified.Fire(EditorLogic.fetch.ship);                            
+                            if (EditorLogic.fetch.ship is not null) GameEvents.onEditorShipModified.Fire(EditorLogic.fetch.ship);
                         }
                     }
                     if (CompSettings.CompOverridesEnabled)

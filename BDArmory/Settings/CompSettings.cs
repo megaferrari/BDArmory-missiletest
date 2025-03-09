@@ -1,7 +1,4 @@
-using System.Linq;
-using System.Reflection;
 using UnityEngine;
-
 using System.IO;
 using System.Collections.Generic;
 using System;
@@ -25,7 +22,7 @@ namespace BDArmory.Settings
                 //AI allowRamming?
                 //WM gunRange?
                 //WM multiMissileTgtNum
-				{"extensionCutoffTime", -1},
+				        {"extensionCutoffTime", -1},
                 {"extendDistanceAirToAir", -1},
                 {"MONOCOCKPIT_VIEWRANGE", -1},
                 {"DUALCOCKPIT_VIEWRANGE", -1},
@@ -35,7 +32,7 @@ namespace BDArmory.Settings
                 {"vesselCollisionAvoidanceStrength", -1 },
                 {"idleSpeed", -1},
                 {"DISABLE_SAS", 0}, //0/1 for F/T
-		};
+		    };
         public static readonly Dictionary<string, float> vesselChecks = new()
         {
                 {"maxStacking", -1}, //wing Stacking %. No limit if -1
@@ -45,7 +42,7 @@ namespace BDArmory.Settings
                 {"maxEngines", 999},    //set to negative to mandate that number of engines on the craft
                 {"maxMass", -1},
                 {"pointBuyBudget", -1}, //for comps with point buy systems for limiting armament/etc. if enabled, will check parts against partPointCosts
-		};
+		    };
         public static readonly Dictionary<string, float> partPointCosts = new()
         {
             //{"bahaBrowningAnm2", 1},

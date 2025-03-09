@@ -14,9 +14,14 @@
 	- Improvements to pilot follow mode to improve stability.
 	- Fix check for overriding terrain avoidance when ramming ground targets.
 	- The AI targeting priority 'Aerial Target Preference' now considers craft flatspinning or otherwise possessing negligible horizontal velocity lower than 200m from the ground as semi-ground targets for target filtering.
-	- AIs set to evade while running waypoint courses will now use evasion non-linearity, if enabled, to provide some dodge capability while stil remaining on-course for the next gate.
+	- Adjust the "fixed field" toggles in the AI GUI for auto-tuning the pilot PID axes that are in use.
+  - AIs set to evade while running waypoint courses will now use evasion non-linearity, if enabled, to provide some dodge capability while stil remaining on-course for the next gate.
 	- Tweaked Gate targeting logic, should reduce last-second control jerk while passing through gates with a high deviation.
 	- Waypoint Race mode now works with Surface and VTOL AI.
+	- Add 3-axis static damping in the pilot PID.
+		- Dynamic damping and 3-axis damping are now independent toggles.
+		- The UI (both PAW and AI GUI) update to show only the active damping sliders.
+		- Craft that used 3-axis dynamic damping get automatically updated to use the independent toggles without losing their tunings
 - Countermeasures:
 	- Fix flares and smoke CMs ejecting sideways.
 - Detectors:
