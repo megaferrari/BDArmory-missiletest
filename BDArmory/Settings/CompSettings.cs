@@ -110,7 +110,11 @@ namespace BDArmory.Settings
                     if (float.TryParse(fieldNode.value, out float fieldValue))
                     {
                         vesselChecks[fieldNode.name] = fieldValue; // Add or set the override.
-                        if ((fieldNode.name != "maxEngines" && fieldValue > 0) || fieldValue != 999) CompVesselChecksEnabled = true;
+                        switch (fieldNode.name)
+                        {
+                            case "maxEngines": if (fieldValue != 999) CompVesselChecksEnabled = true; break;
+                            default: if (fieldValue >= 0) CompVesselChecksEnabled = true; break;
+                        }
                     }
                 }
 

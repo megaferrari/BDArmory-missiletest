@@ -172,9 +172,8 @@ namespace BDArmory.UI
             {
                 Debug.LogError($"[BDArmory.VesselSpawnerWindow]: Failed to locate waypoint marker models: {e.Message}");
             }
-            //if (WaygateCount >= 0) SelectedModel = Path.GetFileNameWithoutExtension(gateFiles[(int)SelectedGate]);
-            //else Debug.LogWarning($"[BDArmory.VesselSpawnerWindow]: No waypoint gate models found in {Gatepath}!");
-            if (WaygateCount < 0) Debug.LogWarning($"[BDArmory/VesselSpawnerWindow]: No waypoint gate models found in {Gatepath}!");
+            if (WaygateCount >= 0) SelectedModel = Path.GetFileNameWithoutExtension(gateFiles[(int)SelectedGate]);
+            else Debug.LogWarning($"[BDArmory.VesselSpawnerWindow]: No waypoint gate models found in {Gatepath}!");
             if (BDArmorySettings.WAYPOINT_COURSE_INDEX >= WaypointCourses.CourseLocations.Count) BDArmorySettings.WAYPOINT_COURSE_INDEX = 0; // Sanitise the index in case the course list has changed.
         }
 

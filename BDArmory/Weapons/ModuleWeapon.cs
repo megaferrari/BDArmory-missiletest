@@ -950,20 +950,18 @@ namespace BDArmory.Weapons
         [KSPEvent(guiActive = false, guiActiveEditor = true, guiName = "#LOC_BDArmory_ToggleBarrage")]//Toggle Barrage
         public void ToggleRipple()
         {
-            List<Part>.Enumerator craftPart = EditorLogic.fetch.ship.parts.GetEnumerator();
-            while (craftPart.MoveNext())
-            {
-                if (craftPart.Current == null) continue;
-                if (craftPart.Current.name != part.name) continue;
-                List<ModuleWeapon>.Enumerator weapon = craftPart.Current.FindModulesImplementing<ModuleWeapon>().GetEnumerator();
-                while (weapon.MoveNext())
+            using (List<Part>.Enumerator craftPart = EditorLogic.fetch.ship.parts.GetEnumerator())
+                while (craftPart.MoveNext())
                 {
-                    if (weapon.Current == null) continue;
-                    weapon.Current.useRippleFire = !weapon.Current.useRippleFire;
+                    if (craftPart.Current == null) continue;
+                    if (craftPart.Current.name != part.name) continue;
+                    using (List<ModuleWeapon>.Enumerator weapon = craftPart.Current.FindModulesImplementing<ModuleWeapon>().GetEnumerator())
+                        while (weapon.MoveNext())
+                        {
+                            if (weapon.Current == null) continue;
+                            weapon.Current.useRippleFire = !weapon.Current.useRippleFire;
+                        }
                 }
-                weapon.Dispose();
-            }
-            craftPart.Dispose();
         }
 
         [KSPField(isPersistant = true)]
@@ -980,26 +978,24 @@ namespace BDArmory.Weapons
             else
             {
                 Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideTrue");//"Revert Aim Override"
-                List<Part>.Enumerator craftPart = EditorLogic.fetch.ship.parts.GetEnumerator();
-                while (craftPart.MoveNext())
-                {
-                    if (craftPart.Current == null) continue;
-                    List<ModuleWeapon>.Enumerator weapon = craftPart.Current.FindModulesImplementing<ModuleWeapon>().GetEnumerator();
-                    while (weapon.MoveNext())
+                using (List<Part>.Enumerator craftPart = EditorLogic.fetch.ship.parts.GetEnumerator())
+                    while (craftPart.MoveNext())
                     {
-                        if (weapon.Current == null) continue;
-                        if (weapon.Current == this) continue; //setting this here instead of craftPart.Current in case part has multiple weapon modules
-                        if (weapon.Current.GetShortName() != shortName) continue;
-                        if (weapon.Current.useThisWeaponForAim)
-                        {
-                            weapon.Current.useThisWeaponForAim = false;
-                            weapon.Current.Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideFalse");//"Aim With This Weapon"
-                            GUIUtils.RefreshAssociatedWindows(weapon.Current.part);
-                        }
+                        if (craftPart.Current == null) continue;
+                        using (List<ModuleWeapon>.Enumerator weapon = craftPart.Current.FindModulesImplementing<ModuleWeapon>().GetEnumerator())
+                            while (weapon.MoveNext())
+                            {
+                                if (weapon.Current == null) continue;
+                                if (weapon.Current == this) continue; //setting this here instead of craftPart.Current in case part has multiple weapon modules
+                                if (weapon.Current.GetShortName() != shortName) continue;
+                                if (weapon.Current.useThisWeaponForAim)
+                                {
+                                    weapon.Current.useThisWeaponForAim = false;
+                                    weapon.Current.Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideFalse");//"Aim With This Weapon"
+                                    GUIUtils.RefreshAssociatedWindows(weapon.Current.part);
+                                }
+                            }
                     }
-                    weapon.Dispose();
-                }
-                craftPart.Dispose();
             }
         }
 
@@ -1582,16 +1578,15 @@ namespace BDArmory.Weapons
                 }
             }
             //turret setup
-            List<ModuleTurret>.Enumerator turr = part.FindModulesImplementing<ModuleTurret>().GetEnumerator();
-            while (turr.MoveNext())
-            {
-                if (turr.Current == null) continue;
-                if (turr.Current.turretID != turretID) continue;
-                turret = turr.Current;
-                turret.SetReferenceTransform(fireTransforms[0]);
-                break;
-            }
-            turr.Dispose();
+            using (List<ModuleTurret>.Enumerator turr = part.FindModulesImplementing<ModuleTurret>().GetEnumerator())
+                while (turr.MoveNext())
+                {
+                    if (turr.Current == null) continue;
+                    if (turr.Current.turretID != turretID) continue;
+                    turret = turr.Current;
+                    turret.SetReferenceTransform(fireTransforms[0]);
+                    break;
+                }
 
             if (!turret)
             {

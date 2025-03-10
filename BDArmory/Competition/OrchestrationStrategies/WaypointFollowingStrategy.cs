@@ -152,7 +152,7 @@ namespace BDArmory.Competition.OrchestrationStrategies
                 for (int i = 0; i < waypoints.Count; i++)
                 {
                     if (!string.IsNullOrEmpty(waypoints[i].model)) ModelPath = ModelPath = "BDArmory/Models/WayPoint/" + waypoints[i].model;
-                    if (!string.IsNullOrEmpty(VesselSpawnerWindow.Instance.SelectedModel))
+                    if (!string.IsNullOrEmpty(VesselSpawnerWindow.Instance.SelectedModel) && VesselSpawnerWindow.Instance.SelectedGate >= 0)
                         ModelPath = "BDArmory/Models/WayPoint/" + VesselSpawnerWindow.Instance.SelectedModel;
                     float terrainAltitude = (float)FlightGlobals.currentMainBody.TerrainAltitude(waypoints[i].location.x, waypoints[i].location.y);
                     Vector3d WorldCoords = VectorUtils.GetWorldSurfacePostion(new Vector3(waypoints[i].location.x, waypoints[i].location.y, (BDArmorySettings.WAYPOINTS_ALTITUDE == -1 ? waypoints[i].location.z : BDArmorySettings.WAYPOINTS_ALTITUDE) + terrainAltitude), FlightGlobals.currentMainBody);

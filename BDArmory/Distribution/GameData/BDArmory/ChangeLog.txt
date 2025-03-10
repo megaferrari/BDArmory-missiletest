@@ -9,7 +9,6 @@
 	- Fix the wrongly labeled "ru-ru" localisation to "ru" so that it loads properly.
 	- Add additional Chinese localisation thanks to user ZIYUXUAN201011.
 	- Updated German localisation from EzBro.
-	- UIs now scale with KSP UI scale.
 - AI:
 	- Improvements to pilot follow mode to improve stability.
 	- Fix check for overriding terrain avoidance when ramming ground targets.
@@ -28,7 +27,7 @@
 	- Fix tracers on guns with tracerlength > 0 extending behind gun on firing.
 	- Radar slaving multiple turrets when turret multi-targeting > 1 now sees if a radar lock exists for each secondary target, instead of overriding multi-targeting and aiming all guns to the primary lock.
 	- Fix Point Defense guns not firing on incoming missiles.
-	- Add Aim Override option to set what weapon AI uses for aiming/target lead when using hetergeneous weapon groups/weapons with offsets from centerpoint.
+	- Add Aim Override option to set what weapon AI uses for aiming/target lead when using heterogeneous weapon groups/weapons with offsets from centerpoint.
 	- Missiles:
 		- Added "hasIFF" field to missiles allowing for missile seekers without IFF functionality. Defaults to true.
 		- Fix AAMLoft implementation for MMGs.
@@ -39,7 +38,7 @@
 		- Fix Account For Mass/Cost not applying to Missile magazines.
 - Competition:
 	- Adjust the default score weights for rockets to be more inline with that of bullets.
-	- Adds a Vessel Legality checker button to the BDA Utilities Tool GUI if 'Runway Project' or 'Use Comp Overrides' gamemodes options are enabled. This will check a craft in the SPH/VAB for part count/engine count/Lift-To-Weight/Thrust-Weight-Ratio/max allowed weaponry/banned parts/etc. Check /BDArmory/PluginData/Comp_settings.cfg fo more info.
+	- Adds a Vessel Legality checker button to the BDA Utilities Tool GUI if 'Runway Project' or 'Use Comp Overrides' gamemodes options are enabled and a Comp_settings.cfg is added to /BDArmory/PluginData/. This will check a craft in the SPH/VAB for part count/engine count/Lift-To-Weight/Thrust-Weight-Ratio/max allowed weaponry/banned parts/etc. Check /BDArmory/PluginData/Comp_settings.cfg once loaded in KSP for more info.
 
 v1.9.0.0
 IMPROVEMENTS / FIXES
