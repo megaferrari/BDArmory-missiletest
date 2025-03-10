@@ -26,10 +26,17 @@ namespace BDArmory.UI
         bool showTeamScores = false;
         public enum Mode { Tournament, ContinuousSpawn }
         static Mode mode = Mode.Tournament;
-        public static void SetMode(Mode scoreMode) => Instance.SetMode_(scoreMode);
-        void SetMode_(Mode scoreMode)
+        public static void SetMode(Mode scoreMode, Toggle teamScores = Toggle.NoChange) => Instance.SetMode_(scoreMode, teamScores);
+        void SetMode_(Mode scoreMode, Toggle teamScores)
         {
             mode = scoreMode;
+            showTeamScores = teamScores switch
+            {
+                Toggle.Toggle => !showTeamScores,
+                Toggle.On => true,
+                Toggle.Off => false,
+                _ => showTeamScores
+            };
             LoadWeights();
             ResetWindowSize(true);
         }
