@@ -600,8 +600,8 @@ namespace BDArmory.UI
                     GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_WP_ChooseCourse")}: ({waypointCourseName})", leftLabel); //Select COurse
                     BDArmorySettings.WAYPOINT_COURSE_INDEX = Mathf.RoundToInt(GUI.HorizontalSlider(SRightSliderRect(line), BDArmorySettings.WAYPOINT_COURSE_INDEX, 0, WaypointCourses.CourseLocations.Count - 1));
 
-                    GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_WP_Waypoint")} {StringUtils.Localize("#autoLOC_463493")}: {(BDArmorySettings.WAYPOINTS_ALTITUDE > -1 ? $"({BDArmorySettings.WAYPOINTS_ALTITUDE:F0}m)" : StringUtils.Localize("#LOC_BDArmory_WP_CourseDefaults"))}", leftLabel); //Waypoint Altitude /use Course Settings
-                    BDArmorySettings.WAYPOINTS_ALTITUDE = BDArmorySettings.WAYPOINTS_ALTITUDE < 0 ? -1 : BDAMath.RoundToUnit(GUI.HorizontalSlider(SRightSliderRect(line), BDArmorySettings.WAYPOINTS_ALTITUDE, 0, 1000f), 50f);
+                    GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_WP_Waypoint")} {StringUtils.Localize("#autoLOC_463493")}: {(BDArmorySettings.WAYPOINTS_ALTITUDE >= 0 ? $"({BDArmorySettings.WAYPOINTS_ALTITUDE:F0}m)" : StringUtils.Localize("#LOC_BDArmory_WP_CourseDefaults"))}", leftLabel); //Waypoint Altitude /use Course Settings
+                    BDArmorySettings.WAYPOINTS_ALTITUDE = BDAMath.RoundToUnit(GUI.HorizontalSlider(SRightSliderRect(line), BDArmorySettings.WAYPOINTS_ALTITUDE, -50, 1000f), 50);
 
                     GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_WP_MaxLaps")}: {BDArmorySettings.WAYPOINT_LOOP_INDEX:F0}", leftLabel); //max Laps
                     BDArmorySettings.WAYPOINT_LOOP_INDEX = Mathf.RoundToInt(GUI.HorizontalSlider(SRightSliderRect(line), BDArmorySettings.WAYPOINT_LOOP_INDEX, 1, BDArmorySettings.WAYPOINT_MAX_LAPS));
