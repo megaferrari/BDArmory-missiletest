@@ -3134,11 +3134,11 @@ namespace BDArmory.Control
                 SetStatus($"Waypoint {activeWaypointIndex} ({waypointRange:F0}m)");
             }
             var waypointDirection = (waypointPosition - vessel.transform.position).normalized;
-            // var waypointDirection = (WaypointSpline() - vessel.transform.position).normalized;
-            if (waypointRange < (BDArmorySettings.WAYPOINTS_SCALE > 0 ? BDArmorySettings.WAYPOINTS_SCALE : (WaypointCourses.CourseLocations[waypointCourseIndex].waypoints[activeWaypointIndex].scale))) 
+            if (waypointRange < (BDArmorySettings.WAYPOINTS_SCALE > 0 ? BDArmorySettings.WAYPOINTS_SCALE : (WaypointCourses.CourseLocations[waypointCourseIndex].waypoints[activeWaypointIndex].scale)))
             {
-                if (Vector3.Angle(waypointDirection, vessel.ReferenceTransform.up) > maxAllowedAoA)//as we get closer angle to WP is going to very rapidly increase from ~0 to 90 if not *perfectly* aligned
-                    waypointDirection = vessel.ReferenceTransform.up; //so if within [gate radius] distance of the WP, if the angle to the gate exceeds max AOA angle, commit to current direaction to prevent control jerk at the last second as the AI tries to correct off-targetness
+                //if (Vector3.Angle(waypointDirection, vessel.ReferenceTransform.up) > maxAllowedAoA)//as we get closer angle to WP is going to very rapidly increase from ~0 to 90 if not *perfectly* aligned
+                //    waypointDirection = vessel.Velocity(); //so if within [gate radius] distance of the WP, if the angle to the gate exceeds max AOA angle, commit to current direaction to prevent control jerk at the last second as the AI tries to correct off-targetness
+				waypointDirection = Vector3.RotateTowards(vessel.ReferenceTransform.up, waypointDirection, Mathf.Deg2Rad * Mathf.Min(maxAllowedAoA, 0.5f * waypointRange), 0); 
             }
             waypointRay = new Ray(vessel.transform.position, waypointDirection);
             if (Physics.Raycast(waypointRay, out waypointRayHit, waypointRange, (int)LayerMasks.Scenery))
