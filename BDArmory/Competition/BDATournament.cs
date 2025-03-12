@@ -1689,7 +1689,7 @@ namespace BDArmory.Competition
                 StopCoroutine(runTournamentCoroutine);
             runTournamentCoroutine = StartCoroutine(RunTournamentCoroutine());
             if (BDArmorySettings.AUTO_DISABLE_UI) SetGameUI(false);
-            ScoreWindow.SetMode(ScoreWindow.Mode.Tournament);
+            ScoreWindow.SetMode(ScoreWindow.Mode.Tournament, tournamentState.tournamentType == TournamentType.FFA ? Toggle.Off : Toggle.On);
         }
 
         public void StopTournament()
