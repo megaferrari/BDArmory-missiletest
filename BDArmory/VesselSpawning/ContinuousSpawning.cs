@@ -263,7 +263,17 @@ namespace BDArmory.VesselSpawning
                             continuousSpawnedVesselCount %= spawnSlots.Count;
                             var direction = (Quaternion.AngleAxis(heading, radialUnitVector) * refDirection).ProjectOnPlanePreNormalized(radialUnitVector).normalized;
                             craftSpawnPosition = spawnPoint + spawnDistance * direction;
-                            StartCoroutine(SpawnCraft(new VesselSpawnConfig(craftURL, craftSpawnPosition, direction, (float)spawnConfig.altitude, -80f, true, spawnInOrbit, 0, true)));
+                            StartCoroutine(SpawnCraft(new VesselSpawnConfig(
+                                craftURL,
+                                craftSpawnPosition,
+                                direction,
+                                (float)spawnConfig.altitude,
+                                pitch: -80f,
+                                airborne: true,
+                                inOrbit: spawnInOrbit,
+                                teamIndex: 0,
+                                reuseURLVesselName: true
+                            )));
                         }
                         craftToSpawn.Clear(); // Clear the queue since we just spawned all those vessels.
                     }

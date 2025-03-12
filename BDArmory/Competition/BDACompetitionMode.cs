@@ -472,7 +472,22 @@ namespace BDArmory.Competition
             decisionTick = BDArmorySettings.COMPETITION_KILLER_GM_FREQUENCY > 60 ? -1 : competitionStartTime + BDArmorySettings.COMPETITION_KILLER_GM_FREQUENCY; // every 60 seconds we do nasty things
             killerGMenabled = false;
             BulletHitFX.CleanPartsOnFireInfo();
-            Scores.ConfigurePlayers(GetAllPilots().Select(p => p.vessel).ToList()); // Get the competitors.
+            // Get a list of pilot vessels with unique names for the scoring.
+            var pilotVessels = GetAllPilots().Select(p => p.vessel).ToList();
+            HashSet<string> vesselNames = [.. pilotVessels.Select(v => v.vesselName)];
+            foreach (var vessel in pilotVessels)
+            {
+                if (vesselNames.Contains(vessel.vesselName))
+                {
+                    vesselNames.Remove(vessel.vesselName);
+                    SpawnUtils.DeconflictVesselName(vessel, reuse: true); // Reuse the deconflicted name from spawning, if it exists.
+                }
+                else
+                {
+                    SpawnUtils.DeconflictVesselName(vessel, reuse: false); // For duplicates, deconflict their name.
+                }
+            }
+            Scores.ConfigurePlayers(pilotVessels); // Get the competitors.
             if (!string.IsNullOrEmpty(BDArmorySettings.PINATA_NAME) && Scores.Players.Contains(BDArmorySettings.PINATA_NAME)) { hasPinata = true; pinataAlive = false; } else { hasPinata = false; pinataAlive = false; } // Piñata.
             if (SpawnUtils.originalTeams.Count == 0) SpawnUtils.SaveTeams(); // If the vessels weren't spawned in with Vessel Spawner, save the current teams.
             if (LoadedVesselSwitcher.Instance is not null) LoadedVesselSwitcher.Instance.ResetDeadVessels();

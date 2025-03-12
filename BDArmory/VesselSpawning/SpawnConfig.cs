@@ -72,7 +72,7 @@ namespace BDArmory.VesselSpawning
         public bool airborne = airborne; // Whether the vessel should be spawned in an airborne configuration or not.
         public bool inOrbit = inOrbit; // Whether the vessel should be spawned in orbit or not (overrides airborne).
         public int teamIndex = teamIndex; // Index for team assignment.
-        public bool reuseURLVesselName = reuseURLVesselName; // Reuse the vesselName for the same craftURL (for continuous spawning).
+        public bool reuseURLVesselName = reuseURLVesselName; // Reuse the vesselName for the same craftURL (for continuous spawning / tournaments).
         public bool deconflictVesselName = deconflictVesselName; // Apply vessel name deconfliction during spawning for consistent and unique vessel naming.
         public List<ProtoCrewMember> crew = crew?.ToList(); // Override the crew.
         public EditorFacility editorFacility = EditorFacility.SPH; // Which editorFacility the craft belongs to (found out during spawning).

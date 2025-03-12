@@ -66,7 +66,16 @@ namespace BDArmory.VesselSpawning
             var airborne = altitude > 10;
             var spawnInOrbit = altitude >= spawnBody.MinSafeAltitude(); // Min safe orbital altitude
             var withInitialVelocity = airborne && BDArmorySettings.VESSEL_SPAWN_INITIAL_VELOCITY;
-            VesselSpawnConfig vesselSpawnConfig = new VesselSpawnConfig(craftUrl, spawnPoint, direction, (float)altitude, initialPitch, airborne, spawnInOrbit);
+            VesselSpawnConfig vesselSpawnConfig = new VesselSpawnConfig(
+                craftUrl,
+                spawnPoint,
+                direction,
+                (float)altitude,
+                initialPitch,
+                airborne,
+                spawnInOrbit,
+                reuseURLVesselName: BDATournament.Instance.tournamentStatus == TournamentStatus.Running || TournamentCoordinator.Instance.IsRunning
+            );
 
             // Spawn vessel.
             yield return SpawnSingleVessel(vesselSpawnConfig);

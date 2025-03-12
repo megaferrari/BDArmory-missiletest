@@ -830,6 +830,7 @@ namespace BDArmory.UI
                             TournamentCoordinator.Instance.Stop();
                             TournamentCoordinator.Instance.StopForEach();
                         }
+
                         float spawnLatitude, spawnLongitude;
                         List<Waypoint> course; //adapt to how the spawn locations are displayed/selected 
                                                //add new GUI window for waypoint course creation; new name entry field for course, waypoints, save button to save WP coords
@@ -838,6 +839,7 @@ namespace BDArmory.UI
                         spawnLongitude = (float)WaypointCourses.CourseLocations[BDArmorySettings.WAYPOINT_COURSE_INDEX].spawnPoint.y;
                         course = WaypointCourses.CourseLocations[BDArmorySettings.WAYPOINT_COURSE_INDEX].waypoints;
 
+                        SpawnUtils.ResetVesselNamingDeconfliction();
                         if (!BDArmorySettings.WAYPOINTS_ONE_AT_A_TIME)
                         {
                             TournamentCoordinator.Instance.Configure(new SpawnConfigStrategy(
@@ -847,12 +849,12 @@ namespace BDArmory.UI
                                         Event.current.button == 1 ? BDArmorySettings.VESSEL_SPAWN_GEOCOORDS.x : spawnLatitude,
                                         Event.current.button == 1 ? BDArmorySettings.VESSEL_SPAWN_GEOCOORDS.y : spawnLongitude,
                                         BDArmorySettings.VESSEL_SPAWN_ALTITUDE,
-                                        true,
-                                        BDArmorySettings.VESSEL_SPAWN_REASSIGN_TEAMS,
-                                        BDArmorySettings.VESSEL_SPAWN_NUMBER_OF_TEAMS,
-                                        null,
-                                        null,
-                                        BDArmorySettings.VESSEL_SPAWN_FILES_LOCATION
+                                        killEverythingFirst: true,
+                                        assignTeams: BDArmorySettings.VESSEL_SPAWN_REASSIGN_TEAMS,
+                                        numberOfTeams: BDArmorySettings.VESSEL_SPAWN_NUMBER_OF_TEAMS,
+                                        teamCounts: null,
+                                        teamsSpecific: null,
+                                        folder: BDArmorySettings.VESSEL_SPAWN_FILES_LOCATION
                                     ),
                                     BDArmorySettings.VESSEL_SPAWN_DISTANCE_TOGGLE ? BDArmorySettings.VESSEL_SPAWN_DISTANCE : BDArmorySettings.VESSEL_SPAWN_DISTANCE_FACTOR,
                                     BDArmorySettings.VESSEL_SPAWN_DISTANCE_TOGGLE,
@@ -875,13 +877,13 @@ namespace BDArmory.UI
                                         Event.current.button == 1 ? BDArmorySettings.VESSEL_SPAWN_GEOCOORDS.x : spawnLatitude,
                                         Event.current.button == 1 ? BDArmorySettings.VESSEL_SPAWN_GEOCOORDS.y : spawnLongitude,
                                         BDArmorySettings.VESSEL_SPAWN_ALTITUDE,
-                                        true,
-                                        BDArmorySettings.VESSEL_SPAWN_REASSIGN_TEAMS,
-                                        0, // This should always be 0 (FFA) to avoid the logic for spawning teams in one-at-a-time mode.
-                                        null,
-                                        null,
-                                        null,
-                                        new List<string>() { craftFile }
+                                        killEverythingFirst: true,
+                                        assignTeams: BDArmorySettings.VESSEL_SPAWN_REASSIGN_TEAMS,
+                                        numberOfTeams: 0, // This should always be 0 (FFA) to avoid the logic for spawning teams in one-at-a-time mode.
+                                        teamCounts: null,
+                                        teamsSpecific: null,
+                                        folder: null,
+                                        craftFiles: new List<string>() { craftFile }
                                     ),
                                     BDArmorySettings.VESSEL_SPAWN_DISTANCE_TOGGLE ? BDArmorySettings.VESSEL_SPAWN_DISTANCE : BDArmorySettings.VESSEL_SPAWN_DISTANCE_FACTOR,
                                     BDArmorySettings.VESSEL_SPAWN_DISTANCE_TOGGLE,
@@ -957,12 +959,12 @@ namespace BDArmory.UI
                                 BDArmorySettings.VESSEL_SPAWN_DISTANCE_TOGGLE ? BDArmorySettings.VESSEL_SPAWN_DISTANCE : BDArmorySettings.VESSEL_SPAWN_DISTANCE_FACTOR,
                                 BDArmorySettings.VESSEL_SPAWN_DISTANCE_TOGGLE,
                                 BDArmorySettings.VESSEL_SPAWN_REF_HEADING,
-                                true,
-                                BDArmorySettings.VESSEL_SPAWN_REASSIGN_TEAMS,
-                                BDArmorySettings.VESSEL_SPAWN_NUMBER_OF_TEAMS,
-                                null,
-                                null,
-                                BDArmorySettings.VESSEL_SPAWN_FILES_LOCATION
+                                killEverythingFirst: true,
+                                assignTeams: BDArmorySettings.VESSEL_SPAWN_REASSIGN_TEAMS,
+                                numberOfTeams: BDArmorySettings.VESSEL_SPAWN_NUMBER_OF_TEAMS,
+                                teamCounts: null,
+                                teamsSpecific: null,
+                                spawnFolder: BDArmorySettings.VESSEL_SPAWN_FILES_LOCATION
                             ); // Spawn vessels.
                         }
                         else
@@ -976,12 +978,12 @@ namespace BDArmory.UI
                                 BDArmorySettings.VESSEL_SPAWN_DISTANCE_TOGGLE ? BDArmorySettings.VESSEL_SPAWN_DISTANCE : BDArmorySettings.VESSEL_SPAWN_DISTANCE_FACTOR,
                                 BDArmorySettings.VESSEL_SPAWN_DISTANCE_TOGGLE,
                                 BDArmorySettings.VESSEL_SPAWN_REF_HEADING,
-                                true,
-                                BDArmorySettings.VESSEL_SPAWN_REASSIGN_TEAMS,
-                                BDArmorySettings.VESSEL_SPAWN_NUMBER_OF_TEAMS,
-                                null,
-                                null,
-                                BDArmorySettings.VESSEL_SPAWN_FILES_LOCATION
+                                killEverythingFirst: true,
+                                assignTeams: BDArmorySettings.VESSEL_SPAWN_REASSIGN_TEAMS,
+                                numberOfTeams: BDArmorySettings.VESSEL_SPAWN_NUMBER_OF_TEAMS,
+                                teamCounts: null,
+                                teamsSpecific: null,
+                                spawnFolder: BDArmorySettings.VESSEL_SPAWN_FILES_LOCATION
                             ); // Spawn vessels.
                             if (BDArmorySettings.VESSEL_SPAWN_START_COMPETITION_AUTOMATICALLY)
                                 StartCoroutine(StartCompetitionOnceSpawned());
@@ -998,12 +1000,12 @@ namespace BDArmory.UI
                             BDArmorySettings.VESSEL_SPAWN_DISTANCE_TOGGLE ? BDArmorySettings.VESSEL_SPAWN_DISTANCE : BDArmorySettings.VESSEL_SPAWN_DISTANCE_FACTOR,
                             BDArmorySettings.VESSEL_SPAWN_DISTANCE_TOGGLE,
                             BDArmorySettings.VESSEL_SPAWN_REF_HEADING,
-                            false,
-                            false,
-                            0,
-                            null,
-                            null,
-                            BDArmorySettings.VESSEL_SPAWN_FILES_LOCATION
+                            killEverythingFirst: false,
+                            assignTeams: false,
+                            numberOfTeams: 0,
+                            teamCounts: null,
+                            teamsSpecific: null,
+                            spawnFolder: BDArmorySettings.VESSEL_SPAWN_FILES_LOCATION
                         ); // Spawn vessels, without killing off other vessels or changing camera positions.
                     }
                 }
@@ -1017,9 +1019,15 @@ namespace BDArmory.UI
                             new CircularSpawnConfig(
                                 new SpawnConfig(
                                     BDArmorySettings.VESSEL_SPAWN_WORLDINDEX,
-                                    BDArmorySettings.VESSEL_SPAWN_GEOCOORDS.x, BDArmorySettings.VESSEL_SPAWN_GEOCOORDS.y, BDArmorySettings.VESSEL_SPAWN_ALTITUDE_,
-                                    true, true, 1, null, null,
-                                    BDArmorySettings.VESSEL_SPAWN_FILES_LOCATION
+                                    BDArmorySettings.VESSEL_SPAWN_GEOCOORDS.x,
+                                    BDArmorySettings.VESSEL_SPAWN_GEOCOORDS.y,
+                                    BDArmorySettings.VESSEL_SPAWN_ALTITUDE_,
+                                    killEverythingFirst: true,
+                                    assignTeams: true,
+                                    numberOfTeams: 1,
+                                    teamCounts: null,
+                                    teamsSpecific: null,
+                                    folder: BDArmorySettings.VESSEL_SPAWN_FILES_LOCATION
                                 ),
                                 BDArmorySettings.VESSEL_SPAWN_DISTANCE_TOGGLE ? BDArmorySettings.VESSEL_SPAWN_DISTANCE : BDArmorySettings.VESSEL_SPAWN_DISTANCE_FACTOR,
                                 BDArmorySettings.VESSEL_SPAWN_DISTANCE_TOGGLE,

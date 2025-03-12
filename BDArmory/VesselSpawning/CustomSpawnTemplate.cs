@@ -154,9 +154,8 @@ namespace BDArmory.VesselSpawning
                     spawnAirborne,
                     spawnInOrbit,
                     customVesselSpawnConfig.teamIndex,
-                    reuseURLVesselName: false,
-                    deconflictVesselName: true,
-                    crew
+                    reuseURLVesselName: BDATournament.Instance.tournamentStatus == TournamentStatus.Running || TournamentCoordinator.Instance.IsRunning,
+                    crew: crew
                 ));
             }
             VesselSpawner.ReservedCrew = vesselSpawnConfigs.Where(config => config.crew.Count > 0).SelectMany(config => config.crew).Select(crew => crew.name).ToHashSet();
@@ -640,7 +639,7 @@ namespace BDArmory.VesselSpawning
                     // Something changed, update the filtered list.
                     _filteredCraft.Item1 = selectionFilter;
                     _filteredCraft.Item2 = craftBrowser.craftListUpdateTimestamp;
-                    _filteredCraft.Item3 = [.. craftBrowser.craftList.Where(kvp => kvp.Key!=null && kvp.Value!=null && kvp.Value.shipName.ToLower().Contains(selectionFilter.ToLower())).Select(kvp => kvp.Key)];
+                    _filteredCraft.Item3 = [.. craftBrowser.craftList.Where(kvp => kvp.Key != null && kvp.Value != null && kvp.Value.shipName.ToLower().Contains(selectionFilter.ToLower())).Select(kvp => kvp.Key)];
                 }
                 return _filteredCraft.Item3;
             }

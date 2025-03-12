@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using KSP.UI.Screens;
 
+using BDArmory.Competition;
 using BDArmory.Extensions;
 using BDArmory.Settings;
 using BDArmory.UI;
@@ -853,7 +854,7 @@ namespace BDArmory.VesselSpawning
                 initialPitch,
                 airborne: false,
                 inOrbit: false,
-                deconflictVesselName: BDArmorySettings.VESSEL_MOVER_DECONFLICT_VESSELNAME,
+                deconflictVesselName: BDACompetitionMode.Instance.competitionIsActive || BDACompetitionMode.Instance.competitionStarting, // Deconflict name only if spawning into an active competition.
                 crew: crew
             );
 
@@ -1095,7 +1096,6 @@ namespace BDArmory.VesselSpawning
                         BDArmorySettings.VESSEL_MOVER_CHOOSE_CREW = GUILayout.Toggle(BDArmorySettings.VESSEL_MOVER_CHOOSE_CREW, StringUtils.Localize("#LOC_BDArmory_VesselMover_ChooseCrew"));
                         BDArmorySettings.VESSEL_MOVER_PLACE_AFTER_SPAWN = GUILayout.Toggle(BDArmorySettings.VESSEL_MOVER_PLACE_AFTER_SPAWN, StringUtils.Localize("#LOC_BDArmory_VesselMover_PlaceAfterSpawn"));
                         GUILayout.EndHorizontal();
-                        BDArmorySettings.VESSEL_MOVER_DECONFLICT_VESSELNAME = GUILayout.Toggle(BDArmorySettings.VESSEL_MOVER_DECONFLICT_VESSELNAME, StringUtils.Localize("#LOC_BDArmory_VesselMover_DeconflictVesselName"));
                         break;
                     }
             }

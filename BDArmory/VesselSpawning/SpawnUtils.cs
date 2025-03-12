@@ -285,19 +285,10 @@ namespace BDArmory.VesselSpawning
         #endregion
 
         #region Name Deconfliction
-        public static readonly Dictionary<string, string> SpawnedVesselURLs = []; // Vessel name => URL. Vessels not spawned via BDA's spawners will have a null URL.
-        static readonly Dictionary<string, string> DeconflictionSuffixes = [];
+        public static Dictionary<string, string> SpawnedVesselURLs = []; // Deconflicted vessel name => URL. Vessels not spawned via BDA's spawners will have a null URL.
+        public static Dictionary<string, string> DeconflictionSuffixes = []; // Deconflicted vessel name => suffix added to deconflict it. (For applying deconfliction to VESSELNAMING parts when reusing names.)
         /// <summary>
         /// Reset the vessel name deconfliction dictionaries.
-        /// 
-        /// FIXMEAI When to call this?
-        /// - Prior to starting continuous spawning and then reuse vessel names √
-        /// - Prior to starting tournaments and then reuse vessel names?
-        ///     - During tournaments, we want to use the same naming between rounds, but we also want to deconflict when multiple vessels in the same round have the same name.
-        ///     - Starting/resetting a competition when tournamentStatus is not Stopped or Completed?
-        /// - Automatic, based on whether a competition is running/starting?
-        /// - Prior to manual group spawns if killEverythingFirst is true?
-        /// - Toggle for VS to deconflict while spawning? √
         /// </summary>
         public static void ResetVesselNamingDeconfliction()
         {
@@ -309,10 +300,18 @@ namespace BDArmory.VesselSpawning
         /// Deconflict vessel names by appending a suffix.
         /// If the vessel has detached from a parent craft, then the suffix is of the form "_Fn" for "fighters", otherwise the suffix is of the form "_n" for some integer n.
         /// 
-        /// Note: VESSELNAMING requires that the vessel's parts list has been populated, which takes a few frames after spawning.
+        /// Notes:
+        /// - VESSELNAMING requires that the vessel's parts list has been populated, which takes a few frames after spawning.
+        /// - Deconfliction occurs during spawning (if not disabled in the SpawnConfig) and when adding to a running competition (for detached vessels).
+        ///     - Spawning via the VM disables deconfliction for that vessel unless a competition is active.
+        ///     - Deconfliction also occurs when resetting a competition prior to initialising scores. To avoid overriding the deconfliction from spawning, duplicately named craft use reuse=false, while others use reuse=true.
+        /// - The deconfliction dictionaries are reset under various conditions:
+        ///     - Starting a tournament (during tournaments, the deconfliction dictionaries are stored as part of the tournament state in case of interruption). FIXMEAI.
+        ///     - Starting a continuous spawn tournament. (reuse=true for cts spawn.)
+        ///     - Performing a group spawn outside of a tournament when killEverythingFirst is true.
         /// </summary>
         /// <param name="vessel">The vessel for which to deconflict naming.</param>
-        /// <param name="reuse">Reuse the previously deconflicted name for the vessel.</param>
+        /// <param name="reuse">Reuse the previously deconflicted name for the vessel (if it exists).</param>
         public static void DeconflictVesselName(Vessel vessel, bool reuse = false)
         {
             // Before anything else, strip the type from the vessel's name. This avoids names like "Some craft name Rover", but also means "Jeb's Plane" isn't a valid name for a plane.

@@ -580,6 +580,8 @@ namespace BDArmory.Competition
         [SerializeField] string _scores;
         [SerializeField] List<string> _heats;
         [SerializeField] List<string> _teamFiles;
+        [SerializeField] List<string> _deconflictionURLs;
+        [SerializeField] List<string> _deconflictionSuffixes;
 
         /// <summary>
         /// Generate a tournament.state file for FFA tournaments.
@@ -1322,6 +1324,10 @@ namespace BDArmory.Competition
                 // Encode team files (for team competitions).
                 _teamFiles = teamFiles != null ? teamFiles.Select(t => JsonUtility.ToJson(new StringList { ls = t })).ToList() : null;
 
+                // Save the current deconfliction dictionaries.
+                _deconflictionURLs = [.. SpawnUtils.SpawnedVesselURLs.Select(kvp => JsonUtility.ToJson(new StringList { ls = [kvp.Key, kvp.Value] }))];
+                _deconflictionSuffixes = [.. SpawnUtils.DeconflictionSuffixes.Select(kvp => JsonUtility.ToJson(new StringList { ls = [kvp.Key, kvp.Value] }))];
+
                 if (!Directory.GetParent(stateFile).Exists)
                 { Directory.GetParent(stateFile).Create(); }
                 try // Write the state with gzip compression to reduce bloat.
@@ -1394,7 +1400,7 @@ namespace BDArmory.Competition
                     scores.ComputeScores();
                 }
                 catch (Exception e_scores) { Debug.LogError($"[BDArmory.BDATournament]: Failed to deserialize the tournament scores: {e_scores.Message}\n{e_scores.StackTrace}"); }
-                try
+                try // Deserialize rounds / heats
                 {
                     if (_heats != null)
                     {
@@ -1469,6 +1475,14 @@ namespace BDArmory.Competition
                     }
                 }
                 catch (Exception e_rounds) { Debug.LogError($"[BDArmory.BDATournament]: Failed to deserialize the tournament rounds: {e_rounds.Message}\n{e_rounds.StackTrace}"); }
+                try // Deserialize deconfliction dictionaries
+                {
+                    _deconflictionURLs = data._deconflictionURLs;
+                    _deconflictionSuffixes = data._deconflictionSuffixes;
+                    SpawnUtils.SpawnedVesselURLs = _deconflictionURLs.Select(json => JsonUtility.FromJson<StringList>(json).ls).ToDictionary(ls => ls[0], ls => ls[1]);
+                    SpawnUtils.DeconflictionSuffixes = _deconflictionSuffixes.Select(json => JsonUtility.FromJson<StringList>(json).ls).ToDictionary(ls => ls[0], ls => ls[1]);
+                }
+                catch (Exception e_deconfliction) { Debug.LogError($"[BDArmory.BDATournament]: Failed to deserialize the vessel naming deconfliction data: {e_deconfliction.Message}\n{e_deconfliction.StackTrace}"); }
                 return true;
             }
             catch (Exception e)

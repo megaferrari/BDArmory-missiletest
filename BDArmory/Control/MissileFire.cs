@@ -9396,7 +9396,7 @@ namespace BDArmory.Control
         #region Aimer
         bool ShowBoreRing(bool visible)
         {
-            if (!vessel.isActiveVessel) return false; // We're not in control.
+            if (!vessel || !vessel.isActiveVessel) return false; // We're not in control.
             boreRing.SetActive(visible);
             return true; // We're in control.
         }
