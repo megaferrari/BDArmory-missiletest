@@ -4078,7 +4078,11 @@ namespace BDArmory.Weapons
                                     {
                                         hitPart = hitEVA.part;
                                     }
-                                    if (hitPart == null) { autoFire = false; autoFireFailReason = "Null target"; }
+                                    if (hitPart == null)
+                                    {
+                                        autoFire = false;
+                                        autoFireFailReason = "Null target";
+                                    }
                                 }
                                 catch (NullReferenceException e)
                                 {
@@ -4256,7 +4260,11 @@ namespace BDArmory.Weapons
                                             {
                                                 hitPart = hitEVA.part;
                                             }
-                                            if (hitPart == null) { autoFire = false; autoFireFailReason = "Null target"; }
+                                            if (hitPart == null)
+                                            {
+                                                autoFire = false;
+                                                autoFireFailReason = "Null target";
+                                            }
                                         }
                                         catch (NullReferenceException e)
                                         {
@@ -4457,7 +4465,10 @@ namespace BDArmory.Weapons
                 if (safeToFire)
                 {
                     if (eWeaponType == WeaponTypes.Ballistic || eWeaponType == WeaponTypes.Laser)
-                    { autoFire = targetCosAngle >= targetAdjustedMaxCosAngle; autoFireFailReason = autoFire ? "" : "Not on target"; }
+                    {
+                        autoFire = targetCosAngle >= targetAdjustedMaxCosAngle;
+                        autoFireFailReason = autoFire ? "" : "Not on target";
+                    }
                     else // Rockets
                     {
                         autoFire = (targetCosAngle >= targetAdjustedMaxCosAngle) && ((finalAimTarget - fireTransform.position).sqrMagnitude > (blastRadius * blastRadius) * 2);
