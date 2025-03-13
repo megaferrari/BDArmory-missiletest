@@ -1324,10 +1324,6 @@ namespace BDArmory.Competition
                 // Encode team files (for team competitions).
                 _teamFiles = teamFiles != null ? teamFiles.Select(t => JsonUtility.ToJson(new StringList { ls = t })).ToList() : null;
 
-                // Save the current deconfliction dictionaries.
-                _deconflictionURLs = [.. SpawnUtils.SpawnedVesselURLs.Select(kvp => JsonUtility.ToJson(new StringList { ls = [kvp.Key, kvp.Value] }))];
-                _deconflictionSuffixes = [.. SpawnUtils.DeconflictionSuffixes.Select(kvp => JsonUtility.ToJson(new StringList { ls = [kvp.Key, kvp.Value] }))];
-
                 if (!Directory.GetParent(stateFile).Exists)
                 { Directory.GetParent(stateFile).Create(); }
                 try // Write the state with gzip compression to reduce bloat.
@@ -1479,8 +1475,6 @@ namespace BDArmory.Competition
                 {
                     _deconflictionURLs = data._deconflictionURLs;
                     _deconflictionSuffixes = data._deconflictionSuffixes;
-                    SpawnUtils.SpawnedVesselURLs = _deconflictionURLs.Select(json => JsonUtility.FromJson<StringList>(json).ls).ToDictionary(ls => ls[0], ls => ls[1]);
-                    SpawnUtils.DeconflictionSuffixes = _deconflictionSuffixes.Select(json => JsonUtility.FromJson<StringList>(json).ls).ToDictionary(ls => ls[0], ls => ls[1]);
                 }
                 catch (Exception e_deconfliction) { Debug.LogError($"[BDArmory.BDATournament]: Failed to deserialize the vessel naming deconfliction data: {e_deconfliction.Message}\n{e_deconfliction.StackTrace}"); }
                 return true;
@@ -1490,6 +1484,18 @@ namespace BDArmory.Competition
                 Debug.LogError("[BDArmory.BDATournament]: " + e.Message);
                 return false;
             }
+        }
+
+        public void StoreDeconflictionData()
+        {
+            _deconflictionURLs = [.. SpawnUtils.SpawnedVesselURLs.Select(kvp => JsonUtility.ToJson(new StringList { ls = [kvp.Key, kvp.Value] }))];
+            _deconflictionSuffixes = [.. SpawnUtils.DeconflictionSuffixes.Select(kvp => JsonUtility.ToJson(new StringList { ls = [kvp.Key, kvp.Value] }))];
+        }
+
+        public void RestoreDeconflictionData()
+        {
+            SpawnUtils.SpawnedVesselURLs = _deconflictionURLs.Select(json => JsonUtility.FromJson<StringList>(json).ls).ToDictionary(ls => ls[0], ls => ls[1]);
+            SpawnUtils.DeconflictionSuffixes = _deconflictionSuffixes.Select(json => JsonUtility.FromJson<StringList>(json).ls).ToDictionary(ls => ls[0], ls => ls[1]);
         }
 
         #region Helper functions
@@ -1739,6 +1745,10 @@ namespace BDArmory.Competition
                     int attempts = 0;
                     bool unrecoverable = false;
                     competitionStarted = false;
+                    if (roundIndex == 0 && heatIndex == 0)
+                        SpawnUtils.ResetVesselNamingDeconfliction(); // Start fresh with vessel naming deconfliction.
+                    else
+                        tournamentState.RestoreDeconflictionData(); // Restore the deconfliction data to the most recently used in the tournament (to avoid outside interference).
                     while (!competitionStarted && attempts++ < 3) // 3 attempts is plenty
                     {
                         tournamentStatus = TournamentStatus.Running;
@@ -1788,6 +1798,7 @@ namespace BDArmory.Competition
                         yield break;
                     }
                     firstRun = false;
+                    tournamentState.StoreDeconflictionData(); // Update the deconfliction data from this heat.
 
                     // Register the heat as completed.
                     if (!tournamentState.completed.ContainsKey(roundIndex)) tournamentState.completed.Add(roundIndex, new HashSet<int>());
@@ -1917,7 +1928,7 @@ namespace BDArmory.Competition
                         customSpawnConfig.customVesselSpawnConfigs[teamIndex][craftIndex].kerbalName = ""; // Use random crew.
                     }
                 }
-                CustomTemplateSpawning.Instance.SpawnCustomTemplate(customSpawnConfig); // FIXMEAI Reset name deconfliction?
+                CustomTemplateSpawning.Instance.SpawnCustomTemplate(customSpawnConfig);
                 while (CustomTemplateSpawning.Instance.vesselsSpawning)
                     yield return new WaitForFixedUpdate();
                 if (!CustomTemplateSpawning.Instance.vesselSpawnSuccess)
@@ -1930,7 +1941,7 @@ namespace BDArmory.Competition
             }
             else
             {
-                CircularSpawning.Instance.SpawnAllVesselsOnce(tournamentState.rounds[roundIndex][heatIndex] as CircularSpawnConfig); // FIXMEAI this depends on whether we're resetting vessel name deconfliction
+                CircularSpawning.Instance.SpawnAllVesselsOnce(tournamentState.rounds[roundIndex][heatIndex] as CircularSpawnConfig);
                 while (CircularSpawning.Instance.vesselsSpawning)
                     yield return new WaitForFixedUpdate();
                 if (!CircularSpawning.Instance.vesselSpawnSuccess)

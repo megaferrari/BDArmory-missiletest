@@ -287,6 +287,7 @@ namespace BDArmory.VesselSpawning
         #region Name Deconfliction
         public static Dictionary<string, string> SpawnedVesselURLs = []; // Deconflicted vessel name => URL. Vessels not spawned via BDA's spawners will have a null URL.
         public static Dictionary<string, string> DeconflictionSuffixes = []; // Deconflicted vessel name => suffix added to deconflict it. (For applying deconfliction to VESSELNAMING parts when reusing names.)
+        // FIXMEAI Remove DEBUG statements below once tested.
         /// <summary>
         /// Reset the vessel name deconfliction dictionaries.
         /// </summary>
@@ -306,7 +307,7 @@ namespace BDArmory.VesselSpawning
         ///     - Spawning via the VM disables deconfliction for that vessel unless a competition is active.
         ///     - Deconfliction also occurs when resetting a competition prior to initialising scores. To avoid overriding the deconfliction from spawning, duplicately named craft use reuse=false, while others use reuse=true.
         /// - The deconfliction dictionaries are reset under various conditions:
-        ///     - Starting a tournament (during tournaments, the deconfliction dictionaries are stored as part of the tournament state in case of interruption). FIXMEAI.
+        ///     - Starting a tournament (during tournaments, the deconfliction dictionaries are stored as part of the tournament state in case of interruption).
         ///     - Starting a continuous spawn tournament. (reuse=true for cts spawn.)
         ///     - Performing a group spawn outside of a tournament when killEverythingFirst is true.
         /// </summary>
