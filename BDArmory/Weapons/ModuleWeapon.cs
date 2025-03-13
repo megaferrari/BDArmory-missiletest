@@ -4593,10 +4593,10 @@ namespace BDArmory.Weapons
                         var wms = VesselModuleRegistry.GetModule<MissileFire>(friendly.Current);
                         if (wms == null || wms.Team != weaponManager.Team) continue;
                         var friendlyRelativePosition = friendly.Current.CoM - fireTransform.position;
-                        var radius = friendly.Current.GetRadius();
-                        var thetaSqr = radius * radius / friendlyRelativePosition.sqrMagnitude; // Approx to arctan(θ) =  θ - θ^3/3 + O(θ^5)
-                        var cosTheta = Mathf.Clamp(1f - 0.5f * thetaSqr, -1f, 1f); // Approximation to cos(theta) for the friendly vessel's radius at that distance. (cos(x) = 1-x^2/2!+O(x^4))
-                        if (Vector3.Dot(firingDirection, friendlyRelativePosition.normalized) > cosTheta) return false; // A friendly is in the way.
+                        var (friendlyDistance, friendlyDirection) = friendlyRelativePosition.MagNorm();
+                        var theta = friendly.Current.GetRadius() / friendlyDistance;
+                        var cosTheta = Mathf.Clamp(1f - 0.5f * theta * theta, -1f, 1f); // Approximation to cos(theta) for the friendly vessel's radius at that distance. (cos(x) = 1-x^2/2!+O(x^4))
+                        if (Vector3.Dot(firingDirection, friendlyDirection) > cosTheta) return false; // A friendly is in the way.
                     }
                 return true;
             }
