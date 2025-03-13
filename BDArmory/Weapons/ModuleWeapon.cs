@@ -137,6 +137,7 @@ namespace BDArmory.Weapons
         //AI
         public bool aiControlled = false;
         public bool autoFire;
+        public string autoFireFailReason = "";
         public float autoFireLength = 0;
         public float autoFireTimer = 0;
         public float autofireShotCount = 0;
@@ -225,7 +226,7 @@ namespace BDArmory.Weapons
         enum TargetAcquisitionType { None, Visual, Slaved, Radar, AutoProxy, GPS };
         TargetAcquisitionType targetAcquisitionType = TargetAcquisitionType.None;
         TargetAcquisitionType lastTargetAcquisitionType = TargetAcquisitionType.None;
-        float staleGoodTargetTime = 0;
+        public float staleGoodTargetTime = 0;
 
         public Vector3? FiringSolutionVector => finalAimTarget.IsZero() ? (Vector3?)null : (finalAimTarget - fireTransforms[0].position).normalized;
 
@@ -1984,6 +1985,7 @@ namespace BDArmory.Weapons
                         audioSource.Stop();
                     }
                     autoFire = false;
+                    autoFireFailReason = "Disabled";
                 }
 
                 if (spinningDown && spinDownAnimation)
@@ -3588,6 +3590,7 @@ namespace BDArmory.Weapons
                     if (!targetAcquired && (!wm || Time.time - staleGoodTargetTime > Mathf.Max(60f / roundsPerMinute, wm.targetScanInterval)))
                     {
                         autoFire = false;
+                        autoFireFailReason = "Stale target expired";
                         return;
                     }
                 }
@@ -4088,7 +4091,11 @@ namespace BDArmory.Weapons
                                     {
                                         hitPart = hitEVA.part;
                                     }
-                                    if (hitPart == null) autoFire = false;
+                                    if (hitPart == null)
+                                    {
+                                        autoFire = false;
+                                        autoFireFailReason = "Null target";
+                                    }
                                 }
                                 catch (NullReferenceException e)
                                 {
@@ -4266,7 +4273,11 @@ namespace BDArmory.Weapons
                                             {
                                                 hitPart = hitEVA.part;
                                             }
-                                            if (hitPart == null) autoFire = false;
+                                            if (hitPart == null)
+                                            {
+                                                autoFire = false;
+                                                autoFireFailReason = "Null target";
+                                            }
                                         }
                                         catch (NullReferenceException e)
                                         {
@@ -4467,25 +4478,37 @@ namespace BDArmory.Weapons
                 if (safeToFire)
                 {
                     if (eWeaponType == WeaponTypes.Ballistic || eWeaponType == WeaponTypes.Laser)
-                        autoFire = (targetCosAngle >= targetAdjustedMaxCosAngle);
+                    {
+                        autoFire = targetCosAngle >= targetAdjustedMaxCosAngle;
+                        autoFireFailReason = autoFire ? "" : "Not on target";
+                    }
                     else // Rockets
+                    {
                         autoFire = (targetCosAngle >= targetAdjustedMaxCosAngle) && ((finalAimTarget - fireTransform.position).sqrMagnitude > (blastRadius * blastRadius) * 2);
+                        autoFireFailReason = autoFire ? "" : "Not on target";
+                    }
 
                     if (autoFire && Vector3.Angle(targetPosition - fireTransform.position, aimDirection) < 5) //check LoS for direct-fire weapons
                     {
-                        if (RadarUtils.TerrainCheck(eWeaponType == WeaponTypes.Laser ? targetPosition : fireTransform.position + (fireTransform.forward * 1500), fireTransform.position)) //kerbin curvature is going to start returning raycast terrain hits at about 1.8km for tanks
+                        if (RadarUtils.TerrainCheck(fireTransform.position, eWeaponType == WeaponTypes.Laser ? targetPosition : fireTransform.position + (fireTransform.forward * Mathf.Min(1500, (targetPosition - fireTransform.position).magnitude)))) //kerbin curvature is going to start returning raycast terrain hits at about 1.8km for tanks
                         {
                             autoFire = false;
+                            autoFireFailReason = "Terrain check";
                         }
                     }
                 }
                 else
                 {
                     autoFire = false;
+                    autoFireFailReason = "Not safe";
                 }
                 var wm = WeaponManager;
-                if (autoFire && wm.staleTarget && (lastVisualTargetVessel != null && lastVisualTargetVessel.LandedOrSplashed && vessel.LandedOrSplashed)) autoFire = false; //ground Vee engaging another ground Vee which has ducked out of sight, don't fire
-                                                                                                                                                                            // won't catch cloaked tanks, but oh well.
+                if (autoFire && wm.staleTarget && (lastVisualTargetVessel != null && lastVisualTargetVessel.LandedOrSplashed && vessel.LandedOrSplashed))
+                {
+                    autoFire = false; //ground Vee engaging another ground Vee which has ducked out of sight, don't fire
+                                      // won't catch cloaked tanks, but oh well.
+                    autoFireFailReason = "Stale target";
+                }
 
                 // if (eWeaponType != WeaponTypes.Rocket) //guns/lasers
                 // {
@@ -4528,12 +4551,14 @@ namespace BDArmory.Weapons
             else
             {
                 autoFire = false;
+                autoFireFailReason = aiControlled ? "No target" : "Not AI controlled";
             }
 
             //disable autofire after burst length
             if (autoFire && (!BurstOverride && Time.time - autoFireTimer > autoFireLength) || (BurstOverride && autofireShotCount >= fireBurstLength))
             {
                 autoFire = false;
+                autoFireFailReason = "Disabled after burst";
                 //visualTargetVessel = null;
                 //visualTargetPart = null;
                 //tgtShell = null;
@@ -4559,6 +4584,7 @@ namespace BDArmory.Weapons
                 if (threatDirectionFactor < 0.9f)
                 {
                     autoFire = false;   //within 28 degrees in front, else ignore, target likely not on intercept vector
+                    autoFireFailReason = "APS threat direction";
                 }
             }
         }
@@ -4583,15 +4609,16 @@ namespace BDArmory.Weapons
                         var wmf = friendly.Current.ActiveController().WM;
                         if (wmf == null || wmf.Team != wm.Team) continue;
                         var friendlyRelativePosition = friendly.Current.CoM - fireTransform.position;
-                        var theta = friendly.Current.GetRadius() / friendlyRelativePosition.magnitude; // Approx to arctan(θ) =  θ - θ^3/3 + O(θ^5)
+                        var (friendlyDistance, friendlyDirection) = friendlyRelativePosition.MagNorm();
+                        var theta = friendly.Current.GetRadius() / friendlyDistance;
                         var cosTheta = Mathf.Clamp(1f - 0.5f * theta * theta, -1f, 1f); // Approximation to cos(theta) for the friendly vessel's radius at that distance. (cos(x) = 1-x^2/2!+O(x^4))
-                        if (Vector3.Dot(firingDirection, friendlyRelativePosition.normalized) > cosTheta) return false; // A friendly is in the way.
+                        if (Vector3.Dot(firingDirection, friendlyDirection) > cosTheta) return false; // A friendly is in the way.
                     }
                 return true;
             }
 
             // Projectile. Use bullet velocity or estimate of the rocket velocity post-thrust.
-            var projectileEffectiveVelocity = part.rb.velocity + (eWeaponType == WeaponTypes.Rocket ? (BDKrakensbane.FrameVelocityV3f + thrust * thrustTime / rocketMass * firingDirection) : (baseBulletVelocity * firingDirection));
+            var projectileEffectiveVelocity = part.rb.velocity + BDKrakensbane.FrameVelocityV3f + (eWeaponType == WeaponTypes.Rocket ? (thrust * thrustTime / rocketMass * firingDirection) : (baseBulletVelocity * firingDirection));
             var gravity = (Vector3)FlightGlobals.getGeeForceAtPosition(fireTransform.position); // Use the local gravity value as long distance doesn't really matter here.
             var projectileAcceleration = bulletDrop || eWeaponType == WeaponTypes.Rocket ? gravity : Vector3.zero; // Drag is ignored.
 
@@ -4953,6 +4980,7 @@ namespace BDArmory.Weapons
             {
                 isOverheated = true;
                 autoFire = false;
+                autoFireFailReason = "Overheated";
                 hasCharged = false;
                 if (hasChargeAnimation) chargeRoutine = StartCoroutine(ChargeRoutine(postFireChargeAnim));
                 if (!oneShotSound) audioSource.Stop();
@@ -4985,6 +5013,7 @@ namespace BDArmory.Weapons
             {
                 isReloading = true;
                 autoFire = false;
+                autoFireFailReason = "Reloading";
                 if (eWeaponType == WeaponTypes.Laser)
                 {
                     for (int i = 0; i < laserRenderers.Length; i++)
@@ -5191,7 +5220,7 @@ namespace BDArmory.Weapons
                                 }
                                 targetAcquired = true;
                                 targetAcquisitionType = TargetAcquisitionType.Slaved;
-                                if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.ModuleWeapon - {shortName} had no lock for  {visualTargetVessel.vesselName}; slaving to primary lock on {wm.slavedTarget.vessel.name}");
+                                if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.ModuleWeapon - {shortName} had no lock for {(visualTargetVessel != null ? visualTargetVessel.vesselName : "'unknown'")}; slaving to primary lock on {wm.slavedTarget.vessel.name}");
                                 return;
                             }
                         }
