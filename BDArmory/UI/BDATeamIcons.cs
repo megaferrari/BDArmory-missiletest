@@ -251,7 +251,7 @@ namespace BDArmory.UI
                                     if (GUIUtils.WorldToGUIPos(ml.Current.vessel.CoM, out Vector2 guiPos))
                                     {
                                         var dist = BDAMath.Sqrt(distSqr);
-                                        onScreenLabels.Add((new(guiPos.x - 12, guiPos.y + 10, 100, 32), dist < 1e3f ? $"{1e-3f * dist:0.00}km" : $"{dist:0.0}m", mIStyle, null));
+                                        onScreenLabels.Add((new(guiPos.x - 12, guiPos.y + 10, 100, 32), dist > 1e3f ? $"{1e-3f * dist:0.00}km" : $"{dist:0.0}m", mIStyle, null));
                                         if (BDTISettings.MISSILE_TEXT)
                                         {
                                             Color iconUI = BDTISetup.Instance.ColorAssignments.ContainsKey(ml.Current.Team.Name) ? BDTISetup.Instance.ColorAssignments[ml.Current.Team.Name] : Color.gray;
@@ -378,7 +378,7 @@ namespace BDArmory.UI
                                         onScreenLabels.Add((new(guiPos.x + 16 * BDTISettings.ICONSCALE, guiPos.y + 14 * BDTISettings.ICONSCALE, 100, 32), "Score: " + Score, IconUIStyle, DropshadowStyle));
                                     }
                                     float dist = BDAMath.Sqrt(distSqr);
-                                    string UIdistStr = dist < 1000f ? $"{1e-3f * dist:0.00}km" : $"{dist:0.0}m";
+                                    string UIdistStr = dist > 1000f ? $"{1e-3f * dist:0.00}km" : $"{dist:0.0}m";
                                     if (BDTISettings.HEALTHBAR)
                                     {
 
