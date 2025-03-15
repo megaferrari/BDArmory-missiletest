@@ -859,7 +859,6 @@ namespace BDArmory.Utils
         #endregion
     }
 
-    // FIXMEAI Make a PR before merging so that the others can review the (quite significant) changes.
     /// <summary>
     /// This class maintains an overview and control of which WM and AI modules are the primary ones controlling a vessel.
     /// The primary AI is either the one that was most recently activated or the one closest to the root of the vessel.
@@ -946,6 +945,7 @@ namespace BDArmory.Utils
         public MissileFire WM { get; private set; } // Use this for accessing the primary WM. Use VesselModuleRegistry.GetMissileFires to get all WMs on a craft.
         public IBDAIControl AI { get; private set; } // The active AI (if any are active) or the closest AI to the root.
         public string SourceVesselURL { get; set; } = null; // The original .craft file this vessel came from, if known. Spawning via BDA's spawners will set this.
+        public bool VesselNamingDeconflictionHasBeenApplied { get; set; } = false; // Whether vessel naming deconfliction has been applied to this vessel or not.
 
         // Note: If using these below, check that ai.pilotEnabled is true to see if it's the active AI.
         public BDModulePilotAI PilotAI { get; private set; } // The primary or most recently active pilot AI.

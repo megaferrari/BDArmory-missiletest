@@ -304,8 +304,8 @@ namespace BDArmory.VesselSpawning
         /// Notes:
         /// - VESSELNAMING requires that the vessel's parts list has been populated, which takes a few frames after spawning.
         /// - Deconfliction occurs during spawning (if not disabled in the SpawnConfig) and when adding to a running competition (for detached vessels).
-        ///     - Spawning via the VM disables deconfliction for that vessel unless a competition is active.
-        ///     - Deconfliction also occurs when resetting a competition prior to initialising scores. To avoid overriding the deconfliction from spawning, duplicately named craft use reuse=false, while others use reuse=true.
+        ///     - Spawning via the VM disables deconfliction for that vessel unless a competition is active to avoid messing with names unnecessarily.
+        ///     - Deconfliction also occurs when resetting a competition prior to initialising scores.
         /// - The deconfliction dictionaries are reset under various conditions:
         ///     - Starting a tournament (during tournaments, the deconfliction dictionaries are stored as part of the tournament state in case of interruption).
         ///     - Starting a continuous spawn tournament. (reuse=true for cts spawn.)
@@ -317,6 +317,11 @@ namespace BDArmory.VesselSpawning
         {
             // Before anything else, strip the type from the vessel's name. This avoids names like "Some craft name Rover", but also means "Jeb's Plane" isn't a valid name for a plane.
             vessel.StripTypeFromName();
+            
+            // If vessel naming deconfliction has previously been applied to this vessel, don't make further changes.
+            var ac = vessel.ActiveController();
+            if (ac.VesselNamingDeconflictionHasBeenApplied) return;
+            ac.VesselNamingDeconflictionHasBeenApplied = true;
             
             // Start by deconflicting VESSELNAMING within the vessel.
             var vesselNamingParts = DeconflictPartVesselNaming(vessel);
@@ -331,7 +336,6 @@ namespace BDArmory.VesselSpawning
             }
 
             // Then make sure all the names are truly unique between vessels.
-            var ac = vessel.ActiveController();
             var craftURL = ac.SourceVesselURL;
             if (reuse) Debug.Log($"DEBUG Reuse URL {craftURL}, exists: {SpawnedVesselURLs.ContainsValue(craftURL)}");
             if (reuse && craftURL != null && SpawnedVesselURLs.ContainsValue(craftURL))
@@ -387,7 +391,7 @@ namespace BDArmory.VesselSpawning
         /// <returns>A list of the parts with VESSELNAMING in order of descending priority with deconflicted names.</returns>
         static List<Part> DeconflictPartVesselNaming(Vessel vessel)
         {
-            if (vessel.Parts.Count == 0) { Debug.Log($"DEBUG {vessel.GetName()}'s parts list isn't loaded yet"); return []; } // Nothing to do.
+            if (vessel.Parts.Count == 0) { Debug.LogWarning($"[BDArmory.SpawnUtils]: {vessel.GetName()}'s parts list isn't loaded yet, unable to deconflict vessel naming."); return []; } // Nothing to do.
 
             var partNamingPriority = vessel.Parts.Where(p => p.vesselNaming != null && !string.IsNullOrEmpty(p.vesselNaming.vesselName)).OrderByDescending(p => p.vesselNaming.namingPriority).ToList();
             var partNamingNames = partNamingPriority.Select(p => p.vesselNaming.vesselName).ToList();

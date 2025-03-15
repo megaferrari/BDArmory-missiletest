@@ -223,12 +223,12 @@ namespace BDArmory.VesselSpawning
             finalSpawnRotations.Clear();
         }
 
-        protected IEnumerator SpawnVessels(List<VesselSpawnConfig> vesselSpawnConfigs) // FIXMEAI Check sources of this for performing name deconfliction / resetting — this depends on how we're going to handle tournament vs competition name deconfliction.
+        protected IEnumerator SpawnVessels(List<VesselSpawnConfig> vesselSpawnConfigs)
         {
             ResetInternals();
             // Perform the actual spawning concurrently.
             LogMessage("Spawning vessels...", false);
-            List<Coroutine> spawningVessels = new List<Coroutine>();
+            List<Coroutine> spawningVessels = [];
             foreach (var vesselSpawnConfig in vesselSpawnConfigs)
                 spawningVessels.Add(StartCoroutine(SpawnSingleVessel(vesselSpawnConfig)));
             yield return new WaitWhile(() => vesselsSpawningCount > 0 && spawnFailureReason == SpawnFailureReason.None);

@@ -474,19 +474,7 @@ namespace BDArmory.Competition
             BulletHitFX.CleanPartsOnFireInfo();
             // Get a list of pilot vessels with unique names for the scoring.
             var pilotVessels = GetAllPilots().Select(p => p.vessel).ToList();
-            HashSet<string> vesselNames = [.. pilotVessels.Select(v => v.vesselName)];
-            foreach (var vessel in pilotVessels)
-            {
-                if (vesselNames.Contains(vessel.vesselName))
-                {
-                    vesselNames.Remove(vessel.vesselName);
-                    SpawnUtils.DeconflictVesselName(vessel, reuse: true); // Reuse the deconflicted name from spawning, if it exists.
-                }
-                else
-                {
-                    SpawnUtils.DeconflictVesselName(vessel, reuse: false); // For duplicates, deconflict their name.
-                }
-            }
+            foreach (var vessel in pilotVessels) SpawnUtils.DeconflictVesselName(vessel); // Make sure the names are unique.
             Scores.ConfigurePlayers(pilotVessels); // Get the competitors.
             if (!string.IsNullOrEmpty(BDArmorySettings.PINATA_NAME) && Scores.Players.Contains(BDArmorySettings.PINATA_NAME)) { hasPinata = true; pinataAlive = false; } else { hasPinata = false; pinataAlive = false; } // Piñata.
             if (SpawnUtils.originalTeams.Count == 0) SpawnUtils.SaveTeams(); // If the vessels weren't spawned in with Vessel Spawner, save the current teams.
