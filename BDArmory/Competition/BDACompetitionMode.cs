@@ -1313,6 +1313,7 @@ namespace BDArmory.Competition
             if (explodingWM.Contains(vessel)) yield break; // Already scheduled for exploding.
             explodingWM.Add(vessel);
             yield return new WaitForSecondsFixed(delay);
+            if (killReason.Contains("engines") && SpawnUtils.CountActiveEngines(vessel, true) != 0) yield break; //engine(s) (re)activated since delayedGMKill triggered, abort
             if (vessel == null) // It's already dead.
             {
                 explodingWM = explodingWM.Where(v => v != null).ToHashSet(); // Clean the hashset.
@@ -2361,7 +2362,7 @@ namespace BDArmory.Competition
                 Scores.ScoreData[vesselName].lastPersonWhoDamagedMe = $"Failed to reach a waypoint within {threshold:0}s";
                 Scores.RegisterDeath(vesselName, GMKillReason.BigRedButton); // Mark it as a Big Red Button GM kill.
                 var message = $"{vesselName} failed to reach a waypoint within {threshold:0}s, killing it.";
-                if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == 55) message = $"{vesselName} failed to reach a waypoint within {threshold:0}s and was killed by a Tusken Raider.";
+                if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.WAYPOINTS_MODE) message = $"{vesselName} failed to reach a waypoint within {threshold:0}s and was killed by {(BDArmorySettings.RUNWAY_PROJECT_ROUND == 55 ? "a Tusken Raider" : "the GM")}.";
                 competitionStatus.Add(message);
                 Debug.Log($"[BDArmory.BDACompetitionMode:" + CompetitionID.ToString() + "]: " + message);
                 VesselUtils.ForceDeadVessel(weaponManager.vessel);
@@ -2619,7 +2620,7 @@ namespace BDArmory.Competition
         public void DoUpdate()
         {
             if (competitionStartTime < 0) return; // Note: this is the same condition as competitionIsActive and could probably be dropped.
-            if (competitionType == CompetitionType.WAYPOINTS && (BDArmorySettings.RUNWAY_PROJECT_ROUND != 55 && BDArmorySettings.WAYPOINT_GUARD_INDEX < 0)) return; // Don't do anything below when running waypoints unless guardmode is set to activate at somepoint or if set to podracers (for tuskenRaider GM culling of slow pods)
+            if (competitionType == CompetitionType.WAYPOINTS && (BDArmorySettings.RUNWAY_PROJECT_ROUND != 55 && BDArmorySettings.COMPETITION_WAYPOINTS_GM_KILL_PERIOD <= 0 && BDArmorySettings.WAYPOINT_GUARD_INDEX < 0)) return; // Don't do anything below when running waypoints unless guardmode is set to activate at somepoint or if set to podracers (for tuskenRaider GM culling of slow pods)
             if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == 55 && competitionIsActive) AdjustKerbalDrag(605, 0.01f); // Over 605m/s, add drag at a rate of 0.01 per m/s.
 
             // Example usage of UpcomingCollisions(). Note that the timeToCPA values are only updated after an interval of half the current timeToCPA.
@@ -3145,7 +3146,7 @@ namespace BDArmory.Competition
 
             if (now - competitionStartTime > altitudeLimitGracePeriod)
                 CheckAltitudeLimits();
-            if (competitionIsActive && competitionType == CompetitionType.WAYPOINTS && BDArmorySettings.RUNWAY_PROJECT_ROUND == 55 && BDArmorySettings.COMPETITION_WAYPOINTS_GM_KILL_PERIOD > 0 && now - competitionStartTime > BDArmorySettings.COMPETITION_INITIAL_GRACE_PERIOD) CullSlowWaypointRunners(BDArmorySettings.COMPETITION_WAYPOINTS_GM_KILL_PERIOD);
+            if (competitionIsActive && competitionType == CompetitionType.WAYPOINTS && BDArmorySettings.COMPETITION_WAYPOINTS_GM_KILL_PERIOD > 0 && now - competitionStartTime > BDArmorySettings.COMPETITION_INITIAL_GRACE_PERIOD) CullSlowWaypointRunners(BDArmorySettings.COMPETITION_WAYPOINTS_GM_KILL_PERIOD);
             if (BDArmorySettings.RUNWAY_PROJECT)
             {
                 FindVictim();
