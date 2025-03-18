@@ -172,7 +172,7 @@ namespace BDArmory.UI
             {
                 Debug.LogError($"[BDArmory.VesselSpawnerWindow]: Failed to locate waypoint marker models: {e.Message}");
             }
-            if (WaygateCount >= 0) SelectedModel = Path.GetFileNameWithoutExtension(gateFiles[(int)SelectedGate]);
+            if (WaygateCount >= 0 && SelectedGate >= 0) SelectedModel = Path.GetFileNameWithoutExtension(gateFiles[(int)Mathf.Clamp(SelectedGate, 0, WaygateCount)]);
             else Debug.LogWarning($"[BDArmory.VesselSpawnerWindow]: No waypoint gate models found in {Gatepath}!");
             if (BDArmorySettings.WAYPOINT_COURSE_INDEX >= WaypointCourses.CourseLocations.Count) BDArmorySettings.WAYPOINT_COURSE_INDEX = 0; // Sanitise the index in case the course list has changed.
         }
@@ -619,7 +619,8 @@ namespace BDArmory.UI
                             GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_WP_SelectModel")}: {SelectedModel}", leftLabel); //Waypoint Type
                             if (SelectedGate != (SelectedGate = BDAMath.RoundToUnit(GUI.HorizontalSlider(SRightSliderRect(line), SelectedGate, 0, WaygateCount), 1)))
                             {
-                                SelectedModel = Path.GetFileNameWithoutExtension(gateFiles[(int)SelectedGate]);
+                                if (SelectedGate >= 0) SelectedModel = Path.GetFileNameWithoutExtension(gateFiles[(int)Mathf.Clamp(SelectedGate, 0, WaygateCount)]);
+                                else SelectedModel = string.Empty;
                             }
                         }
                     }
