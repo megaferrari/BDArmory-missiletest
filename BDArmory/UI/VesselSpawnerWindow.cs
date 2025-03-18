@@ -813,6 +813,10 @@ namespace BDArmory.UI
             {
                 if (!waypointsRunning)
                 {
+                    // Note:
+                    // - left click is run with waypoint spawn point
+                    // - right click is run with current spawn point
+                    // - middle click is run current vessel through waypoints
                     if (GUI.Button(SLineRect(++line), "Run waypoints", BDArmorySetup.BDGuiSkin.button))
                     {
                         if (BDArmorySetup.showWPBuilderGUI && !TournamentCoordinator.Instance.IsRunning) //delete loaded gates if builder is closed, but not if WP course is currently running
@@ -838,7 +842,18 @@ namespace BDArmory.UI
                         spawnLongitude = (float)WaypointCourses.CourseLocations[BDArmorySettings.WAYPOINT_COURSE_INDEX].spawnPoint.y;
                         course = WaypointCourses.CourseLocations[BDArmorySettings.WAYPOINT_COURSE_INDEX].waypoints;
 
-                        if (!BDArmorySettings.WAYPOINTS_ONE_AT_A_TIME)
+                        if (Event.current.button == 2) // Middle click => Move the current craft to the spawn point and set it running waypoints.
+                        {
+                            SpawnUtils.ShowSpawnPoint(
+                                WaypointCourses.CourseLocations[BDArmorySettings.WAYPOINT_COURSE_INDEX].worldIndex,
+                                spawnLatitude,
+                                spawnLongitude,
+                                BDArmorySettings.VESSEL_SPAWN_ALTITUDE
+                            );
+                            TournamentCoordinator.Instance.Configure(null, new WaypointFollowingStrategy(course), null);
+                            TournamentCoordinator.Instance.Run();
+                        }
+                        else if (!BDArmorySettings.WAYPOINTS_ONE_AT_A_TIME)
                         {
                             TournamentCoordinator.Instance.Configure(new SpawnConfigStrategy(
                                 new CircularSpawnConfig(
