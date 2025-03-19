@@ -172,7 +172,7 @@ namespace BDArmory.UI
             {
                 Debug.LogError($"[BDArmory.VesselSpawnerWindow]: Failed to locate waypoint marker models: {e.Message}");
             }
-            if (WaygateCount >= 0) SelectedModel = Path.GetFileNameWithoutExtension(gateFiles[(int)SelectedGate]);
+            if (WaygateCount >= 0 && SelectedGate >= 0) SelectedModel = Path.GetFileNameWithoutExtension(gateFiles[(int)Mathf.Clamp(SelectedGate, 0, WaygateCount)]);
             else Debug.LogWarning($"[BDArmory.VesselSpawnerWindow]: No waypoint gate models found in {Gatepath}!");
             if (BDArmorySettings.WAYPOINT_COURSE_INDEX >= WaypointCourses.CourseLocations.Count) BDArmorySettings.WAYPOINT_COURSE_INDEX = 0; // Sanitise the index in case the course list has changed.
         }
@@ -619,7 +619,7 @@ namespace BDArmory.UI
                             GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_WP_SelectModel")}: {SelectedModel}", leftLabel); //Waypoint Type
                             if (SelectedGate != (SelectedGate = BDAMath.RoundToUnit(GUI.HorizontalSlider(SRightSliderRect(line), SelectedGate, -1, WaygateCount), 1)))
                             {
-                                if (SelectedGate >= 0) SelectedModel = Path.GetFileNameWithoutExtension(gateFiles[(int)SelectedGate]);
+                                if (SelectedGate >= 0) SelectedModel = Path.GetFileNameWithoutExtension(gateFiles[(int)Mathf.Clamp(SelectedGate, 0, WaygateCount)]);
                                 else SelectedModel = string.Empty;
                             }
                         }
@@ -813,6 +813,10 @@ namespace BDArmory.UI
             {
                 if (!waypointsRunning)
                 {
+                    // Note:
+                    // - left click is run with waypoint spawn point
+                    // - right click is run with current spawn point
+                    // - middle click is run current vessel through waypoints
                     if (GUI.Button(SLineRect(++line), "Run waypoints", BDArmorySetup.BDGuiSkin.button))
                     {
                         if (BDArmorySetup.showWPBuilderGUI && !TournamentCoordinator.Instance.IsRunning) //delete loaded gates if builder is closed, but not if WP course is currently running
@@ -838,7 +842,18 @@ namespace BDArmory.UI
                         spawnLongitude = (float)WaypointCourses.CourseLocations[BDArmorySettings.WAYPOINT_COURSE_INDEX].spawnPoint.y;
                         course = WaypointCourses.CourseLocations[BDArmorySettings.WAYPOINT_COURSE_INDEX].waypoints;
 
-                        if (!BDArmorySettings.WAYPOINTS_ONE_AT_A_TIME)
+                        if (Event.current.button == 2) // Middle click => Move the current craft to the spawn point and set it running waypoints.
+                        {
+                            SpawnUtils.ShowSpawnPoint(
+                                WaypointCourses.CourseLocations[BDArmorySettings.WAYPOINT_COURSE_INDEX].worldIndex,
+                                spawnLatitude,
+                                spawnLongitude,
+                                BDArmorySettings.VESSEL_SPAWN_ALTITUDE
+                            );
+                            TournamentCoordinator.Instance.Configure(null, new WaypointFollowingStrategy(course), null);
+                            TournamentCoordinator.Instance.Run();
+                        }
+                        else if (!BDArmorySettings.WAYPOINTS_ONE_AT_A_TIME)
                         {
                             TournamentCoordinator.Instance.Configure(new SpawnConfigStrategy(
                                 new CircularSpawnConfig(
