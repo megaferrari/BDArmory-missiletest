@@ -1313,11 +1313,15 @@ namespace BDArmory.Competition
             if (explodingWM.Contains(vessel)) yield break; // Already scheduled for exploding.
             explodingWM.Add(vessel);
             yield return new WaitForSecondsFixed(delay);
-            if (killReason.Contains("engines") && SpawnUtils.CountActiveEngines(vessel, true) != 0) yield break; //engine(s) (re)activated since delayedGMKill triggered, abort
             if (vessel == null) // It's already dead.
             {
                 explodingWM = explodingWM.Where(v => v != null).ToHashSet(); // Clean the hashset.
                 yield break;
+            }
+            if (killReason.Contains("engines") && SpawnUtils.CountActiveEngines(vessel, true) != 0)
+            {
+                explodingWM.Remove(vessel); //reset this so future DelayedGMKill calls don't immediately abort
+                yield break; //engine(s) (re)activated since delayedGMKill triggered, abort
             }
 
             var vesselName = vessel.GetName();
