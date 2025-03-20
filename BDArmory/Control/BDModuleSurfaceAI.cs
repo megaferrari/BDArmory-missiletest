@@ -224,6 +224,7 @@ namespace BDArmory.Control
         public override void ActivatePilot()
         {
             base.ActivatePilot();
+            TakingOff = false;
             originalMaxSpeed = MaxSpeed;
             pathingMatrix = new AIUtils.TraversabilityMatrix();
 

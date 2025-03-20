@@ -72,12 +72,13 @@ namespace BDArmory.Competition.OrchestrationStrategies
             BDACompetitionMode.Instance.ResetCompetitionStuff(); // Reset a bunch of stuff related to competitions so they don't interfere.
             BDACompetitionMode.Instance.StartCompetitionMode(BDArmorySettings.COMPETITION_DISTANCE, BDArmorySettings.COMPETITION_START_DESPITE_FAILURES, "", CompetitionType.WAYPOINTS);
             if (BDArmorySettings.WAYPOINTS_INFINITE_FUEL_AT_START)
-            { foreach (var pilot in pilots) pilot.MaintainFuelLevels(true);
+            {
+                foreach (var pilot in pilots) pilot.MaintainFuelLevels(true);
             } //waypoints is dependent on PilotCommands.Waypoint, which gets overridden to PilotCommands.FlyTo by the start of comp.
             yield return new WaitWhile(() => BDACompetitionMode.Instance.competitionStarting);
             yield return new WaitWhile(() => BDACompetitionMode.Instance.pinataAlive);
             PrepareCompetition();
-            
+
             // Configure the pilots' waypoints.
             var mappedWaypoints = BDArmorySettings.WAYPOINTS_ALTITUDE < 0 ? waypoints.Select(e => e.location).ToList() : waypoints.Select(wp => new Vector3(wp.location.x, wp.location.y, BDArmorySettings.WAYPOINTS_ALTITUDE)).ToList();
             BDACompetitionMode.Instance.competitionStatus.Add($"Starting waypoints competition {BDACompetitionMode.Instance.CompetitionID}.");
@@ -103,7 +104,10 @@ namespace BDArmory.Competition.OrchestrationStrategies
                 yield return new WaitWhile(() => BDACompetitionMode.Instance.competitionIsActive); //DoUpdate handles the deathmatch half of the combat waypoint race and ends things when only 1 team left
             }
             else
-                yield return new WaitWhile(() => pilots.Any(pilot => pilot != null && pilot.weaponManager != null && pilot.IsRunningWaypoints && (pilot.TakingOff || !(pilot.vessel.Landed || pilot.vessel.Splashed)))); 
+            {
+                var checkLandedOrSplashed = pilots.ToDictionary(p => p, p => p as BDModuleSurfaceAI == null);
+                yield return new WaitWhile(() => pilots.Any(pilot => pilot != null && pilot.weaponManager != null && pilot.IsRunningWaypoints && (pilot.TakingOff || (checkLandedOrSplashed[pilot] && !pilot.vessel.LandedOrSplashed))));
+            }
             var endedAt = Planetarium.GetUniversalTime();
 
             BDACompetitionMode.Instance.competitionStatus.Add("Waypoints competition finished. Scores:");
