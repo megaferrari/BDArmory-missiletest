@@ -371,7 +371,7 @@ namespace BDArmory.Settings
         #endregion
 
         #region Waypoints
-        [BDAPersistentSettingsField] public static float WAYPOINTS_ALTITUDE = 0f;                // Altitude above ground of the waypoints.
+        [BDAPersistentSettingsField] public static float WAYPOINTS_ALTITUDE = -50f;                // Altitude above ground of the waypoints.
         [BDAPersistentSettingsField] public static bool WAYPOINTS_ONE_AT_A_TIME = false;          // Send the craft one-at-a-time through the course.
         [BDAPersistentSettingsField] public static bool WAYPOINTS_VISUALIZE = true;               // Add Waypoint models to indicate the path
         [BDAPersistentSettingsField] public static bool WAYPOINTS_INFINITE_FUEL_AT_START = true;  // Don't consume fuel prior to the first waypoint.

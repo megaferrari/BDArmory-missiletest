@@ -957,20 +957,53 @@ namespace BDArmory.Weapons
         [KSPEvent(guiActive = false, guiActiveEditor = true, guiName = "#LOC_BDArmory_ToggleBarrage")]//Toggle Barrage
         public void ToggleRipple()
         {
-            List<Part>.Enumerator craftPart = EditorLogic.fetch.ship.parts.GetEnumerator();
-            while (craftPart.MoveNext())
-            {
-                if (craftPart.Current == null) continue;
-                if (craftPart.Current.name != part.name) continue;
-                List<ModuleWeapon>.Enumerator weapon = craftPart.Current.FindModulesImplementing<ModuleWeapon>().GetEnumerator();
-                while (weapon.MoveNext())
+            using (List<Part>.Enumerator craftPart = EditorLogic.fetch.ship.parts.GetEnumerator())
+                while (craftPart.MoveNext())
                 {
-                    if (weapon.Current == null) continue;
-                    weapon.Current.useRippleFire = !weapon.Current.useRippleFire;
+                    if (craftPart.Current == null) continue;
+                    if (craftPart.Current.name != part.name) continue;
+                    using (List<ModuleWeapon>.Enumerator weapon = craftPart.Current.FindModulesImplementing<ModuleWeapon>().GetEnumerator())
+                        while (weapon.MoveNext())
+                        {
+                            if (weapon.Current == null) continue;
+                            weapon.Current.useRippleFire = !weapon.Current.useRippleFire;
+                        }
                 }
-                weapon.Dispose();
+        }
+
+        [KSPField(isPersistant = true)]
+        public bool useThisWeaponForAim = false;
+
+        [KSPEvent(guiActive = false, guiActiveEditor = true, guiName = "#LOC_BDArmory_AimOverrideFalse")]//"Aim With This Weapon"
+        public void setAimOverride()
+        {
+            useThisWeaponForAim = !useThisWeaponForAim;
+            if (useThisWeaponForAim == false)
+            {
+                Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideFalse");//"Aim With This Weapon"
             }
-            craftPart.Dispose();
+            else
+            {
+                Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideTrue");//"Revert Aim Override"
+                using (List<Part>.Enumerator craftPart = EditorLogic.fetch.ship.parts.GetEnumerator())
+                    while (craftPart.MoveNext())
+                    {
+                        if (craftPart.Current == null) continue;
+                        using (List<ModuleWeapon>.Enumerator weapon = craftPart.Current.FindModulesImplementing<ModuleWeapon>().GetEnumerator())
+                            while (weapon.MoveNext())
+                            {
+                                if (weapon.Current == null) continue;
+                                if (weapon.Current == this) continue; //setting this here instead of craftPart.Current in case part has multiple weapon modules
+                                if (weapon.Current.GetShortName() != shortName) continue;
+                                if (weapon.Current.useThisWeaponForAim)
+                                {
+                                    weapon.Current.useThisWeaponForAim = false;
+                                    weapon.Current.Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideFalse");//"Aim With This Weapon"
+                                    GUIUtils.RefreshAssociatedWindows(weapon.Current.part);
+                                }
+                            }
+                    }
+            }
         }
 
         [KSPField(isPersistant = true)]
@@ -1553,16 +1586,15 @@ namespace BDArmory.Weapons
                 }
             }
             //turret setup
-            List<ModuleTurret>.Enumerator turr = part.FindModulesImplementing<ModuleTurret>().GetEnumerator();
-            while (turr.MoveNext())
-            {
-                if (turr.Current == null) continue;
-                if (turr.Current.turretID != turretID) continue;
-                turret = turr.Current;
-                turret.SetReferenceTransform(fireTransforms[0]);
-                break;
-            }
-            turr.Dispose();
+            using (List<ModuleTurret>.Enumerator turr = part.FindModulesImplementing<ModuleTurret>().GetEnumerator())
+                while (turr.MoveNext())
+                {
+                    if (turr.Current == null) continue;
+                    if (turr.Current.turretID != turretID) continue;
+                    turret = turr.Current;
+                    turret.SetReferenceTransform(fireTransforms[0]);
+                    break;
+                }
 
             if (!turret)
             {
@@ -1838,6 +1870,11 @@ namespace BDArmory.Weapons
                 Fields["detonateAtMinimumDistance"].guiActive = false;
                 Fields["detonateAtMinimumDistance"].guiActiveEditor = false;
             }
+            if (useThisWeaponForAim)
+                Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideTrue");//"Revert Aim Override"
+            else
+                Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideFalse");//"Aim With This Weapon"
+               
             GUIUtils.RefreshAssociatedWindows(part);
         }
 
@@ -4884,7 +4921,7 @@ namespace BDArmory.Weapons
             if (!refTransform) return;
 
             Vector3 fwdPos = fireTransforms[0].position + (5 * fireTransforms[0].forward);
-            GUIUtils.DrawLineBetweenWorldPositions(fireTransforms[0].position, fwdPos, 4, Color.green);
+            GUIUtils.DrawLineBetweenWorldPositions(fireTransforms[0].position, fwdPos, useThisWeaponForAim ? 8 : 4, useThisWeaponForAim ? Color.blue : Color.green);
 
             Vector3 referenceDirection = refTransform.up;
             Vector3 refUp = -refTransform.forward;

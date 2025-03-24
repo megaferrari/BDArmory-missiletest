@@ -16,6 +16,7 @@ using BDArmory.Utils;
 using BDArmory.Weapons;
 using BDArmory.Weapons.Missiles;
 using BDArmory.Radar;
+using BDArmory.GameModes.Waypoints;
 
 namespace BDArmory.Control
 {
@@ -2622,7 +2623,7 @@ namespace BDArmory.Control
             //test
             Vector3 currTargetDir = targetDirection;
             if (evasionNonlinearity > 0 && (IsExtending || IsEvading || // If we're extending or evading, add a deviation to the fly-to direction to make us harder to hit.
-                weaponManager && ((steerMode == SteerModes.NormalFlight || steerMode == SteerModes.Aiming && weaponManager.CurrentMissile != null) && weaponManager.guardMode && // Also, if we know enemies are near, but they're beyond gun or visual range and we're not aiming a gun.
+                weaponManager && (((steerMode == SteerModes.NormalFlight || steerMode == SteerModes.Aiming && weaponManager.CurrentMissile != null) || IsRunningWaypoints) && weaponManager.guardMode && // Also, if we know enemies are near, but they're beyond gun or visual range and we're not aiming a gun, or we're running a WP course and standard evasion isn't ideal
                     BDATargetManager.TargetList(weaponManager.Team).Where(target =>
                         !target.isMissile &&
                         weaponManager.CanSeeTarget(target, true, true)
@@ -3142,7 +3143,13 @@ namespace BDArmory.Control
                 SetStatus($"Waypoint {activeWaypointIndex} ({waypointRange:F0}m)");
             }
             var waypointDirection = (waypointPosition - vessel.transform.position).normalized;
-            // var waypointDirection = (WaypointSpline() - vessel.transform.position).normalized;
+            if (waypointRange < (BDArmorySettings.WAYPOINTS_SCALE > 0 ? BDArmorySettings.WAYPOINTS_SCALE : (WaypointCourses.CourseLocations[waypointCourseIndex].waypoints[activeWaypointIndex].scale)) / 2) //gate radius
+            {
+                //if (Vector3.Angle(waypointDirection, vessel.ReferenceTransform.up) > maxAllowedAoA)//as we get closer angle to WP is going to very rapidly increase from ~0 to 90 if not *perfectly* aligned
+                //    waypointDirection = vessel.Velocity(); //so if within [gate radius] distance of the WP, if the angle to the gate exceeds max AOA angle, commit to current direaction to prevent control jerk at the last second as the AI tries to correct off-targetness
+                waypointDirection = Vector3.RotateTowards(vessel.srf_vel_direction, waypointDirection, Mathf.Deg2Rad * Mathf.Min(maxAllowedAoA, Mathf.Min(0.5f, 200f / (float)vessel.srfSpeed) * waypointRange), 0); //- maxAllowedAoA goes from 0 - 90; at default 35deg, would need to be going 400m/s through a 70m gate before speed and diameter matter; figure out different formula
+                //
+            }
             waypointRay = new Ray(vessel.transform.position, waypointDirection);
             if (Physics.Raycast(waypointRay, out waypointRayHit, waypointRange, (int)LayerMasks.Scenery))
             {
@@ -3370,9 +3377,10 @@ namespace BDArmory.Control
                 if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.Append($"Dodging gunfire");
                 float threatDirectionFactor = Vector3.Dot(vesselTransform.up, threatRelativePosition.normalized);
                 //Vector3 axis = -Vector3.Cross(vesselTransform.up, threatRelativePosition);
-                // FIXME When evading while in waypoint following mode, the breakTarget ought to be roughly in the direction of the waypoint.
 
-                Vector3 breakTarget = threatRelativePosition * 2f;       //for the most part, we want to turn _towards_ the threat in order to increase the rel ang vel and get under its guns
+                //for the most part, we want to turn _towards_ the threat in order to increase the rel ang vel and get under its guns
+                //for Waypoint Race evasion, keep pointing towards next gate; dodging is handled by evasion non-linearity waggle in FlyToPosition
+                Vector3 breakTarget = (IsRunningWaypoints ? (waypointPosition - vessel.transform.position) : threatRelativePosition) * 2f;
 
                 if (weaponManager.incomingThreatVessel != null && weaponManager.incomingThreatVessel.LandedOrSplashed) // Surface threat.
                 {

@@ -224,6 +224,7 @@ namespace BDArmory.Control
         public override bool ActivatePilot()
         {
             if (!base.ActivatePilot()) return false;
+            TakingOff = false;
             originalMaxSpeed = MaxSpeed;
             pathingMatrix = new AIUtils.TraversabilityMatrix();
 
@@ -818,7 +819,7 @@ namespace BDArmory.Control
                 // goto
                 if (command == PilotCommands.Waypoints)
                 {
-                    Pathfind(waypointPosition);
+                    Pathfind(VectorUtils.WorldPositionToGeoCoords(waypointPosition, vessel.mainBody));                    
                 }
                 else if (leftPath && bypassTarget == null)
                 {

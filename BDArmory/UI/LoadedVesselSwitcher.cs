@@ -348,7 +348,7 @@ namespace BDArmory.UI
         {
             if (!BDACompetitionMode.Instance.Scores.ScoreData.ContainsKey(player)) return 0f;
             var score = BDACompetitionMode.Instance.Scores.ScoreData[player];
-            return (float)score.totalWPReached - 0.001f * score.totalWPTime; // Rank in the VS based primarily on #waypoints passed and secondly on time.
+            return score.totalWPReached * TournamentScores.weights.GetValueOrDefault("Waypoint Count") + score.totalWPTime * TournamentScores.weights.GetValueOrDefault("Waypoint Time") + score.totalWPDeviation * TournamentScores.weights.GetValueOrDefault("Waypoint Deviation");
         }
 
         private void WindowVesselSwitcher(int id)
