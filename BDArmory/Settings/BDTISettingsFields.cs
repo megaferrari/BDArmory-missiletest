@@ -42,7 +42,7 @@ namespace BDArmory.Settings
 
 			foreach (var keyValuePair in BDTISetup.Instance.ColorAssignments)
 			{
-				Debug.Log(keyValuePair.ToString());
+				if (BDArmorySettings.DEBUG_OTHER) Debug.Log(keyValuePair.ToString());
 				string color = $"{Mathf.RoundToInt(keyValuePair.Value.r * 255)},{Mathf.RoundToInt(keyValuePair.Value.g * 255)},{Mathf.RoundToInt(keyValuePair.Value.b * 255)},{Mathf.RoundToInt(keyValuePair.Value.a * 255)}";
 				colors.SetValue(keyValuePair.Key.ToString(), color, true);
 			}
@@ -73,7 +73,7 @@ namespace BDArmory.Settings
 			ConfigNode colors = fileNode.GetNode("TeamColors");
 			for (int i = 0; i < colors.CountValues; i++)
 			{
-				Debug.Log("[BDArmory.BDTISettingsField]: loading team " + colors.values[i].name + "; color: " + GUIUtils.ParseColor255(colors.values[i].value));
+				if (BDArmorySettings.DEBUG_OTHER) Debug.Log("[BDArmory.BDTISettingsField]: loading team " + colors.values[i].name + "; color: " + GUIUtils.ParseColor255(colors.values[i].value));
 				if (BDTISetup.Instance.ColorAssignments.ContainsKey(colors.values[i].name))
 				{
 					BDTISetup.Instance.ColorAssignments[colors.values[i].name] = GUIUtils.ParseColor255(colors.values[i].value);
