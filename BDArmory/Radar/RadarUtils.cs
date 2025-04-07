@@ -2596,7 +2596,7 @@ namespace BDArmory.Radar
                 b = 2f * (x * (start.x - xB) + y * (start.y - yB) + z * (start.z - zB));
                 c = xB * xB + yB * yB + zB * zB + start.x * start.x + start.y * start.y + start.z * start.z - 2f * (xB * start.x + yB * start.y + zB * start.z) - R * R;
                 det = b * b - 4f * a * c;
-                if (Mathf.Abs(a) < 0.001f || det < 0 || b > 0)
+                if (a < 0.001f || det < 0 || b > 0)
                 {
                     sqrRange = float.MaxValue;
                     return false;
@@ -2627,8 +2627,8 @@ namespace BDArmory.Radar
                 {
                     Vector3 intcptVec;
                     intcptVec.x = u * x + start.x - xB;
-                    intcptVec.y = u * y + start.y - xB;
-                    intcptVec.z = u * z + start.z - xB;
+                    intcptVec.y = u * y + start.y - yB;
+                    intcptVec.z = u * z + start.z - zB;
 
                     angle = Vector3.Angle(new Vector3(-x, -y, -z), intcptVec);
                     angle = 90f - angle;
