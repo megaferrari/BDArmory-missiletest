@@ -2298,16 +2298,16 @@ namespace BDArmory.Radar
                         TargetInfo tInfo;
                         if ((tInfo = loadedvessels.Current.gameObject.GetComponent<TargetInfo>()))
                         {
-                            //if (TerrainCheck(referenceTransform.position, loadedvessels.Current.transform.position))
-                            //{
-                            //    continue; //blocked by terrain
-                            //}
+                            if (TerrainCheck(referenceTransform.position, loadedvessels.Current.transform.position))
+                            {
+                                continue; //blocked by terrain
+                            }
                             if (tInfo.isMissile)
                             {
-                                if (TerrainCheck(position, loadedvessels.Current.CoM, FlightGlobals.currentMainBody))
-                                {
-                                    continue; //blocked by terrain
-                                }
+                                //if (TerrainCheck(position, loadedvessels.Current.CoM, FlightGlobals.currentMainBody))
+                                //{
+                                //    continue; //blocked by terrain
+                                //}
                                 MissileBase missileBase = tInfo.MissileBaseModule;
                                 if (missileBase != null)
                                 {
@@ -2364,6 +2364,7 @@ namespace BDArmory.Radar
                                         }
                                         if (missileBase.GetWeaponClass() == WeaponClasses.SLW) results.foundTorpedo = true;
                                     }
+                                    BDATargetManager.ReportVessel(loadedvessels.Current, myWpnManager); //report all missiles in RWR range so default RWR Missile Approach Warning behavior can correctly detect missile
                                 }
                                 else
                                 {
@@ -2374,9 +2375,9 @@ namespace BDArmory.Radar
                             else if (myWpnManager.guardMode) // Only check being under fire when in guard mode (for non-guardmode CMs).
                             {
                                 if (vesselDistanceSqr < maxViewDistance * maxViewDistance && Vector3.Angle(vesselProjectedDirection, lookDirection) < fov / 2f)
-                                    if (!myWpnManager.CanSeeTarget(tInfo, false, false))
+                                    if (myWpnManager.CanSeeTarget(tInfo, false, false)) //we have visual on the target, report it.
                                     {
-                                        continue; //blocked by terrain
+                                        BDATargetManager.ReportVessel(loadedvessels.Current, myWpnManager);
                                     }
                                 using (var weapon = VesselModuleRegistry.GetModules<ModuleWeapon>(loadedvessels.Current).GetEnumerator())
                                     while (weapon.MoveNext())
@@ -2389,7 +2390,7 @@ namespace BDArmory.Radar
                                             var missDistance = MissDistance(weapon.Current, myWpnManager.vessel);
                                             if (missDistance < results.missDistance)
                                             {
-                                                results.firingAtMe = true;
+                                                results.firingAtMe = true; 
                                                 results.threatPosition = weapon.Current.fireTransforms[0].position; // Position of weapon that's attacking.
                                                 results.threatVessel = weapon.Current.vessel;
                                                 results.threatWeaponManager = weapon.Current.weaponManager;
@@ -2400,7 +2401,6 @@ namespace BDArmory.Radar
                                     }
                             }
                         }
-                        BDATargetManager.ReportVessel(loadedvessels.Current, myWpnManager);
                     }
                 }
             // Sort incoming missiles by time
