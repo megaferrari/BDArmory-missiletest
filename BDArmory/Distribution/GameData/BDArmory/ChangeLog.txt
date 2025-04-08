@@ -12,6 +12,7 @@
 - AI:
 	- Improvements to pilot follow mode to improve stability.
 	- Fix check for overriding terrain avoidance when ramming ground targets.
+	- Fix AI always seeing all LoS targets within 200km regardless of view range or radar detection.
 	- The AI targeting priority 'Aerial Target Preference' now considers craft flatspinning or otherwise possessing negligible horizontal velocity lower than 200m from the ground as semi-ground targets for target filtering.
 	- Adjust the "fixed field" toggles in the AI GUI for auto-tuning the pilot PID axes that are in use.
   - AIs set to evade while running waypoint courses will now use evasion non-linearity, if enabled, to provide some dodge capability while stil remaining on-course for the next gate.
@@ -42,6 +43,7 @@
 		- Fix lock-less Radar missiles doing a loop isntead of going straight.
 		- Fix Reload Gauge on reloadable launchers.
 		- Fix Account For Mass/Cost not applying to Missile magazines.
+		- Fix Modular Missiles not being able to intercept missiles.
 - Competition:
 	- Adjust the default score weights for rockets to be more inline with that of bullets.
 	- Adds a Vessel Legality checker button to the BDA Utilities Tool GUI if 'Runway Project' or 'Use Comp Overrides' gamemodes options are enabled and a Comp_settings.cfg is added to /BDArmory/PluginData/. This will check a craft in the SPH/VAB for part count/engine count/Lift-To-Weight/Thrust-Weight-Ratio/max allowed weaponry/banned parts/etc. Check /BDArmory/PluginData/Comp_settings.cfg once loaded in KSP for more info.
