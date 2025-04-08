@@ -2428,7 +2428,7 @@ namespace BDArmory.Control
                             }
                             if (distanceToTarget > weapon.engageRangeMax)
                             {
-                                target = FlightPosition(target, defaultAltitude);
+                                target = FlightPosition(target, Mathf.Min(defaultAltitude, weapon.engageRangeMax / 2f)); // Clamp target minAlt to give at most a 30° dive slope.
                             }
                             else
                             {
@@ -3138,7 +3138,7 @@ namespace BDArmory.Control
             {
                 //if (Vector3.Angle(waypointDirection, vessel.ReferenceTransform.up) > maxAllowedAoA)//as we get closer angle to WP is going to very rapidly increase from ~0 to 90 if not *perfectly* aligned
                 //    waypointDirection = vessel.Velocity(); //so if within [gate radius] distance of the WP, if the angle to the gate exceeds max AOA angle, commit to current direaction to prevent control jerk at the last second as the AI tries to correct off-targetness
-				waypointDirection = Vector3.RotateTowards(vessel.srf_vel_direction, waypointDirection, Mathf.Deg2Rad * Mathf.Min(maxAllowedAoA, Mathf.Min(0.5f, 200f / (float)vessel.srfSpeed) * waypointRange), 0); //- maxAllowedAoA goes from 0 - 90; at default 35deg, would need to be going 400m/s through a 70m gate before speed and diameter matter; figure out different formula
+                waypointDirection = Vector3.RotateTowards(vessel.srf_vel_direction, waypointDirection, Mathf.Deg2Rad * Mathf.Min(maxAllowedAoA, Mathf.Min(0.5f, 200f / (float)vessel.srfSpeed) * waypointRange), 0); //- maxAllowedAoA goes from 0 - 90; at default 35deg, would need to be going 400m/s through a 70m gate before speed and diameter matter; figure out different formula
                 //
             }
             waypointRay = new Ray(vessel.transform.position, waypointDirection);
@@ -3370,9 +3370,9 @@ namespace BDArmory.Control
                     if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.Append($"Dodging gunfire");
                     float threatDirectionFactor = Vector3.Dot(vesselTransform.up, threatRelativePosition.normalized);
                     //Vector3 axis = -Vector3.Cross(vesselTransform.up, threatRelativePosition);
-                    
+
                     Vector3 breakTarget = (IsRunningWaypoints ? (waypointPosition - vessel.transform.position) : threatRelativePosition) * 2f;       //for the most part, we want to turn _towards_ the threat in order to increase the rel ang vel and get under its guns
-                                                                                                                                                    //for Waypoint Race evasion, keep pointing towards next gate; dodging is handled by evasion non-linearity waggle in FlyToPosition
+                                                                                                                                                     //for Waypoint Race evasion, keep pointing towards next gate; dodging is handled by evasion non-linearity waggle in FlyToPosition
                     if (weaponManager.incomingThreatVessel != null && weaponManager.incomingThreatVessel.LandedOrSplashed) // Surface threat.
                     {
                         // Break horizontally away at maxAoA initially, then directly away once past 90°.
