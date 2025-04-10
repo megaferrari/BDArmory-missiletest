@@ -2372,33 +2372,33 @@ namespace BDArmory.Radar
                                     tInfo.isMissile = false; // The target vessel has lost it's missile base component and should no longer count as a missile. This can happen for modular missiles that are getting destroyed.
                                 }
                             }
-                            else if (myWpnManager.guardMode) // Only check being under fire when in guard mode (for non-guardmode CMs).
+                            else if (myWpnManager.guardMode) // Only check being under fire when in guard mode (for non-guardmode CMs) and when within view range/FOV.
                             {
-                                if (vesselDistanceSqr < maxViewDistance * maxViewDistance && Vector3.Angle(vesselProjectedDirection, lookDirection) < fov / 2f)
-                                    if (myWpnManager.CanSeeTarget(tInfo, false, false)) //we have visual on the target, report it.
-                                    {
-                                        BDATargetManager.ReportVessel(loadedvessels.Current, myWpnManager);
-                                    }
-                                using (var weapon = VesselModuleRegistry.GetModules<ModuleWeapon>(loadedvessels.Current).GetEnumerator())
-                                    while (weapon.MoveNext())
-                                    {
-                                        if (weapon.Current == null || weapon.Current.weaponManager == null) continue;
-                                        if (ignoreMyTargetTargetingMe && myWpnManager.currentTarget != null && weapon.Current.weaponManager.vessel == myWpnManager.currentTarget.Vessel) continue;
-                                        // If we're being targeted, calculate a miss distance
-                                        if (weapon.Current.weaponManager.currentTarget != null && weapon.Current.weaponManager.currentTarget.Vessel == myWpnManager.vessel)
+                                if (vesselDistanceSqr < maxViewDistance * maxViewDistance && Vector3.Angle(vesselProjectedDirection, lookDirection) < fov / 2f 
+                                    && myWpnManager.CanSeeTarget(tInfo, false, false)) 
+                                {
+                                    BDATargetManager.ReportVessel(loadedvessels.Current, myWpnManager); //we have visual on the target, report it.
+                                    using (var weapon = VesselModuleRegistry.GetModules<ModuleWeapon>(loadedvessels.Current).GetEnumerator())
+                                        while (weapon.MoveNext())
                                         {
-                                            var missDistance = MissDistance(weapon.Current, myWpnManager.vessel);
-                                            if (missDistance < results.missDistance)
+                                            if (weapon.Current == null || weapon.Current.weaponManager == null) continue;
+                                            if (ignoreMyTargetTargetingMe && myWpnManager.currentTarget != null && weapon.Current.weaponManager.vessel == myWpnManager.currentTarget.Vessel) continue;
+                                            // If we're being targeted, calculate a miss distance
+                                            if (weapon.Current.weaponManager.currentTarget != null && weapon.Current.weaponManager.currentTarget.Vessel == myWpnManager.vessel)
                                             {
-                                                results.firingAtMe = true; 
-                                                results.threatPosition = weapon.Current.fireTransforms[0].position; // Position of weapon that's attacking.
-                                                results.threatVessel = weapon.Current.vessel;
-                                                results.threatWeaponManager = weapon.Current.weaponManager;
-                                                results.missDistance = missDistance;
-                                                results.missDeviation = (weapon.Current.fireTransforms[0].position - myWpnManager.vessel.CoM).magnitude * weapon.Current.maxDeviation / 2f * Mathf.Deg2Rad; // y = x*tan(θ), expansion of tan(θ) is θ + O(θ^3).
+                                                var missDistance = MissDistance(weapon.Current, myWpnManager.vessel);
+                                                if (missDistance < results.missDistance)
+                                                {
+                                                    results.firingAtMe = true;
+                                                    results.threatPosition = weapon.Current.fireTransforms[0].position; // Position of weapon that's attacking.
+                                                    results.threatVessel = weapon.Current.vessel;
+                                                    results.threatWeaponManager = weapon.Current.weaponManager;
+                                                    results.missDistance = missDistance;
+                                                    results.missDeviation = (weapon.Current.fireTransforms[0].position - myWpnManager.vessel.CoM).magnitude * weapon.Current.maxDeviation / 2f * Mathf.Deg2Rad; // y = x*tan(θ), expansion of tan(θ) is θ + O(θ^3).
+                                                }
                                             }
                                         }
-                                    }
+                                }
                             }
                         }
                     }
