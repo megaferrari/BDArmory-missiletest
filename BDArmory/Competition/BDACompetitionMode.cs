@@ -1274,7 +1274,7 @@ namespace BDArmory.Competition
         }
 
         enum UncontrolledReason { Uncontrolled, Bricked };
-        HashSet<Vessel> explodingWM = new HashSet<Vessel>();
+        HashSet<Vessel> explodingWM = [];
         IEnumerator DelayedExplodeWMs(Vessel vessel, float delay = 1f, UncontrolledReason reason = UncontrolledReason.Uncontrolled)
         {
             if (explodingWM.Contains(vessel)) yield break; // Already scheduled for exploding.
@@ -1315,7 +1315,7 @@ namespace BDArmory.Competition
             yield return new WaitForSecondsFixed(delay);
             if (vessel == null) // It's already dead.
             {
-                explodingWM = explodingWM.Where(v => v != null).ToHashSet(); // Clean the hashset.
+                explodingWM = [.. explodingWM.Where(v => v != null)]; // Clean the hashset.
                 yield break;
             }
             if (killReason.Contains("engines") && SpawnUtils.CountActiveEngines(vessel, true) != 0)
