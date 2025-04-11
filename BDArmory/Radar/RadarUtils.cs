@@ -1440,7 +1440,7 @@ namespace BDArmory.Radar
 
         public static float GetRadarNotchingSCR(float signature, float fov, float targetRange, float terrainRange, float terrainAngle)
         {
-            float groundAngleFac = 1f/Mathf.Cos(terrainAngle * Mathf.Deg2Rad);
+            float groundAngleFac = 1f / Mathf.Cos(terrainAngle * Mathf.Deg2Rad);
             float equivArea = terrainRange / (targetRange * 1000f); // Get equivalent radius of target RCS, targetRange is in km
             equivArea *= equivArea * signature * groundAngleFac; // Similar cones, equivalent area of the target projected onto the ground
 
@@ -1734,7 +1734,7 @@ namespace BDArmory.Radar
 
                         float baseSignature = signature;
                         float SCR = -1f;
-                        
+
                         signature *= notchMultiplier;
 
                         // check SCR if we're checking notching, are not a torpedo, the target isn't splashed and the radar is active
@@ -1881,11 +1881,11 @@ namespace BDArmory.Radar
                             distance = BDAMath.Sqrt(distance);
                         }
                         */
-                        if (!RadarTerrainNotchingCheck(radar.sonarMode == ModuleRadar.SonarModes.None, position, radar.radarRangeGate, radar.radarVelocityGate, 
-                            radar.radarMaxVelocityGate, radar.radarMaxRangeGate, radar.radarMinVelocityGate, radar.radarMinRangeGate, radar.vessel, 
+                        if (!RadarTerrainNotchingCheck(radar.sonarMode == ModuleRadar.SonarModes.None, position, radar.radarRangeGate, radar.radarVelocityGate,
+                            radar.radarMaxVelocityGate, radar.radarMaxRangeGate, radar.radarMinVelocityGate, radar.radarMinRangeGate, radar.vessel,
                             loadedvessels.Current, targetPosition, ref distance, out terrainR, out terrainAngle, out notchMultiplier, out notchMod))
                             continue;
-                        
+
 
                         // get vessel's radar signature
                         TargetInfo ti = GetVesselRadarSignature(loadedvessels.Current);
@@ -2106,7 +2106,7 @@ namespace BDArmory.Radar
                         {
                             if (GetRadarNotchingSCR(baseSignature, fov, distance, terrainR, terrainAngle) < radar.radarMinTrackSCR)
                                 return false;
-                            
+
                             radar.ReceiveContactData(new TargetSignatureData(lockedVessel, signature, null, notchMod), locked);
                         }
                         else
@@ -2164,7 +2164,7 @@ namespace BDArmory.Radar
                         */
                         if (loadedvessels.Current.Splashed)
                         {
-                            if (TerrainCheck(position, loadedvessels.Current.CoM + loadedvessels.Current.upAxis * (loadedvessels.Current.altitude < 0f ? - loadedvessels.Current.altitude + 2f : 0f), FlightGlobals.currentMainBody))
+                            if (TerrainCheck(position, loadedvessels.Current.CoM + loadedvessels.Current.upAxis * (loadedvessels.Current.altitude < 0f ? -loadedvessels.Current.altitude + 2f : 0f), FlightGlobals.currentMainBody))
                                 return false;
                         }
                         else
@@ -2184,7 +2184,7 @@ namespace BDArmory.Radar
                         float signature = IRSig.Item1 * (irst.boresightScan ? Mathf.Clamp01(15 / angle) : 1);
                         //signature *= (1400 * 1400) / Mathf.Clamp((loadedvessels.Current.CoM - referenceTransform.position).sqrMagnitude, 90000, 36000000); //300 to 6000m - clamping sig past 6km; Commenting out as it makes tuning detection curves much easier
 
-                        signature *= Mathf.Clamp(Vector3.Angle(loadedvessels.Current.CoM - position, - irst.vessel.upAxis) / 90, 0.5f, 1.5f);
+                        signature *= Mathf.Clamp(Vector3.Angle(loadedvessels.Current.CoM - position, -irst.vessel.upAxis) / 90, 0.5f, 1.5f);
                         //ground will mask thermal sig                        
                         signature *= (GetRadarGroundClutterModifier(irst.GroundClutterFactor, position, loadedvessels.Current.CoM, tInfo) * (tInfo.isSplashed ? 12 : 1));
                         //cold ocean on the other hand...
@@ -2374,30 +2374,31 @@ namespace BDArmory.Radar
                             }
                             else if (myWpnManager.guardMode) // Only check being under fire when in guard mode (for non-guardmode CMs) and when within view range/FOV.
                             {
-                                if (vesselDistanceSqr < maxViewDistance * maxViewDistance && Vector3.Angle(vesselProjectedDirection, lookDirection) < fov / 2f 
-                                    && myWpnManager.CanSeeTarget(tInfo, false, false)) 
+                                if (vesselDistanceSqr < maxViewDistance * maxViewDistance &&
+                                    Vector3.Angle(vesselProjectedDirection, lookDirection) < fov / 2f &&
+                                    myWpnManager.CanSeeTarget(tInfo, false, false))
                                 {
                                     BDATargetManager.ReportVessel(loadedvessels.Current, myWpnManager); //we have visual on the target, report it.
-                                    using (var weapon = VesselModuleRegistry.GetModules<ModuleWeapon>(loadedvessels.Current).GetEnumerator())
-                                        while (weapon.MoveNext())
+                                    using var weapon = VesselModuleRegistry.GetModules<ModuleWeapon>(loadedvessels.Current).GetEnumerator();
+                                    while (weapon.MoveNext())
+                                    {
+                                        if (weapon.Current == null || weapon.Current.weaponManager == null) continue;
+                                        if (ignoreMyTargetTargetingMe && myWpnManager.currentTarget != null && weapon.Current.weaponManager.vessel == myWpnManager.currentTarget.Vessel) continue;
+                                        // If we're being targeted, calculate a miss distance
+                                        if (weapon.Current.weaponManager.currentTarget != null && weapon.Current.weaponManager.currentTarget.Vessel == myWpnManager.vessel)
                                         {
-                                            if (weapon.Current == null || weapon.Current.weaponManager == null) continue;
-                                            if (ignoreMyTargetTargetingMe && myWpnManager.currentTarget != null && weapon.Current.weaponManager.vessel == myWpnManager.currentTarget.Vessel) continue;
-                                            // If we're being targeted, calculate a miss distance
-                                            if (weapon.Current.weaponManager.currentTarget != null && weapon.Current.weaponManager.currentTarget.Vessel == myWpnManager.vessel)
+                                            var missDistance = MissDistance(weapon.Current, myWpnManager.vessel);
+                                            if (missDistance < results.missDistance)
                                             {
-                                                var missDistance = MissDistance(weapon.Current, myWpnManager.vessel);
-                                                if (missDistance < results.missDistance)
-                                                {
-                                                    results.firingAtMe = true;
-                                                    results.threatPosition = weapon.Current.fireTransforms[0].position; // Position of weapon that's attacking.
-                                                    results.threatVessel = weapon.Current.vessel;
-                                                    results.threatWeaponManager = weapon.Current.weaponManager;
-                                                    results.missDistance = missDistance;
-                                                    results.missDeviation = (weapon.Current.fireTransforms[0].position - myWpnManager.vessel.CoM).magnitude * weapon.Current.maxDeviation / 2f * Mathf.Deg2Rad; // y = x*tan(θ), expansion of tan(θ) is θ + O(θ^3).
-                                                }
+                                                results.firingAtMe = true;
+                                                results.threatPosition = weapon.Current.fireTransforms[0].position; // Position of weapon that's attacking.
+                                                results.threatVessel = weapon.Current.vessel;
+                                                results.threatWeaponManager = weapon.Current.weaponManager;
+                                                results.missDistance = missDistance;
+                                                results.missDeviation = (weapon.Current.fireTransforms[0].position - myWpnManager.vessel.CoM).magnitude * weapon.Current.maxDeviation / 2f * Mathf.Deg2Rad; // y = x*tan(θ), expansion of tan(θ) is θ + O(θ^3).
                                             }
                                         }
+                                    }
                                 }
                             }
                         }
@@ -2501,7 +2502,7 @@ namespace BDArmory.Radar
         {
             //if (!BDArmorySettings.IGNORE_TERRAIN_CHECK) //Thisversion of TerrainCheck is only used by weapon LOS check, and should never be disabled.
             //{
-                return Physics.Linecast(start, end, (int)LayerMasks.Scenery);
+            return Physics.Linecast(start, end, (int)LayerMasks.Scenery);
             //}
             //return false;
         }
@@ -2576,7 +2577,7 @@ namespace BDArmory.Radar
             angle = 0f;
             if (body.ocean || !body.hasSolidSurface)
             {
-                float R = (float) body.Radius;
+                float R = (float)body.Radius;
                 float x, y, z;
                 float xB, yB, zB;
                 float a, b, c, det;
@@ -2584,9 +2585,9 @@ namespace BDArmory.Radar
                 x = end.x - start.x;
                 y = end.y - start.y;
                 z = end.z - start.z;
-                xB = (float) body.position.x;
-                yB = (float) body.position.y;
-                zB = (float) body.position.z;
+                xB = (float)body.position.x;
+                yB = (float)body.position.y;
+                zB = (float)body.position.z;
 
                 a = x * x + y * y + z * z;
                 b = 2f * (x * (start.x - xB) + y * (start.y - yB) + z * (start.z - zB));
