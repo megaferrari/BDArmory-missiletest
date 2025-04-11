@@ -1654,6 +1654,15 @@ namespace BDArmory.VesselSpawning
 
         public bool CheckCurrent()
         {
+            if (profile != HighLogic.SaveFolder) // The user changed saves after having opened the craft browser. Reset to the default.
+            {
+                profile = HighLogic.SaveFolder;
+                baseFolder = null;
+                displayFolder = null;
+                currentFolder = null;
+                ChangeFolder(EditorFacility.None);
+                return true;
+            }
             if (_currentFolder != currentFolder)
             {
                 ChangeFolder(facility, currentFolder.Substring(baseFolder.Length), false); // Another instance changed the current folder, so switch to match it.

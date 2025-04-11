@@ -5600,7 +5600,7 @@ namespace BDArmory.Control
                                     break;
                                 }
                         }
-                        /*
+                        
                         if (candidateClass == WeaponClasses.Missile)
                         {
                             if (firedMissiles >= maxMissilesOnTarget) continue;// Max missiles are fired, try another weapon
@@ -5612,6 +5612,7 @@ namespace BDArmory.Control
 
                             if (mlauncher != null)
                             {
+								/*
                                 if (mlauncher.TargetingMode == MissileBase.TargetingModes.Radar && (!_radarsEnabled && !mlauncher.radarLOAL)) continue; //dont select RH missiles when no radar aboard
                                 if (mlauncher.TargetingMode == MissileBase.TargetingModes.Laser && targetingPods.Count <= 0) continue; //don't select LH missiles when no FLIR aboard
                                 if (mlauncher.reloadableRail != null && (mlauncher.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordinance
@@ -5628,6 +5629,8 @@ namespace BDArmory.Control
                                 {
                                     candidateTDPS = candidateDetDist + candidateAccel; // weight selection faster missiles and larger proximity detonations that might catch an incoming missile in the blast
                                 }
+								*/
+								continue; //Missile interception for MissileLauncher-based missiles handled in the point defense logic
                             }
                             else
                             { //is modular missile
@@ -5655,8 +5658,7 @@ namespace BDArmory.Control
                             targetWeapon = item.Current;
                             targetWeaponTDPS = candidateTDPS;
                             targetWeaponPriority = candidatePriority;
-                        }
-                        */
+                        }                        
                     }
             }
 
