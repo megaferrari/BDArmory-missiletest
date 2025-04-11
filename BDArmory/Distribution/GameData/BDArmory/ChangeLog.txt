@@ -9,6 +9,9 @@
 	- Fix the wrongly labeled "ru-ru" localisation to "ru" so that it loads properly.
 	- Add additional Chinese localisation thanks to user ZIYUXUAN201011.
 	- Updated German localisation from EzBro.
+	- Adjust waypoint ranking in the vessel switcher window to be based on the current score weights.
+	- Fix m/km units in Team Icons to be used appropriately.
+	- Automatically disable team scores in the score window when running FFA tournaments or continuous spawning.
 - AI:
 	- Fix the PID auto-tuner's "Initial Learning Rate" slider in the AI GUI.
 	- Improvements to pilot follow mode to improve stability.
@@ -23,6 +26,8 @@
 		- Dynamic damping and 3-axis damping are now independent toggles.
 		- The UI (both PAW and AI GUI) update to show only the active damping sliders.
 		- Craft that used 3-axis dynamic damping get automatically updated to use the independent toggles without losing their tunings
+	- Clamp the strafing minAlt of the pilot AI to at most half the gun range to give at most a 30° dive slope for short range guns.
+	- Some minor performance optimisations.
 - Countermeasures:
 	- Fix flares and smoke CMs ejecting sideways.
 - Detectors:
@@ -48,6 +53,9 @@
 - Competition:
 	- Adjust the default score weights for rockets to be more inline with that of bullets.
 	- Adds a Vessel Legality checker button to the BDA Utilities Tool GUI if 'Runway Project' or 'Use Comp Overrides' gamemodes options are enabled and a Comp_settings.cfg is added to /BDArmory/PluginData/. This will check a craft in the SPH/VAB for part count/engine count/Lift-To-Weight/Thrust-Weight-Ratio/max allowed weaponry/banned parts/etc. Check /BDArmory/PluginData/Comp_settings.cfg once loaded in KSP for more info.
+- Spawning:
+	- Reset the custom craft browser internals if the user switches saves.
+	- Add caching of the filtered vessel list in the custom craft browser to reduce UI rendering time.
 
 v1.9.0.0
 IMPROVEMENTS / FIXES
