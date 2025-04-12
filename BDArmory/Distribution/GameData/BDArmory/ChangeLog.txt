@@ -52,6 +52,7 @@
 - Competition:
 	- Adjust the default score weights for rockets to be more inline with that of bullets.
 	- Adds a Vessel Legality checker button to the BDA Utilities Tool GUI if 'Runway Project' or 'Use Comp Overrides' gamemodes options are enabled and a Comp_settings.cfg is added to /BDArmory/PluginData/. This will check a craft in the SPH/VAB for part count/engine count/Lift-To-Weight/Thrust-Weight-Ratio/max allowed weaponry/banned parts/etc. Check /BDArmory/PluginData/Comp_settings.cfg once loaded in KSP for more info.
+	- Switch score weights to reside in their own config file "score_weights.cfg" to simplify distribution of custom score weights.
 - Spawning:
 	- Reset the custom craft browser internals if the user switches saves.
 	- Add caching of the filtered vessel list in the custom craft browser to reduce UI rendering time.
