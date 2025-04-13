@@ -49,7 +49,6 @@ namespace BDArmory.UI
             mIStyle = new GUIStyle();
             mIStyle.fontStyle = FontStyle.Normal;
             mIStyle.fontSize = textScale;
-            mIStyle.normal.textColor = XKCDColors.Yellow;
             Missilecolor = XKCDColors.Yellow;
 
             IconMat = new Material(Shader.Find("KSP/Particles/Alpha Blended"));
@@ -205,7 +204,7 @@ namespace BDArmory.UI
         }
 
         readonly List<(Vector3, Texture2D, Vector2, Color, bool)> onScreenIcons = []; // (position, texture, size, color, showPointer)
-        readonly List<(Rect, string, GUIStyle, GUIStyle)> onScreenLabels = []; // (position, content, style, shadow style) (shadow is the rect offset by Vector2.one if not null)
+        readonly List<(Rect, string, Color, GUIStyle)> onScreenLabels = []; // (position, content, style, shadow style) (shadow is the rect offset by Vector2.one if not null)
         readonly List<(Vector3, Texture2D, Vector2, float)> texturesToDraw = []; // (position, texture, size, wobble)
         readonly List<(Vector3, Vector3, Color)> threatIndicators = []; // (vessel, target, color)
         readonly List<(Rect, Color)> healthBars = []; // (position, color)
@@ -251,13 +250,12 @@ namespace BDArmory.UI
                                     if (GUIUtils.WorldToGUIPos(ml.Current.vessel.CoM, out Vector2 guiPos))
                                     {
                                         var dist = BDAMath.Sqrt(distSqr);
-                                        onScreenLabels.Add((new(guiPos.x - 12, guiPos.y + 10, 100, 32), dist > 1e3f ? $"{1e-3f * dist:0.00}km" : $"{dist:0.0}m", mIStyle, null));
+                                        onScreenLabels.Add((new(guiPos.x - 12, guiPos.y + 10, 100, 32), dist > 1e3f ? $"{1e-3f * dist:0.00}km" : $"{dist:0.0}m", Missilecolor, null));
                                         if (BDTISettings.MISSILE_TEXT)
                                         {
                                             Color iconUI = BDTISetup.Instance.ColorAssignments.ContainsKey(ml.Current.Team.Name) ? BDTISetup.Instance.ColorAssignments[ml.Current.Team.Name] : Color.gray;
                                             iconUI.a = Opacity * BDTISetup.textOpacity;
-                                            IconUIStyle.normal.textColor = iconUI;
-                                            onScreenLabels.Add((new(guiPos.x + 24 * BDTISettings.ICONSCALE, guiPos.y - 4, 100, 32), ml.Current.vessel.vesselName, IconUIStyle, DropshadowStyle));
+                                            onScreenLabels.Add((new(guiPos.x + 24 * BDTISettings.ICONSCALE, guiPos.y - 4, 100, 32), ml.Current.vessel.vesselName, iconUI, DropshadowStyle));
                                         }
                                     }
                                 }
@@ -293,7 +291,6 @@ namespace BDArmory.UI
                         teamcolor.a = Opacity;
                         Teamcolor = teamcolor;
                         teamcolor.a *= BDTISetup.textOpacity;
-                        IconUIStyle.normal.textColor = teamcolor;
                         size = wm.Current.vessel.vesselType == VesselType.Debris ? 20 : 40;
                         if (wm.Current.vessel.isActiveVessel)
                         {
@@ -321,7 +318,7 @@ namespace BDArmory.UI
                                 {
                                     if (GUIUtils.WorldToGUIPos(wm.Current.vessel.CoM, out Vector2 guiPos))
                                     {
-                                        onScreenLabels.Add((new(guiPos.x + 24 * BDTISettings.ICONSCALE, guiPos.y - 4, 100, 32), wm.Current.vessel.vesselName, IconUIStyle, DropshadowStyle));
+                                        onScreenLabels.Add((new(guiPos.x + 24 * BDTISettings.ICONSCALE, guiPos.y - 4, 100, 32), wm.Current.vessel.vesselName, teamcolor, DropshadowStyle));
                                     }
                                 }
                             }
@@ -356,11 +353,11 @@ namespace BDArmory.UI
                                     if (BDTISettings.VESSELNAMES)
                                     {
                                         string vName = wm.Current.vessel.vesselName;
-                                        onScreenLabels.Add((new(guiPos.x + 24 * BDTISettings.ICONSCALE, guiPos.y - 4, 100, 32), vName, IconUIStyle, DropshadowStyle));
+                                        onScreenLabels.Add((new(guiPos.x + 24 * BDTISettings.ICONSCALE, guiPos.y - 4, 100, 32), vName, teamcolor, DropshadowStyle));
                                     }
                                     if (BDTISettings.TEAMNAMES)
                                     {
-                                        onScreenLabels.Add((new(guiPos.x + 16 * BDTISettings.ICONSCALE, guiPos.y - 19 * BDTISettings.ICONSCALE, 100, 32), "Team: " + $"{wm.Current.Team.Name}", IconUIStyle, DropshadowStyle));
+                                        onScreenLabels.Add((new(guiPos.x + 16 * BDTISettings.ICONSCALE, guiPos.y - 19 * BDTISettings.ICONSCALE, 100, 32), "Team: " + $"{wm.Current.Team.Name}", teamcolor, DropshadowStyle));
                                     }
 
                                     if (BDTISettings.SCORE)
@@ -375,13 +372,12 @@ namespace BDArmory.UI
                                                 Score += ctsScoreData.cumulativeHits;
                                         }
 
-                                        onScreenLabels.Add((new(guiPos.x + 16 * BDTISettings.ICONSCALE, guiPos.y + 14 * BDTISettings.ICONSCALE, 100, 32), "Score: " + Score, IconUIStyle, DropshadowStyle));
+                                        onScreenLabels.Add((new(guiPos.x + 16 * BDTISettings.ICONSCALE, guiPos.y + 14 * BDTISettings.ICONSCALE, 100, 32), "Score: " + Score, teamcolor, DropshadowStyle));
                                     }
                                     float dist = BDAMath.Sqrt(distSqr);
                                     string UIdistStr = dist > 1000f ? $"{1e-3f * dist:0.00}km" : $"{dist:0.0}m";
                                     if (BDTISettings.HEALTHBAR)
                                     {
-
                                         float hpPercent = Mathf.Clamp01(wm.Current.currentHP / wm.Current.totalHP);
                                         if (hpPercent > 0)
                                         {
@@ -395,26 +391,26 @@ namespace BDArmory.UI
                                             healthBars.Add((healthRect, temp));
 
                                         }
-                                        onScreenLabels.Add((new(guiPos.x - 12, guiPos.y + 45 * BDTISettings.ICONSCALE, 100, 32), UIdistStr, IconUIStyle, DropshadowStyle));
+                                        onScreenLabels.Add((new(guiPos.x - 12, guiPos.y + 45 * BDTISettings.ICONSCALE, 100, 32), UIdistStr, teamcolor, DropshadowStyle));
                                     }
                                     else
                                     {
-                                        onScreenLabels.Add((new(guiPos.x - 12, guiPos.y + 20 * BDTISettings.ICONSCALE, 100, 32), UIdistStr, IconUIStyle, DropshadowStyle));
+                                        onScreenLabels.Add((new(guiPos.x - 12, guiPos.y + 20 * BDTISettings.ICONSCALE, 100, 32), UIdistStr, teamcolor, DropshadowStyle));
                                     }
                                     if (BDTISettings.TELEMETRY)
                                     {
                                         string selectedWeapon = "Using: " + wm.Current.selectedWeaponString;
                                         string AIstate = wm.Current.AI != null ? $"Pilot {wm.Current.AI.currentStatus}" : "No AI";
 
-                                        onScreenLabels.Add((new(guiPos.x + 32 * BDTISettings.ICONSCALE, guiPos.y + 32, 200, 32), selectedWeapon, IconUIStyle, DropshadowStyle));
-                                        onScreenLabels.Add((new(guiPos.x + 32 * BDTISettings.ICONSCALE, guiPos.y + 48, 200, 32), AIstate, IconUIStyle, DropshadowStyle));
+                                        onScreenLabels.Add((new(guiPos.x + 32 * BDTISettings.ICONSCALE, guiPos.y + 32, 200, 32), selectedWeapon, teamcolor, DropshadowStyle));
+                                        onScreenLabels.Add((new(guiPos.x + 32 * BDTISettings.ICONSCALE, guiPos.y + 48, 200, 32), AIstate, teamcolor, DropshadowStyle));
                                         if (wm.Current.isFlaring || wm.Current.isChaffing || wm.Current.isECMJamming)
                                         {
-                                            onScreenLabels.Add((new(guiPos.x + 32 * BDTISettings.ICONSCALE, guiPos.y + 64, 200, 32), "Deploying Counter-Measures", IconUIStyle, DropshadowStyle));
+                                            onScreenLabels.Add((new(guiPos.x + 32 * BDTISettings.ICONSCALE, guiPos.y + 64, 200, 32), "Deploying Counter-Measures", teamcolor, DropshadowStyle));
                                         }
-                                        onScreenLabels.Add((new(guiPos.x - 96 * BDTISettings.ICONSCALE, guiPos.y + 64, 100, 32), $"Speed: {wm.Current.vessel.speed:0.0}m/s", IconUIStyle, DropshadowStyle));
-                                        onScreenLabels.Add((new(guiPos.x - 96 * BDTISettings.ICONSCALE, guiPos.y + 80, 100, 32), $"Alt: {wm.Current.vessel.altitude:0.0}m", IconUIStyle, DropshadowStyle));
-                                        onScreenLabels.Add((new(guiPos.x - 96 * BDTISettings.ICONSCALE, guiPos.y + 96, 100, 32), $"Throttle: {Mathf.CeilToInt(wm.Current.vessel.ctrlState.mainThrottle * 100)}%", IconUIStyle, DropshadowStyle));
+                                        onScreenLabels.Add((new(guiPos.x - 96 * BDTISettings.ICONSCALE, guiPos.y + 64, 100, 32), $"Speed: {wm.Current.vessel.speed:0.0}m/s", teamcolor, DropshadowStyle));
+                                        onScreenLabels.Add((new(guiPos.x - 96 * BDTISettings.ICONSCALE, guiPos.y + 80, 100, 32), $"Alt: {wm.Current.vessel.altitude:0.0}m", teamcolor, DropshadowStyle));
+                                        onScreenLabels.Add((new(guiPos.x - 96 * BDTISettings.ICONSCALE, guiPos.y + 96, 100, 32), $"Throttle: {Mathf.CeilToInt(wm.Current.vessel.ctrlState.mainThrottle * 100)}%", teamcolor, DropshadowStyle));
                                     }
                                 }
                             }
@@ -433,10 +429,11 @@ namespace BDArmory.UI
                 foreach (var (position, icon, size, color, showPointer) in onScreenIcons) DrawOnScreenIcon(position, icon, size, color, showPointer);
                 foreach (var (rect, color) in healthBars) GUIUtils.DrawRectangle(rect, color);
                 foreach (var (from, to, color) in threatIndicators) DrawThreatIndicator(from, to, color);
-                foreach (var (rect, content, style, shadowStyle) in onScreenLabels)
+                foreach (var (rect, content, color, shadowStyle) in onScreenLabels)
                 {
                     if (shadowStyle != null) GUI.Label(new(rect.position + Vector2.one, rect.size), content, shadowStyle);
-                    GUI.Label(rect, content, style);
+                    IconUIStyle.normal.textColor = color;
+                    GUI.Label(rect, content, IconUIStyle);
                 }
             }
         }
