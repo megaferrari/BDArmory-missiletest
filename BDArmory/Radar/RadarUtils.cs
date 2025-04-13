@@ -2401,6 +2401,7 @@ namespace BDArmory.Radar
                                 }
                             }
                         }
+                        else BDATargetManager.ReportVessel(loadedvessels.Current, myWpnManager, false, true); //initial adding of TargetInfo to this vessel
                     }
                 }
             // Sort incoming missiles by time
