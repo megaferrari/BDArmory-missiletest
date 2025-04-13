@@ -317,12 +317,12 @@ namespace BDArmory.VesselSpawning
         {
             // Before anything else, strip the type from the vessel's name. This avoids names like "Some craft name Rover", but also means "Jeb's Plane" isn't a valid name for a plane.
             vessel.StripTypeFromName();
-            
+
             // If vessel naming deconfliction has previously been applied to this vessel, don't make further changes.
             var ac = vessel.ActiveController();
             if (ac.VesselNamingDeconflictionHasBeenApplied) return;
             ac.VesselNamingDeconflictionHasBeenApplied = true;
-            
+
             // Start by deconflicting VESSELNAMING within the vessel.
             var vesselNamingParts = DeconflictPartVesselNaming(vessel);
             if (vesselNamingParts.Count > 0)
@@ -1267,7 +1267,7 @@ namespace BDArmory.VesselSpawning
                         nuke.engineCore = true;
                         nuke.meltDownDuration = 15;
                         nuke.thermalRadius = 200;
-                        if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log("[BDArmory.BDACompetitionMOde]: Adding Nuke Module to " + vessel.GetName());
+                        if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log($"[BDArmory.BDACompetitionMOde]: Adding Nuke Module to {vessel.GetName()}");
                     }
                     BDModulePilotAI pilotAI = vessel.ActiveController().PilotAI;
                     if (pilotAI != null)
@@ -1277,7 +1277,7 @@ namespace BDArmory.VesselSpawning
                         pilotAI.maxAllowedAoA = 2.5f;
                         pilotAI.postStallAoA = 5;
                         pilotAI.maxSpeed = Mathf.Min(250, pilotAI.maxSpeed);
-                        if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log("[BDArmory.BDACompetitionMOde]: Setting SpaceMode Ai settings on " + vessel.GetName());
+                        if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log($"[BDArmory.SpawnUtils]: Setting SpaceMode AI settings on {vessel.GetName()}");
                     }
                 }
                 if (BDArmorySettings.RUNWAY_PROJECT_ROUND == 67)
@@ -1290,6 +1290,15 @@ namespace BDArmory.VesselSpawning
                             armor.maxHitPoints = BDArmorySettings.MAX_ACTIVE_RADAR_RANGE; //not used by RWP, so can be hacked to serve as a asteroid Hp value
                             armor.SetupPrefab();
                         }
+                    }
+                }
+                if (BDArmorySettings.RUNWAY_PROJECT_ROUND == 74)
+                {
+                    var wm = vessel.ActiveController().WM;
+                    if (wm != null)
+                    {
+                        if (BDArmorySettings.DEBUG_COMPETITION && wm.targetWeightAttackVIP != 10) Debug.Log($"[BDArmory.SpawnUtils]: Overriding VIP target priority to 10 on {vessel.GetName()}");
+                        wm.targetWeightAttackVIP = 10;
                     }
                 }
             }

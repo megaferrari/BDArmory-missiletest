@@ -1113,7 +1113,7 @@ namespace BDArmory.Control
                 {
                     var gun = sw.GetWeaponModule();
                     if (gun == null || (gun.useThisWeaponForAim && (gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO))) //it's a missile, or an aim-override enabled weapon with ammo
-                        if (sw.GetPart().vessel == vessel) return sw;                        
+                        if (sw.GetPart().vessel == vessel) return sw;
                 }
                 sw = null; //weapon no longer on craft. Null in case below while loop doesn't find other weapons in the same group on craft.
                 //missile no longer on craft, or a gun that isn't aim overridden, or sw hasn't been set yet
@@ -1133,7 +1133,7 @@ namespace BDArmory.Control
                         {
                             if (candidateGun == null) candidateGun = weapon.Current; //set this here to ensure a weapon gets elected, in event *all* guns are currently reloading/overheated/etc so Ai continues targeting
                             var gun = weapon.Current.GetWeaponModule();
-                            if (gun.useThisWeaponForAim) 
+                            if (gun.useThisWeaponForAim)
                             {
                                 if (gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO) //don't force aim override if this weapon is no longer viable.
                                 {
@@ -1144,10 +1144,10 @@ namespace BDArmory.Control
                             if (gun.isReloading || gun.isOverheated || gun.pointingAtSelf || !(gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO)) continue; //instead of returning the first weapon in a weapon group, return the first weapon in a group that actually can fire
                             //use longest range gun for aiming. Guns with vastly differing aim lead (rockets + lasers, railguns + grenade launchers, etc.) really should not be grouped in the same weapongroup, or at least have range brakcets defined. 
                             float muzVel = gun.eWeaponType == WeaponTypes.Rocket ? gun.thrust / gun.rocketMass : gun.eWeaponType == WeaponTypes.Ballistic ? gun.bulletVelocity : 300000000;
-                            if (gun.GetEngageRange() >= candidateGun.GetEngageRange()) 
+                            if (gun.GetEngageRange() >= candidateGun.GetEngageRange())
                             {
                                 if (muzVel / gun.GetEngageRange() > candidateMuzVel) //if both weapons have the same range, which has a lower lead time? 
-                                { 
+                                {
                                     candidateGun = weapon.Current;
                                     candidateMuzVel = muzVel;
                                 }
@@ -5600,7 +5600,7 @@ namespace BDArmory.Control
                                     break;
                                 }
                         }
-                        
+
                         if (candidateClass == WeaponClasses.Missile)
                         {
                             if (firedMissiles >= maxMissilesOnTarget) continue;// Max missiles are fired, try another weapon
@@ -5612,7 +5612,7 @@ namespace BDArmory.Control
 
                             if (mlauncher != null)
                             {
-								/*
+                                /*
                                 if (mlauncher.TargetingMode == MissileBase.TargetingModes.Radar && (!_radarsEnabled && !mlauncher.radarLOAL)) continue; //dont select RH missiles when no radar aboard
                                 if (mlauncher.TargetingMode == MissileBase.TargetingModes.Laser && targetingPods.Count <= 0) continue; //don't select LH missiles when no FLIR aboard
                                 if (mlauncher.reloadableRail != null && (mlauncher.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordinance
@@ -5630,7 +5630,7 @@ namespace BDArmory.Control
                                     candidateTDPS = candidateDetDist + candidateAccel; // weight selection faster missiles and larger proximity detonations that might catch an incoming missile in the blast
                                 }
 								*/
-								continue; //Missile interception for MissileLauncher-based missiles handled in the point defense logic
+                                continue; //Missile interception for MissileLauncher-based missiles handled in the point defense logic
                             }
                             else
                             { //is modular missile
@@ -5658,7 +5658,7 @@ namespace BDArmory.Control
                             targetWeapon = item.Current;
                             targetWeaponTDPS = candidateTDPS;
                             targetWeaponPriority = candidatePriority;
-                        }                        
+                        }
                     }
             }
 
@@ -9430,8 +9430,8 @@ namespace BDArmory.Control
         #region Aimer
         bool ShowBoreRing(bool visible)
         {
-            if (!vessel || !vessel.isActiveVessel) return false; // We're not in control.
-            boreRing.SetActive(visible);
+            if (vessel == null || !vessel.isActiveVessel) return false; // We're not in control.
+            if (boreRing != null) boreRing.SetActive(visible);
             return true; // We're in control.
         }
 

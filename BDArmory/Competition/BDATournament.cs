@@ -139,9 +139,9 @@ namespace BDArmory.Competition
             {"HP Remaining",            0f},
             {"Accuracy",                0f},
             {"Rocket Accuracy",         0f},
-            {"Waypoint Count",         10f},
-            {"Waypoint Time",          -1f},
-            {"Waypoint Deviation",     -1f}
+            {"Waypoint Count",         1f}, // Waypoint weighting logic: 1 for passing a gate, 1s = 5 deviation, break-even at 60s + 200 deviation per gate.
+            {"Waypoint Time",          -0.01f},
+            {"Waypoint Deviation",     -0.002f}
         };
 
         /// <summary>
@@ -509,7 +509,7 @@ namespace BDArmory.Competition
 
         public static void SaveWeights()
         {
-            ConfigNode fileNode = ConfigNode.Load(BDArmorySettings.settingsConfigURL);
+            ConfigNode fileNode = ConfigNode.Load(ScoreWindow.scoreWeightsURL) ?? new ConfigNode();
 
             if (!fileNode.HasNode("ScoreWeights"))
             {
@@ -522,13 +522,13 @@ namespace BDArmory.Competition
             {
                 settings.SetValue(kvp.Key, kvp.Value.ToString(), true);
             }
-            fileNode.Save(BDArmorySettings.settingsConfigURL);
+            fileNode.Save(ScoreWindow.scoreWeightsURL);
         }
 
         public static void LoadWeights()
         {
-            ConfigNode fileNode = ConfigNode.Load(BDArmorySettings.settingsConfigURL);
-            if (!fileNode.HasNode("ScoreWeights")) return;
+            ConfigNode fileNode = ConfigNode.Load(ScoreWindow.scoreWeightsURL);
+            if (fileNode == null || !fileNode.HasNode("ScoreWeights")) return;
 
             ConfigNode settings = fileNode.GetNode("ScoreWeights");
 

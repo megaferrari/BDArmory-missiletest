@@ -2451,7 +2451,7 @@ namespace BDArmory.Competition
                 if (VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType)) continue;  // Debris handled by DebrisDelayedCleanUp, others are ignored.
                 if (nonCompetitorsToRemove.Contains(vessel)) continue; // Already scheduled for removal.
                 bool activePilot = false;
-                if (vessel.GetName() == BDArmorySettings.PINATA_NAME)
+                if (vessel.GetName().Contains(BDArmorySettings.PINATA_NAME))
                 {
                     activePilot = true;
                 }
