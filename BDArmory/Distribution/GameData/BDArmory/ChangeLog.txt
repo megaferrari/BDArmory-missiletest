@@ -19,7 +19,7 @@ IMPROVEMENTS / FIXES
 	- Fix AI always seeing all LoS targets within 200km regardless of view range or radar detection.
 	- The AI targeting priority 'Aerial Target Preference' now considers craft flatspinning or otherwise possessing negligible horizontal velocity lower than 200m from the ground as semi-ground targets for target filtering.
 	- Adjust the "fixed field" toggles in the AI GUI for auto-tuning the pilot PID axes that are in use.
-  - AIs set to evade while running waypoint courses will now use evasion non-linearity, if enabled, to provide some dodge capability while still remaining on-course for the next gate.
+	- AIs set to evade while running waypoint courses will now use evasion non-linearity, if enabled, to provide some dodge capability while still remaining on-course for the next gate.
 	- Tweaked gate targeting logic, should reduce last-second control jerk while passing through gates with a high deviation.
 	- Waypoint Race mode now works with Surface and VTOL AI.
 	- Add 3-axis static damping in the pilot PID.
