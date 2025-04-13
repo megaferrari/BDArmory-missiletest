@@ -1009,7 +1009,11 @@ namespace BDArmory.Competition
                         if (pilot == null) continue;
 
                         if (!pilot.weaponManager.guardMode)
+                        {
                             pilot.weaponManager.ToggleGuardMode();
+                            if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == 74)
+                                pilot.weaponManager.targetWeightAttackVIP = 10;
+                        }
 
                         //foreach (var leader in leaders)
                         //BDATargetManager.ReportVessel(pilot.vessel, leader.weaponManager);
@@ -2452,7 +2456,7 @@ namespace BDArmory.Competition
                 if (VesselModuleRegistry.ignoredVesselTypes.Contains(vessel.vesselType)) continue;  // Debris handled by DebrisDelayedCleanUp, others are ignored.
                 if (nonCompetitorsToRemove.Contains(vessel)) continue; // Already scheduled for removal.
                 bool activePilot = false;
-                if (vessel.GetName() == BDArmorySettings.PINATA_NAME)
+                if (vessel.GetName().Contains(BDArmorySettings.PINATA_NAME))
                 {
                     activePilot = true;
                 }
