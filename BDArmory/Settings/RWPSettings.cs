@@ -163,6 +163,24 @@ namespace BDArmory.Settings
 				{"VESSEL_RELATIVE_BULLET_CHECKS", true},
 				{"MAX_ARMOR_LIMIT", 50},
 			}},
+			{72,new(){
+				{"MAX_PWING_LIFT", 2},
+				{"GRAVITY_HACKS", true},
+			}},
+			{73,new(){
+				{"WAYPOINT_COURSE_INDEX", 1},
+				{"WAYPOINTS_MODE", true},
+				{"WAYPOINTS_ALTITUDE", 300},
+				{"COMPETITION_KILL_TIMER", 5},	
+				{"VESSEL_SPAWN_ALTITUDE", 1000},
+				{"WAYPOINTS_ONE_AT_A_TIME", false},		
+				{"COMPETITION_WAYPOINTS_GM_KILL_PERIOD", 60},	
+				{"COMPETITION_GM_KILL_TIME", 5},
+				{"COMPETITION_GM_KILL_ENGINE", true},					
+			}},
+			{74,new(){
+			}},
+
 		};
 		public static Dictionary<int, int> RWPRoundToIndex = new() { { 0, 0 } }, RWPIndexToRound = new() { { 0, 0 } }; // Helpers for the UI slider.
 		static readonly HashSet<string> currentFilter = [];

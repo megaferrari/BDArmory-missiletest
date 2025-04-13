@@ -1009,11 +1009,7 @@ namespace BDArmory.Competition
                         if (pilot == null) continue;
 
                         if (!pilot.weaponManager.guardMode)
-                        {
                             pilot.weaponManager.ToggleGuardMode();
-                            if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == 74)
-                                pilot.weaponManager.targetWeightAttackVIP = 10;
-                        }
 
                         //foreach (var leader in leaders)
                         //BDATargetManager.ReportVessel(pilot.vessel, leader.weaponManager);
