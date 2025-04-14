@@ -1,4 +1,6 @@
 ﻿IMPROVEMENTS / FIXES
+- AI:
+	- Add missing unclamped limits for 3-axis static damping.
 - Spawning:
 	- Automatically adjust the PRE range if the spawn distance would put craft outside the physics range.
 
