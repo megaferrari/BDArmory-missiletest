@@ -1,4 +1,8 @@
-﻿v1.10.0.0
+﻿IMPROVEMENTS / FIXES
+- Spawning:
+	- Automatically adjust the PRE range if the spawn distance would put craft outside the physics range.
+
+v1.10.0.0
 IMPROVEMENTS / FIXES
 - General:
 	- Fix colliders on the AWACS Radar when using legless variant.

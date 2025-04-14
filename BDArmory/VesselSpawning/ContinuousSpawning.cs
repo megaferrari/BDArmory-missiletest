@@ -129,7 +129,7 @@ namespace BDArmory.VesselSpawning
                 LogMessage($"Spawning {Math.Min(BDArmorySettings.VESSEL_SPAWN_CONCURRENT_VESSELS, spawnConfig.craftFiles.Count)} of {spawnConfig.craftFiles.Count} vessels at an altitude of {(spawnConfig.altitude < 1000 ? $"{spawnConfig.altitude:G5}m" : $"{spawnConfig.altitude / 1000:G5}km")} with rolling-spawning.");
             #endregion
 
-            yield return AcquireSpawnPoint(spawnConfig, 2f * spawnDistance, true);
+            yield return AcquireSpawnPoint(spawnConfig, spawnDistance, true);
             if (spawnFailureReason != SpawnFailureReason.None)
             {
                 vesselsSpawningContinuously = false;
