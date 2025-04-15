@@ -1,4 +1,6 @@
-﻿IMPROVEMENTS / FIXES
+﻿	- Add improved missile controller
+
+IMPROVEMENTS / FIXES
 - General:
 	- Fix colliders on the AWACS Radar when using legless variant.
 	- Update the logic for syncing advanced 'Game Difficulty' settings to respect custom G-limit settings.

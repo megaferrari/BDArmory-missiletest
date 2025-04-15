@@ -1407,7 +1407,7 @@ namespace BDArmory.Guidances
                 float turningAngle = VectorUtils.AnglePreNormalized(forward, targetDirection);
                 Vector3 torqueDirection = -Vector3.Cross(targetDirection, forward) / Mathf.Sin(turningAngle * Mathf.Deg2Rad);
                 //Debug.Log($"[BDArmory.MissileGuidance]: torqueDirection = {torqueDirection}, sqrMagnitude = {torqueDirection.sqrMagnitude}.");
-                float torque = Mathf.Clamp(turningAngle * steerMult, 0f, maxTorque);
+                float torque = Mathf.Clamp(turningAngle * 2f * steerMult, 0f, maxTorque);
 
                 // If aeroTorque < maxTorque we're not yet saturated
                 if (aeroTorque.sqrMagnitude < maxTorque * maxTorque)
