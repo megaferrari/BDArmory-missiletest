@@ -1341,6 +1341,8 @@ namespace BDArmory.Guidances
             double airDensity = ml.vessel.atmDensity;
             double airSpeed = ml.vessel.srfSpeed;
             Vector3d velocity = ml.vessel.Velocity();
+            Vector3d velNorm = velocity.normalized;
+            Vector3 forward = ml.transform.forward;
 
             //temp values
             Vector3 CoL = new Vector3(0, 0, -1f);
@@ -1348,22 +1350,23 @@ namespace BDArmory.Guidances
             float dragMultiplier = BDArmorySettings.GLOBAL_DRAG_MULTIPLIER;
 
             //lift
-            float AoA = Mathf.Clamp(Vector3.Angle(ml.transform.forward, velocity), 0, 90);
+            float AoA = Mathf.Clamp(VectorUtils.AnglePreNormalized(forward, velNorm), 0, 90);
+            Vector3 forcePos = ml.transform.TransformPoint(ml.part.CoMOffset + CoL);
             ml.smoothedAoA.Update(AoA);
             if (AoA > 0)
             {
                 double liftForce = 0.5 * airDensity * airSpeed * airSpeed * liftArea * liftMultiplier * Mathf.Max(liftCurve.Evaluate(AoA), 0f);
-                Vector3 forceDirection = -velocity.ProjectOnPlanePreNormalized(ml.transform.forward).normalized;
+                Vector3 forceDirection = -velocity.ProjectOnPlanePreNormalized(forward).normalized;
                 rb.AddForceAtPosition((float)liftForce * forceDirection,
-                    ml.transform.TransformPoint(ml.part.CoMOffset + CoL));
+                    forcePos);
             }
 
             //drag
             if (airSpeed > 0)
             {
                 double dragForce = 0.5 * airDensity * airSpeed * airSpeed * dragArea * dragMultiplier * Mathf.Max(dragCurve.Evaluate(AoA), 0f);
-                rb.AddForceAtPosition((float)dragForce * -velocity.normalized,
-                    ml.transform.TransformPoint(ml.part.CoMOffset + CoL));
+                rb.AddForceAtPosition((float)dragForce * -velNorm,
+                    forcePos);
             }
 
             //guidance
@@ -1374,15 +1377,15 @@ namespace BDArmory.Guidances
                 if (AoA < maxAoA)
                 {
                     targetDirection = (targetPosition - ml.vessel.CoM);
-                    targetAngle = Mathf.Min(maxAoA,Vector3.Angle(velocity.normalized, targetDirection) * 4f);
+                    targetAngle = Mathf.Min(maxAoA,Vector3.Angle(velNorm, targetDirection) * 4f);
                 }
                 else
                 {
-                    targetDirection = velocity.normalized;
+                    targetDirection = velNorm;
                     targetAngle = 0f; //AoA;
                 }
 
-                Vector3 torqueDirection = -Vector3.Cross(targetDirection, velocity.normalized).normalized;
+                Vector3 torqueDirection = -Vector3.Cross(targetDirection, velNorm).normalized;
                 torqueDirection = ml.transform.InverseTransformDirection(torqueDirection);
 
                 float torque = Mathf.Clamp(targetAngle * steerMult, 0, maxTorque);
