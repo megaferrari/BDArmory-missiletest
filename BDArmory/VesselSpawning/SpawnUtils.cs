@@ -1083,9 +1083,9 @@ namespace BDArmory.VesselSpawning
                         nuke.engineCore = true;
                         nuke.meltDownDuration = 15;
                         nuke.thermalRadius = 200;
-                        if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log("[BDArmory.BDACompetitionMOde]: Adding Nuke Module to " + vessel.GetName());
+                        if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log($"[BDArmory.BDACompetitionMOde]: Adding Nuke Module to {vessel.GetName()}");
                     }
-                    BDModulePilotAI pilotAI = VesselModuleRegistry.GetModule<BDModulePilotAI>(vessel);
+                    BDModulePilotAI pilotAI = VesselModuleRegistry.GetBDModulePilotAI(vessel);
                     if (pilotAI != null)
                     {
                         pilotAI.minAltitude = Mathf.Max(pilotAI.minAltitude, 750);
@@ -1093,7 +1093,7 @@ namespace BDArmory.VesselSpawning
                         pilotAI.maxAllowedAoA = 2.5f;
                         pilotAI.postStallAoA = 5;
                         pilotAI.maxSpeed = Mathf.Min(250, pilotAI.maxSpeed);
-                        if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log("[BDArmory.BDACompetitionMOde]: Setting SpaceMode Ai settings on " + vessel.GetName());
+                        if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log($"[BDArmory.SpawnUtils]: Setting SpaceMode AI settings on {vessel.GetName()}");
                     }
                 }
                 if (BDArmorySettings.RUNWAY_PROJECT_ROUND == 67)
@@ -1108,6 +1108,12 @@ namespace BDArmory.VesselSpawning
                         }
                     }
                 }
+				if (BDArmorySettings.RUNWAY_PROJECT_ROUND == 74)
+				{
+					var wm = VesselModuleRegistry.GetMissileFire(vessel);
+					if (BDArmorySettings.DEBUG_COMPETITION && wm.targetWeightAttackVIP != 10) Debug.Log($"[BDArmory.SpawnUtils]: Overriding VIP target priority to 10 on {vessel.GetName()}");
+					if (wm != null) wm.targetWeightAttackVIP = 10;
+				}
             }
         }
         #endregion

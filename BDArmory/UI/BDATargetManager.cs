@@ -1170,7 +1170,7 @@ namespace BDArmory.UI
                     db.Current.Value.Remove(target);
         }
 
-        public static void ReportVessel(Vessel v, MissileFire reporter, bool radar = false)
+        public static void ReportVessel(Vessel v, MissileFire reporter, bool radar = false, bool initialSetup = false)
         {
             if (!v) return;
             if (!reporter) return;
@@ -1213,7 +1213,7 @@ namespace BDArmory.UI
                         }
                     }
             }
-
+            if (initialSetup) return;
             // add target to database
             if (info && reporter.Team.IsEnemy(info.Team))
             {
@@ -1493,7 +1493,7 @@ namespace BDArmory.UI
             {
                 finalTarget.debugTargetPriorities = [.. debugTargetScores.OrderByDescending(s => s.Item2)];
                 if (BDArmorySettings.DEBUG_AI)
-                    Debug.Log($"[BDArmory.BDATargetManager]: Selected {(finalTarget != null ? finalTarget.Vessel.GetName() : "null")} with target score of {finalTargetScore:0.00} amongst {string.Join(", ", finalTarget.debugTargetPriorities.Select(s => $"{s.Item1}: {s.Item2:0.00}"))}");
+                    Debug.Log($"[BDArmory.BDATargetManager]: Selected {(finalTarget != null ? finalTarget.Vessel.GetName() : "null")} with target score of {finalTargetScore:0.00} amongst {string.Join(", ", finalTarget.debugTargetPriorities.Select(s => $"{s.Item1}: {s.Item2:0.00}"))}, {TargetList(mf.Team).Count} total potential target");
             }
 
             mf.UpdateTargetPriorityUI(finalTarget);
