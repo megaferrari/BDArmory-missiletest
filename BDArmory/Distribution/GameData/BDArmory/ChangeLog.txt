@@ -1,7 +1,6 @@
 ﻿IMPROVEMENTS / FIXES
 - AI / WM:
 	- Add missing unclamped limits for 3-axis static damping.
-	- Fix selected weapon internals to use the property setter so that related changes are applied.
 - Spawning:
 	- Automatically adjust the PRE range if the spawn distance would put craft outside the physics range.
 
