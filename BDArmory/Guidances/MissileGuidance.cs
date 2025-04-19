@@ -116,7 +116,7 @@ namespace BDArmory.Guidances
         public static Vector3 GetBeamRideTarget(Ray beam, Vector3 currentPosition, Vector3 currentVelocity,
             float correctionFactor, float correctionDamping, Ray previousBeam)
         {
-            float onBeamDistance = Vector3.Project(currentPosition - beam.origin, beam.direction).magnitude;
+            float onBeamDistance = Vector3.Dot(currentPosition - beam.origin, beam.direction); //Vector3.Project(currentPosition - beam.origin, beam.direction).magnitude;
             //Vector3 onBeamPos = beam.origin+Vector3.Project(currentPosition-beam.origin, beam.direction);//beam.GetPoint(Vector3.Distance(Vector3.Project(currentPosition-beam.origin, beam.direction), Vector3.zero));
             Vector3 onBeamPos = beam.GetPoint(onBeamDistance);
             Vector3 previousBeamPos = previousBeam.GetPoint(onBeamDistance);
