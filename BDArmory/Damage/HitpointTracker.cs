@@ -1044,7 +1044,7 @@ namespace BDArmory.Damage
                         }
                         hitpoints = BDAMath.RoundToUnit(hitpoints, HpRounding);
                         //hitpoints = Mathf.Round(hitpoints);//?
-                        if (part == vessel.rootPart && vessel.GetName().Contains(BDArmorySettings.REMOTE_ORCHESTRATION_NPC_SWAPPER))
+                        if (part == vessel.rootPart && vessel.GetName().Contains(BDArmorySettings.NPC_ARCADEHP_TAG))
                         {
                             hitpoints = 800 * (vessel.GetTotalMass() / 2);
                         }

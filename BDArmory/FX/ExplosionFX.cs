@@ -296,7 +296,7 @@ namespace BDArmory.FX
                                                 break;
                                         }
                                         if (registered)
-                                            if (!hitPart.vessel.GetName().Contains(BDArmorySettings.REMOTE_ORCHESTRATION_NPC_SWAPPER))
+                                            if (!hitPart.vessel.GetName().Contains(BDArmorySettings.NPC_ARCADEHP_TAG))
                                                 explosionEventsVesselsHit[damagedVesselName] = explosionEventsVesselsHit.GetValueOrDefault(damagedVesselName) + 1;
                                             else
                                                 explosionEventsVesselsHit[damagedVesselName] = 1;
@@ -366,7 +366,7 @@ namespace BDArmory.FX
                                             break;
                                     }
                                     if (registered)
-                                        if (!partHit.vessel.GetName().Contains(BDArmorySettings.REMOTE_ORCHESTRATION_NPC_SWAPPER))
+                                        if (!partHit.vessel.GetName().Contains(BDArmorySettings.NPC_ARCADEHP_TAG))
                                             explosionEventsVesselsHit[damagedVesselName] = explosionEventsVesselsHit.GetValueOrDefault(damagedVesselName) + 1;
                                         else
                                             explosionEventsVesselsHit[damagedVesselName] = 1;
@@ -768,7 +768,7 @@ namespace BDArmory.FX
                     )}{(travelDistance > 0 ? $" at {travelDistance:F3}m" : "")}.";
                 BDACompetitionMode.Instance.competitionStatus.Add(message);
                 if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log($"[BDArmory.ExplosionFX]: {message}");
-                if (explosionEventsPartsAdded[0] && explosionEventsPartsAdded[0].vessel.GetName().Contains(BDArmorySettings.REMOTE_ORCHESTRATION_NPC_SWAPPER))
+                if (explosionEventsPartsAdded[0] && explosionEventsPartsAdded[0].vessel.GetName().Contains(BDArmorySettings.NPC_ARCADEHP_TAG))
                     explosionEventsPartsAdded[0].vessel.rootPart.AddExplosiveDamage(bestDamage, Caliber, ExplosionSource, dmgMult);
                 totalDamageApplied.Clear();
                 totalPartsHit.Clear();

@@ -39,7 +39,7 @@ namespace BDArmory.Extensions
             }
             else
             {
-                if (p.vessel.GetName().Contains(BDArmorySettings.REMOTE_ORCHESTRATION_NPC_SWAPPER))
+                if (p.vessel.GetName().Contains(BDArmorySettings.NPC_ARCADEHP_TAG))
                     Dependencies.Get<DamageService>().AddDamageToPart_svc(p.vessel.rootPart, damage);
                 else
                     Dependencies.Get<DamageService>().AddDamageToPart_svc(p, damage);
@@ -126,7 +126,7 @@ namespace BDArmory.Extensions
                         }
                     }
                 }
-                if (p.vessel.GetName().Contains(BDArmorySettings.REMOTE_ORCHESTRATION_NPC_SWAPPER))
+                if (p.vessel.GetName().Contains(BDArmorySettings.NPC_ARCADEHP_TAG))
                 {
                     if (p.vessel.rootPart != null && p == p.vessel.rootPart)
                     {
@@ -246,7 +246,7 @@ namespace BDArmory.Extensions
                         }
                     }
                 }
-                if (p.vessel.GetName().Contains(BDArmorySettings.REMOTE_ORCHESTRATION_NPC_SWAPPER))
+                if (p.vessel.GetName().Contains(BDArmorySettings.NPC_ARCADEHP_TAG))
                 {
                     if (p.vessel.rootPart != null)
                     {
