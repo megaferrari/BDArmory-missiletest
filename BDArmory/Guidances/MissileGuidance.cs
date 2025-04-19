@@ -1372,12 +1372,19 @@ namespace BDArmory.Guidances
             }
 
             //guidance
-            if (airSpeed > 1 || (ml.vacuumSteerable && ml.Throttle > 0))
+            if (airSpeed > 1f || (ml.vacuumSteerable && ml.Throttle > 0))
             {
+                /* This is what the torque on the missile due to aero forces would be
                 Vector3 aeroTorque = Vector3.Cross(forcePos - ml.vessel.CoM,
                     new Vector3d(liftForce * forceDirection.x - dragForce * velNorm.x,
                                  liftForce * forceDirection.y - dragForce * velNorm.y,
                                  liftForce * forceDirection.z - dragForce * velNorm.z));
+                */
+                // So instead we take the opposite cross product to get the negative/opposing torque
+                Vector3 aeroTorque = Vector3.Cross(new Vector3d(liftForce * forceDirection.x - dragForce * velNorm.x,
+                                                                liftForce * forceDirection.y - dragForce * velNorm.y,
+                                                                liftForce * forceDirection.z - dragForce * velNorm.z),
+                                                                forcePos - ml.vessel.CoM);
                 //Debug.Log($"[BDArmory.MissileGuidance]: aeroTorque = {aeroTorque}.");
                 /* Legacy Missile Controller
                 Vector3 targetDirection; // = (targetPosition - ml.transform.position);
@@ -1405,62 +1412,76 @@ namespace BDArmory.Guidances
                 if (targetAngle > maxAoA)
                     targetDirection = Vector3.Slerp(velNorm, targetDirection, maxAoA / targetAngle);
                 float turningAngle = VectorUtils.AnglePreNormalized(forward, targetDirection);
-                Vector3 torqueDirection = -Vector3.Cross(targetDirection, forward) / Mathf.Sin(turningAngle * Mathf.Deg2Rad);
-                //Debug.Log($"[BDArmory.MissileGuidance]: torqueDirection = {torqueDirection}, sqrMagnitude = {torqueDirection.sqrMagnitude}.");
-                float torque = Mathf.Clamp(turningAngle * 2f * steerMult, 0f, maxTorque);
+                Vector3 finalTorque;
+                if (turningAngle > 0f)
+                {
+                    Vector3 torqueDirection = Vector3.Cross(forward, targetDirection) / Mathf.Sin(turningAngle * Mathf.Deg2Rad);
+                    //Debug.Log($"[BDArmory.MissileGuidance]: torqueDirection = {torqueDirection}, sqrMagnitude = {torqueDirection.sqrMagnitude}.");
+                    float torque = Mathf.Clamp(turningAngle * 2f * steerMult, 0f, maxTorque);
 
-                // If aeroTorque < maxTorque we're not yet saturated
-                if (aeroTorque.sqrMagnitude < maxTorque * maxTorque)
-                {
-                    //Debug.Log($"[BDArmory.MissileGuidance]: aeroTorque not saturated, torque = {torque}.");
-                    // If torque drives us over maxTorque, then using the quadratic formula, we determine the value that gets us maxTorque
-                    if ((aeroTorque + torqueDirection * torque).sqrMagnitude > maxTorque * maxTorque)
+                    // If aeroTorque < maxTorque we're not yet saturated
+                    if (aeroTorque.sqrMagnitude < maxTorque * maxTorque)
                     {
-                        // Solution to the quadratic formula for the intersection of a line with a sphere, note we use the +ve solution
-                        // There is no need to check the determinant as any line that originates within the sphere will always intersect the sphere
-                        float temp = Vector3.Dot(aeroTorque, torqueDirection);
-                        torque = BDAMath.Sqrt(temp * temp - (aeroTorque.sqrMagnitude - maxTorque * maxTorque)) + (temp > 0 ? temp : -temp);
-                        //Debug.Log($"[BDArmory.MissileGuidance]: torque saturation! torque = {torque}.");
-                    }
-                    // Otherwise we just use torque unmodified
-                }
-                else
-                {
-                    //Debug.Log($"[BDArmory.MissileGuidance]: aeroTorque saturated! torque = {torque}.");
-                    // If we're saturated, then as long as torqueDirection somewhat opposes aeroTorque we can look
-                    // at how much torque we can apply
-                    float temp = Vector3.Dot(aeroTorque, torqueDirection);
-                    // We check the determinant of the quadratic as well to ensure we actually intersect with the sphere
-                    float det = temp * temp - (aeroTorque.sqrMagnitude - maxTorque * maxTorque);
-                    if (temp < 0 && det > 0)
-                    {
-                        float temp2 = BDAMath.Sqrt(det);
-                        // We flip the signs because the dot product is negative
-                        float LHS = temp2 + temp;
-                        float RHS = temp2 - temp;
-                        // There are three cases here, first is the case is if torque is insufficient to drive us under saturation,
-                        // in which case we'll just apply enough to saturate
-                        if (torque < LHS)
-                            torque = LHS;
-                        // The second case is where we've gone over in the opposite direction, in which case we must reduce our torque
-                        else if (torque > RHS)
-                            torque = RHS;
-                        // A special case occurs if |temp| < Mathf.Epsilon, which is the single point intersection solution, where
-                        // torque can potentially approx. equal the single point solution but in that case we wouldn't have to modify
-                        // the torque. If torque is not approx. equal one of these two cases should catch it
-                        // The third case is where we're perfectly within bounds so we don't modify torque
-                        //Debug.Log($"[BDArmory.MissileGuidance]: Possible to unsaturate! torque = {torque}.");
+                        //Debug.Log($"[BDArmory.MissileGuidance]: aeroTorque not saturated, torque = {torque}.");
+                        // If torque drives us over maxTorque, then using the quadratic formula, we determine the value that gets us maxTorque
+                        if ((aeroTorque + torqueDirection * torque).sqrMagnitude > maxTorque * maxTorque)
+                        {
+                            // Solution to the quadratic formula for the intersection of a line with a sphere, note we use the +ve solution
+                            // There is no need to check the determinant as any line that originates within the sphere will always intersect the sphere
+                            float temp = Vector3.Dot(aeroTorque, torqueDirection);
+                            torque = BDAMath.Sqrt(temp * temp - (aeroTorque.sqrMagnitude - maxTorque * maxTorque)) + (temp > 0 ? temp : -temp);
+                            //Debug.Log($"[BDArmory.MissileGuidance]: torque saturation! torque = {torque}.");
+                        }
+                        // Otherwise we just use torque unmodified
                     }
                     else
                     {
-                        // If all previous checks fail, we're saturated, so we limit the aeroTorque
-                        torque = 0f;
-                        aeroTorque = (maxTorque / aeroTorque.magnitude) * aeroTorque;
-                        //Debug.Log($"[BDArmory.MissileGuidance]: Cannot unsaturate! aeroTorque = {aeroTorque}.");
+                        //Debug.Log($"[BDArmory.MissileGuidance]: aeroTorque saturated! torque = {torque}.");
+                        // If we're saturated, then as long as torqueDirection somewhat opposes aeroTorque we can look
+                        // at how much torque we can apply
+                        float temp = Vector3.Dot(aeroTorque, torqueDirection);
+                        // We check the determinant of the quadratic as well to ensure we actually intersect with the sphere
+                        float det = temp * temp - (aeroTorque.sqrMagnitude - maxTorque * maxTorque);
+                        if (temp < 0 && det > 0)
+                        {
+                            float temp2 = BDAMath.Sqrt(det);
+                            // We flip the signs because the dot product is negative
+                            float LHS = temp2 + temp;
+                            float RHS = temp2 - temp;
+                            // There are three cases here, first is the case is if torque is insufficient to drive us under saturation,
+                            // in which case we'll just apply enough to saturate
+                            if (torque < LHS)
+                                torque = LHS;
+                            // The second case is where we've gone over in the opposite direction, in which case we must reduce our torque
+                            else if (torque > RHS)
+                                torque = RHS;
+                            // A special case occurs if |temp| < Mathf.Epsilon, which is the single point intersection solution, where
+                            // torque can potentially approx. equal the single point solution but in that case we wouldn't have to modify
+                            // the torque. If torque is not approx. equal one of these two cases should catch it
+                            // The third case is where we're perfectly within bounds so we don't modify torque
+                            //Debug.Log($"[BDArmory.MissileGuidance]: Possible to unsaturate! torque = {torque}.");
+                        }
+                        else
+                        {
+                            // If all previous checks fail, we're saturated, so we limit the aeroTorque
+                            torque = 0f;
+                            aeroTorque = (maxTorque / aeroTorque.magnitude) * aeroTorque;
+                            //Debug.Log($"[BDArmory.MissileGuidance]: Cannot unsaturate! aeroTorque = {aeroTorque}.");
+                        }
                     }
-                }
 
-                Vector3 finalTorque = (torque * torqueDirection + aeroTorque);
+                    finalTorque = torque > 0f ? (torque * torqueDirection + aeroTorque) : aeroTorque;
+                }
+                else
+                {
+                    if (aeroTorque.sqrMagnitude > maxTorque * maxTorque)
+                    {
+                        aeroTorque = (maxTorque / aeroTorque.magnitude) * aeroTorque;
+                    }
+
+                    finalTorque = aeroTorque;
+                }
+                
                 finalTorque = ml.transform.InverseTransformDirection(finalTorque).ProjectOnPlanePreNormalized(Vector3.forward);
 
                 //Debug.Log($"[BDArmory.MissileGuidance]: torque = {torque}, torqueDirection = {torqueDirection}, aeroTorque = {aeroTorque}, finalTorque = {finalTorque}.");
