@@ -39,7 +39,10 @@ namespace BDArmory.Extensions
             }
             else
             {
-                Dependencies.Get<DamageService>().AddDamageToPart_svc(p, damage);
+                if (p.vessel.GetName().Contains(BDArmorySettings.REMOTE_ORCHESTRATION_NPC_SWAPPER))
+                    Dependencies.Get<DamageService>().AddDamageToPart_svc(p.vessel.rootPart, damage);
+                else
+                    Dependencies.Get<DamageService>().AddDamageToPart_svc(p, damage);
                 if (BDArmorySettings.DEBUG_ARMOR || BDArmorySettings.DEBUG_DAMAGE)
                     Debug.Log($"[BDArmory.PartExtensions]: Standard Hitpoints Applied to {p.name}" + (p.vessel != null ? $" on {p.vessel.vesselName}" : "") + $" : {damage}");
             }
@@ -123,7 +126,15 @@ namespace BDArmory.Extensions
                         }
                     }
                 }
-                ApplyHitPoints(p, damage_);
+                if (p.vessel.GetName().Contains(BDArmorySettings.REMOTE_ORCHESTRATION_NPC_SWAPPER))
+                {
+                    if (p.vessel.rootPart != null && p == p.vessel.rootPart)
+                    {
+                        ApplyHitPoints(p, damage_);
+                    }
+                    //else no damage - Arcademode does a single AddExplosiveDamage call to the root part, so don't cumulatively apply multiple part s worth of damage
+                }
+                else ApplyHitPoints(p, damage_);
             }
             return damage_;
         }
@@ -235,7 +246,17 @@ namespace BDArmory.Extensions
                         }
                     }
                 }
-                ApplyHitPoints(p, damage_, caliber, mass, multiplier, impactVelocity, penetrationfactor);
+                if (p.vessel.GetName().Contains(BDArmorySettings.REMOTE_ORCHESTRATION_NPC_SWAPPER))
+                {
+                    if (p.vessel.rootPart != null)
+                    {
+                        if (p != p.vessel.rootPart)
+                        {
+                            p.vessel.rootPart.AddDamage(damage_);
+                        }
+                    }
+                }
+                else ApplyHitPoints(p, damage_, caliber, mass, multiplier, impactVelocity, penetrationfactor);
             }
             return damage_;
         }

@@ -1100,6 +1100,12 @@ namespace BDArmory.VesselSpawning
                         }
                     }
                 }
+                if (BDArmorySettings.RUNWAY_PROJECT_ROUND == 74)
+                {
+                    var wm = VesselModuleRegistry.GetMissileFire(vessel);
+                    if (BDArmorySettings.DEBUG_COMPETITION && wm.targetWeightAttackVIP != 10) Debug.Log($"[BDArmory.SpawnUtils]: Overriding VIP target priority to 10 on {vessel.GetName()}");
+                    if (wm != null) wm.targetWeightAttackVIP = 10;
+                }
             }
         }
         #endregion

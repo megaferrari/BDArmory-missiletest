@@ -5,6 +5,7 @@ using BDArmory.Settings;
 using BDArmory.Utils;
 using BDArmory.VesselSpawning;
 using BDArmory.Weapons.Missiles;
+using BDArmory.Extensions;
 
 namespace BDArmory.UI
 {
@@ -406,9 +407,9 @@ namespace BDArmory.UI
                                             }
                                             if (BDTISettings.HEALTHBAR)
                                             {
-
                                                 double hpPercent = 1;
                                                 hpPercent = Mathf.Clamp(wm.Current.currentHP / wm.Current.totalHP, 0, 1);
+                                                if (wm.Current.vessel.GetName().Contains(BDArmorySettings.REMOTE_ORCHESTRATION_NPC_SWAPPER)) hpPercent = wm.Current.vessel.rootPart.GetDamagePercentage();
                                                 if (hpPercent > 0)
                                                 {
                                                     Rect barRect = new Rect((guiPos.x - (32 * BDTISettings.ICONSCALE)), (guiPos.y + (30 * BDTISettings.ICONSCALE)), (64 * BDTISettings.ICONSCALE), 12);
