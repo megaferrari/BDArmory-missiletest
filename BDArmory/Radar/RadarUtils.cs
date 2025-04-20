@@ -1440,7 +1440,7 @@ namespace BDArmory.Radar
 
         public static float GetRadarNotchingSCR(float signature, float fov, float targetRange, float terrainRange, float terrainAngle)
         {
-            float groundAngleFac = 1f/Mathf.Cos(terrainAngle * Mathf.Deg2Rad);
+            float groundAngleFac = 1f / Mathf.Cos(terrainAngle * Mathf.Deg2Rad);
             float equivArea = terrainRange / (targetRange * 1000f); // Get equivalent radius of target RCS, targetRange is in km
             equivArea *= equivArea * signature * groundAngleFac; // Similar cones, equivalent area of the target projected onto the ground
 
@@ -1659,7 +1659,7 @@ namespace BDArmory.Radar
                     MissileFire wm = VesselModuleRegistry.GetModule<MissileFire>(loadedvessels.Current);
                     if (wm != null)
                     {
-                        if (missile.Team.IsFriendly(wm.Team))
+                        if (missile.hasIFF && missile.Team.IsFriendly(wm.Team))
                             continue;
                     }
 
@@ -1734,7 +1734,7 @@ namespace BDArmory.Radar
 
                         float baseSignature = signature;
                         float SCR = -1f;
-                        
+
                         signature *= notchMultiplier;
 
                         // check SCR if we're checking notching, are not a torpedo, the target isn't splashed and the radar is active
@@ -1881,11 +1881,11 @@ namespace BDArmory.Radar
                             distance = BDAMath.Sqrt(distance);
                         }
                         */
-                        if (!RadarTerrainNotchingCheck(radar.sonarMode == ModuleRadar.SonarModes.None, position, radar.radarRangeGate, radar.radarVelocityGate, 
-                            radar.radarMaxVelocityGate, radar.radarMaxRangeGate, radar.radarMinVelocityGate, radar.radarMinRangeGate, radar.vessel, 
+                        if (!RadarTerrainNotchingCheck(radar.sonarMode == ModuleRadar.SonarModes.None, position, radar.radarRangeGate, radar.radarVelocityGate,
+                            radar.radarMaxVelocityGate, radar.radarMaxRangeGate, radar.radarMinVelocityGate, radar.radarMinRangeGate, radar.vessel,
                             loadedvessels.Current, targetPosition, ref distance, out terrainR, out terrainAngle, out notchMultiplier, out notchMod))
                             continue;
-                        
+
 
                         // get vessel's radar signature
                         TargetInfo ti = GetVesselRadarSignature(loadedvessels.Current);
@@ -2106,7 +2106,7 @@ namespace BDArmory.Radar
                         {
                             if (GetRadarNotchingSCR(baseSignature, fov, distance, terrainR, terrainAngle) < radar.radarMinTrackSCR)
                                 return false;
-                            
+
                             radar.ReceiveContactData(new TargetSignatureData(lockedVessel, signature, null, notchMod), locked);
                         }
                         else
@@ -2164,7 +2164,7 @@ namespace BDArmory.Radar
                         */
                         if (loadedvessels.Current.Splashed)
                         {
-                            if (TerrainCheck(position, loadedvessels.Current.CoM + loadedvessels.Current.upAxis * (loadedvessels.Current.altitude < 0f ? - loadedvessels.Current.altitude + 2f : 0f), FlightGlobals.currentMainBody))
+                            if (TerrainCheck(position, loadedvessels.Current.CoM + loadedvessels.Current.upAxis * (loadedvessels.Current.altitude < 0f ? -loadedvessels.Current.altitude + 2f : 0f), FlightGlobals.currentMainBody))
                                 return false;
                         }
                         else
@@ -2184,7 +2184,7 @@ namespace BDArmory.Radar
                         float signature = IRSig.Item1 * (irst.boresightScan ? Mathf.Clamp01(15 / angle) : 1);
                         //signature *= (1400 * 1400) / Mathf.Clamp((loadedvessels.Current.CoM - referenceTransform.position).sqrMagnitude, 90000, 36000000); //300 to 6000m - clamping sig past 6km; Commenting out as it makes tuning detection curves much easier
 
-                        signature *= Mathf.Clamp(Vector3.Angle(loadedvessels.Current.CoM - position, - irst.vessel.upAxis) / 90, 0.5f, 1.5f);
+                        signature *= Mathf.Clamp(Vector3.Angle(loadedvessels.Current.CoM - position, -irst.vessel.upAxis) / 90, 0.5f, 1.5f);
                         //ground will mask thermal sig                        
                         signature *= (GetRadarGroundClutterModifier(irst.GroundClutterFactor, position, loadedvessels.Current.CoM, tInfo) * (tInfo.isSplashed ? 12 : 1));
                         //cold ocean on the other hand...
@@ -2298,16 +2298,16 @@ namespace BDArmory.Radar
                         TargetInfo tInfo;
                         if ((tInfo = loadedvessels.Current.gameObject.GetComponent<TargetInfo>()))
                         {
-                            //if (TerrainCheck(referenceTransform.position, loadedvessels.Current.transform.position))
-                            //{
-                            //    continue; //blocked by terrain
-                            //}
+                            if (TerrainCheck(referenceTransform.position, loadedvessels.Current.transform.position))
+                            {
+                                continue; //blocked by terrain
+                            }
                             if (tInfo.isMissile)
                             {
-                                if (TerrainCheck(position, loadedvessels.Current.CoM, FlightGlobals.currentMainBody))
-                                {
-                                    continue; //blocked by terrain
-                                }
+                                //if (TerrainCheck(position, loadedvessels.Current.CoM, FlightGlobals.currentMainBody))
+                                //{
+                                //    continue; //blocked by terrain
+                                //}
                                 MissileBase missileBase = tInfo.MissileBaseModule;
                                 if (missileBase != null)
                                 {
@@ -2364,6 +2364,7 @@ namespace BDArmory.Radar
                                         }
                                         if (missileBase.GetWeaponClass() == WeaponClasses.SLW) results.foundTorpedo = true;
                                     }
+                                    BDATargetManager.ReportVessel(loadedvessels.Current, myWpnManager); //report all missiles in RWR range so default RWR Missile Approach Warning behavior can correctly detect missile
                                 }
                                 else
                                 {
@@ -2371,14 +2372,14 @@ namespace BDArmory.Radar
                                     tInfo.isMissile = false; // The target vessel has lost it's missile base component and should no longer count as a missile. This can happen for modular missiles that are getting destroyed.
                                 }
                             }
-                            else if (myWpnManager.guardMode) // Only check being under fire when in guard mode (for non-guardmode CMs).
+                            else if (myWpnManager.guardMode) // Only check being under fire when in guard mode (for non-guardmode CMs) and when within view range/FOV.
                             {
-                                if (vesselDistanceSqr < maxViewDistance * maxViewDistance && Vector3.Angle(vesselProjectedDirection, lookDirection) < fov / 2f)
-                                    if (!myWpnManager.CanSeeTarget(tInfo, false, false))
-                                    {
-                                        continue; //blocked by terrain
-                                    }
-                                using (var weapon = VesselModuleRegistry.GetModules<ModuleWeapon>(loadedvessels.Current).GetEnumerator())
+                                if (vesselDistanceSqr < maxViewDistance * maxViewDistance &&
+                                    Vector3.Angle(vesselProjectedDirection, lookDirection) < fov / 2f &&
+                                    myWpnManager.CanSeeTarget(tInfo, false, false))
+                                {
+                                    BDATargetManager.ReportVessel(loadedvessels.Current, myWpnManager); //we have visual on the target, report it.
+                                    using var weapon = VesselModuleRegistry.GetModules<ModuleWeapon>(loadedvessels.Current).GetEnumerator();
                                     while (weapon.MoveNext())
                                     {
                                         if (weapon.Current == null || weapon.Current.weaponManager == null) continue;
@@ -2398,9 +2399,10 @@ namespace BDArmory.Radar
                                             }
                                         }
                                     }
+                                }
                             }
                         }
-                        BDATargetManager.ReportVessel(loadedvessels.Current, myWpnManager);
+                        else BDATargetManager.ReportVessel(loadedvessels.Current, myWpnManager, false, true); //initial adding of TargetInfo to this vessel
                     }
                 }
             // Sort incoming missiles by time
@@ -2501,7 +2503,7 @@ namespace BDArmory.Radar
         {
             //if (!BDArmorySettings.IGNORE_TERRAIN_CHECK) //Thisversion of TerrainCheck is only used by weapon LOS check, and should never be disabled.
             //{
-                return Physics.Linecast(start, end, (int)LayerMasks.Scenery);
+            return Physics.Linecast(start, end, (int)LayerMasks.Scenery);
             //}
             //return false;
         }
@@ -2576,7 +2578,7 @@ namespace BDArmory.Radar
             angle = 0f;
             if (body.ocean || !body.hasSolidSurface)
             {
-                float R = (float) body.Radius;
+                float R = (float)body.Radius;
                 float x, y, z;
                 float xB, yB, zB;
                 float a, b, c, det;
@@ -2584,15 +2586,15 @@ namespace BDArmory.Radar
                 x = end.x - start.x;
                 y = end.y - start.y;
                 z = end.z - start.z;
-                xB = (float) body.position.x;
-                yB = (float) body.position.y;
-                zB = (float) body.position.z;
+                xB = (float)body.position.x;
+                yB = (float)body.position.y;
+                zB = (float)body.position.z;
 
                 a = x * x + y * y + z * z;
                 b = 2f * (x * (start.x - xB) + y * (start.y - yB) + z * (start.z - zB));
                 c = xB * xB + yB * yB + zB * zB + start.x * start.x + start.y * start.y + start.z * start.z - 2f * (xB * start.x + yB * start.y + zB * start.z) - R * R;
                 det = b * b - 4f * a * c;
-                if (Mathf.Abs(a) < 0.001f || det < 0 || b > 0)
+                if (a < 0.001f || det < 0 || b > 0)
                 {
                     sqrRange = float.MaxValue;
                     return false;
@@ -2623,8 +2625,8 @@ namespace BDArmory.Radar
                 {
                     Vector3 intcptVec;
                     intcptVec.x = u * x + start.x - xB;
-                    intcptVec.y = u * y + start.y - xB;
-                    intcptVec.z = u * z + start.z - xB;
+                    intcptVec.y = u * y + start.y - yB;
+                    intcptVec.z = u * z + start.z - zB;
 
                     angle = Vector3.Angle(new Vector3(-x, -y, -z), intcptVec);
                     angle = 90f - angle;
@@ -2683,6 +2685,17 @@ namespace BDArmory.Radar
             }
             Vector2 radarPos = new Vector2(xPos, yPos);
             return radarPos;
+        }
+
+        /// <summary>
+        /// Returns string for use in RCS analysis window, if RCS is non-zero and 0.01 m^2 or lower, it will return result in dBsm instead of m^2
+        /// </summary>
+        public static string RCSString(float rcs)
+        {
+            if (rcs >= 0.01f || rcs == 0f)
+                return rcs.ToString("0.00") + " m²";
+            else
+                return (10f * Mathf.Log10(rcs)).ToString("0.0") + " dBsm";
         }
     }
 }

@@ -1641,6 +1641,25 @@ namespace BDArmory.Weapons.Missiles
             }
         }
 
+        void Update()
+        {
+            if (!HighLogic.LoadedSceneIsFlight) return;
+            if (!vessel.isActiveVessel) return;
+            if (reloadableRail)
+            {
+                if (launched && reloadRoutine != null)
+                {
+                    reloadTimer += TimeWarp.deltaTime;
+                    gauge.UpdateReloadMeter(Mathf.Clamp01(reloadTimer / reloadableRail.reloadTime));
+                }
+            }
+            if (multiLauncher && heatTimer > 0)
+            {
+                heatTimer -= TimeWarp.deltaTime;
+                gauge.UpdateHeatMeter(Mathf.Clamp01(heatTimer / multiLauncher.launcherCooldown));
+            }
+        }
+
         public override void OnFixedUpdate()
         {
             base.OnFixedUpdate();
@@ -1723,14 +1742,6 @@ namespace BDArmory.Weapons.Missiles
             }
             if (reloadableRail)
             {
-                if (launched && reloadRoutine != null)
-                {
-                    reloadTimer = Mathf.Clamp((reloadTimer + 1 * TimeWarp.fixedDeltaTime / reloadableRail.reloadTime), 0, 1);
-                }
-                if (heatTimer > 0)
-                {
-                    heatTimer -= TimeWarp.fixedDeltaTime;
-                }
                 if (OldInfAmmo != BDArmorySettings.INFINITE_ORDINANCE)
                 {
                     if (reloadableRail.railAmmo < 1 && BDArmorySettings.INFINITE_ORDINANCE)
@@ -2111,9 +2122,9 @@ namespace BDArmory.Weapons.Missiles
 
                         if (activeRadarRange < 0 && torpedo)
                             heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, new Ray(transform.position, tempTargetPos - transform.position), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias,
-                                (SourceVessel == null ? null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>()), targetVessel);
+                                (SourceVessel == null ? null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>()), targetVessel, IFF: hasIFF);
                         else
-                            heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, new Ray(transform.position, tempTargetPos - transform.position), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, SourceVessel ? VesselModuleRegistry.GetModule<MissileFire>(SourceVessel) : null, targetVessel);
+                            heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, new Ray(transform.position, tempTargetPos - transform.position), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, SourceVessel ? VesselModuleRegistry.GetModule<MissileFire>(SourceVessel) : null, targetVessel, IFF: hasIFF);
                         if (heatTarget.exists && CheckTargetEngagementEnvelope(heatTarget.targetInfo))
                         {
                             if (BDArmorySettings.DEBUG_MISSILES)
@@ -2182,7 +2193,7 @@ namespace BDArmory.Weapons.Missiles
 
                         for (int i = 0; i < scannedTargets.Length; i++)
                         {
-                            if (scannedTargets[i].exists && !Team.IsFriendly(scannedTargets[i].Team))
+                            if (scannedTargets[i].exists && (!hasIFF || !Team.IsFriendly(scannedTargets[i].Team)))
                             {
                                 currDist = (scannedTargets[i].predictedPosition - tempTargetPos).sqrMagnitude;
 

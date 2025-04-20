@@ -137,6 +137,7 @@ namespace BDArmory.Weapons
         //AI
         public bool aiControlled = false;
         public bool autoFire;
+        public string autoFireFailReason = "";
         public float autoFireLength = 0;
         public float autoFireTimer = 0;
         public float autofireShotCount = 0;
@@ -225,7 +226,7 @@ namespace BDArmory.Weapons
         enum TargetAcquisitionType { None, Visual, Slaved, Radar, AutoProxy, GPS };
         TargetAcquisitionType targetAcquisitionType = TargetAcquisitionType.None;
         TargetAcquisitionType lastTargetAcquisitionType = TargetAcquisitionType.None;
-        float staleGoodTargetTime = 0;
+        public float staleGoodTargetTime = 0;
 
         public Vector3? FiringSolutionVector => finalAimTarget.IsZero() ? (Vector3?)null : (finalAimTarget - fireTransforms[0].position).normalized;
 
@@ -950,20 +951,53 @@ namespace BDArmory.Weapons
         [KSPEvent(guiActive = false, guiActiveEditor = true, guiName = "#LOC_BDArmory_ToggleBarrage")]//Toggle Barrage
         public void ToggleRipple()
         {
-            List<Part>.Enumerator craftPart = EditorLogic.fetch.ship.parts.GetEnumerator();
-            while (craftPart.MoveNext())
-            {
-                if (craftPart.Current == null) continue;
-                if (craftPart.Current.name != part.name) continue;
-                List<ModuleWeapon>.Enumerator weapon = craftPart.Current.FindModulesImplementing<ModuleWeapon>().GetEnumerator();
-                while (weapon.MoveNext())
+            using (List<Part>.Enumerator craftPart = EditorLogic.fetch.ship.parts.GetEnumerator())
+                while (craftPart.MoveNext())
                 {
-                    if (weapon.Current == null) continue;
-                    weapon.Current.useRippleFire = !weapon.Current.useRippleFire;
+                    if (craftPart.Current == null) continue;
+                    if (craftPart.Current.name != part.name) continue;
+                    using (List<ModuleWeapon>.Enumerator weapon = craftPart.Current.FindModulesImplementing<ModuleWeapon>().GetEnumerator())
+                        while (weapon.MoveNext())
+                        {
+                            if (weapon.Current == null) continue;
+                            weapon.Current.useRippleFire = !weapon.Current.useRippleFire;
+                        }
                 }
-                weapon.Dispose();
+        }
+
+        [KSPField(isPersistant = true)]
+        public bool useThisWeaponForAim = false;
+
+        [KSPEvent(guiActive = false, guiActiveEditor = true, guiName = "#LOC_BDArmory_AimOverrideFalse")]//"Aim With This Weapon"
+        public void setAimOverride()
+        {
+            useThisWeaponForAim = !useThisWeaponForAim;
+            if (useThisWeaponForAim == false)
+            {
+                Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideFalse");//"Aim With This Weapon"
             }
-            craftPart.Dispose();
+            else
+            {
+                Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideTrue");//"Revert Aim Override"
+                using (List<Part>.Enumerator craftPart = EditorLogic.fetch.ship.parts.GetEnumerator())
+                    while (craftPart.MoveNext())
+                    {
+                        if (craftPart.Current == null) continue;
+                        using (List<ModuleWeapon>.Enumerator weapon = craftPart.Current.FindModulesImplementing<ModuleWeapon>().GetEnumerator())
+                            while (weapon.MoveNext())
+                            {
+                                if (weapon.Current == null) continue;
+                                if (weapon.Current == this) continue; //setting this here instead of craftPart.Current in case part has multiple weapon modules
+                                if (weapon.Current.GetShortName() != shortName) continue;
+                                if (weapon.Current.useThisWeaponForAim)
+                                {
+                                    weapon.Current.useThisWeaponForAim = false;
+                                    weapon.Current.Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideFalse");//"Aim With This Weapon"
+                                    GUIUtils.RefreshAssociatedWindows(weapon.Current.part);
+                                }
+                            }
+                    }
+            }
         }
 
         [KSPField(isPersistant = true)]
@@ -1147,6 +1181,8 @@ namespace BDArmory.Weapons
             if (isAPS)
             {
                 engageMissile = false; //missiles targeted separately from base WM targeting logic, having this is unnecessary and can cause problems with radar slaving
+                Fields["engageMissile"].guiActive = false;
+                Fields["engageMissile"].guiActiveEditor = false;
                 if (!dualModeAPS)
                 {
                     HideEngageOptions();
@@ -1543,16 +1579,15 @@ namespace BDArmory.Weapons
                 }
             }
             //turret setup
-            List<ModuleTurret>.Enumerator turr = part.FindModulesImplementing<ModuleTurret>().GetEnumerator();
-            while (turr.MoveNext())
-            {
-                if (turr.Current == null) continue;
-                if (turr.Current.turretID != turretID) continue;
-                turret = turr.Current;
-                turret.SetReferenceTransform(fireTransforms[0]);
-                break;
-            }
-            turr.Dispose();
+            using (List<ModuleTurret>.Enumerator turr = part.FindModulesImplementing<ModuleTurret>().GetEnumerator())
+                while (turr.MoveNext())
+                {
+                    if (turr.Current == null) continue;
+                    if (turr.Current.turretID != turretID) continue;
+                    turret = turr.Current;
+                    turret.SetReferenceTransform(fireTransforms[0]);
+                    break;
+                }
 
             if (!turret)
             {
@@ -1828,6 +1863,11 @@ namespace BDArmory.Weapons
                 Fields["detonateAtMinimumDistance"].guiActive = false;
                 Fields["detonateAtMinimumDistance"].guiActiveEditor = false;
             }
+            if (useThisWeaponForAim)
+                Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideTrue");//"Revert Aim Override"
+            else
+                Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideFalse");//"Aim With This Weapon"
+               
             GUIUtils.RefreshAssociatedWindows(part);
         }
 
@@ -1975,6 +2015,7 @@ namespace BDArmory.Weapons
                         audioSource.Stop();
                     }
                     autoFire = false;
+                    autoFireFailReason = "Disabled";
                 }
 
                 if (spinningDown && spinDownAnimation)
@@ -3162,6 +3203,7 @@ namespace BDArmory.Weapons
                 return false;
             }
             if (BDArmorySettings.INFINITE_AMMO) return true;
+            bool secondaryAmmo = false;
             if (secondaryAmmoPerShot != 0)
             {
                 if (!(secECResource && CheatOptions.InfiniteElectricity)) //else skip to main ammo as EC is accounted for
@@ -3169,8 +3211,12 @@ namespace BDArmory.Weapons
                     vessel.GetConnectedResourceTotals(ECID, out double EcCurrent, out double ecMax);
                     if (EcCurrent > secondaryAmmoPerShot * (secECResource ? 0.95f : 1))
                     {
-                        part.RequestResource(ECID, secondaryAmmoPerShot, (secECResource || !BDArmorySettings.WEAPONS_RESPECT_CROSSFEED) ? ResourceFlowMode.ALL_VESSEL : ResourceFlowMode.STACK_PRIORITY_SEARCH);
-                        if (requestResourceAmount == 0) return true; //weapon only uses secondaryAmmoName for some reason?
+                        secondaryAmmo = true;
+                        if (requestResourceAmount == 0) //weapon only uses secondaryAmmoName for some reason?
+                        {
+                            part.RequestResource(ECID, secondaryAmmoPerShot, (secECResource || !BDArmorySettings.WEAPONS_RESPECT_CROSSFEED) ? ResourceFlowMode.ALL_VESSEL : ResourceFlowMode.STACK_PRIORITY_SEARCH);
+                            return true;
+                        }
                     }
                     else
                     {
@@ -3180,7 +3226,14 @@ namespace BDArmory.Weapons
                     //else return true; //this is causing weapons thath have ECPerShot + standard ammo (railguns, etc) to not consume ammo, only EC
                 }
             }
-            if ((electricResource && CheatOptions.InfiniteElectricity)) return true;
+            if ((electricResource && CheatOptions.InfiniteElectricity))
+            {
+                if (secondaryAmmo) //secondary ammo isn't electricity, so consume requisite ammount
+                {
+                    part.RequestResource(ECID, secondaryAmmoPerShot, (secECResource || !BDArmorySettings.WEAPONS_RESPECT_CROSSFEED) ? ResourceFlowMode.ALL_VESSEL : ResourceFlowMode.STACK_PRIORITY_SEARCH);
+                }
+                return true;
+            }
             else
             {
                 GetAmmoCount(AmmoID, out double ammoCurrent, out double ammoMax);
@@ -3188,6 +3241,10 @@ namespace BDArmory.Weapons
                 if (ammoCount >= AmmoPerShot * 0.995f) //catch floating point errors from fractional ammo spread across multiple boxes
                                                        // TODO?? Change code to some sort of list of ammoboxes to only draw from box with current highest resouce amount to do proper integer reductions?
                 {
+                    if (secondaryAmmo) //moving this here so weapon only drains secondary Ammo if primary ammo also exists
+                    {
+                        part.RequestResource(ECID, secondaryAmmoPerShot, (secECResource || !BDArmorySettings.WEAPONS_RESPECT_CROSSFEED) ? ResourceFlowMode.ALL_VESSEL : ResourceFlowMode.STACK_PRIORITY_SEARCH);
+                    }
                     if (part.RequestResource(ammoName.GetHashCode(), (double)AmmoPerShot, (electricResource || !BDArmorySettings.WEAPONS_RESPECT_CROSSFEED) ? ResourceFlowMode.ALL_VESSEL : externalAmmo ? (BDArmorySettings.WEAPONS_RESPECT_CROSSFEED ? ResourceFlowMode.STACK_PRIORITY_SEARCH : ResourceFlowMode.ALL_VESSEL) : ResourceFlowMode.NO_FLOW) > 0) //for guns with internal ammo supplies and no external, only draw from the weapon part
                     {
                         return true;
@@ -3333,7 +3390,7 @@ namespace BDArmory.Weapons
         {
             if (!useCustomBelt) return;
             if (customAmmoBelt.Count < 1) return;
-            if (AmmoIntervalCounter == 0 || (AmmoIntervalCounter > 1 && customAmmoBeltIndexes[AmmoIntervalCounter] != customAmmoBeltIndexes[AmmoIntervalCounter - 1]))
+            if (AmmoIntervalCounter == 0 || (AmmoIntervalCounter > 0 && customAmmoBeltIndexes[AmmoIntervalCounter] != customAmmoBeltIndexes[AmmoIntervalCounter - 1]))
             {
                 SetupAmmo(null, null);
             }
@@ -3403,7 +3460,7 @@ namespace BDArmory.Weapons
         public void DisableWeapon()
         {
             if (dualModeAPS) isAPS = true;
-            if (isAPS)
+            if (isAPS && weaponManager != null)
             {
                 if (ammoCount > 0 || BDArmorySettings.INFINITE_AMMO)
                 {
@@ -3558,6 +3615,7 @@ namespace BDArmory.Weapons
                     if (!targetAcquired && (!weaponManager || Time.time - staleGoodTargetTime > Mathf.Max(60f / roundsPerMinute, weaponManager.targetScanInterval)))
                     {
                         autoFire = false;
+                        autoFireFailReason = "Stale target expired";
                         return;
                     }
                 }
@@ -4057,7 +4115,11 @@ namespace BDArmory.Weapons
                                     {
                                         hitPart = hitEVA.part;
                                     }
-                                    if (hitPart == null) autoFire = false;
+                                    if (hitPart == null)
+                                    {
+                                        autoFire = false;
+                                        autoFireFailReason = "Null target";
+                                    }
                                 }
                                 catch (NullReferenceException e)
                                 {
@@ -4235,7 +4297,11 @@ namespace BDArmory.Weapons
                                             {
                                                 hitPart = hitEVA.part;
                                             }
-                                            if (hitPart == null) autoFire = false;
+                                            if (hitPart == null)
+                                            {
+                                                autoFire = false;
+                                                autoFireFailReason = "Null target";
+                                            }
                                         }
                                         catch (NullReferenceException e)
                                         {
@@ -4436,25 +4502,36 @@ namespace BDArmory.Weapons
                 if (safeToFire)
                 {
                     if (eWeaponType == WeaponTypes.Ballistic || eWeaponType == WeaponTypes.Laser)
-                        autoFire = (targetCosAngle >= targetAdjustedMaxCosAngle);
+                    {
+                        autoFire = targetCosAngle >= targetAdjustedMaxCosAngle;
+                        autoFireFailReason = autoFire ? "" : "Not on target";
+                    }
                     else // Rockets
+                    {
                         autoFire = (targetCosAngle >= targetAdjustedMaxCosAngle) && ((finalAimTarget - fireTransform.position).sqrMagnitude > (blastRadius * blastRadius) * 2);
+                        autoFireFailReason = autoFire ? "" : "Not on target";
+                    }
 
                     if (autoFire && Vector3.Angle(targetPosition - fireTransform.position, aimDirection) < 5) //check LoS for direct-fire weapons
                     {
-                        if (RadarUtils.TerrainCheck(eWeaponType == WeaponTypes.Laser ? targetPosition : fireTransform.position + (fireTransform.forward * 1500), fireTransform.position)) //kerbin curvature is going to start returning raycast terrain hits at about 1.8km for tanks
+                        if (RadarUtils.TerrainCheck(fireTransform.position, eWeaponType == WeaponTypes.Laser ? targetPosition : fireTransform.position + (fireTransform.forward * Mathf.Min(1500, (targetPosition - fireTransform.position).magnitude)))) //kerbin curvature is going to start returning raycast terrain hits at about 1.8km for tanks
                         {
                             autoFire = false;
+                            autoFireFailReason = "Terrain check";
                         }
                     }
                 }
                 else
                 {
                     autoFire = false;
+                    autoFireFailReason = "Not safe";
                 }
-                if (autoFire && weaponManager.staleTarget && (lastVisualTargetVessel != null && lastVisualTargetVessel.LandedOrSplashed && vessel.LandedOrSplashed)) autoFire = false; //ground Vee engaging another ground Vee which has ducked out of sight, don't fire
-                                                                                                                                                                                       // won't catch cloaked tanks, but oh well.
-
+                if (autoFire && weaponManager.staleTarget && (lastVisualTargetVessel != null && lastVisualTargetVessel.LandedOrSplashed && vessel.LandedOrSplashed))
+                {
+                    autoFire = false; //ground Vee engaging another ground Vee which has ducked out of sight, don't fire
+                                      // won't catch cloaked tanks, but oh well.
+                    autoFireFailReason = "Stale target";
+                }
                 // if (eWeaponType != WeaponTypes.Rocket) //guns/lasers
                 // {
                 //     // Vector3 targetDiffVec = finalAimTarget - lastFinalAimTarget;
@@ -4496,12 +4573,14 @@ namespace BDArmory.Weapons
             else
             {
                 autoFire = false;
+                autoFireFailReason = aiControlled ? "No target" : "Not AI controlled";
             }
 
             //disable autofire after burst length
             if (autoFire && (!BurstOverride && Time.time - autoFireTimer > autoFireLength) || (BurstOverride && autofireShotCount >= fireBurstLength))
             {
                 autoFire = false;
+                autoFireFailReason = "Disabled after burst";
                 //visualTargetVessel = null;
                 //visualTargetPart = null;
                 //tgtShell = null;
@@ -4524,7 +4603,11 @@ namespace BDArmory.Weapons
             if (isAPS)
             {
                 float threatDirectionFactor = (fireTransforms[0].position - targetPosition).DotNormalized(targetVelocity - part.rb.velocity);
-                if (threatDirectionFactor < 0.9f) autoFire = false;   //within 28 degrees in front, else ignore, target likely not on intercept vector
+                if (threatDirectionFactor < 0.9f)
+                {
+                    autoFire = false;   //within 28 degrees in front, else ignore, target likely not on intercept vector
+                    autoFireFailReason = "APS threat direction";
+                }
             }
         }
 
@@ -4547,15 +4630,16 @@ namespace BDArmory.Weapons
                         var wms = VesselModuleRegistry.GetModule<MissileFire>(friendly.Current);
                         if (wms == null || wms.Team != weaponManager.Team) continue;
                         var friendlyRelativePosition = friendly.Current.CoM - fireTransform.position;
-                        var theta = friendly.Current.GetRadius() / friendlyRelativePosition.magnitude; // Approx to arctan(θ) =  θ - θ^3/3 + O(θ^5)
+                        var (friendlyDistance, friendlyDirection) = friendlyRelativePosition.MagNorm();
+                        var theta = friendly.Current.GetRadius() / friendlyDistance;
                         var cosTheta = Mathf.Clamp(1f - 0.5f * theta * theta, -1f, 1f); // Approximation to cos(theta) for the friendly vessel's radius at that distance. (cos(x) = 1-x^2/2!+O(x^4))
-                        if (Vector3.Dot(firingDirection, friendlyRelativePosition.normalized) > cosTheta) return false; // A friendly is in the way.
+                        if (Vector3.Dot(firingDirection, friendlyDirection) > cosTheta) return false; // A friendly is in the way.
                     }
                 return true;
             }
 
             // Projectile. Use bullet velocity or estimate of the rocket velocity post-thrust.
-            var projectileEffectiveVelocity = part.rb.velocity + (eWeaponType == WeaponTypes.Rocket ? (BDKrakensbane.FrameVelocityV3f + thrust * thrustTime / rocketMass * firingDirection) : (baseBulletVelocity * firingDirection));
+            var projectileEffectiveVelocity = part.rb.velocity + BDKrakensbane.FrameVelocityV3f + (eWeaponType == WeaponTypes.Rocket ? (thrust * thrustTime / rocketMass * firingDirection) : (baseBulletVelocity * firingDirection));
             var gravity = (Vector3)FlightGlobals.getGeeForceAtPosition(fireTransform.position); // Use the local gravity value as long distance doesn't really matter here.
             var projectileAcceleration = bulletDrop || eWeaponType == WeaponTypes.Rocket ? gravity : Vector3.zero; // Drag is ignored.
 
@@ -4819,7 +4903,7 @@ namespace BDArmory.Weapons
             if (!refTransform) return;
 
             Vector3 fwdPos = fireTransforms[0].position + (5 * fireTransforms[0].forward);
-            GUIUtils.DrawLineBetweenWorldPositions(fireTransforms[0].position, fwdPos, 4, Color.green);
+            GUIUtils.DrawLineBetweenWorldPositions(fireTransforms[0].position, fwdPos, useThisWeaponForAim ? 8 : 4, useThisWeaponForAim ? Color.blue : Color.green);
 
             Vector3 referenceDirection = refTransform.up;
             Vector3 refUp = -refTransform.forward;
@@ -4915,6 +4999,7 @@ namespace BDArmory.Weapons
             {
                 isOverheated = true;
                 autoFire = false;
+                autoFireFailReason = "Overheated";
                 hasCharged = false;
                 if (hasChargeAnimation) chargeRoutine = StartCoroutine(ChargeRoutine(postFireChargeAnim));
                 if (!oneShotSound) audioSource.Stop();
@@ -4946,6 +5031,7 @@ namespace BDArmory.Weapons
             {
                 isReloading = true;
                 autoFire = false;
+                autoFireFailReason = "Reloading";
                 if (eWeaponType == WeaponTypes.Laser)
                 {
                     for (int i = 0; i < laserRenderers.Length; i++)
@@ -5052,8 +5138,31 @@ namespace BDArmory.Weapons
                 //moving radar aiming/turret slaving sections ahead of legacy, else they'll never proc outside of manual control or very short visual range settings
                 if (weaponManager.vesselRadarData && weaponManager.vesselRadarData.locked) //would only apply if fixed gun, else VRD would slave the weapon and the above block applies
                 {
-                    if (!(weaponManager.slavingTurrets && turret)) //no turrets/radar/laser locks, those are handled later
+                    if (!(weaponManager.slavingTurrets && turret)) //slaving fixed guns to target, turrets done later
                     {
+                        bool isVessel = weaponManager.slavedTarget.vessel != null;
+                        if (!isVessel || !(visRange && RadarUtils.GetVesselChaffFactor(weaponManager.slavedTarget.vessel) < 1f))
+                        {
+                            slaved = true;
+                            targetRadius = isVessel ? weaponManager.slavedTarget.vessel.GetRadius() : 35f;
+                            targetPosition = weaponManager.slavedPosition; //set fixed gun radar targeting to primary radar lock (which is presumably the active weaponManager.GuardTarget)                           
+                            targetVelocity = isVessel ? weaponManager.slavedTarget.vessel.rb_velocity : (weaponManager.slavedVelocity - BDKrakensbane.FrameVelocityV3f);
+                            if (isVessel)
+                            {
+                                targetAcceleration = weaponManager.slavedTarget.vessel.acceleration;
+                                targetIsLandedOrSplashed = weaponManager.slavedTarget.vessel.LandedOrSplashed;
+                            }
+                            else
+                            {
+                                targetAcceleration = weaponManager.slavedAcceleration;
+                                targetIsLandedOrSplashed = false;
+                            }
+                            targetAcquired = true;
+                            targetAcquisitionType = TargetAcquisitionType.Slaved;
+                            return;
+                        }
+                        /*
+                         * Why is the fixed gun radar targeting using the lock agnostic approach, and the turrets using the legacy Wm.slavedTarget, which is going to override any sort of multi-targeting? Switch these around
                         TargetSignatureData targetData = weaponManager.vesselRadarData.lockedTargetData.targetData; //no support for radar tracking, only locks?
                         if (targetData.exists)
                         {
@@ -5072,35 +5181,67 @@ namespace BDArmory.Weapons
                             radarTarget = true;
                             return;
                         }
+                        */
                     }
-                }
-                //else, we have turrets slaved to a targetpainter, use that
-                if (weaponManager.slavingTurrets && turret)
-                {
-                    bool isVessel = weaponManager.slavedTarget.vessel != null;
-                    if (!isVessel || !(visRange && RadarUtils.GetVesselChaffFactor(weaponManager.slavedTarget.vessel) < 1f))
+                    //else, we have turrets and some radar locks; can we target the former with the latter?
+                    if (weaponManager.slavingTurrets && turret)
                     {
-                        slaved = true;
-                        targetRadius = isVessel ? weaponManager.slavedTarget.vessel.GetRadius() : 35f;
-                        targetPosition = weaponManager.slavedPosition;
-                        //currently overriding multi-turret multi-targeting if enabled as all turrets slaved to WM's guardTarget/current active radarLock
-                        targetVelocity = isVessel ? weaponManager.slavedTarget.vessel.rb_velocity : (weaponManager.slavedVelocity - BDKrakensbane.FrameVelocityV3f);
-                        if (isVessel)
+                        TargetSignatureData targetData = TargetSignatureData.noTarget;
+                        List<TargetSignatureData> possibleTargets = weaponManager.vesselRadarData.GetLockedTargets();
+                        for (int i = 0; i < possibleTargets.Count; i++)
                         {
-                            targetAcceleration = weaponManager.slavedTarget.vessel.acceleration;
-                            targetIsLandedOrSplashed = weaponManager.slavedTarget.vessel.LandedOrSplashed;
+                            if (possibleTargets[i].vessel == visualTargetVessel)
+                            {
+                                targetData = possibleTargets[i];
+                                break;
+                            }
                         }
-                        else
+                        if (targetData.exists)
                         {
-                            targetAcceleration = weaponManager.slavedAcceleration;
+                            targetVelocity = targetData.velocity - BDKrakensbane.FrameVelocityV3f;
+                            targetPosition = targetData.predictedPositionWithChaffFactor(targetData.lockedByRadar.radarChaffClutterFactor);
+                            targetRadius = 35;
+                            targetAcceleration = targetData.acceleration;
                             targetIsLandedOrSplashed = false;
+                            if (targetData.vessel)
+                            {
+                                targetRadius = targetData.vessel.GetRadius();
+                                targetIsLandedOrSplashed = targetData.vessel.LandedOrSplashed;
+                            }
+                            targetAcquired = true;
+                            targetAcquisitionType = TargetAcquisitionType.Radar;
+                            radarTarget = true;
+                            if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.ModuleWeapon - {shortName} is tracking target {targetData.vessel.vesselName} via radarlock from {targetData.lockedByRadar.part.partInfo.title}");
+                            return;
                         }
-                        targetAcquired = true;
-                        targetAcquisitionType = TargetAcquisitionType.Slaved;
-                        return;
+                        else //no lock for our secondary target? slave turret to a lock we do have
+                        {
+                            bool isVessel = weaponManager.slavedTarget.vessel != null;
+                            if (!isVessel || !(visRange && RadarUtils.GetVesselChaffFactor(weaponManager.slavedTarget.vessel) < 1f))
+                            {
+                                slaved = true;
+                                targetRadius = isVessel ? weaponManager.slavedTarget.vessel.GetRadius() : 35f;
+                                targetPosition = weaponManager.slavedPosition;
+                                //currently overriding multi-turret multi-targeting if enabled as all turrets slaved to WM's guardTarget/current active radarLock
+                                targetVelocity = isVessel ? weaponManager.slavedTarget.vessel.rb_velocity : (weaponManager.slavedVelocity - BDKrakensbane.FrameVelocityV3f);
+                                if (isVessel)
+                                {
+                                    targetAcceleration = weaponManager.slavedTarget.vessel.acceleration;
+                                    targetIsLandedOrSplashed = weaponManager.slavedTarget.vessel.LandedOrSplashed;
+                                }
+                                else
+                                {
+                                    targetAcceleration = weaponManager.slavedAcceleration;
+                                    targetIsLandedOrSplashed = false;
+                                }
+                                targetAcquired = true;
+                                targetAcquisitionType = TargetAcquisitionType.Slaved;
+                                if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.ModuleWeapon - {shortName} had no lock for {(visualTargetVessel != null ? visualTargetVessel.vesselName : "'unknown'")}; slaving to primary lock on {weaponManager.slavedTarget.vessel.name}");
+                                return;
+                            }
+                        }
                     }
                 }
-
                 // within visual range and no radar aiming/need precision visual targeting of specific subsystems
                 if (aiControlled && visualTargetVessel && visRange)
                 {

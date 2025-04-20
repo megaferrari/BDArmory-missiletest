@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
 
@@ -16,20 +17,28 @@ namespace BDArmory.UI
         #region Fields
         public static ScoreWindow Instance;
         public bool _ready = false;
+        public static string scoreWeightsURL = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "GameData/BDArmory/PluginData/score_weights.cfg"));
 
         int _buttonSize = 24;
         static int _guiCheckIndexScores = -1;
         Vector2 windowSize = new Vector2(200, 100);
         bool resizingWindow = false;
-        bool autoResizingWindow = true;
+        public bool autoResizingWindow = true;
         Vector2 scoreScrollPos = default;
         bool showTeamScores = false;
         public enum Mode { Tournament, ContinuousSpawn }
         static Mode mode = Mode.Tournament;
-        public static void SetMode(Mode scoreMode) => Instance.SetMode_(scoreMode);
-        void SetMode_(Mode scoreMode)
+        public static void SetMode(Mode scoreMode, Toggle teamScores = Toggle.NoChange) => Instance.SetMode_(scoreMode, teamScores);
+        void SetMode_(Mode scoreMode, Toggle teamScores)
         {
             mode = scoreMode;
+            showTeamScores = teamScores switch
+            {
+                Toggle.Toggle => !showTeamScores,
+                Toggle.On => true,
+                Toggle.Off => false,
+                _ => showTeamScores
+            };
             LoadWeights();
             ResetWindowSize(true);
         }

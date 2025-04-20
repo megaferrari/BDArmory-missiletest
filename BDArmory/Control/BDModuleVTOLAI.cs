@@ -355,7 +355,7 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
             aimingMode = false;
             upDir = vessel.up;
             if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) DebugLine("");
-
+            if (IsRunningWaypoints) UpdateWaypoint(); // Update the waypoint state.
             if (initialTakeOff)
             {
                 Takeoff();
@@ -613,9 +613,13 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
 
 
             // goto
-            if (leftPath)
+            if (command == PilotCommands.Waypoints)
             {
-                Pathfind(finalPositionGeo);
+                Pathfind(VectorUtils.WorldPositionToGeoCoords(waypointPosition, vessel.mainBody));
+            }
+            else if (leftPath)
+            {
+                Pathfind(finalPositionGeo); //is surface navigation pathing nodes really necessary for an aircraft?
                 leftPath = false;
             }
 
@@ -624,11 +628,17 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
 
             if (targetDirection.sqrMagnitude > targetRadius * targetRadius)
             {
-
                 targetVelocity = MaxSpeed;
 
                 if (Vector3.Dot(targetDirection, vesselTransform.up) < 0 && !PoweredSteering) targetVelocity = 0;
                 SetStatus("Moving");
+                if (IsRunningWaypoints)
+                {
+                    if (BDArmorySettings.WAYPOINT_LOOP_INDEX > 1)
+                        SetStatus($"Lap {activeWaypointLap}, Waypoint {activeWaypointIndex} ({waypointRange:F0}m)");
+                    else
+                        SetStatus($"Waypoint {activeWaypointIndex} ({waypointRange:F0}m)");
+                }
                 return;
             }
 

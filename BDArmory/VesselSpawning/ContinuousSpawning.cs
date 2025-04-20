@@ -81,7 +81,7 @@ namespace BDArmory.VesselSpawning
             BDACompetitionMode.Instance.StopCompetition();
             BDACompetitionMode.Instance.ResetCompetitionStuff(); // Reset competition scores.
             SpawnUtilsInstance.Instance.gunGameProgress.Clear(); // Clear gun-game progress.
-            ScoreWindow.SetMode(ScoreWindow.Mode.ContinuousSpawn);
+            ScoreWindow.SetMode(ScoreWindow.Mode.ContinuousSpawn, Toggle.Off);
         }
 
         public void SpawnVesselsContinuously(CircularSpawnConfig spawnConfig)
@@ -494,10 +494,10 @@ namespace BDArmory.VesselSpawning
             {"Hits",                    0.004f},
             {"Bullet Damage",           0.0001f},
             {"Bullet Damage Taken",     4e-05f},
-            {"Rocket Hits",             0.035f},
-            {"Rocket Parts Hit",        0.0006f},
-            {"Rocket Damage",           0.00015f},
-            {"Rocket Damage Taken",     5e-05f},
+            {"Rocket Hits",             0.01f},
+            {"Rocket Parts Hit",        0.0005f},
+            {"Rocket Damage",           0.0001f},
+            {"Rocket Damage Taken",     4e-05f},
             {"Missile Hits",            0.15f},
             {"Missile Parts Hit",       0.002f},
             {"Missile Damage",          3e-05f},
@@ -509,7 +509,7 @@ namespace BDArmory.VesselSpawning
 
         public static void SaveWeights()
         {
-            ConfigNode fileNode = ConfigNode.Load(BDArmorySettings.settingsConfigURL);
+            ConfigNode fileNode = ConfigNode.Load(ScoreWindow.scoreWeightsURL) ?? new ConfigNode();
 
             if (!fileNode.HasNode("CtsScoreWeights"))
             {
@@ -522,13 +522,13 @@ namespace BDArmory.VesselSpawning
             {
                 settings.SetValue(kvp.Key, kvp.Value.ToString(), true);
             }
-            fileNode.Save(BDArmorySettings.settingsConfigURL);
+            fileNode.Save(ScoreWindow.scoreWeightsURL);
         }
 
         public static void LoadWeights()
         {
-            ConfigNode fileNode = ConfigNode.Load(BDArmorySettings.settingsConfigURL);
-            if (!fileNode.HasNode("CtsScoreWeights")) return;
+            ConfigNode fileNode = ConfigNode.Load(ScoreWindow.scoreWeightsURL);
+            if (fileNode == null || !fileNode.HasNode("CtsScoreWeights")) return;
             ConfigNode settings = fileNode.GetNode("CtsScoreWeights");
 
             foreach (var key in weights.Keys.ToList())

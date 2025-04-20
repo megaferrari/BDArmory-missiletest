@@ -170,6 +170,9 @@ namespace BDArmory.Weapons.Missiles
         public bool canRelock = true;                               //if true, if a FCS radar guiding a SARH missile loses lock, the missile will be switched to the active radar lock instead of going inactive from target loss.
 
         [KSPField]
+        public bool hasIFF = true;
+
+        [KSPField]
         public float missileCMRange = -1f;
 
         [KSPField]
@@ -724,7 +727,8 @@ namespace BDArmory.Weapons.Missiles
                     TargetSignatureData t = TargetSignatureData.noTarget;
                     TargetPosition = Vector3.zero;
                     UpdateLaserTarget(); //available cam for new GPS coords?
-                    if (TargetPosition == Vector3.zero && vrd && vrd.locked)//no cam; available radar lock?
+                    //Debug.Log($"[MissileBase] GPS vrd: {vrd != null}; vrd lock: {vrd && vrd.locked}");
+                    if (vrd && vrd.locked)//no cam; available radar lock? 
                     {
                         List<TargetSignatureData> possibleTargets = vrd.GetLockedTargets();
                         for (int i = 0; i < possibleTargets.Count; i++)
@@ -733,6 +737,7 @@ namespace BDArmory.Weapons.Missiles
                                 t = possibleTargets[i];
                         }
                         if (t.exists) TargetPosition = t.position;
+                        //Debug.Log($"[MissileBase] GPS targetPosition is{TargetPosition.x:F2}, {TargetPosition.x:F2}, {TargetPosition.z:F2}");
                     }
                     if (TargetPosition != Vector3.zero)
                     {
@@ -745,7 +750,7 @@ namespace BDArmory.Weapons.Missiles
 
                             if (gpsUpdates == 0) // Constant updates
                             {
-                                gpsTargetCoords_ = VectorUtils.WorldPositionToGeoCoords(targetVessel.Vessel.CoM, targetVessel.Vessel.mainBody);
+                                gpsTargetCoords_ = VectorUtils.WorldPositionToGeoCoords(TargetPosition, targetVessel.Vessel.mainBody);
                                 targetGPSCoords = gpsTargetCoords_;
                             }
                             else // Update every gpsUpdates seconds
@@ -754,7 +759,7 @@ namespace BDArmory.Weapons.Missiles
                                 if (updateCount > gpsUpdateCounter)
                                 {
                                     gpsUpdateCounter++;
-                                    gpsTargetCoords_ = VectorUtils.WorldPositionToGeoCoords(targetVessel.Vessel.CoM, targetVessel.Vessel.mainBody);
+                                    gpsTargetCoords_ = VectorUtils.WorldPositionToGeoCoords(TargetPosition, targetVessel.Vessel.mainBody);
                                     targetGPSCoords = gpsTargetCoords_;
                                 }
                             }
@@ -825,9 +830,9 @@ namespace BDArmory.Weapons.Missiles
                 // Update heat target
                 if (activeRadarRange < 0)
                     heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, lookRay, predictedHeatTarget, lockedSensorFOV / 2, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias,
-                        (SourceVessel == null ? null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>()), targetVessel);
+                        (SourceVessel == null ? null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>()), targetVessel, IFF: hasIFF);
                 else
-                    heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, lookRay, predictedHeatTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, (SourceVessel == null ? null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>()), targetVessel);
+                    heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, lookRay, predictedHeatTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, (SourceVessel == null ? null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>()), targetVessel, IFF: hasIFF);
 
                 if (heatTarget.exists)
                 {
@@ -1064,7 +1069,7 @@ namespace BDArmory.Weapons.Missiles
                                 if (scannedTargets[i].exists && (scannedTargets[i].predictedPosition - radarTarget.predictedPosition).sqrMagnitude < sqrThresh)
                                 {
                                     //re-check engagement envelope, only lock appropriate targets
-                                    if (CheckTargetEngagementEnvelope(scannedTargets[i].targetInfo) && !Team.IsFriendly(scannedTargets[i].Team))
+                                    if (CheckTargetEngagementEnvelope(scannedTargets[i].targetInfo) && (!hasIFF || !Team.IsFriendly(scannedTargets[i].Team)))
                                     {
                                         radarTarget = scannedTargets[i];
                                         TargetAcquired = true;
@@ -1112,7 +1117,11 @@ namespace BDArmory.Weapons.Missiles
                         if (radarLOAL)
                         {
                             // Lost track of target, but we can re-acquire set radarLOALSearching = true and try to re-acquire using existing target information
-                            radarLOALSearching = true;
+                            if (radarLOALSearching)
+                            {
+                                radarLOALSearching = true;
+                                startDirection = GetForwardTransform();
+                            }
                             TargetAcquired = true;
 
                             TargetPosition = radarTarget.predictedPositionWithChaffFactor(chaffEffectivity);
@@ -1232,10 +1241,14 @@ namespace BDArmory.Weapons.Missiles
                 {
                     radarTarget = TargetSignatureData.noTarget;
                     TargetAcquired = true;
-                    TargetPosition = transform.position + (MissileReferenceTransform.forward * 5000);//this should not be startPosition, else semiActives like the AIM-120 will suddenly veer off-course the moment parent radar guidance ends if no lock, vs continuing on current course
+                    TargetPosition = transform.position + (startDirection * 5000);
                     TargetVelocity = vessel.Velocity(); // Set the relative target velocity to 0.
                     TargetAcceleration = Vector3.zero;
-                    radarLOALSearching = true;
+                    if (radarLOALSearching)
+                    {
+                        radarLOALSearching = true;
+                        startDirection = GetForwardTransform();
+                    }
                     _radarFailTimer += Time.fixedDeltaTime;
                     if (_radarFailTimer > radarTimeout)
                     {
@@ -1255,7 +1268,13 @@ namespace BDArmory.Weapons.Missiles
                 if (_radarFailTimer < radarTimeout)
                 {
                     if (radarLOAL)
-                        radarLOALSearching = true;
+                    {
+                        if (radarLOALSearching)
+                        {
+                            radarLOALSearching = true;
+                            startDirection = GetForwardTransform();
+                        }
+                    }
                     else
                     {
                         _radarFailTimer += Time.fixedDeltaTime;
