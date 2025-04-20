@@ -5163,6 +5163,8 @@ namespace BDArmory.Weapons
                             }
                             targetAcquired = true;
                             targetAcquisitionType = TargetAcquisitionType.Slaved;
+                            //if (BDArmorySettings.DEBUG_WEAPONS) 
+                                Debug.Log($"[BDArmory.ModuleWeapon - {shortName} is tracking target {(isVessel ? weaponManager.slavedTarget.vessel.vesselName : "null target")} via radarlock");
                             return;
                         }
                         /*
@@ -5215,7 +5217,8 @@ namespace BDArmory.Weapons
                             targetAcquired = true;
                             targetAcquisitionType = TargetAcquisitionType.Radar;
                             radarTarget = true;
-                            if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.ModuleWeapon - {shortName} is tracking target {targetData.vessel.vesselName} via radarlock from {targetData.lockedByRadar.part.partInfo.title}");
+                            //if (BDArmorySettings.DEBUG_WEAPONS) 
+                                Debug.Log($"[BDArmory.ModuleWeapon - {shortName} is tracking target {targetData.vessel.vesselName} via radarlock from {targetData.lockedByRadar.part.partInfo.title}");
                             return;
                         }
                         else //no lock for our secondary target? slave turret to a lock we do have
@@ -5225,7 +5228,7 @@ namespace BDArmory.Weapons
                             {
                                 slaved = true;
                                 targetRadius = isVessel ? weaponManager.slavedTarget.vessel.GetRadius() : 35f;
-                                targetPosition = weaponManager.slavedPosition;
+                                targetPosition = weaponManager.slavedPosition; //if no lock/ no lock on current target vessel, this is going to be different that what we intended to target
                                 //currently overriding multi-turret multi-targeting if enabled as all turrets slaved to WM's guardTarget/current active radarLock
                                 targetVelocity = isVessel ? weaponManager.slavedTarget.vessel.rb_velocity : (weaponManager.slavedVelocity - BDKrakensbane.FrameVelocityV3f);
                                 if (isVessel)
@@ -5240,7 +5243,8 @@ namespace BDArmory.Weapons
                                 }
                                 targetAcquired = true;
                                 targetAcquisitionType = TargetAcquisitionType.Slaved;
-                                if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.ModuleWeapon - {shortName} had no lock for {(visualTargetVessel != null ? visualTargetVessel.vesselName : "'unknown'")}; slaving to primary lock on {weaponManager.slavedTarget.vessel.name}");
+                                //if (BDArmorySettings.DEBUG_WEAPONS) 
+                                    Debug.Log($"[BDArmory.ModuleWeapon - {shortName} had no lock for {(visualTargetVessel != null ? visualTargetVessel.vesselName : "'unknown'")}; isVessel? {isVessel}; slaving to primary lock on {weaponManager.slavedTarget.vessel.name}");
                                 return;
                             }
                         }

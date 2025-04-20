@@ -662,7 +662,7 @@ namespace BDArmory.Radar
 
         private bool UpdateSlaveData()
         {
-            if (!weaponManager)
+            if (!weaponManager || !weaponManager.guardMode) //don't turn on auto-turret slaving when in manual control, let players use the button for that
             {
                 return false;
             }
