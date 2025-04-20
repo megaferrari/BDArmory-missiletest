@@ -8360,7 +8360,7 @@ namespace BDArmory.Control
 
                     if (multiTargetNum > 1)
                     {
-                        if (weapon.Current.turret)
+                        if (weapon.Current.turret && (weapon.Current.maxPitch + weapon.Current.yawRange > 0))
                         {
                             if (TurretID >= Mathf.Min((targetsAssigned.Count), multiTargetNum))
                             {

@@ -320,6 +320,7 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static float REMOTE_INTERHEAT_DELAY = 30;                                     // Delay between heats.
         [BDAPersistentSettingsField] public static int RUNWAY_PROJECT_ROUND = 0;                                          // RWP round index.
         [BDAPersistentSettingsField] public static string REMOTE_ORCHESTRATION_NPC_SWAPPER = "Rammer";
+        [BDAPersistentSettingsField] public static string NPC_ARCADEHP_TAG = "Rammer";
         [BDAPersistentSettingsField] public static string REMOTE_ORC_NPCS_TEAM = "";
         #endregion
 

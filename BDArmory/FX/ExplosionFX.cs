@@ -57,6 +57,8 @@ namespace BDArmory.FX
 
         private bool disabled = true;
 
+        private float bestDamage = 0;
+
         float blastRange;
         const int explosionLayerMask = (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.EVA | LayerMasks.Unknown19 | LayerMasks.Unknown23 | LayerMasks.Wheels); // Why 19 and 23?
 
@@ -294,7 +296,10 @@ namespace BDArmory.FX
                                                 break;
                                         }
                                         if (registered)
-                                            explosionEventsVesselsHit[damagedVesselName] = explosionEventsVesselsHit.GetValueOrDefault(damagedVesselName) + 1;
+                                            if (!hitPart.vessel.GetName().Contains(BDArmorySettings.NPC_ARCADEHP_TAG))
+                                                explosionEventsVesselsHit[damagedVesselName] = explosionEventsVesselsHit.GetValueOrDefault(damagedVesselName) + 1;
+                                            else
+                                                explosionEventsVesselsHit[damagedVesselName] = 1;
                                         totalPartsHit[damagedVesselName] = totalPartsHit.GetValueOrDefault(damagedVesselName) + 1; // Include non-competition craft (like debris).
                                     }
                                 }
@@ -361,7 +366,10 @@ namespace BDArmory.FX
                                             break;
                                     }
                                     if (registered)
-                                        explosionEventsVesselsHit[damagedVesselName] = explosionEventsVesselsHit.GetValueOrDefault(damagedVesselName) + 1;
+                                        if (!partHit.vessel.GetName().Contains(BDArmorySettings.NPC_ARCADEHP_TAG))
+                                            explosionEventsVesselsHit[damagedVesselName] = explosionEventsVesselsHit.GetValueOrDefault(damagedVesselName) + 1;
+                                        else
+                                            explosionEventsVesselsHit[damagedVesselName] = 1;
                                     totalPartsHit[damagedVesselName] = totalPartsHit.GetValueOrDefault(damagedVesselName) + 1; // Include non-competition craft (like debris).
                                 }
                             }
@@ -760,6 +768,8 @@ namespace BDArmory.FX
                     )}{(travelDistance > 0 ? $" at {travelDistance:F3}m" : "")}.";
                 BDACompetitionMode.Instance.competitionStatus.Add(message);
                 if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log($"[BDArmory.ExplosionFX]: {message}");
+                if (explosionEventsPartsAdded[0] && explosionEventsPartsAdded[0].vessel.GetName().Contains(BDArmorySettings.NPC_ARCADEHP_TAG))
+                    explosionEventsPartsAdded[0].vessel.rootPart.AddExplosiveDamage(bestDamage, Caliber, ExplosionSource, dmgMult);
                 totalDamageApplied.Clear();
                 totalPartsHit.Clear();
             }
@@ -1087,6 +1097,7 @@ namespace BDArmory.FX
                                         },
                                         ExplosionSource);
                                     totalDamageApplied[vesselHit] += damage;
+                                    if (bestDamage < damage) bestDamage = damage;
                                 }
 
                                 if (penetrationFactor > 1 && warheadType != WarheadTypes.Kinetic)
@@ -1095,6 +1106,7 @@ namespace BDArmory.FX
                                     {
                                         damage += part.AddExplosiveDamage(shapedEffect ? 0.5f * (blastInfo.Damage + damageWithoutIntermediateParts) : blastInfo.Damage, Caliber, ExplosionSource, dmgMult);
                                         totalDamageApplied[vesselHit] += damage;
+                                        if (bestDamage < damage) bestDamage = damage;
                                     }
 
                                     if (float.IsNaN(damage)) Debug.LogError("DEBUG NaN damage!");
@@ -1115,6 +1127,7 @@ namespace BDArmory.FX
                                     {
                                         damage = part.AddExplosiveDamage(blastInfo.Damage, Caliber, ExplosionSource, dmgMult);
                                         totalDamageApplied[vesselHit] += damage;
+                                        if (bestDamage < damage) bestDamage = damage;
                                         if (part == projectileHitPart && ProjectileUtils.IsArmorPart(part)) //deal armor damage to armor panel, since we didn't do that earlier
                                         {
                                             ProjectileUtils.CalculateExplosiveArmorDamage(part, blastInfo.TotalPressure, realDistance, SourceVesselName, eventToExecute.Hit, ExplosionSource, Range - realDistance);

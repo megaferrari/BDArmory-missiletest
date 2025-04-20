@@ -1588,6 +1588,10 @@ namespace BDArmory.Weapons
                     turret.SetReferenceTransform(fireTransforms[0]);
                     break;
                 }
+            if (yawRange == 0 && maxPitch == 0)
+            {
+                turret = null;
+            }
 
             if (!turret)
             {
@@ -5329,7 +5333,7 @@ namespace BDArmory.Weapons
                             targetparts = targetparts.OrderBy(w => w.mass).ToList(); //weight target part priority by part mass, also serves as a default 'target heaviest part' in case other options not selected
                             targetparts.Reverse(); //Order by mass is lightest to heaviest. We want H>L
                                                    //targetparts.Shuffle(); //alternitively, increase the random range from maxtargetnum to targetparts.count, otherwise edge cases where lots of one thing (targeting command/mass) will be pulled before lighter things (weapons, maybe engines) if both selected
-                            if (turret)
+                            if (turret && (yawRange > 0 || maxPitch > 0))
                             {
                                 targetID = (int)UnityEngine.Random.Range(0, Mathf.Min(targetparts.Count, weaponManager.multiTargetNum));
                             }
