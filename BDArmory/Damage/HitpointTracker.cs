@@ -1044,15 +1044,8 @@ namespace BDArmory.Damage
                         }
                         hitpoints = BDAMath.RoundToUnit(hitpoints, HpRounding);
                         //hitpoints = Mathf.Round(hitpoints);//?
-                        if (part == vessel.rootPart && vessel.GetName().Contains(BDArmorySettings.NPC_ARCADEHP_TAG))
-                        {
-                            hitpoints = 800 * (vessel.GetTotalMass() / 2);
-                        }
-                        else
-                        {
-                            hitpoints *= HullInfo.materials[hullType].healthMod; // Apply health mod after rounding and lower limit.
-                            if (BDArmorySettings.DEBUG_ARMOR && maxHitPoints <= 0 && Hitpoints != hitpoints) Debug.Log($"[BDArmory.HitpointTracker]: {part.name} updated HP: {Hitpoints}->{hitpoints} at time {Time.time}, partMass: {partMass}, density: {density}, structuralVolume: {structuralVolume}, structuralMass {structuralMass}");
-                        }
+                        hitpoints *= HullInfo.materials[hullType].healthMod; // Apply health mod after rounding and lower limit.
+                        if (BDArmorySettings.DEBUG_ARMOR && maxHitPoints <= 0 && Hitpoints != hitpoints) Debug.Log($"[BDArmory.HitpointTracker]: {part.name} updated HP: {Hitpoints}->{hitpoints} at time {Time.time}, partMass: {partMass}, density: {density}, structuralVolume: {structuralVolume}, structuralMass {structuralMass}");
                     }
                     else // Override based on part configuration for custom parts
                     {
