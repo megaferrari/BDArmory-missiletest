@@ -1591,8 +1591,7 @@ namespace BDArmory.Weapons
             if (yawRange == 0 && maxPitch == 0)
             {
                 turret = null;
-            }
-
+            }            
             if (!turret)
             {
                 Fields["onlyFireInRange"].guiActive = false;
@@ -3455,8 +3454,7 @@ namespace BDArmory.Weapons
             if (enabledStates.Contains(weaponState) || (secondaryFiring && weaponState == WeaponStates.EnabledForSecondaryFiring))
                 return;
 
-            StopShutdownStartupRoutines();
-            UpdateOffsetWeapon(); // Re-calculate offset/non-centerline weapon corrections on weapon selection
+            StopShutdownStartupRoutines();            
             startupRoutine = StartCoroutine(StartupRoutine(secondaryFiring: secondaryFiring));
         }
 
@@ -5686,6 +5684,7 @@ namespace BDArmory.Weapons
                     weaponState = WeaponStates.EnabledForSecondaryFiring;
             }
             UpdateGUIWeaponState();
+            UpdateOffsetWeapon(); // Re-calculate offset/non-centerline weapon corrections on weapon selection
             BDArmorySetup.Instance.UpdateCursorState();
             if (isAPS && (ammoCount > 0 || BDArmorySettings.INFINITE_AMMO))
             {
