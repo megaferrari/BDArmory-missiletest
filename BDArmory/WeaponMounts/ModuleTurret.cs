@@ -78,7 +78,10 @@ namespace BDArmory.WeaponMounts
 
             if (!referenceTransform)
             {
-                SetReferenceTransform(pitchTransform);
+                if (pitchTransform)
+                    SetReferenceTransform(pitchTransform);
+                else
+                    SetReferenceTransform(yawTransform);
             }
 
             if (!string.IsNullOrEmpty(audioPath) && (yawSpeedDPS != 0 || pitchSpeedDPS != 0))
