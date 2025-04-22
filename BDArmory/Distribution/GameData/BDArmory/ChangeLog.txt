@@ -1,6 +1,10 @@
 ﻿IMPROVEMENTS / FIXES
 - AI / WM:
 	- Add missing unclamped limits for 3-axis static damping.
+- Competition:
+	- Updated parsing and plotting scripts.
+		- Using 'python parse_tournament_log_files.py -w cfg' reads the score weights from the score_weights.cfg file.
+		- Using 'python plot_summary.py -i regex' creates the plot ignoring the craft matching the regex string.
 - Spawning:
 	- Automatically adjust the PRE range if the spawn distance would put craft outside the physics range.
 
