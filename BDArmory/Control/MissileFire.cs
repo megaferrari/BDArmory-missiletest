@@ -1129,6 +1129,7 @@ namespace BDArmory.Control
                             if (msl.GetEngageRange() != selectedWeaponsEngageRangeMax) continue;
                             if (msl.GetEngageFOV() != selectedWeaponsMissileFOV) continue;
                             sw = weapon.Current;
+                            UpdateSelectedWeaponState(); // Update things like CurrentMissile.
                             break;
                         }
                     }
@@ -4245,6 +4246,7 @@ namespace BDArmory.Control
                 CurrentMissile = null;
             }
             //selectedWeapon = weaponArray[weaponIndex];
+            if (CurrentMissile != null) selectedWeapon = CurrentMissile; // Make sure selectedWeapon matches the actually selected missile.
 
             //gun ripple stuff
             if (selectedWeapon != null && (selectedWeapon.GetWeaponClass() == WeaponClasses.Gun || selectedWeapon.GetWeaponClass() == WeaponClasses.Rocket || selectedWeapon.GetWeaponClass() == WeaponClasses.DefenseLaser))
