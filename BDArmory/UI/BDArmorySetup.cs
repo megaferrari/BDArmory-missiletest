@@ -509,6 +509,8 @@ namespace BDArmory.UI
                 GameEvents.onVesselChange.Add(VesselChange);
             }
             GameEvents.onGameSceneSwitchRequested.Add(OnGameSceneSwitchRequested);
+            GameEvents.onGameStateSave.Add(OnGameStateSave);
+            GameEvents.onGameStateSaved.Add(OnGameStateSaved);
 
             BulletInfo.Load();
             RocketInfo.Load();
@@ -4462,6 +4464,8 @@ namespace BDArmory.UI
             GameEvents.OnGameSettingsApplied.Remove(SaveVolumeSettings);
             GameEvents.onVesselChange.Remove(VesselChange);
             GameEvents.onGameSceneSwitchRequested.Remove(OnGameSceneSwitchRequested);
+            GameEvents.onGameStateSave.Remove(OnGameStateSave);
+            GameEvents.onGameStateSaved.Remove(OnGameStateSaved);
         }
 
         void OnVesselGoOffRails(Vessel v)
@@ -4809,7 +4813,7 @@ namespace BDArmory.UI
             var watch = new System.Diagnostics.Stopwatch();
             float µsResolution = 1e6f / System.Diagnostics.Stopwatch.Frequency;
             Debug.Log($"DEBUG Clock resolution: {µsResolution}µs, {PROF_N} outer loops, {PROF_n} inner loops");
-            float x = 1.234f, y=-1.234f, zx=0, zy=0;
+            float x = 1.234f, y = -1.234f, zx = 0, zy = 0;
             [MethodImpl(MethodImplOptions.AggressiveInlining)] float Abs(float x) { return x < 0 ? -x : x; }
             var func = [MethodImpl(MethodImplOptions.AggressiveInlining)] () => { for (int i = 0; i < PROF_n; ++i) { zx = Mathf.Abs(x); zy = Mathf.Abs(y); } };
             Debug.Log($"DEBUG Mathf.Abs took {ProfileFunc(func, PROF_N) / PROF_n:G3}µs to give {zx}, {zy}");
@@ -4819,7 +4823,7 @@ namespace BDArmory.UI
             Debug.Log($"DEBUG (float)Math.Abs((double)x) took {ProfileFunc(func, PROF_N) / PROF_n:G3}µs to give {zx}, {zy}");
             func = [MethodImpl(MethodImplOptions.AggressiveInlining)] () => { for (int i = 0; i < PROF_n; ++i) { zx = Abs(x); zy = Abs(y); } };
             Debug.Log($"DEBUG Abs(x) {{ return x < 0 ? -x : x; }} took {ProfileFunc(func, PROF_N) / PROF_n:G3}µs to give {zx}, {zy}");
-            func = [MethodImpl(MethodImplOptions.AggressiveInlining)] () => { for (int i = 0; i < PROF_n; ++i) { zx = x < 0?-x:x; zy = y<0?-y:y; } };
+            func = [MethodImpl(MethodImplOptions.AggressiveInlining)] () => { for (int i = 0; i < PROF_n; ++i) { zx = x < 0 ? -x : x; zy = y < 0 ? -y : y; } };
             Debug.Log($"DEBUG inline x<0?-x:x took {ProfileFunc(func, PROF_N) / PROF_n:G3}µs to give {zx}, {zy}");
         }
 
@@ -5140,11 +5144,25 @@ namespace BDArmory.UI
             if (windowSettingsEnabled) ToggleWindowSettings(); // Close the settings window so that the following settings changes don't propagate back into the settings window.
             if (BDArmorySettings.G_LIMITS && (fromTo.from == GameScenes.EDITOR || fromTo.from == GameScenes.FLIGHT))
             {
-                RWPSettings.SyncWithGameSettings(restoreOverridesAndSave: true);
+                RWPSettings.SyncWithGameSettings(restoreOverrides: true);
             }
             if (fromTo.from == GameScenes.FLIGHT && fromTo.to != GameScenes.FLIGHT)
             {
                 DisableAllFXAndProjectiles();
+            }
+        }
+        void OnGameStateSave(ConfigNode node)
+        {
+            if (BDArmorySettings.G_LIMITS)
+            {
+                RWPSettings.SyncWithGameSettings(restoreOverrides: true);
+            }
+        }
+        void OnGameStateSaved(Game game)
+        {
+            if (BDArmorySettings.G_LIMITS)
+            {
+                RWPSettings.SyncWithGameSettings();
             }
         }
         public static void DisableAllFXAndProjectiles()
