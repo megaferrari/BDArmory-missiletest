@@ -58,6 +58,8 @@ if args.ignore:
 plt.figure(figsize=(16, 10), dpi=200)
 plt.plot(scores.transpose(), linewidth=5)
 plt.axhline(color='black')
+plt.xlabel('round')
+plt.ylabel('score')
 if len(names) > 16:  # Roughly half the plot height, put them outside the graph
     plt.legend(names, loc='upper left', bbox_to_anchor=(1, 1))
 else:
