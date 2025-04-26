@@ -4244,6 +4244,8 @@ namespace BDArmory.Control
             {
                 CurrentMissile = null;
             }
+            if (CurrentMissile != null)
+                selectedWeapon = CurrentMissile;
             //selectedWeapon = weaponArray[weaponIndex];
 
             //gun ripple stuff
@@ -6940,8 +6942,11 @@ namespace BDArmory.Control
                 //take target vel into account? //if you're going 250m/s, that's only an extra 500m to the maxRange; if the enemy is closing towards you at 250m/s, that's 250m addition
                 //Max 1.5x engagement, or engagementRange + vel*4?
                 //min 2x engagement, or engagement + 2000m?
-                if (weaponCandidate.GetWeaponClass() != WeaponClasses.Missile || ((MissileBase)weaponCandidate).UseStaticMaxLaunchRange)
-                    if (distanceToTarget > engageableWeapon.GetEngagementRangeMax() + Mathf.Max(1000, (float)(vessel.srf_velocity - targetVessel.srf_velocity).magnitude * 2)) return false; //have AI preemptively begin to lead 2s out from max weapon range
+                if (weaponCandidate.GetWeaponClass() != WeaponClasses.Bomb)
+                {
+                    if (weaponCandidate.GetWeaponClass() != WeaponClasses.Missile || ((MissileBase)weaponCandidate).UseStaticMaxLaunchRange)
+                        if (distanceToTarget > engageableWeapon.GetEngagementRangeMax() + Mathf.Max(1000, (float)(vessel.srf_velocity - targetVessel.srf_velocity).magnitude * 2)) return false; //have AI preemptively begin to lead 2s out from max weapon range
+                }
                 switch (weaponCandidate.GetWeaponClass())
                 {
                     case WeaponClasses.DefenseLaser:
@@ -8371,7 +8376,7 @@ namespace BDArmory.Control
                                 if (((weapon.Current.engageAir && targetsAssigned[TurretID].isFlying) ||
                                     (weapon.Current.engageGround && targetsAssigned[TurretID].isLandedOrSurfaceSplashed) ||
                                     (weapon.Current.engageSLW && targetsAssigned[TurretID].isUnderwater)) //check engagement envelope
-                                    && TargetInTurretRange(weapon.Current.turret, 7, targetsAssigned[TurretID].Vessel.CoM, weapon.Current))
+                                    && TargetInTurretRange(weapon.Current.turret, 7, targetsAssigned[TurretID].Vessel.CoM, weapon.Current)) 
                                 {
                                     weapon.Current.visualTargetVessel = targetsAssigned[TurretID].Vessel; // if target within turret fire zone, assign
                                     firedTargets.Add(targetsAssigned[TurretID]);
@@ -9166,7 +9171,7 @@ namespace BDArmory.Control
             {
                 return false;
             }
-
+			//Add a range check, so no assigning turret against a target far away?
             if (gTarget == default && !guardTarget)
             {
                 if (BDArmorySettings.DEBUG_WEAPONS)
