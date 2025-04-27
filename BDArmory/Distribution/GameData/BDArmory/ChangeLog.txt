@@ -3,6 +3,9 @@
 	- Fix the g-limit overrides from needing to save the persistent savegame, which was leaving spawned craft in play when reverting to the SPH.
 - AI / WM:
 	- Add missing unclamped limits for 3-axis static damping.
+- Weapons:
+	-	Missiles:
+		- Fix check for multi-mode engines being ignited and having fuel.
 - Competition:
 	- Updated parsing and plotting scripts.
 		- Using 'python parse_tournament_log_files.py -w cfg' reads the score weights from the score_weights.cfg file.
