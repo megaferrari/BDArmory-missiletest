@@ -3,6 +3,7 @@
 	- Fix the g-limit overrides from needing to save the persistent savegame, which was leaving spawned craft in play when reverting to the SPH.
 - AI / WM:
 	- Add missing unclamped limits for 3-axis static damping.
+	- Adjust the release of the "Attack" command so that craft don't go dead-stick when under attack but not threatened enough to trigger evasion.
 - Weapons:
 	- Add a "Yaw Standby Angle" slider to gun turrets.
 	- Missiles:
