@@ -534,7 +534,7 @@ namespace BDArmory.Targeting
             if ((mf.vessel != null) && (mf.currentTarget != null) && (mf.currentTarget.weaponManager != null))
             {
                 bool attackingOurVIPs = mf.currentTarget.weaponManager.isVIP && (myMf.Team == mf.currentTarget.weaponManager.Team);
-                return ((attackingOurVIPs == true) ? 1 : -1); // Ranges -1 to 1, 1 if target is attacking our VIP(s), -1 if it is not
+                return ((attackingOurVIPs == true) ? 1 : 0); // Ranges 0 to 1, 1 if target is attacking our VIP(s), 0 if it is not
             }
             else
             {
@@ -548,7 +548,7 @@ namespace BDArmory.Targeting
             if (mf.vessel != null)
             {
                 bool isVIP = mf.isVIP;
-                return ((isVIP == true) ? 1 : -1); // Ranges -1 to 1, 1 if target is an enemy VIP, -1 if it is not
+                return ((isVIP == true) ? 1 : 0); // Ranges 0 to 1, 1 if target is an enemy VIP, 0 if it is not
             }
             else
             {
