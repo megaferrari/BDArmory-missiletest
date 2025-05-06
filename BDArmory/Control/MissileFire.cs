@@ -4935,7 +4935,7 @@ namespace BDArmory.Control
                         if (GetMissilesAway(target.Current)[0] >= maxMissilesOnTarget)
                         {
                             targetsAssigned.Add(target.Current);
-                            if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: Adding {target.Current.Vessel.GetName()} to exclusion list; length: {targetsAssigned.Count}");
+                            if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: {vessel.GetName()} Adding {target.Current.Vessel.GetName()} to exclusion list; length: {targetsAssigned.Count}");
                         }
                     }
                 }
