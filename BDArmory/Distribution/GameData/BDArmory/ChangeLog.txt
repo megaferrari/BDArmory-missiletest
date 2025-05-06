@@ -11,6 +11,7 @@
 		- Fix multi-missile launcher issues when railAmmo > launcher rails on the model.
 		- Fix check for multi-mode engines being ignited and having fuel.
 - Competition:
+	- Add a "defaults" button to the scoring window to reset score weights to their default values.
 	- Updated parsing and plotting scripts.
 		- Using 'python parse_tournament_log_files.py -w cfg' reads the score weights from the score_weights.cfg file.
 		- Using 'python plot_summary.py -i regex' creates the plot ignoring any craft matching the regex string.
