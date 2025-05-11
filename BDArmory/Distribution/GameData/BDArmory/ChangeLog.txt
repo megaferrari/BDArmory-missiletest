@@ -6,6 +6,7 @@
 	- Add 'Ammo' gauges for Countermeasure dispensers for how many CMs they have remaining.
 - AI:
 	- Fix AttackVIP targeting priority impacting target priority weighting if no enemy VIP is present.
+	- When assigning turret targets, AI now checks if target is within max range of the turret.
 - Weapons:
 	- Remove maxEngagementRange (default 5000m) check from bombs when AI is selecting what weapon to use.
 	- Fix aim lead offset for weapons with deploy animations.
