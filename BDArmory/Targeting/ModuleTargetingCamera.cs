@@ -327,6 +327,8 @@ namespace BDArmory.Targeting
                     if (slaveTurrets)
                     {
                         weaponManager.slavingTurrets = false;
+                        weaponManager.slavedPosition = Vector3.zero;
+                        weaponManager.slavedTarget = TargetSignatureData.noTarget;
                     }
                 }
             }

@@ -5247,10 +5247,10 @@ namespace BDArmory.Weapons
                     bool isVessel = weaponManager.mainTGP.lockedVessel != null;
                     slaved = true;
                     targetRadius = isVessel ? weaponManager.mainTGP.lockedVessel.GetRadius() : 35f;
-                    targetPosition = weaponManager.slavedPosition;                         
-                    targetVelocity = isVessel ? weaponManager.mainTGP.lockedVessel.rb_velocity : (weaponManager.slavedVelocity - BDKrakensbane.FrameVelocityV3f);
-                    targetAcceleration = weaponManager.slavedAcceleration;
-                    if (isVessel) targetIsLandedOrSplashed = weaponManager.slavedTarget.vessel.LandedOrSplashed;
+                    targetPosition = weaponManager.slavedPosition;
+                    targetVelocity = Vector3.zero; //tgtCam returns 0 for these
+                    targetAcceleration = Vector3.zero;
+                    if (isVessel) targetIsLandedOrSplashed = weaponManager.mainTGP.lockedVessel.LandedOrSplashed;
                     else targetIsLandedOrSplashed = false;
                     targetAcquired = true;
                     targetAcquisitionType = TargetAcquisitionType.Slaved;
