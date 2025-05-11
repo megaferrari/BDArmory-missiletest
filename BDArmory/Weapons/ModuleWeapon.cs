@@ -5161,7 +5161,7 @@ namespace BDArmory.Weapons
                             }
                             targetAcquired = true;
                             targetAcquisitionType = TargetAcquisitionType.Slaved;
-                            //if (BDArmorySettings.DEBUG_WEAPONS) 
+                            if (BDArmorySettings.DEBUG_WEAPONS) 
                                 Debug.Log($"[BDArmory.ModuleWeapon - {shortName} is tracking target {(isVessel ? weaponManager.slavedTarget.vessel.vesselName : "null target")} via radarlock");
                             return;
                         }
@@ -5215,7 +5215,7 @@ namespace BDArmory.Weapons
                             targetAcquired = true;
                             targetAcquisitionType = TargetAcquisitionType.Radar;
                             radarTarget = true;
-                            //if (BDArmorySettings.DEBUG_WEAPONS) 
+                            if (BDArmorySettings.DEBUG_WEAPONS) 
                                 Debug.Log($"[BDArmory.ModuleWeapon - {shortName} is tracking target {targetData.vessel.vesselName} via radarlock from {targetData.lockedByRadar.part.partInfo.title}");
                             return;
                         }
@@ -5241,7 +5241,7 @@ namespace BDArmory.Weapons
                                 }
                                 targetAcquired = true;
                                 targetAcquisitionType = TargetAcquisitionType.Slaved;
-                                //if (BDArmorySettings.DEBUG_WEAPONS) 
+                                if (BDArmorySettings.DEBUG_WEAPONS) 
                                     Debug.Log($"[BDArmory.ModuleWeapon - {shortName} had no lock for {(visualTargetVessel != null ? visualTargetVessel.vesselName : "'unknown'")}; isVessel? {isVessel}; slaving to primary lock on {weaponManager.slavedTarget.vessel.name}");
                                 return;
                             }
