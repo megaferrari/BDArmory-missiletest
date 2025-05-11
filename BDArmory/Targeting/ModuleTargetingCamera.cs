@@ -900,8 +900,8 @@ namespace BDArmory.Targeting
                 if (GUI.Button(stabilizeRect, "Lock\nTarget", buttonStyle))
                 {
                     GroundStabilize();
-                    ++line; //stabilizerect is two lines tall, so account for that for later incrementing of linecount
                 }
+                ++line; //stabilizerect is two lines tall, so account for that for later incrementing of linecount
             }
             else
             {

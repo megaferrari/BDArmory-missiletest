@@ -1,4 +1,16 @@
-﻿v1.10.0.0
+﻿IMPROVEMENTS / FIXES
+- Sensors:
+	- Add support for slaving turrets via targeting cameras.
+	- Fix 'Slave Turret' occasionally locking the turret to the vessel's origin point or non-target point in space.
+- Countermeasures:
+	- Add 'Ammo' gauges for Countermeasure dispensers for how many CMs they have remaining.
+- AI:
+	- Fix AttackVIP targeting priority impacting target priority weighting if no enemy VIP is present.
+- Weapons:
+	- Remove maxEngagementRange (default 5000m) check from bombs when AI is selecting what weapon to use.
+	- Fix aim lead offset for weapons with deploy animations.
+
+v1.10.0.0
 IMPROVEMENTS / FIXES
 - General:
 	- Fix colliders on the AWACS Radar when using legless variant.
