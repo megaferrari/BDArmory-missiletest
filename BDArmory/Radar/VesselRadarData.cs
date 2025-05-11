@@ -662,13 +662,14 @@ namespace BDArmory.Radar
 
         private bool UpdateSlaveData()
         {
-            if (!weaponManager || !weaponManager.guardMode) //don't turn on auto-turret slaving when in manual control, let players use the button for that
+            if (!weaponManager) //don't turn on auto-turret slaving when in manual control, let players use the button for that
             {
                 return false;
             }
             if (!slaveTurrets || !locked)
             {
                 weaponManager.slavedTarget = TargetSignatureData.noTarget;
+                weaponManager.slavingTurrets = false;
                 return false;
             }
             weaponManager.slavingTurrets = true;
@@ -980,6 +981,8 @@ namespace BDArmory.Radar
             {
                 weaponManager.slavingTurrets = false;
             }
+            weaponManager.slavedPosition = Vector3.zero;
+            weaponManager.slavedTarget = TargetSignatureData.noTarget; //reset and null these so hitting the slave target button on a weapon later doesn't lock it to a legacy position/target
         }
 
         private void OnGUI()

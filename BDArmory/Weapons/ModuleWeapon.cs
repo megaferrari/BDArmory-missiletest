@@ -5138,9 +5138,9 @@ namespace BDArmory.Weapons
                     visRange = (visualTargetVessel.transform.position - transform.position).sqrMagnitude < weaponManager.guardRange * weaponManager.guardRange;
                 }
                 //moving radar aiming/turret slaving sections ahead of legacy, else they'll never proc outside of manual control or very short visual range settings
-                if (weaponManager.vesselRadarData && weaponManager.vesselRadarData.locked) //would only apply if fixed gun, else VRD would slave the weapon and the above block applies
+                if (weaponManager.vesselRadarData && weaponManager.vesselRadarData.locked && weaponManager.slavedPosition != Vector3.zero) //would only apply if fixed gun, else VRD would slave the weapon and the above block applies
                 {
-                    if (!(weaponManager.slavingTurrets && turret)) //slaving fixed guns to target, turrets done later
+                    if (!turret || maxPitch + yawRange == 0) //slaving fixed guns to target, turrets done later
                     {
                         bool isVessel = weaponManager.slavedTarget.vessel != null;
                         if (!isVessel || !(visRange && RadarUtils.GetVesselChaffFactor(weaponManager.slavedTarget.vessel) < 1f))
@@ -5149,14 +5149,15 @@ namespace BDArmory.Weapons
                             targetRadius = isVessel ? weaponManager.slavedTarget.vessel.GetRadius() : 35f;
                             targetPosition = weaponManager.slavedPosition; //set fixed gun radar targeting to primary radar lock (which is presumably the active weaponManager.GuardTarget)                           
                             targetVelocity = isVessel ? weaponManager.slavedTarget.vessel.rb_velocity : (weaponManager.slavedVelocity - BDKrakensbane.FrameVelocityV3f);
+                            targetAcceleration = weaponManager.slavedAcceleration;
                             if (isVessel)
                             {
-                                targetAcceleration = weaponManager.slavedTarget.vessel.acceleration;
+                                //weaponManager.slavedTarget.vessel.acceleration; //this and weaponmanager.slavedAcceleration are going to return the exact same thing
                                 targetIsLandedOrSplashed = weaponManager.slavedTarget.vessel.LandedOrSplashed;
                             }
                             else
                             {
-                                targetAcceleration = weaponManager.slavedAcceleration;
+                                //targetAcceleration = weaponManager.slavedAcceleration;
                                 targetIsLandedOrSplashed = false;
                             }
                             targetAcquired = true;
@@ -5188,7 +5189,7 @@ namespace BDArmory.Weapons
                         */
                     }
                     //else, we have turrets and some radar locks; can we target the former with the latter?
-                    if (weaponManager.slavingTurrets && turret)
+                    else
                     {
                         TargetSignatureData targetData = TargetSignatureData.noTarget;
                         List<TargetSignatureData> possibleTargets = weaponManager.vesselRadarData.GetLockedTargets();
@@ -5229,16 +5230,9 @@ namespace BDArmory.Weapons
                                 targetPosition = weaponManager.slavedPosition; //if no lock/ no lock on current target vessel, this is going to be different that what we intended to target
                                 //currently overriding multi-turret multi-targeting if enabled as all turrets slaved to WM's guardTarget/current active radarLock
                                 targetVelocity = isVessel ? weaponManager.slavedTarget.vessel.rb_velocity : (weaponManager.slavedVelocity - BDKrakensbane.FrameVelocityV3f);
-                                if (isVessel)
-                                {
-                                    targetAcceleration = weaponManager.slavedTarget.vessel.acceleration;
-                                    targetIsLandedOrSplashed = weaponManager.slavedTarget.vessel.LandedOrSplashed;
-                                }
-                                else
-                                {
-                                    targetAcceleration = weaponManager.slavedAcceleration;
-                                    targetIsLandedOrSplashed = false;
-                                }
+                                targetAcceleration = weaponManager.slavedAcceleration;
+                                if (isVessel) targetIsLandedOrSplashed = weaponManager.slavedTarget.vessel.LandedOrSplashed;
+                                else targetIsLandedOrSplashed = false;
                                 targetAcquired = true;
                                 targetAcquisitionType = TargetAcquisitionType.Slaved;
                                 if (BDArmorySettings.DEBUG_WEAPONS) 
@@ -5247,6 +5241,22 @@ namespace BDArmory.Weapons
                             }
                         }
                     }
+                }
+                if (weaponManager.mainTGP != null && ModuleTargetingCamera.windowIsOpen && weaponManager.mainTGP.slaveTurrets && weaponManager.slavedPosition != Vector3.zero)
+                {
+                    bool isVessel = weaponManager.mainTGP.lockedVessel != null;
+                    slaved = true;
+                    targetRadius = isVessel ? weaponManager.mainTGP.lockedVessel.GetRadius() : 35f;
+                    targetPosition = weaponManager.slavedPosition;                         
+                    targetVelocity = isVessel ? weaponManager.mainTGP.lockedVessel.rb_velocity : (weaponManager.slavedVelocity - BDKrakensbane.FrameVelocityV3f);
+                    targetAcceleration = weaponManager.slavedAcceleration;
+                    if (isVessel) targetIsLandedOrSplashed = weaponManager.slavedTarget.vessel.LandedOrSplashed;
+                    else targetIsLandedOrSplashed = false;
+                    targetAcquired = true;
+                    targetAcquisitionType = TargetAcquisitionType.Slaved;
+                    if (BDArmorySettings.DEBUG_WEAPONS)
+                        Debug.Log($"[BDArmory.ModuleWeapon - {shortName} is tracking target {(isVessel ? weaponManager.mainTGP.lockedVessel.vesselName : "null target")} via tgtCamera");
+                    return;
                 }
                 // within visual range and no radar aiming/need precision visual targeting of specific subsystems
                 if (aiControlled && visualTargetVessel && visRange)

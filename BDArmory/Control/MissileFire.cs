@@ -457,7 +457,7 @@ namespace BDArmory.Control
 
         //weapon slaving
         public bool slavingTurrets = false;
-        public Vector3 slavedPosition;
+        public Vector3 slavedPosition = Vector3.zero;
         public Vector3 slavedVelocity;
         public Vector3 slavedAcceleration;
         public TargetSignatureData slavedTarget;
@@ -4938,7 +4938,7 @@ namespace BDArmory.Control
                         }
                     }
                 }
-                if (targetsAssigned.Count == BDATargetManager.TargetList(Team).Count) //oops, already fired missiles at all available targets
+                if (targetsAssigned.Count >= BDATargetManager.TargetList(Team).Count) //oops, already fired missiles at all available targets
                 {
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileFire]: max targets fired on, resetting target list!");
                     targetsAssigned.Clear(); //clear targets tried, so AI can track best current target until such time as it can fire again
