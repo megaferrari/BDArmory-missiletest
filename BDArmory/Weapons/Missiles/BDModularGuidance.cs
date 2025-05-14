@@ -189,7 +189,7 @@ namespace BDArmory.Weapons.Missiles
                     GuidanceMode = GuidanceModes.Orbital;
                     GuidanceLabel = "Orbital";
                     break;
-				case 8:
+                case 8:
                     GuidanceMode = GuidanceModes.AAMLoft;
                     GuidanceLabel = "AAM Loft";
                     break;
@@ -583,16 +583,15 @@ namespace BDArmory.Weapons.Missiles
 
         public static bool EngineIgnitedAndHasFuel(Part p)
         {
-            using (List<PartModule>.Enumerator m = p.Modules.GetEnumerator())
-                while (m.MoveNext())
-                {
-                    PartModule pm = m.Current;
-                    ModuleEngines eng = pm as ModuleEngines;
-                    if (eng != null)
-                    {
-                        return (eng.EngineIgnited && (!eng.getFlameoutState || eng.flameoutBar == 0 || eng.status == "Nominal"));
-                    }
-                }
+            using List<PartModule>.Enumerator m = p.Modules.GetEnumerator();
+            while (m.MoveNext())
+            {
+                PartModule pm = m.Current;
+                ModuleEngines eng = pm as ModuleEngines;
+                if (eng == null) continue;
+                if (eng.EngineIgnited && (!eng.getFlameoutState || eng.flameoutBar == 0 || eng.status == "Nominal"))
+                    return true;
+            }
             return false;
         }
 
@@ -938,13 +937,13 @@ namespace BDArmory.Weapons.Missiles
                 Vector3 targetAcceleration = TargetAcceleration;
                 Vector3 targetVelocity = TargetVelocity + Time.fixedDeltaTime * targetAcceleration;
                 Vector3 targetPosition = TargetPosition + TimeWarp.fixedDeltaTime * targetVelocity;
-                
+
                 Vector3 targetVector = targetPosition - vessel.CoM;
                 Vector3 relVel = vessel.Velocity() - targetVelocity;
 
                 Vector3 relVelNrm = relVel.normalized;
                 Vector3 interceptVector;
-                float relVelmag = relVel.magnitude;  
+                float relVelmag = relVel.magnitude;
 
                 // Calculate max accel
                 Vector3 propulsionVector = vessel.transform.InverseTransformDirection(-GetFireVector(engines, rcsThrusters, -forwardDir));
@@ -1020,7 +1019,7 @@ namespace BDArmory.Weapons.Missiles
             rcsThrusters = VesselModuleRegistry.GetModules<ModuleRCS>(vessel);
 
             // Set up clearance maneuver
-            vacuumClearanceState = (engines.Any() && vessel.InVacuum()) ? VacuumClearanceStates.Clearing : VacuumClearanceStates.Cleared; 
+            vacuumClearanceState = (engines.Any() && vessel.InVacuum()) ? VacuumClearanceStates.Clearing : VacuumClearanceStates.Cleared;
 
             // Get a probe core and align its reference transform with the propulsion vector.
             ModuleCommand commander = VesselModuleRegistry.GetModuleCommand(vessel);
@@ -1201,7 +1200,7 @@ namespace BDArmory.Weapons.Missiles
             {
                 if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.BDModularGuidance]: Missile CheckMiss showed miss for {vessel.vesselName}");
 
-                var pilotAI = VesselModuleRegistry.GetModule<BDModulePilotAI>(vessel); // Get the pilot AI if the  missile has one.
+                var pilotAI = VesselModuleRegistry.GetModule<BDModulePilotAI>(vessel); // Get the pilot AI if the missile has one.
                 if (pilotAI != null)
                 {
                     ResetMissile();
@@ -1349,7 +1348,7 @@ namespace BDArmory.Weapons.Missiles
                         }
                         else
                             s.mainThrottle = Throttle;
-                        
+
                         // Update SAS
                         if (attitude == Vector3.zero) return;
 

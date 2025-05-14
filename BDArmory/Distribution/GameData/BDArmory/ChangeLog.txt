@@ -3,12 +3,16 @@ IMPROVEMENTS / FIXES
 	- Fix the g-limit overrides from needing to save the persistent savegame, which was leaving spawned craft in play when reverting to the SPH.
 - AI / WM:
 	- Add missing unclamped limits for 3-axis static damping.
+	- Adjust the release of the "Attack" command so that craft don't go dead-stick when under attack but not threatened enough to trigger evasion.
 - Weapons:
-  - Missiles:
-    - Add improved missile controller
-    - Fix multi-missile launcher issues when railAmmo > launcher rails on the model
-	- Add WeaveUseAGMDescentRatio and WeaveRandomRange to weave guidance, when WeaveUseAGMDescentRatio is true it forces the use of agmDescentRatio to allow for sea-skimming weave missiles. WeaveRandomRange is a float that allows for randomization of weave maneuver parameters.
+	- Add a "Yaw Standby Angle" slider to gun turrets.
+	- Missiles:
+		- Add improved missile controller.
+		- Fix multi-missile launcher issues when railAmmo > launcher rails on the model.
+		- Fix check for multi-mode engines being ignited and having fuel.
+    - Add WeaveUseAGMDescentRatio and WeaveRandomRange to weave guidance, when WeaveUseAGMDescentRatio is true it forces the use of agmDescentRatio to allow for sea-skimming weave missiles. WeaveRandomRange is a float that allows for randomization of weave maneuver parameters.
 - Competition:
+	- Add a "defaults" button to the scoring window to reset score weights to their default values.
 	- Updated parsing and plotting scripts.
 		- Using 'python parse_tournament_log_files.py -w cfg' reads the score weights from the score_weights.cfg file.
 		- Using 'python plot_summary.py -i regex' creates the plot ignoring any craft matching the regex string.
@@ -329,7 +333,7 @@ IMPROVEMENTS / FIXES
 - Spawning:
 	- Disable waiting for terrain to settle if the spawn altitude is >10km.
 	- Add a couple of 30s timeouts to spawning initialisation to avoid a potential soft-lock.
-  
+
 1.7.0.0
 IMPROVEMENTS / FIXES
 - General:
@@ -654,7 +658,7 @@ IMPROVEMENTS / FIXES
 		- Fix radar and heat targeting leading targets excessively (most apparent in orbit).
 		- Fix missile drag curve having negative drag at ~25 deg AoA.
 		- Fix AI occasionally not firing radar missiles; Git Issue #573.
-		- Change target offset on missiles with continous rod warheads from Detonation Distance / 3 to  Min(Blast Radius / 3, Detonation Distance / 3).
+		- Change target offset on missiles with continous rod warheads from Detonation Distance / 3 to Min(Blast Radius / 3, Detonation Distance / 3).
 		- Fix missile RCS FX constantly displaying.
 		- Missiles with RCS/Orbital homing types (i.e. HEKV) in vacuum now perform turn maneuver after launch to face target and only throttle up once facing target.
 		- Fixes to anti-missile missile point-defense logic to support missile turret launched interceptors.
@@ -1174,7 +1178,7 @@ IMPROVEMENTS / FIXES
 - Competition:
 	- Pinata mode now temporarily disables Camera AutoSwitch, switches camera to Pinata until it is destroyed.
 	- Update the tournament parser to compute non-negative scores per round for waypoint races.
-  
+
 v1.6.0.2
 IMPROVEMENTS / FIXES
 - UI:
@@ -1572,7 +1576,7 @@ IMPROVEMENTS / FIXES
 	- Allow spawning custom templates with only 1 team if not immediately starting a competition.
 	- Allow spawning non-valid craft via the custom spawn templates if not immediately starting a competition.
 - RWP:
-	- Fixes for remote orchestration.  
+	- Fixes for remote orchestration.
 	- Improvements to Spacehacks repulsor code; will no longer shred landed ships.
 		- Landing gear will now serve as repulsors when Repulsor mode is enabled instead of effect propagating through CoM, should result in more stable hovercraft.
 
@@ -1755,7 +1759,7 @@ IMPROVEMENTS / FIXES
 	- Adjust capitalization of "sounds" folders for parts to be consistent.
 	- Fix memory leaks caught by KSPCF.
 	- Make wheels susceptible to bullets and explosions too.
-	- Fix off-centered arrow on inline radome texture  Git Issue #409
+	- Fix off-centered arrow on inline radome texture Git Issue #409
 	- Re-fix lead issue on Apple Silicon.
 	- Adds optional adjustable Logarithmic HP clamp, replacing the Proc Part Max HP slider.
 	- Adds optional toggle to disable lift from colliderless PWing edges for better balance with stock wings/prevent pwing abuse.
@@ -1839,7 +1843,7 @@ IMPROVEMENTS / FIXES
 	- Adjusted stats for S-Glass and Kevlar materials to have realistic RHA equivalency.
 		- Re-implemented Tate-Alekseevksy equation for low-ductility materials.
 	- Added debug console output for armor penetration behavior. Now when Debug -> Armor is on, console will output armor penetration parameters.
-  
+
 v1.5.1.2
 FIXES
 - Fix adjustable armor unclamped scaling.
@@ -2605,9 +2609,9 @@ IMPROVEMENTS
 	-Armor Panel HP now directly proportional to armor integrity.
 	-ModuleReactiveArmor has been rebuilt and now works.
 	-Adds Reactive Armor example part.
-  
+
 ADDED/REMOVED/CHANGED SETTINGS VALUES
-	- Vessel-Relative Bullet Checks in advanced Gameplay settings.  
+	- Vessel-Relative Bullet Checks in advanced Gameplay settings.
 	- Armor Reset toggle split into separate Armor Reset and Hull Reset toggles.
 
 v1.4.11.2
@@ -3961,7 +3965,7 @@ v1.2.4
 
 v1.2.3
 * NEW FEATURES:
-	* Recompiled for KSP 1.5.1  
+	* Recompiled for KSP 1.5.1
 	* EC per shot for energy weapons like Rail guns. #486
 	* EMP Weapons logic.
 	* Modular Missiles: Min speed before guidance trigger, time between stages.
@@ -4004,15 +4008,11 @@ v1.2.2.2a
 * FIXES
 * added in missing high speed missle fix.  somehow got lost in the merge migration.
 
-v1.2.2.2a
-* FIXES
-* added in missing high speed missle fix.  somehow got lost in the merge migration.
-
 v1.2.2.2
 * Recompiled for KSP 1.4.5
 
 * FIXES
-	*Error spam in Log when a radar is destroyed.  An orphaned index was not properly being updated. 
+	*Error spam in Log when a radar is destroyed. An orphaned index was not properly being updated. 
 	 Reported in BDAc Forum post: https://forum.kerbalspaceprogram.com/index.php?/topic/155014-14x-bdarmory-continued-v1221-7102018-vessel-mover-camera-tools-bdmk22-destruction-effects-burn-together/&do=findComment&comment=3425233
 	 Thanks to greydragon70 for his thoughtful evaluation of BDac and issue reporting.
 	* Corrected an error where high speed missiles would sometimes not detonate in the correct location.

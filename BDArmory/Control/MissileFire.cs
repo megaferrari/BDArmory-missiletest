@@ -4226,18 +4226,19 @@ namespace BDArmory.Control
             if (selectedWeapon != null && (selectedWeapon.GetWeaponClass() == WeaponClasses.Bomb || selectedWeapon.GetWeaponClass() == WeaponClasses.Missile || selectedWeapon.GetWeaponClass() == WeaponClasses.SLW))
             {
                 //Debug.Log("[BDArmory.MissileFire]: =====selected weapon: " + selectedWeapon.GetPart().name);
-                if (!CurrentMissile || CurrentMissile.GetPartName() != selectedWeapon.GetPartName() || CurrentMissile.engageRangeMax != selectedWeaponsEngageRangeMax || CurrentMissile.missileFireAngle != selectedWeaponsMissileFOV)
+                if (!CurrentMissile || CurrentMissile.GetPartName() != selectedWeapon.GetPartName() || CurrentMissile.engageRangeMax != selectedWeaponsEngageRangeMax || CurrentMissile.missileFireAngle != selectedWeaponsMissileFOV || CurrentMissile.vessel != vessel)
                 {
-                    using (var Missile = VesselModuleRegistry.GetModules<MissileBase>(vessel).GetEnumerator())
-                        while (Missile.MoveNext())
-                        {
-                            if (Missile.Current == null) continue;
-                            if (Missile.Current.GetPartName() != selectedWeapon.GetPartName()) continue;
-                            if (Missile.Current.launched) continue;
-                            if (Missile.Current.engageRangeMax != selectedWeaponsEngageRangeMax) continue;
-                            if (Missile.Current.missileFireAngle != selectedWeaponsMissileFOV) continue;
-                            CurrentMissile = Missile.Current;
-                        }
+                    using var Missile = VesselModuleRegistry.GetModules<MissileBase>(vessel).GetEnumerator();
+                    while (Missile.MoveNext())
+                    {
+                        if (Missile.Current == null) continue;
+                        if (Missile.Current.GetPartName() != selectedWeapon.GetPartName()) continue;
+                        if (Missile.Current.launched) continue;
+                        if (Missile.Current.engageRangeMax != selectedWeaponsEngageRangeMax) continue;
+                        if (Missile.Current.missileFireAngle != selectedWeaponsMissileFOV) continue;
+                        CurrentMissile = Missile.Current;
+                        break;
+                    }
                     //CurrentMissile = selectedWeapon.GetPart().FindModuleImplementing<MissileBase>();
                 }
             }
@@ -4934,7 +4935,7 @@ namespace BDArmory.Control
                         if (GetMissilesAway(target.Current)[0] >= maxMissilesOnTarget)
                         {
                             targetsAssigned.Add(target.Current);
-                            if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: Adding {target.Current.Vessel.GetName()} to exclusion list; length: {targetsAssigned.Count}");
+                            if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: {vessel.GetName()} Adding {target.Current.Vessel.GetName()} to exclusion list; length: {targetsAssigned.Count}");
                         }
                     }
                 }

@@ -1867,7 +1867,7 @@ namespace BDArmory.Weapons
                 Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideTrue");//"Revert Aim Override"
             else
                 Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideFalse");//"Aim With This Weapon"
-               
+
             GUIUtils.RefreshAssociatedWindows(part);
         }
 
@@ -5236,7 +5236,7 @@ namespace BDArmory.Weapons
                                 }
                                 targetAcquired = true;
                                 targetAcquisitionType = TargetAcquisitionType.Slaved;
-                                if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.ModuleWeapon - {shortName} had no lock for {(visualTargetVessel != null ? visualTargetVessel.vesselName : "'unknown'")}; slaving to primary lock on {weaponManager.slavedTarget.vessel.name}");
+                                if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.ModuleWeapon - {shortName} had no lock for {(visualTargetVessel != null ? visualTargetVessel.vesselName : "'unknown'")}; slaving to primary lock{(isVessel ? $" on {weaponManager.slavedTarget.vessel.name}" : "")}");
                                 return;
                             }
                         }

@@ -486,7 +486,7 @@ namespace BDArmory.VesselSpawning
         }
 
         #region Scoring (in-game)
-        public static Dictionary<string, float> weights = new()
+        public static readonly Dictionary<string, float> defaultWeights = new()
         {
             {"Clean Kills",             3f},
             {"Assists",                 1.5f},
@@ -506,6 +506,7 @@ namespace BDArmory.VesselSpawning
             {"Parts Lost To Asteroids", 0f},
             // FIXME Add tag fields?
         };
+        public static Dictionary<string, float> weights = new(defaultWeights);
 
         public static void SaveWeights()
         {
