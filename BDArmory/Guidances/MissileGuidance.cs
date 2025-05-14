@@ -205,9 +205,9 @@ namespace BDArmory.Guidances
                     gHorz = -gHorz;
 
                 if (gVert != 0.0f)
-                    gVert += gRand * UnityEngine.Random.value;
+                    gVert += gRand * (2f * UnityEngine.Random.value - 1f);
                 if (gHorz != 0.0f)
-                    gHorz += gRand * UnityEngine.Random.value;
+                    gHorz += gRand * (2f * UnityEngine.Random.value - 1f);
             }
             else
             {
