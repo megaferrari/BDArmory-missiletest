@@ -2225,7 +2225,8 @@ namespace BDArmory.Weapons
                 && WMgrAuthorized())
             {
                 bool effectsShot = false;
-                CheckLoadedAmmo();
+                if (!useRippleFire || barrelIndex == 0)
+                    CheckLoadedAmmo();
                 //Transform[] fireTransforms = part.FindModelTransforms("fireTransform");
                 for (float iTime = Mathf.Min(timeSinceFired - timeGap, TimeWarp.fixedDeltaTime); iTime > 1e-4f; iTime -= timeGap) // Use 1e-4f instead of 0 to avoid jitter.
                 {
