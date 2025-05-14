@@ -317,6 +317,9 @@ namespace BDArmory.Weapons.Missiles
         [KSPField]
         public float WeaveFactor = 1f; // Weave Guidance Factor (higher means more weave, lower means less)
 
+        [KSPField]
+        public bool WeaveUseAGMDescentRatio = false; // Weave Guidance will use agmDescentRatio as a floor
+
         protected float WeaveOffset = -1f;
 
         protected Vector3 WeaveStart = Vector3.zero;
