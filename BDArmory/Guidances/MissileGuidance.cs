@@ -263,7 +263,7 @@ namespace BDArmory.Guidances
 
                 float altDiff = Vector3.Dot(aimPos, upDirection) - Vector3.Dot(missileVessel.CoM, upDirection) + (float)missileVessel.altitude - Mathf.Max(FlightGlobals.getAltitudeAtPos(targetPosition), 0f);
 
-                if (altDiff > altitudeClamp)
+                if (altDiff < altitudeClamp)
                 {
                     aimPos = aimPos + (altitudeClamp - altDiff) * upDirection;
                 }
