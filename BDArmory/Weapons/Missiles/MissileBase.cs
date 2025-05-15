@@ -1275,7 +1275,7 @@ namespace BDArmory.Weapons.Missiles
                 {
                     if (radarLOAL)
                     {
-                        if (radarLOALSearching)
+                        if (!radarLOALSearching)
                         {
                             radarLOALSearching = true;
                             startDirection = GetForwardTransform();
