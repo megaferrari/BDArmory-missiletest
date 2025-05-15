@@ -457,7 +457,7 @@ namespace BDArmory.Control
 
         //weapon slaving
         public bool slavingTurrets = false;
-        public Vector3 slavedPosition;
+        public Vector3 slavedPosition = Vector3.zero;
         public Vector3 slavedVelocity;
         public Vector3 slavedAcceleration;
         public TargetSignatureData slavedTarget;
@@ -4246,6 +4246,8 @@ namespace BDArmory.Control
             {
                 CurrentMissile = null;
             }
+            if (CurrentMissile != null)
+                selectedWeapon = CurrentMissile;
             //selectedWeapon = weaponArray[weaponIndex];
             if (CurrentMissile != null) selectedWeapon = CurrentMissile; // Make sure selectedWeapon matches the actually selected missile.
 
@@ -4939,7 +4941,7 @@ namespace BDArmory.Control
                         }
                     }
                 }
-                if (targetsAssigned.Count == BDATargetManager.TargetList(Team).Count) //oops, already fired missiles at all available targets
+                if (targetsAssigned.Count >= BDATargetManager.TargetList(Team).Count) //oops, already fired missiles at all available targets
                 {
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileFire]: max targets fired on, resetting target list!");
                     targetsAssigned.Clear(); //clear targets tried, so AI can track best current target until such time as it can fire again
@@ -6203,7 +6205,7 @@ namespace BDArmory.Control
                                     bool candidateGimbal = Gun.turret;
                                     float candidateMinrange = Gun.engageRangeMin;
                                     float candidateMaxRange = Gun.engageRangeMax;
-                                    float candidateTraverse = Gun.yawRange * Gun.maxPitch;
+                                    float candidateTraverse = Gun.yawRange * (Gun.maxPitch - Gun.minPitch);
                                     float candidateRadius = currentTarget.Vessel.GetRadius(Gun.fireTransforms[0].forward, target.bounds);
                                     float candidateCaliber = Gun.caliber;
                                     Transform fireTransform = Gun.fireTransforms[0];
@@ -6943,8 +6945,11 @@ namespace BDArmory.Control
                 //take target vel into account? //if you're going 250m/s, that's only an extra 500m to the maxRange; if the enemy is closing towards you at 250m/s, that's 250m addition
                 //Max 1.5x engagement, or engagementRange + vel*4?
                 //min 2x engagement, or engagement + 2000m?
-                if (weaponCandidate.GetWeaponClass() != WeaponClasses.Missile || ((MissileBase)weaponCandidate).UseStaticMaxLaunchRange)
-                    if (distanceToTarget > engageableWeapon.GetEngagementRangeMax() + Mathf.Max(1000, (float)(vessel.srf_velocity - targetVessel.srf_velocity).magnitude * 2)) return false; //have AI preemptively begin to lead 2s out from max weapon range
+                if (weaponCandidate.GetWeaponClass() != WeaponClasses.Bomb)
+                {
+                    if (weaponCandidate.GetWeaponClass() != WeaponClasses.Missile || ((MissileBase)weaponCandidate).UseStaticMaxLaunchRange)
+                        if (distanceToTarget > engageableWeapon.GetEngagementRangeMax() + Mathf.Max(1000, (float)(vessel.srf_velocity - targetVessel.srf_velocity).magnitude * 2)) return false; //have AI preemptively begin to lead 2s out from max weapon range
+                }
                 switch (weaponCandidate.GetWeaponClass())
                 {
                     case WeaponClasses.DefenseLaser:
@@ -8363,7 +8368,7 @@ namespace BDArmory.Control
 
                     if (multiTargetNum > 1)
                     {
-                        if (weapon.Current.turret)
+                        if (weapon.Current.turret && (weapon.Current.maxPitch > weapon.Current.minPitch || weapon.Current.yawRange > 0))
                         {
                             if (TurretID >= Mathf.Min((targetsAssigned.Count), multiTargetNum))
                             {
@@ -8374,7 +8379,7 @@ namespace BDArmory.Control
                                 if (((weapon.Current.engageAir && targetsAssigned[TurretID].isFlying) ||
                                     (weapon.Current.engageGround && targetsAssigned[TurretID].isLandedOrSurfaceSplashed) ||
                                     (weapon.Current.engageSLW && targetsAssigned[TurretID].isUnderwater)) //check engagement envelope
-                                    && TargetInTurretRange(weapon.Current.turret, 7, targetsAssigned[TurretID].Vessel.CoM, weapon.Current))
+                                    && TargetInTurretRange(weapon.Current.turret, 7, targetsAssigned[TurretID].Vessel.CoM, weapon.Current)) 
                                 {
                                     weapon.Current.visualTargetVessel = targetsAssigned[TurretID].Vessel; // if target within turret fire zone, assign
                                     firedTargets.Add(targetsAssigned[TurretID]);
@@ -9169,7 +9174,6 @@ namespace BDArmory.Control
             {
                 return false;
             }
-
             if (gTarget == default && !guardTarget)
             {
                 if (BDArmorySettings.DEBUG_WEAPONS)
@@ -9179,7 +9183,7 @@ namespace BDArmory.Control
                 return false;
             }
             if (gTarget == default) gTarget = guardTarget.CoM;
-
+            if (weapon != null && (gTarget - weapon.fireTransforms[0].transform.position).sqrMagnitude > (weapon.engageRangeMax * 1.25f) * (weapon.engageRangeMax * 1.25f)) return false; //target too far away
             Transform turretTransform = turret.yawTransform.parent;
             Vector3 direction = gTarget - turretTransform.position;
             if (weapon != null && weapon.bulletDrop) // Account for bullet drop (rough approximation not accounting for target movement).
