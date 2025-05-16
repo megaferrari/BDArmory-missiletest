@@ -6,6 +6,8 @@
 	- Adjust the release of the "Attack" command so that craft don't go dead-stick when under attack but not threatened enough to trigger evasion.
 	- Fix AttackVIP targeting priority impacting target priority weighting if no enemy VIP is present.
 	- When assigning turret targets, AI now checks if target is within max range of the turret.
+	- Add an option to disable the behaviour of disabling guard mode when vessels are spawned.
+	- Fix pilot AI's standby mode to automatically trigger AG10 and enable engines if necessary when a threat is detected.
 - Countermeasures:
 	- Add 'Ammo' gauges for Countermeasure dispensers for how many CMs they have remaining.
 - Sensors:
