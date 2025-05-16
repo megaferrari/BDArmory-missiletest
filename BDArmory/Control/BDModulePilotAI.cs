@@ -2377,7 +2377,7 @@ namespace BDArmory.Control
                     if (weapon != null)
                     {
                         Vector3 weaponPosition, weaponDirection;
-                        if (weapon.turret) // Don't apply lead offset and weapon offsets for turrets.
+                        if (weapon.turret && (weapon.yawRange > 0 || weapon.maxPitch > weapon.minPitch)) // Don't apply lead offset and weapon offsets for turrets.
                         {
                             weaponPosition = vessel.ReferenceTransform.position;
                             weaponDirection = vesselTransform.up;

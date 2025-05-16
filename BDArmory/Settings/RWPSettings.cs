@@ -180,7 +180,6 @@ namespace BDArmory.Settings
 			}},
 			{74,new(){
 			}},
-
 		};
 		public static Dictionary<int, int> RWPRoundToIndex = new() { { 0, 0 } }, RWPIndexToRound = new() { { 0, 0 } }; // Helpers for the UI slider.
 		static readonly HashSet<string> currentFilter = [];

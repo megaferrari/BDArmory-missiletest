@@ -1588,7 +1588,10 @@ namespace BDArmory.Weapons
                     turret.SetReferenceTransform(fireTransforms[0]);
                     break;
                 }
-
+            if (yawRange == 0 && maxPitch == minPitch)
+            {
+                turret = null;
+            }
             if (!turret)
             {
                 Fields["onlyFireInRange"].guiActive = false;
@@ -2510,7 +2513,7 @@ namespace BDArmory.Weapons
                         rayDirection = VectorUtils.GaussianDirectionDeviation(tf.forward, maxDeviation / 2);
                         targetDirectionLR = rayDirection.normalized;
                     }
-                    /*else if (((((visualTargetVessel != null && visualTargetVessel.loaded) || slaved) || (isAPS && (tgtShell != null || tgtRocket != null))) && (turret && (turret.yawRange > 0 && turret.maxPitch > 0))) // causes laser to snap to target CoM if close enough. changed to only apply to turrets
+                    /*else if (((((visualTargetVessel != null && visualTargetVessel.loaded) || slaved) || (isAPS && (tgtShell != null || tgtRocket != null))) && (turret && (turret.yawRange > 0 || turret.maxPitch > turret.minPitch))) // causes laser to snap to target CoM if close enough. changed to only apply to turrets
 						&& Vector3.Angle(rayDirection, targetDirection) < (isAPS ? 1f : 0.25f)) //if turret and within .25 deg (or 1 deg if APS), snap to target
 					{
 						//targetDirection = targetPosition + (relativeVelocity * Time.fixedDeltaTime) * 2 - tf.position;
@@ -3453,7 +3456,6 @@ namespace BDArmory.Weapons
                 return;
 
             StopShutdownStartupRoutines();
-            UpdateOffsetWeapon(); // Re-calculate offset/non-centerline weapon corrections on weapon selection
             startupRoutine = StartCoroutine(StartupRoutine(secondaryFiring: secondaryFiring));
         }
 
@@ -3675,7 +3677,7 @@ namespace BDArmory.Weapons
                         smoothedPartVelocity = part.rb.velocity;
                         smoothedPartAcceleration = vessel.acceleration_immediate;
                     }
-                    if (yawRange > 0 || maxPitch - minPitch > 0)
+                    if (yawRange > 0 || maxPitch > minPitch)
                     {
                         //MouseControl
                         var camera = FlightCamera.fetch;
@@ -5137,9 +5139,9 @@ namespace BDArmory.Weapons
                     visRange = (visualTargetVessel.transform.position - transform.position).sqrMagnitude < weaponManager.guardRange * weaponManager.guardRange;
                 }
                 //moving radar aiming/turret slaving sections ahead of legacy, else they'll never proc outside of manual control or very short visual range settings
-                if (weaponManager.vesselRadarData && weaponManager.vesselRadarData.locked) //would only apply if fixed gun, else VRD would slave the weapon and the above block applies
+                if (weaponManager.vesselRadarData && weaponManager.vesselRadarData.locked && weaponManager.slavedPosition != Vector3.zero) //would only apply if fixed gun, else VRD would slave the weapon and the above block applies
                 {
-                    if (!(weaponManager.slavingTurrets && turret)) //slaving fixed guns to target, turrets done later
+                    if (!turret || (maxPitch == minPitch && yawRange == 0)) //slaving fixed guns to target, turrets done later
                     {
                         bool isVessel = weaponManager.slavedTarget.vessel != null;
                         if (!isVessel || !(visRange && RadarUtils.GetVesselChaffFactor(weaponManager.slavedTarget.vessel) < 1f))
@@ -5148,18 +5150,21 @@ namespace BDArmory.Weapons
                             targetRadius = isVessel ? weaponManager.slavedTarget.vessel.GetRadius() : 35f;
                             targetPosition = weaponManager.slavedPosition; //set fixed gun radar targeting to primary radar lock (which is presumably the active weaponManager.GuardTarget)                           
                             targetVelocity = isVessel ? weaponManager.slavedTarget.vessel.rb_velocity : (weaponManager.slavedVelocity - BDKrakensbane.FrameVelocityV3f);
+                            targetAcceleration = weaponManager.slavedAcceleration;
                             if (isVessel)
                             {
-                                targetAcceleration = weaponManager.slavedTarget.vessel.acceleration;
+                                //weaponManager.slavedTarget.vessel.acceleration; //this and weaponmanager.slavedAcceleration are going to return the exact same thing
                                 targetIsLandedOrSplashed = weaponManager.slavedTarget.vessel.LandedOrSplashed;
                             }
                             else
                             {
-                                targetAcceleration = weaponManager.slavedAcceleration;
+                                //targetAcceleration = weaponManager.slavedAcceleration;
                                 targetIsLandedOrSplashed = false;
                             }
                             targetAcquired = true;
                             targetAcquisitionType = TargetAcquisitionType.Slaved;
+                            if (BDArmorySettings.DEBUG_WEAPONS)
+                                Debug.Log($"[BDArmory.ModuleWeapon - {shortName} is tracking target {(isVessel ? weaponManager.slavedTarget.vessel.vesselName : "null target")} via radarlock");
                             return;
                         }
                         /*
@@ -5185,7 +5190,7 @@ namespace BDArmory.Weapons
                         */
                     }
                     //else, we have turrets and some radar locks; can we target the former with the latter?
-                    if (weaponManager.slavingTurrets && turret)
+                    else
                     {
                         TargetSignatureData targetData = TargetSignatureData.noTarget;
                         List<TargetSignatureData> possibleTargets = weaponManager.vesselRadarData.GetLockedTargets();
@@ -5212,7 +5217,8 @@ namespace BDArmory.Weapons
                             targetAcquired = true;
                             targetAcquisitionType = TargetAcquisitionType.Radar;
                             radarTarget = true;
-                            if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.ModuleWeapon - {shortName} is tracking target {targetData.vessel.vesselName} via radarlock from {targetData.lockedByRadar.part.partInfo.title}");
+                            if (BDArmorySettings.DEBUG_WEAPONS)
+                                Debug.Log($"[BDArmory.ModuleWeapon - {shortName} is tracking target {targetData.vessel.vesselName} via radarlock from {targetData.lockedByRadar.part.partInfo.title}");
                             return;
                         }
                         else //no lock for our secondary target? slave turret to a lock we do have
@@ -5222,26 +5228,36 @@ namespace BDArmory.Weapons
                             {
                                 slaved = true;
                                 targetRadius = isVessel ? weaponManager.slavedTarget.vessel.GetRadius() : 35f;
-                                targetPosition = weaponManager.slavedPosition;
+                                targetPosition = weaponManager.slavedPosition; //if no lock/ no lock on current target vessel, this is going to be different that what we intended to target
                                 //currently overriding multi-turret multi-targeting if enabled as all turrets slaved to WM's guardTarget/current active radarLock
                                 targetVelocity = isVessel ? weaponManager.slavedTarget.vessel.rb_velocity : (weaponManager.slavedVelocity - BDKrakensbane.FrameVelocityV3f);
-                                if (isVessel)
-                                {
-                                    targetAcceleration = weaponManager.slavedTarget.vessel.acceleration;
-                                    targetIsLandedOrSplashed = weaponManager.slavedTarget.vessel.LandedOrSplashed;
-                                }
-                                else
-                                {
-                                    targetAcceleration = weaponManager.slavedAcceleration;
-                                    targetIsLandedOrSplashed = false;
-                                }
+                                targetAcceleration = weaponManager.slavedAcceleration;
+                                if (isVessel) targetIsLandedOrSplashed = weaponManager.slavedTarget.vessel.LandedOrSplashed;
+                                else targetIsLandedOrSplashed = false;
                                 targetAcquired = true;
                                 targetAcquisitionType = TargetAcquisitionType.Slaved;
-                                if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.ModuleWeapon - {shortName} had no lock for {(visualTargetVessel != null ? visualTargetVessel.vesselName : "'unknown'")}; slaving to primary lock{(isVessel ? $" on {weaponManager.slavedTarget.vessel.name}" : "")}");
+                                if (BDArmorySettings.DEBUG_WEAPONS)
+                                    Debug.Log($"[BDArmory.ModuleWeapon - {shortName} had no lock for {(visualTargetVessel != null ? visualTargetVessel.vesselName : "'unknown'")}; slaving to primary lock{(isVessel ? $" on {weaponManager.slavedTarget.vessel.name}" : "")}");
                                 return;
                             }
                         }
                     }
+                }
+                if (weaponManager.mainTGP != null && ModuleTargetingCamera.windowIsOpen && weaponManager.mainTGP.slaveTurrets && weaponManager.slavedPosition != Vector3.zero)
+                {
+                    bool isVessel = weaponManager.mainTGP.lockedVessel != null;
+                    slaved = true;
+                    targetRadius = isVessel ? weaponManager.mainTGP.lockedVessel.GetRadius() : 35f;
+                    targetPosition = weaponManager.slavedPosition;
+                    targetVelocity = Vector3.zero; //tgtCam returns 0 for these
+                    targetAcceleration = Vector3.zero;
+                    if (isVessel) targetIsLandedOrSplashed = weaponManager.mainTGP.lockedVessel.LandedOrSplashed;
+                    else targetIsLandedOrSplashed = false;
+                    targetAcquired = true;
+                    targetAcquisitionType = TargetAcquisitionType.Slaved;
+                    if (BDArmorySettings.DEBUG_WEAPONS)
+                        Debug.Log($"[BDArmory.ModuleWeapon - {shortName} is tracking target {(isVessel ? weaponManager.mainTGP.lockedVessel.vesselName : "null target")} via tgtCamera");
+                    return;
                 }
                 // within visual range and no radar aiming/need precision visual targeting of specific subsystems
                 if (aiControlled && visualTargetVessel && visRange)
@@ -5330,7 +5346,7 @@ namespace BDArmory.Weapons
                             targetparts = targetparts.OrderBy(w => w.mass).ToList(); //weight target part priority by part mass, also serves as a default 'target heaviest part' in case other options not selected
                             targetparts.Reverse(); //Order by mass is lightest to heaviest. We want H>L
                                                    //targetparts.Shuffle(); //alternitively, increase the random range from maxtargetnum to targetparts.count, otherwise edge cases where lots of one thing (targeting command/mass) will be pulled before lighter things (weapons, maybe engines) if both selected
-                            if (turret)
+                            if (turret && (yawRange > 0 || maxPitch > minPitch))
                             {
                                 targetID = (int)UnityEngine.Random.Range(0, Mathf.Min(targetparts.Count, weaponManager.multiTargetNum));
                             }
@@ -5679,6 +5695,7 @@ namespace BDArmory.Weapons
                     weaponState = WeaponStates.EnabledForSecondaryFiring;
             }
             UpdateGUIWeaponState();
+            UpdateOffsetWeapon(); // Re-calculate offset/non-centerline weapon corrections on weapon selection
             BDArmorySetup.Instance.UpdateCursorState();
             if (isAPS && (ammoCount > 0 || BDArmorySettings.INFINITE_AMMO))
             {
