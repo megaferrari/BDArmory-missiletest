@@ -13,8 +13,6 @@ using BDArmory.Weapons;
 using BDArmory.Weapons.Missiles;
 using System.Text;
 using System;
-using UnityEngine.UIElements;
-using BDArmory.Bullets;
 
 namespace BDArmory.Targeting
 {
