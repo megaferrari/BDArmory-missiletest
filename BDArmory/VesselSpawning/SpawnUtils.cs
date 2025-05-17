@@ -313,6 +313,7 @@ namespace BDArmory.VesselSpawning
         /// </summary>
         /// <param name="vessel">The vessel for which to deconflict naming.</param>
         /// <param name="reuse">Reuse the previously deconflicted name for the vessel (if it exists).</param>
+        // FIXMEAI On detach, the mothership gets renamed from name_1 back to name and fighters are sometimes getting name_F1_F1 tags.
         public static void DeconflictVesselName(Vessel vessel, bool reuse = false)
         {
             // Before anything else, strip the type from the vessel's name. This avoids names like "Some craft name Rover", but also means "Jeb's Plane" isn't a valid name for a plane.

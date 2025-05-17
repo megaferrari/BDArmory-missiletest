@@ -968,10 +968,10 @@ namespace BDArmory.Utils
             // Set only the closest WM to the root part as the active WM.
             WM = VesselModuleRegistry.GetMissileFire(Vessel);
             foreach (var wm in VesselModuleRegistry.GetMissileFires(Vessel))
-            {
-                wm.IsPrimaryWM = wm == WM;
-                if (!wm.IsPrimaryWM) wm.ParentWM = WM;
-            }
+                {
+                    wm.IsPrimaryWM = wm == WM;
+                    if (!wm.IsPrimaryWM) wm.ParentWM = WM;
+                }
 
             // Update the AIs.
             // Find the primary of each type of AI: the first active one or the first one, sorted by proximity to the root.
