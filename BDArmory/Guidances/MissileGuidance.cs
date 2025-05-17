@@ -256,16 +256,18 @@ namespace BDArmory.Guidances
 
             if (useAGMDescentRatio)
             {
+                Vector3 aimVec = aimPos - missileVessel.CoM;
+
                 float altitudeClamp = Mathf.Clamp(
                     (weaveDist - ((float)missileVessel.srfSpeed * agmDescentRatio)) * 0.22f, 0f,
                     (float)missileVessel.altitude +
-                    Mathf.Max(VectorUtils.AnglePreNormalized(missileVessel.upAxis, missileVel.normalized) - 90f, 0f) * Mathf.Deg2Rad * aimPos.magnitude);
+                    Mathf.Max(VectorUtils.AnglePreNormalized(upDirection, missileVel.normalized) - 90f, 0f) * Mathf.Deg2Rad * aimVec.magnitude);
 
-                float altDiff = Vector3.Dot(aimPos, upDirection) - Vector3.Dot(missileVessel.CoM, upDirection) + (float)missileVessel.altitude - Mathf.Max(FlightGlobals.getAltitudeAtPos(targetPosition), 0f);
+                float altDiff = Vector3.Dot(aimVec, upDirection) + (float)missileVessel.altitude - Mathf.Max(FlightGlobals.getAltitudeAtPos(targetPosition), 0f);
 
                 if (altDiff < altitudeClamp)
                 {
-                    aimPos = aimPos + (altitudeClamp - altDiff) * upDirection;
+                    aimPos += (altitudeClamp - altDiff) * upDirection;
                 }
             }
 
