@@ -11,6 +11,7 @@
 - Weapons:
 	- Remove maxEngagementRange (default 5000m) check from bombs when AI is selecting what weapon to use.
 	- Fix aim lead offset for weapons with deploy animations.
+	- Fix missing lead target icon when using a radarlocked turret.
 
 v1.10.0.0
 IMPROVEMENTS / FIXES
