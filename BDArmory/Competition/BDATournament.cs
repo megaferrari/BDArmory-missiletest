@@ -106,7 +106,7 @@ namespace BDArmory.Competition
         HashSet<string> npcs = [];
         Dictionary<string, List<ScoringData>> scoreDetails = []; // Scores per player per round. Rounds players weren't involved in contain default ScoringData entries.
         List<CompetitionOutcome> competitionOutcomes = [];
-        public static Dictionary<string, float> weights = new()
+        public static readonly Dictionary<string, float> defaultWeights = new()
         {
             {"Wins",                    1f},
             {"Survived",                0f},
@@ -143,6 +143,7 @@ namespace BDArmory.Competition
             {"Waypoint Time",          -0.01f},
             {"Waypoint Deviation",     -0.002f}
         };
+        public static Dictionary<string, float> weights = new(defaultWeights);
 
         /// <summary>
         /// Reset scores for a new tournament.

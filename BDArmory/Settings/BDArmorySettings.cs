@@ -63,6 +63,7 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static bool AIM_ASSIST_MODE = true;              // true = reticle follows bullet CPA position, false = reticle follows aiming position.
         [BDAPersistentSettingsField] public static bool DRAW_AIMERS = true;
         [BDAPersistentSettingsField] public static bool RESTORE_KAL = true;                  // Restore the Part, Module and AxisField references on the KAL to make it work.
+        [BDAPersistentSettingsField] public static bool DISABLE_GUARDMODE_ON_SPAWN = true;   // Disable guardMode on WMs when they're spawned.
 
         [BDAPersistentSettingsField] public static bool REMOTE_SHOOTING = false;
         [BDAPersistentSettingsField] public static bool BOMB_CLEARANCE_CHECK = false;
@@ -368,6 +369,7 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static bool SHOW_SCORE_WINDOW = false;
         [BDAPersistentSettingsField] public static bool SCORES_PERSIST_UI = false;
         [BDAPersistentSettingsField] public static int SCORES_FONT_SIZE = 12;
+        [BDAPersistentSettingsField] public static int VS_NPC_SCORE_MOD = 2;
         #endregion
 
         #region Waypoints

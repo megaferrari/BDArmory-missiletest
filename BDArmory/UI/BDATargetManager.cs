@@ -1495,7 +1495,7 @@ namespace BDArmory.UI
             {
                 finalTarget.debugTargetPriorities = [.. debugTargetScores.OrderByDescending(s => s.Item2)];
                 if (BDArmorySettings.DEBUG_AI)
-                    Debug.Log($"[BDArmory.BDATargetManager]: Selected {(finalTarget != null ? finalTarget.Vessel.GetName() : "null")} with target score of {finalTargetScore:0.00} amongst {string.Join(", ", finalTarget.debugTargetPriorities.Select(s => $"{s.Item1}: {s.Item2:0.00}"))}, {TargetList(mf.Team).Count} total potential target");
+                    Debug.Log($"[BDArmory.BDATargetManager]: {mf.vessel.vesselName} Selected {(finalTarget != null ? finalTarget.Vessel.GetName() : "null")} with target score of {finalTargetScore:0.00} amongst {string.Join(", ", finalTarget.debugTargetPriorities.Select(s => $"{s.Item1}: {s.Item2:0.00}"))}, {TargetList(mf.Team).Count} total potential targets");
             }
 
             mf.UpdateTargetPriorityUI(finalTarget);

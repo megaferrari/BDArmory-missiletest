@@ -299,6 +299,17 @@ namespace BDArmory.UI
             }
             RecomputeScores();
         }
+        void ResetDefaultWeights()
+        {
+            weights = mode switch
+            {
+                Mode.Tournament => new(TournamentScores.defaultWeights),
+                Mode.ContinuousSpawn => new(ContinuousSpawning.defaultWeights),
+                _ => null
+            };
+            scoreWeightFields = weights.ToDictionary(kvp => kvp.Key, kvp => gameObject.AddComponent<NumericInputField>().Initialise(0, kvp.Value));
+            RecomputeScores();
+        }
         void RecomputeScores()
         {
             switch (mode)
@@ -337,7 +348,8 @@ namespace BDArmory.UI
         }
         void WindowWeights(int id)
         {
-            GUI.DragWindow(new Rect(0, 0, weightsWindowRect.width - _buttonSize, _buttonSize));
+            GUI.DragWindow(new Rect(4 * _buttonSize, 0, weightsWindowRect.width - 5 * _buttonSize, _buttonSize));
+            if (GUI.Button(new Rect(0, 0, 4 * _buttonSize, _buttonSize), "Defaults", BDArmorySetup.ButtonStyle)) ResetDefaultWeights();
             if (GUI.Button(new Rect(weightsWindowRect.width - _buttonSize, 0, _buttonSize, _buttonSize), " X", BDArmorySetup.CloseButtonStyle)) SetWeightsVisible(false);
             GUILayout.BeginVertical(GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
             weightsScrollPos = GUILayout.BeginScrollView(weightsScrollPos, GUI.skin.box);

@@ -523,6 +523,8 @@ namespace BDArmory.UI
                 GameEvents.onVesselChange.Add(VesselChange);
             }
             GameEvents.onGameSceneSwitchRequested.Add(OnGameSceneSwitchRequested);
+            GameEvents.onGameStateSave.Add(OnGameStateSave);
+            GameEvents.onGameStateSaved.Add(OnGameStateSaved);
 
             BulletInfo.Load();
             RocketInfo.Load();
@@ -2622,6 +2624,7 @@ namespace BDArmory.UI
                         // GUI.Label(SLeftSliderRect(++line), $"Initial correction: {(TestNumericalMethodsIC == 0 ? "None" : TestNumericalMethodsIC == 1 ? "All" : TestNumericalMethodsIC == 2 ? "Local" : "Gravity")}");
                         // TestNumericalMethodsIC = Mathf.RoundToInt(GUI.HorizontalSlider(SRightSliderRect(line), TestNumericalMethodsIC, 0, 3));
                         // if (GUI.Button(SLineRect(++line), $"Test Forward Euler vs Semi-Implicit Euler vs Leap-frog ({PROF_N * Time.fixedDeltaTime}s, {PROF_N / Math.Min(PROF_N / 2, PROF_n)} steps)")) StartCoroutine(TestNumericalMethods(PROF_N * Time.fixedDeltaTime, PROF_N / Math.Min(PROF_N / 2, PROF_n)));
+                        // if (GUI.Button(SLineRect(++line), "Test Abs")) TestAbs();
                         // if (GUI.Button(SLineRect(++line), "Test \"up\"")) TestUp();
                         // if (GUI.Button(SLineRect(++line), "Test inside vs on unit sphere")) TestInOnUnitSphere();
                         // if (GUI.Button(SLineRect(++line), "Test Sqr vs x*x")) TestMaxRelSpeed();
@@ -3061,13 +3064,14 @@ namespace BDArmory.UI
                     BDArmorySettings.REMOTE_SHOOTING = GUI.Toggle(SLeftRect(++line), BDArmorySettings.REMOTE_SHOOTING, StringUtils.Localize("#LOC_BDArmory_Settings_RemoteFiring"));//"Remote Firing"
                     BDArmorySettings.BOMB_CLEARANCE_CHECK = GUI.Toggle(SRightRect(line), BDArmorySettings.BOMB_CLEARANCE_CHECK, StringUtils.Localize("#LOC_BDArmory_Settings_ClearanceCheck"));//"Clearance Check"
                     BDArmorySettings.DISABLE_RAMMING = GUI.Toggle(SLeftRect(++line), BDArmorySettings.DISABLE_RAMMING, StringUtils.Localize("#LOC_BDArmory_Settings_DisableRamming"));// Disable Ramming
-                    BDArmorySettings.RESET_HP = GUI.Toggle(SRightRect(line), BDArmorySettings.RESET_HP, StringUtils.Localize("#LOC_BDArmory_Settings_ResetHP"));
+                    BDArmorySettings.DISABLE_GUARDMODE_ON_SPAWN = GUI.Toggle(SRightRect(line), BDArmorySettings.DISABLE_GUARDMODE_ON_SPAWN, StringUtils.Localize("#LOC_BDArmory_Settings_DisableGuardModeOnSpawn")); // Disable Guard Mode on Spawn
                     BDArmorySettings.BULLET_WATER_DRAG = GUI.Toggle(SLeftRect(++line), BDArmorySettings.BULLET_WATER_DRAG, StringUtils.Localize("#LOC_BDArmory_Settings_waterDrag"));// Underwater bullet drag
-                    BDArmorySettings.RESET_ARMOUR = GUI.Toggle(SRightRect(line), BDArmorySettings.RESET_ARMOUR, StringUtils.Localize("#LOC_BDArmory_Settings_ResetArmor"));
+                    BDArmorySettings.RESET_HP = GUI.Toggle(SRightRect(line), BDArmorySettings.RESET_HP, StringUtils.Localize("#LOC_BDArmory_Settings_ResetHP"));
                     BDArmorySettings.VESSEL_RELATIVE_BULLET_CHECKS = GUI.Toggle(SLeftRect(++line), BDArmorySettings.VESSEL_RELATIVE_BULLET_CHECKS, StringUtils.Localize("#LOC_BDArmory_Settings_VesselRelativeBulletChecks"));//"Vessel-Relative Bullet Checks"
-                    BDArmorySettings.RESET_HULL = GUI.Toggle(SRightRect(line), BDArmorySettings.RESET_HULL, StringUtils.Localize("#LOC_BDArmory_Settings_ResetHull")); //Reset Hull
+                    BDArmorySettings.RESET_ARMOUR = GUI.Toggle(SRightRect(line), BDArmorySettings.RESET_ARMOUR, StringUtils.Localize("#LOC_BDArmory_Settings_ResetArmor"));
                     if (BDArmorySettings.RESTORE_KAL != (BDArmorySettings.RESTORE_KAL = GUI.Toggle(SLeftRect(++line), BDArmorySettings.RESTORE_KAL, StringUtils.Localize("#LOC_BDArmory_Settings_RestoreKAL")))) //Restore KAL
                     { SpawnUtils.RestoreKALGlobally(BDArmorySettings.RESTORE_KAL); }
+                    BDArmorySettings.RESET_HULL = GUI.Toggle(SRightRect(line), BDArmorySettings.RESET_HULL, StringUtils.Localize("#LOC_BDArmory_Settings_ResetHull")); //Reset Hull
                     BDArmorySettings.AUTO_LOAD_TO_KSC = GUI.Toggle(SLeftRect(++line), BDArmorySettings.AUTO_LOAD_TO_KSC, StringUtils.Localize("#LOC_BDArmory_Settings_AutoLoadToKSC")); // Auto-Load To KSC
                     BDArmorySettings.GENERATE_CLEAN_SAVE = GUI.Toggle(SRightRect(line), BDArmorySettings.GENERATE_CLEAN_SAVE, StringUtils.Localize("#LOC_BDArmory_Settings_GenerateCleanSave")); // Generate Clean Save
                     BDArmorySettings.AUTO_RESUME_TOURNAMENT = GUI.Toggle(SLeftRect(++line), BDArmorySettings.AUTO_RESUME_TOURNAMENT, StringUtils.Localize("#LOC_BDArmory_Settings_AutoResumeTournaments")); // Auto-Resume Tournaments
@@ -4473,6 +4477,8 @@ namespace BDArmory.UI
             GameEvents.OnGameSettingsApplied.Remove(SaveVolumeSettings);
             GameEvents.onVesselChange.Remove(VesselChange);
             GameEvents.onGameSceneSwitchRequested.Remove(OnGameSceneSwitchRequested);
+            GameEvents.onGameStateSave.Remove(OnGameStateSave);
+            GameEvents.onGameStateSaved.Remove(OnGameStateSaved);
         }
 
         void OnVesselGoOffRails(Vessel v)
@@ -4855,6 +4861,27 @@ namespace BDArmory.UI
             Debug.Log($"DEBUG Multiple AI type selection took {ProfileFunc(func, PROF_N) / PROF_n:G3}µs to give {pilotAI}, {surfaceAI}, {vtolAI}, {orbitalAI}");
         }
 
+        public static void TestAbs()
+        {
+            Vessel vessel = FlightGlobals.ActiveVessel;
+            Vector3 pos = vessel.CoM;
+            var watch = new System.Diagnostics.Stopwatch();
+            float µsResolution = 1e6f / System.Diagnostics.Stopwatch.Frequency;
+            Debug.Log($"DEBUG Clock resolution: {µsResolution}µs, {PROF_N} outer loops, {PROF_n} inner loops");
+            float x = 1.234f, y = -1.234f, zx = 0, zy = 0;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)] float Abs(float x) { return x < 0 ? -x : x; }
+            var func = [MethodImpl(MethodImplOptions.AggressiveInlining)] () => { for (int i = 0; i < PROF_n; ++i) { zx = Mathf.Abs(x); zy = Mathf.Abs(y); } };
+            Debug.Log($"DEBUG Mathf.Abs took {ProfileFunc(func, PROF_N) / PROF_n:G3}µs to give {zx}, {zy}");
+            func = [MethodImpl(MethodImplOptions.AggressiveInlining)] () => { for (int i = 0; i < PROF_n; ++i) { zx = Math.Abs(x); zy = Math.Abs(y); } };
+            Debug.Log($"DEBUG Math.Abs(x) took {ProfileFunc(func, PROF_N) / PROF_n:G3}µs to give {zx}, {zy}");
+            func = [MethodImpl(MethodImplOptions.AggressiveInlining)] () => { for (int i = 0; i < PROF_n; ++i) { zx = (float)Math.Abs((double)x); zy = (float)Math.Abs((double)y); } };
+            Debug.Log($"DEBUG (float)Math.Abs((double)x) took {ProfileFunc(func, PROF_N) / PROF_n:G3}µs to give {zx}, {zy}");
+            func = [MethodImpl(MethodImplOptions.AggressiveInlining)] () => { for (int i = 0; i < PROF_n; ++i) { zx = Abs(x); zy = Abs(y); } };
+            Debug.Log($"DEBUG Abs(x) {{ return x < 0 ? -x : x; }} took {ProfileFunc(func, PROF_N) / PROF_n:G3}µs to give {zx}, {zy}");
+            func = [MethodImpl(MethodImplOptions.AggressiveInlining)] () => { for (int i = 0; i < PROF_n; ++i) { zx = x < 0 ? -x : x; zy = y < 0 ? -y : y; } };
+            Debug.Log($"DEBUG inline x<0?-x:x took {ProfileFunc(func, PROF_N) / PROF_n:G3}µs to give {zx}, {zy}");
+        }
+
         public static void TestUp()
         {
             Vessel vessel = FlightGlobals.ActiveVessel;
@@ -5172,11 +5199,25 @@ namespace BDArmory.UI
             if (windowSettingsEnabled) ToggleWindowSettings(); // Close the settings window so that the following settings changes don't propagate back into the settings window.
             if (BDArmorySettings.G_LIMITS && (fromTo.from == GameScenes.EDITOR || fromTo.from == GameScenes.FLIGHT))
             {
-                RWPSettings.SyncWithGameSettings(restoreOverridesAndSave: true);
+                RWPSettings.SyncWithGameSettings(restoreOverrides: true);
             }
             if (fromTo.from == GameScenes.FLIGHT && fromTo.to != GameScenes.FLIGHT)
             {
                 DisableAllFXAndProjectiles();
+            }
+        }
+        void OnGameStateSave(ConfigNode node)
+        {
+            if (BDArmorySettings.G_LIMITS)
+            {
+                RWPSettings.SyncWithGameSettings(restoreOverrides: true);
+            }
+        }
+        void OnGameStateSaved(Game game)
+        {
+            if (BDArmorySettings.G_LIMITS)
+            {
+                RWPSettings.SyncWithGameSettings();
             }
         }
         public static void DisableAllFXAndProjectiles()

@@ -2043,9 +2043,9 @@ namespace BDArmory.Weapons.Missiles
                     }
                 }
 
-                if (aero && aeroSteerDamping > 0)
+                if (aero && aeroSteerDamping > 0f)
                 {
-                    part.rb.AddRelativeTorque(-aeroSteerDamping * part.transform.InverseTransformVector(part.rb.angularVelocity));
+                    part.rb.AddRelativeTorque(-aeroSteerDamping * part.transform.InverseTransformDirection(part.rb.angularVelocity));
                 }
 
                 if (hasRCS && !guidanceActive)
@@ -2925,7 +2925,7 @@ namespace BDArmory.Weapons.Missiles
 
                     case GuidanceModes.Weave:
                         {
-                            aamTarget = MissileGuidance.GetWeaveTarget(TargetPosition, TargetVelocity, vessel, WeaveVerticalG, ref WeaveHorizontalG, WeaveFrequency, WeaveTerminalAngle, WeaveFactor, ref WeaveOffset, ref WeaveStart, out timeToImpact, out currgLimit);
+                            aamTarget = MissileGuidance.GetWeaveTarget(TargetPosition, TargetVelocity, vessel, ref WeaveVerticalG, ref WeaveHorizontalG, WeaveRandomRange, WeaveFrequency, WeaveTerminalAngle, WeaveFactor, WeaveUseAGMDescentRatio, agmDescentRatio, ref WeaveOffset, ref WeaveStart, out timeToImpact, out currgLimit);
                             TimeToImpact = timeToImpact;
                             break;
                         }

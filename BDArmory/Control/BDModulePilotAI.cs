@@ -636,6 +636,9 @@ namespace BDArmory.Control
             { nameof(turnRadiusTwiddleFactorMax), 10f},
             { nameof(controlSurfaceDeploymentTime), 10f },
             { nameof(controlSurfaceLag), 1f},
+            { nameof(steerDampingPitch), 100f},
+            { nameof(steerDampingYaw), 100f},
+            { nameof(steerDampingRoll), 100f},
             { nameof(DynamicDampingMin), 100f },
             { nameof(DynamicDampingMax), 100f },
             { nameof(dynamicSteerDampingFactor), 100f },
@@ -702,6 +705,7 @@ namespace BDArmory.Control
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_AI_Standby"),//Standby Mode
             UI_Toggle(enabledText = "#LOC_BDArmory_On", disabledText = "#LOC_BDArmory_Off")]//On--Off
         public bool standbyMode = false;
+        bool standbyModeEnabled = false;
 
         #region Store/Restore
         private static Dictionary<string, List<System.Tuple<string, object>>> storedSettings; // Stored settings for each vessel.
@@ -1929,12 +1933,25 @@ namespace BDArmory.Control
 
             // landed and still, chill out
             var weaponManager = WeaponManager;
-            if (vessel.LandedOrSplashed && standbyMode && weaponManager && (BDATargetManager.GetClosestTarget(weaponManager) == null || BDArmorySettings.PEACE_MODE)) //TheDog: replaced querying of targetdatabase with actual check if a target can be detected
+            if (vessel.LandedOrSplashed && standbyMode && weaponManager && (BDATargetManager.GetClosestTarget(weaponManager) == null || BDArmorySettings.PEACE_MODE))
             {
+                standbyModeEnabled = true;
                 //s.mainThrottle = 0;
                 //vessel.ActionGroups.SetGroup(KSPActionGroup.Brakes, true);
                 AdjustThrottle(0, true);
                 return;
+            }
+            if (standbyModeEnabled && standbyMode) // Was in standby, but now there's something to engage, disable standby and engage.
+            {
+                CommandTakeOff();
+                if (SpawnUtils.CountActiveEngines(vessel) == 0) // If no engines are active, trigger AG10 and then activate all engines if necessary.
+                {
+                    vessel.ActionGroups.ToggleGroup(BDACompetitionMode.KM_dictAG[10]);
+                    if (SpawnUtils.CountActiveEngines(vessel) == 0)
+                    {
+                        SpawnUtils.ActivateAllEngines(vessel);
+                    }
+                }
             }
 
             upDirection = vessel.up;
@@ -2185,7 +2202,7 @@ namespace BDArmory.Control
         {
             var weaponManager = WeaponManager;
             if (vessel == null || v == null || v == (weaponManager != null ? weaponManager.incomingMissileVessel : null)
-                || v.rootPart.FindModuleImplementing<MissileBase>() != null) //evasive will handle avoiding missiles
+                || (v.rootPart != null && v.rootPart.FindModuleImplementing<MissileBase>() != null)) //evasive will handle avoiding missiles
             {
                 badDirection = Vector3.zero;
                 return false;
@@ -2381,7 +2398,7 @@ namespace BDArmory.Control
                     if (weapon != null)
                     {
                         Vector3 weaponPosition, weaponDirection;
-                        if (weapon.turret) // Don't apply lead offset and weapon offsets for turrets.
+                        if (weapon.turret && (weapon.yawRange > 0 || weapon.maxPitch > weapon.minPitch)) // Don't apply lead offset and weapon offsets for turrets.
                         {
                             weaponPosition = vessel.ReferenceTransform.position;
                             weaponDirection = vesselTransform.up;
@@ -4558,18 +4575,15 @@ namespace BDArmory.Control
             else if (command == PilotCommands.Attack)
             {
                 var weaponManager = WeaponManager;
-                if (targetVessel != null)
-                {
-                    ReleaseCommand(false);
-                    return;
-                }
-                else if (weaponManager == null || weaponManager.underAttack || weaponManager.underFire)
+                if (targetVessel != null || weaponManager == null) // Found a target or lost our WM.
                 {
                     ReleaseCommand(false);
                     return;
                 }
                 else
                 {
+                    if (weaponManager.underAttack || weaponManager.underFire) // Switch to Free to allow combat behaviours, but continue flying towards the attack point for now.
+                        ReleaseCommand(false);
                     SetStatus("Attack");
                     FlyOrbit(s, assignedPositionGeo, 2500, maxSpeed, ClockwiseOrbit);
                 }
