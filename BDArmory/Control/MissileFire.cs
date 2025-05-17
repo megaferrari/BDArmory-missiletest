@@ -1110,16 +1110,12 @@ namespace BDArmory.Control
                 if (sw != null) //we have a weapon set by bool SmartPick, or set by the last time this was called
                 {
                     var gun = sw.GetWeaponModule();
-                    if (gun == null || (gun.useThisWeaponForAim && (gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO))) //it's a missile, or an aim-override enabled weapon with ammo
+                    if (gun == null || ((gun.useThisWeaponForAim || !(gun.isReloading || gun.isOverheated || gun.pointingAtSelf)) && (gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO))) //it's a missile, or an aim-override enabled weapon with ammo
                         if (sw.GetPart().vessel == vessel) return sw;
                 }
-                //missile no longer on craft, or a gun that isn't aim overridden, or sw hasn't been set yet
-                if (weaponIndex <= 0)
-                {
-                    if (sw != null) selectedWeapon = null;
-                    return sw; //no weapon selected
-                }
                 sw = null; //weapon no longer on craft. Null in case below while loop doesn't find other weapons in the same group on craft.
+                //missile no longer on craft, or a gun that isn't aim overridden, or sw hasn't been set yet
+                if (weaponIndex <= 0) return sw; //no weapon selected
                 //if ((sw != null && sw.GetPart().vessel == vessel) || weaponIndex <= 0) return sw; //this is going to return the first gun of a weaponGroup, regardless of overheat/reload state, as long as gun was valid when first selected
                 // should only apply if selected weapon is missile/bomb/slw
 
