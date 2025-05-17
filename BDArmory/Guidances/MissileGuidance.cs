@@ -245,7 +245,7 @@ namespace BDArmory.Guidances
             Vector3 accel = (aVert * (rotationPitch * rotationYaw * upDirection) + aHor * (rotationYaw * right));// + GetPNAccel(targetPosition, targetVelocity, missileVessel, 3f);
             if (terminalAngle < 0)
             {
-                accel = accel + GetPNAccel(targetPosition, targetVelocity, missileVessel, 3f);
+                accel += GetPNAccel(targetPosition, targetVelocity, missileVessel, 3f);
             }
 
             gLimit = accel.magnitude;
@@ -862,7 +862,7 @@ namespace BDArmory.Guidances
                 {
                     relPos = AIUtils.PredictPosition(targetPosition, targetVessel.Velocity(), targetVessel.acceleration_immediate, thrustTime) -
                     AIUtils.PredictPosition(missile.vessel.CoM, vel, missile.GetForwardTransform() * accel, thrustTime);
-                    relVel = relVel + relAccel * timeToImpact;
+                    relVel += relAccel * timeToImpact;
                     relAccel = targetVessel.acceleration_immediate;
                     timeToImpact = AIUtils.TimeToCPA(relPos, relVel, relAccel, 60f);
                     leadTime = thrustTime + timeToImpact;   
