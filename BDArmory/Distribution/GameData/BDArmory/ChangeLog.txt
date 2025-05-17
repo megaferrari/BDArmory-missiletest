@@ -1,4 +1,4 @@
-﻿IMPROVEMENTS / FIXES
+IMPROVEMENTS / FIXES
 - General:
 	- Fix the g-limit overrides from needing to save the persistent savegame, which was leaving spawned craft in play when reverting to the SPH.
 - AI / WM:
@@ -16,12 +16,15 @@
 	- Locking a target will no longer automatically slave active turrets to the target when manually controlling a craft. To slave turrets to a locked radar/camera, use the 'Slave Turret' button. 
 - Weapons:
 	- Add a "Yaw Standby Angle" slider to gun turrets.
+	- Multi-barreled guns now no longer swap to the next ammo type in the belt until after all barrels have fired.
 	- Remove maxEngagementRange (default 5000m) check from bombs when AI is selecting what weapon to use.
 	- Fix aim lead offset for weapons with deploy animations.
 	- Missiles:
 		- Add improved missile controller.
 		- Fix multi-missile launcher issues when railAmmo > launcher rails on the model.
 		- Fix check for multi-mode engines being ignited and having fuel.
+		- Fix maddog ARH missile launches not turning on seeker.
+    - Add WeaveUseAGMDescentRatio and WeaveRandomRange to weave guidance, when WeaveUseAGMDescentRatio is true it forces the use of agmDescentRatio to allow for sea-skimming weave missiles. WeaveRandomRange is a float that allows for randomization of weave maneuver parameters.
 - Competition:
 	- Add a "defaults" button to the scoring window to reset score weights to their default values.
 	- Updated parsing and plotting scripts.

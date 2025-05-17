@@ -153,7 +153,7 @@ namespace BDArmory.Guidances
             return targetPosition + (targetVelocity * leadTime);
         }
 
-        public static Vector3 GetWeaveTarget(Vector3 targetPosition, Vector3 targetVelocity, Vessel missileVessel, float gVert, ref float gHorz, float omega, float terminalAngle, float weaveFactor, ref float weaveOffset, ref Vector3 weaveStart, out float ttgo, out float gLimit)
+        public static Vector3 GetWeaveTarget(Vector3 targetPosition, Vector3 targetVelocity, Vessel missileVessel, ref float gVert, ref float gHorz, float gRand, float omega, float terminalAngle, float weaveFactor, bool useAGMDescentRatio, float agmDescentRatio, ref float weaveOffset, ref Vector3 weaveStart, out float ttgo, out float gLimit)
         {
             // Based on https://www.sciencedirect.com/science/article/pii/S1474667015333437
 
@@ -192,19 +192,28 @@ namespace BDArmory.Guidances
 
             const float PI2 = 2f * Mathf.PI;
 
+            float weaveDist;
+
             float ttgoWeave;
             if (weaveOffset < 0)
             {
                 weaveOffset = PI2 * omega * ttgo;
                 weaveStart = VectorUtils.WorldPositionToGeoCoords(missileVessel.CoM, missileVessel.mainBody);
+                weaveDist = Vector3.Dot(Rdir, planarDirToTarget);
                 ttgoWeave = ttgo;
                 if (UnityEngine.Random.value < 0.5)
                     gHorz = -gHorz;
+
+                if (gVert != 0.0f)
+                    gVert += gRand * (2f * UnityEngine.Random.value - 1f);
+                if (gHorz != 0.0f)
+                    gHorz += gRand * (2f * UnityEngine.Random.value - 1f);
             }
             else
             {
                 Vector3 weaveDir = (targetPosition - VectorUtils.GetWorldSurfacePostion(weaveStart, missileVessel.mainBody)).ProjectOnPlanePreNormalized(upDirection).normalized;
-                ttgoWeave = weaveFactor * 1.5f * Vector3.Dot(Rdir, weaveDir) / speed;
+                weaveDist = Vector3.Dot(Rdir, weaveDir);
+                ttgoWeave = weaveFactor * 1.5f * weaveDist / speed;
                 right = Vector3.Cross(weaveDir, upDirection);
             }
                     
@@ -236,14 +245,33 @@ namespace BDArmory.Guidances
             Vector3 accel = (aVert * (rotationPitch * rotationYaw * upDirection) + aHor * (rotationYaw * right));// + GetPNAccel(targetPosition, targetVelocity, missileVessel, 3f);
             if (terminalAngle < 0)
             {
-                accel = accel + GetPNAccel(targetPosition, targetVelocity, missileVessel, 3f);
+                accel += GetPNAccel(targetPosition, targetVelocity, missileVessel, 3f);
             }
 
             gLimit = accel.magnitude;
 
             float leadTime = Mathf.Min(4f, ttgoWeave);
 
-            return missileVessel.CoM + leadTime * missileVel + accel * (0.5f * leadTime * leadTime);
+            Vector3 aimPos = missileVessel.CoM + leadTime * missileVel + accel * (0.5f * leadTime * leadTime);
+
+            if (useAGMDescentRatio)
+            {
+                Vector3 aimVec = aimPos - missileVessel.CoM;
+
+                float altitudeClamp = Mathf.Clamp(
+                    (weaveDist - ((float)missileVessel.srfSpeed * agmDescentRatio)) * 0.22f, 0f,
+                    (float)missileVessel.altitude +
+                    Mathf.Max(VectorUtils.AnglePreNormalized(upDirection, missileVel.normalized) - 90f, 0f) * Mathf.Deg2Rad * aimVec.magnitude);
+
+                float altDiff = Vector3.Dot(aimVec, upDirection) + (float)missileVessel.altitude - Mathf.Max(FlightGlobals.getAltitudeAtPos(targetPosition), 0f);
+
+                if (altDiff < altitudeClamp)
+                {
+                    aimPos += (altitudeClamp - altDiff) * upDirection;
+                }
+            }
+
+            return aimPos;
         }
 
         // Kappa/Trajectory Curvature Optimal Guidance 
@@ -834,7 +862,7 @@ namespace BDArmory.Guidances
                 {
                     relPos = AIUtils.PredictPosition(targetPosition, targetVessel.Velocity(), targetVessel.acceleration_immediate, thrustTime) -
                     AIUtils.PredictPosition(missile.vessel.CoM, vel, missile.GetForwardTransform() * accel, thrustTime);
-                    relVel = relVel + relAccel * timeToImpact;
+                    relVel += relAccel * timeToImpact;
                     relAccel = targetVessel.acceleration_immediate;
                     timeToImpact = AIUtils.TimeToCPA(relPos, relVel, relAccel, 60f);
                     leadTime = thrustTime + timeToImpact;   
