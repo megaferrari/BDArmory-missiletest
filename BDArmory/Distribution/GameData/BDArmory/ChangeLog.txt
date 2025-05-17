@@ -1,4 +1,4 @@
-IMPROVEMENTS / FIXES
+﻿IMPROVEMENTS / FIXES
 - General:
 	- Fix the g-limit overrides from needing to save the persistent savegame, which was leaving spawned craft in play when reverting to the SPH.
 - AI / WM:
@@ -24,7 +24,7 @@ IMPROVEMENTS / FIXES
 		- Fix multi-missile launcher issues when railAmmo > launcher rails on the model.
 		- Fix check for multi-mode engines being ignited and having fuel.
 		- Fix maddog ARH missile launches not turning on seeker.
-    - Add WeaveUseAGMDescentRatio and WeaveRandomRange to weave guidance, when WeaveUseAGMDescentRatio is true it forces the use of agmDescentRatio to allow for sea-skimming weave missiles. WeaveRandomRange is a float that allows for randomization of weave maneuver parameters.
+		- Add WeaveUseAGMDescentRatio and WeaveRandomRange to weave guidance, when WeaveUseAGMDescentRatio is true it forces the use of agmDescentRatio to allow for sea-skimming weave missiles. WeaveRandomRange is a float that allows for randomization of weave maneuver parameters.
 - Competition:
 	- Add a "defaults" button to the scoring window to reset score weights to their default values.
 	- Updated parsing and plotting scripts.
