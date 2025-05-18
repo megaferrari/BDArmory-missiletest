@@ -836,7 +836,7 @@ namespace BDArmory.VesselSpawning
                         vessel.SetWorldVelocity(orbitVelocity);
                     }
                 }
-                if (weaponManager.guardMode)
+                if (BDArmorySettings.DISABLE_GUARDMODE_ON_SPAWN && weaponManager.guardMode)
                 {
                     if (BDArmorySettings.DEBUG_SPAWNING) LogMessage($"Disabling guardMode on {vessel.vesselName}.", false);
                     weaponManager.ToggleGuardMode(); // Disable guard mode (in case someone enabled it on AG10 or in the SPH).

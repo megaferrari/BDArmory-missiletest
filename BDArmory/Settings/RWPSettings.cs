@@ -31,6 +31,7 @@ namespace BDArmory.Settings
 				{"BATTLEDAMAGE", true},
 				{"DESTROY_UNCONTROLLED_WMS", true},
 				{"DISABLE_RAMMING", false},
+				{"DISABLE_GUARDMODE_ON_SPAWN", true},
 				{"G_LIMITS", true}, // Override G-Limits from Game Difficulty and disable them
 				{"KERB_GLIMIT", false},
 				{"PART_GLIMIT", false},

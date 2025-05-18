@@ -1,4 +1,4 @@
-IMPROVEMENTS / FIXES
+﻿IMPROVEMENTS / FIXES
 - General:
 	- Fix the g-limit overrides from needing to save the persistent savegame, which was leaving spawned craft in play when reverting to the SPH.
 - AI / WM:
@@ -6,6 +6,8 @@ IMPROVEMENTS / FIXES
 	- Adjust the release of the "Attack" command so that craft don't go dead-stick when under attack but not threatened enough to trigger evasion.
 	- Fix AttackVIP targeting priority impacting target priority weighting if no enemy VIP is present.
 	- When assigning turret targets, AI now checks if target is within max range of the turret.
+	- Add an option to disable the behaviour of disabling guard mode when vessels are spawned.
+	- Fix pilot AI's standby mode to automatically trigger AG10 and enable engines if necessary when a threat is detected.
 - Countermeasures:
 	- Add 'Ammo' gauges for Countermeasure dispensers for how many CMs they have remaining.
 - Sensors:
@@ -22,7 +24,7 @@ IMPROVEMENTS / FIXES
 		- Fix multi-missile launcher issues when railAmmo > launcher rails on the model.
 		- Fix check for multi-mode engines being ignited and having fuel.
 		- Fix maddog ARH missile launches not turning on seeker.
-    - Add WeaveUseAGMDescentRatio and WeaveRandomRange to weave guidance, when WeaveUseAGMDescentRatio is true it forces the use of agmDescentRatio to allow for sea-skimming weave missiles. WeaveRandomRange is a float that allows for randomization of weave maneuver parameters.
+		- Add WeaveUseAGMDescentRatio and WeaveRandomRange to weave guidance, when WeaveUseAGMDescentRatio is true it forces the use of agmDescentRatio to allow for sea-skimming weave missiles. WeaveRandomRange is a float that allows for randomization of weave maneuver parameters.
 - Competition:
 	- Add a "defaults" button to the scoring window to reset score weights to their default values.
 	- Updated parsing and plotting scripts.

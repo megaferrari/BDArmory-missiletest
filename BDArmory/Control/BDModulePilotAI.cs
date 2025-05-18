@@ -704,6 +704,7 @@ namespace BDArmory.Control
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_AI_Standby"),//Standby Mode
             UI_Toggle(enabledText = "#LOC_BDArmory_On", disabledText = "#LOC_BDArmory_Off")]//On--Off
         public bool standbyMode = false;
+        bool standbyModeEnabled = false;
 
         #region Store/Restore
         private static Dictionary<string, List<System.Tuple<string, object>>> storedSettings; // Stored settings for each vessel.
@@ -1928,12 +1929,25 @@ namespace BDArmory.Control
             useVelRollTarget = false;
 
             // landed and still, chill out
-            if (vessel.LandedOrSplashed && standbyMode && weaponManager && (BDATargetManager.GetClosestTarget(this.weaponManager) == null || BDArmorySettings.PEACE_MODE)) //TheDog: replaced querying of targetdatabase with actual check if a target can be detected
+            if (vessel.LandedOrSplashed && standbyMode && weaponManager && (BDATargetManager.GetClosestTarget(this.weaponManager) == null || BDArmorySettings.PEACE_MODE))
             {
+                standbyModeEnabled = true;
                 //s.mainThrottle = 0;
                 //vessel.ActionGroups.SetGroup(KSPActionGroup.Brakes, true);
                 AdjustThrottle(0, true);
                 return;
+            }
+            if (standbyModeEnabled && standbyMode) // Was in standby, but now there's something to engage, disable standby and engage.
+            {
+                CommandTakeOff();
+                if (SpawnUtils.CountActiveEngines(vessel) == 0) // If no engines are active, trigger AG10 and then activate all engines if necessary.
+                {
+                    vessel.ActionGroups.ToggleGroup(BDACompetitionMode.KM_dictAG[10]);
+                    if (SpawnUtils.CountActiveEngines(vessel) == 0)
+                    {
+                        SpawnUtils.ActivateAllEngines(vessel);
+                    }
+                }
             }
 
             upDirection = vessel.up;

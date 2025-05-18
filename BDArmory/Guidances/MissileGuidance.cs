@@ -861,7 +861,7 @@ namespace BDArmory.Guidances
                 {
                     relPos = AIUtils.PredictPosition(targetPosition, targetVessel.Velocity(), targetVessel.acceleration_immediate, thrustTime) -
                     AIUtils.PredictPosition(missile.vessel.CoM, vel, missile.GetForwardTransform() * accel, thrustTime);
-                    relVel = relVel + relAccel * timeToImpact;
+                    relVel += relAccel * timeToImpact;
                     relAccel = targetVessel.acceleration_immediate;
                     timeToImpact = AIUtils.TimeToCPA(relPos, relVel, relAccel, 60f);
                     leadTime = thrustTime + timeToImpact;   

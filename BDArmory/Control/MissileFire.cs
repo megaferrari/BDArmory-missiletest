@@ -1079,7 +1079,7 @@ namespace BDArmory.Control
                 if (sw != null) //we have a weapon set by bool SmartPick, or set by the last time this was called
                 {
                     var gun = sw.GetWeaponModule();
-                    if (gun == null || (gun.useThisWeaponForAim && (gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO))) //it's a missile, or an aim-override enabled weapon with ammo
+                    if (gun == null || ((gun.useThisWeaponForAim || !(gun.isReloading || gun.isOverheated || gun.pointingAtSelf)) && (gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO))) //it's a missile, or an aim-override enabled weapon with ammo
                         if (sw.GetPart().vessel == vessel) return sw;
                 }
                 sw = null; //weapon no longer on craft. Null in case below while loop doesn't find other weapons in the same group on craft.
@@ -1282,15 +1282,20 @@ namespace BDArmory.Control
             if (HighLogic.LoadedSceneIsFlight)
             {
                 part.force_activate();
-                if (guardMode) ToggleGuardMode();
-                selectionMessage = new ScreenMessage("", 2.0f, ScreenMessageStyle.LOWER_CENTER);
 
                 UpdateList();
                 if (weaponArray.Length > 0) selectedWeapon = weaponArray[weaponIndex];
                 //selectedWeaponString = GetWeaponName(selectedWeapon);
+                selectionMessage = new ScreenMessage("", 2.0f, ScreenMessageStyle.LOWER_CENTER);
+                if (guardMode)
+                {
+                    ToggleGuardMode(); // Disable guard mode
+                    if (!BDArmorySettings.DISABLE_GUARDMODE_ON_SPAWN)
+                        StartCoroutine(ReenableGuardModeWhenReady());
+                }
+
                 cameraTransform = part.FindModelTransform("BDARPMCameraTransform");
 
-                part.force_activate();
                 rippleTimer = Time.time;
                 targetListTimer = Time.time;
 
@@ -2220,15 +2225,22 @@ namespace BDArmory.Control
 
         IEnumerator StartupListUpdater()
         {
+            var wait = new WaitForFixedUpdate();
             while (!FlightGlobals.ready || (vessel is not null && (vessel.packed || !vessel.loaded)))
             {
-                yield return null;
+                yield return wait;
                 if (vessel.isActiveVessel)
                 {
                     BDArmorySetup.Instance.ActiveWeaponManager = this;
                 }
             }
             UpdateList();
+        }
+
+        IEnumerator ReenableGuardModeWhenReady()
+        {
+            yield return new WaitWhileFixed(() => !FlightGlobals.ready || (vessel is not null && (vessel.packed || !vessel.loaded))); // Wait at least one frame so other modules have started.
+            ToggleGuardMode(); // Then re-enable it so that other effects from enabling it occur.
         }
 
         IEnumerator MissileWarningResetRoutine()
@@ -8379,7 +8391,7 @@ namespace BDArmory.Control
                                 if (((weapon.Current.engageAir && targetsAssigned[TurretID].isFlying) ||
                                     (weapon.Current.engageGround && targetsAssigned[TurretID].isLandedOrSurfaceSplashed) ||
                                     (weapon.Current.engageSLW && targetsAssigned[TurretID].isUnderwater)) //check engagement envelope
-                                    && TargetInTurretRange(weapon.Current.turret, 7, targetsAssigned[TurretID].Vessel.CoM, weapon.Current)) 
+                                    && TargetInTurretRange(weapon.Current.turret, 7, targetsAssigned[TurretID].Vessel.CoM, weapon.Current))
                                 {
                                     weapon.Current.visualTargetVessel = targetsAssigned[TurretID].Vessel; // if target within turret fire zone, assign
                                     firedTargets.Add(targetsAssigned[TurretID]);
