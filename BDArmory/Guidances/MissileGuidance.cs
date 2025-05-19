@@ -236,9 +236,6 @@ namespace BDArmory.Guidances
             float aHor = ((terminalAngle > 0) ? (-6f * speed * horizontalAngle) * ttgoWeaveInv : 0.0f) // A_BPN            
                 + ((gHorz != 0.0f) ? (gHorz * g * ((ka + omegaBeta * omegaBeta) * cosOmegaBetaOff + kj * sinOmegaBetaOff) * omegaBetaInv) : 0.0f); // A_W
 
-            if (BDArmorySettings.DEBUG_MISSILES)
-                Debug.Log($"[BDArmory.MissileGuidance] Weave guidance ttgoWeave: {ttgoWeave}, omegaBeta: {omegaBeta}, ka: {ka}, kj: {kj}, vertAngle: {Mathf.Rad2Deg * verticalAngle}, horAngle: {Mathf.Rad2Deg * horizontalAngle}, aVert: {aVert} m/s^2, aHor: {aHor} m/s^2.");
-
             Quaternion rotationPitch = Quaternion.AngleAxis(verticalAngle, right);
             Quaternion rotationYaw = Quaternion.AngleAxis(horizontalAngle, upDirection);
 
@@ -246,9 +243,13 @@ namespace BDArmory.Guidances
             if (terminalAngle < 0)
             {
                 accel += GetPNAccel(targetPosition, targetVelocity, missileVessel, 3f);
+                gLimit = accel.magnitude / (float)PhysicsGlobals.GravitationalAcceleration;
             }
+            else
+                gLimit = BDAMath.Sqrt(aVert * aVert + aHor * aHor) / (float)PhysicsGlobals.GravitationalAcceleration;
 
-            gLimit = accel.magnitude;
+            if (BDArmorySettings.DEBUG_MISSILES)
+                Debug.Log($"[BDArmory.MissileGuidance] Weave guidance ttgoWeave: {ttgoWeave}, omegaBeta: {omegaBeta}, ka: {ka}, kj: {kj}, vertAngle: {Mathf.Rad2Deg * verticalAngle}, horAngle: {Mathf.Rad2Deg * horizontalAngle}, aVert: {aVert} m/s^2, aHor: {aHor} m/s^2.");
 
             float leadTime = Mathf.Min(4f, ttgoWeave);
 
@@ -256,14 +257,12 @@ namespace BDArmory.Guidances
 
             if (useAGMDescentRatio)
             {
-                Vector3 aimVec = aimPos - missileVessel.CoM;
-
                 float altitudeClamp = Mathf.Clamp(
                     (weaveDist - ((float)missileVessel.srfSpeed * agmDescentRatio)) * 0.22f, 0f,
                     (float)missileVessel.altitude +
-                    Mathf.Max(VectorUtils.AnglePreNormalized(upDirection, missileVel.normalized) - 90f, 0f) * Mathf.Deg2Rad * aimVec.magnitude);
+                    Mathf.Max(VectorUtils.AnglePreNormalized(upDirection, missileVel.normalized) - 90f, 0f) * Mathf.Deg2Rad * weaveDist);
 
-                float altDiff = Vector3.Dot(aimVec, upDirection) + (float)missileVessel.altitude - Mathf.Max(FlightGlobals.getAltitudeAtPos(targetPosition), 0f);
+                float altDiff = Vector3.Dot(aimPos - missileVessel.CoM, upDirection) + (float)missileVessel.altitude - Mathf.Max(FlightGlobals.getAltitudeAtPos(targetPosition), -2f);
 
                 if (altDiff < altitudeClamp)
                 {
@@ -1457,7 +1456,7 @@ namespace BDArmory.Guidances
                             // Solution to the quadratic formula for the intersection of a line with a sphere, note we use the +ve solution
                             // There is no need to check the determinant as any line that originates within the sphere will always intersect the sphere
                             float temp = Vector3.Dot(aeroTorque, torqueDirection);
-                            torque = BDAMath.Sqrt(temp * temp - (aeroTorque.sqrMagnitude - maxTorque * maxTorque)) + (temp > 0 ? temp : -temp);
+                            torque = BDAMath.Sqrt(temp * temp - (aeroTorque.sqrMagnitude - maxTorque * maxTorque)) - temp;
                             //Debug.Log($"[BDArmory.MissileGuidance]: torque saturation! torque = {torque}.");
                         }
                         // Otherwise we just use torque unmodified
@@ -1473,8 +1472,8 @@ namespace BDArmory.Guidances
                         if (temp < 0 && det > 0)
                         {
                             float temp2 = BDAMath.Sqrt(det);
-                            // We flip the signs because the dot product is negative
-                            float LHS = temp2 + temp;
+                            // temp2 > 0 and temp < 0 so LHS < RHS
+                            float LHS = -temp2 - temp;
                             float RHS = temp2 - temp;
                             // There are three cases here, first is the case is if torque is insufficient to drive us under saturation,
                             // in which case we'll just apply enough to saturate

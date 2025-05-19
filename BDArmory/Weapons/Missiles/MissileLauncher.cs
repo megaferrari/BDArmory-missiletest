@@ -3041,16 +3041,16 @@ namespace BDArmory.Weapons.Missiles
 
         }
 
-        void DoAero(Vector3 targetPosition, float currgLimit = -1)
+        void DoAero(Vector3 targetPosition, float currgLimit = -1f)
         {
-            if (currgLimit < 0 || currgLimit > gLimit)
+            if (currgLimit < 0f || (currgLimit > gLimit && gLimit > 0f))
             {
                 currgLimit = gLimit;
             }
 
             float currAoALimit = maxAoA;
 
-            if (currgLimit > 0)
+            if (currgLimit > 0f)
             {
                 currAoALimit = MissileGuidance.getGLimit(this, MissileState == MissileStates.PostThrust ? 0f : currentThrust * Throttle, currgLimit, gMargin);
                 //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: maxAoA: {maxAoA}, currAoALimit: {currAoALimit}, currgLimit: {currgLimit}");

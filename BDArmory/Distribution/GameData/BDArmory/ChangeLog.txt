@@ -21,7 +21,8 @@
 	- Fix aim lead offset for weapons with deploy animations.
 	- Missiles:
 		- Add improved missile controller.
-		- Fix multi-missile launcher issues when railAmmo > launcher rails on the model.
+			- Missiles will now better respect gLimit as well as guidance-commanded acceleration, note this means some parameters may need to be tweaked to retain previous performance, specifically pronavGain and weave guidance accelerations.
+		- Fix multi-missile launcher issues when railAmmo > launcher rails on the mode
 		- Fix check for multi-mode engines being ignited and having fuel.
 		- Fix maddog ARH missile launches not turning on seeker.
 		- Add WeaveUseAGMDescentRatio and WeaveRandomRange to weave guidance, when WeaveUseAGMDescentRatio is true it forces the use of agmDescentRatio to allow for sea-skimming weave missiles. WeaveRandomRange is a float that allows for randomization of weave maneuver parameters.
