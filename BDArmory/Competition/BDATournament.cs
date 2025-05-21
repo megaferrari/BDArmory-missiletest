@@ -639,7 +639,7 @@ namespace BDArmory.Competition
                 case -1: // Auto
                     var autoVesselsPerHeat = OptimiseVesselsPerHeat(craftFiles.Count, npcsPerHeat);
                     vesselsPerHeat = autoVesselsPerHeat.Item1;
-                    fullHeatCount = Mathf.CeilToInt(craftFiles.Count / vesselsPerHeat) - autoVesselsPerHeat.Item2;
+                    fullHeatCount = Mathf.CeilToInt(craftFiles.Count / (float)vesselsPerHeat) - autoVesselsPerHeat.Item2;
                     break;
                 case 0: // Unlimited (all vessels in one heat).
                     vesselsPerHeat = craftFiles.Count;
@@ -647,7 +647,8 @@ namespace BDArmory.Competition
                     break;
                 default:
                     vesselsPerHeat = Mathf.Clamp(Mathf.Max(1, vesselsPerHeat - npcsPerHeat), 1, craftFiles.Count);
-                    fullHeatCount = craftFiles.Count / vesselsPerHeat;
+                    fullHeatCount = Mathf.CeilToInt(craftFiles.Count / (float)vesselsPerHeat) - (Mathf.CeilToInt(craftFiles.Count / (float)vesselsPerHeat) * vesselsPerHeat - craftFiles.Count); // Spread the deficit amongst the other heats if possible.
+                    if (fullHeatCount <= 0) fullHeatCount = craftFiles.Count / vesselsPerHeat;
                     break;
             }
             rounds = [];
@@ -690,7 +691,7 @@ namespace BDArmory.Competition
                                     selectedFiles.ToList() // Add a copy of the craft files list.
                                 ));
                                 count += vesselsThisHeat;
-                                vesselsThisHeat = heatIndex++ < fullHeatCount ? vesselsPerHeat : vesselsPerHeat - 1; // Take one less for the remaining heats to distribute the deficit of craft files.
+                                vesselsThisHeat = ++heatIndex < fullHeatCount ? vesselsPerHeat : vesselsPerHeat - 1; // Take one less for the remaining heats to distribute the deficit of craft files.
                                 selectedFiles = craftFiles.Skip(count).Take(vesselsThisHeat).ToList();
                             }
                         }
