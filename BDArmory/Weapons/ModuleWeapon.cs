@@ -2152,7 +2152,7 @@ namespace BDArmory.Weapons
                             GUIUtils.DrawLineBetweenWorldPositions(pointingAtPosition, reticlePosition, 2, new Color(0, 1, 0, 0.6f));
                         }
 
-                        GUIUtils.DrawTextureOnWorldPos(pointingAtPosition, BDArmorySetup.Instance.greenDotTexture, new Vector2(6, 6), 0);
+                        GUIUtils.DrawTextureOnWorldPos(pointingAtPosition, BDArmorySetup.Instance.greenDotTexture, new Vector2(6, 6), 0); 
 
                         if (atprAcquired)
                         {
@@ -5175,20 +5175,20 @@ namespace BDArmory.Weapons
                     }
                     else //no lock for our secondary target/fixed gun/no multitargeting? slave weapon to primary lock
                     {
-                        bool isVessel = weaponManager.slavedTarget.vessel != null;
+                        bool isVessel = weaponManager.slavedTarget.vessel != null; //how do we want to handle the edge case of locked Tgtcam, but non-slaving radar lock?
                         if (!isVessel || !(visRange && RadarUtils.GetVesselChaffFactor(weaponManager.slavedTarget.vessel) < 1f))
                         {
-                            slaved = true;
+                            if (weaponManager.slavingTurrets) slaved = true;
                             targetRadius = isVessel ? weaponManager.slavedTarget.vessel.GetRadius() : 35f;
                             targetPosition = weaponManager.slavedPosition != Vector3.zero ? weaponManager.slavedPosition : weaponManager.vesselRadarData.lockedTargetData.targetData.predictedPositionWithChaffFactor(weaponManager.vesselRadarData.lockedTargetData.detectedByRadar.radarChaffClutterFactor);
-                            targetVelocity = isVessel ? weaponManager.slavedTarget.vessel.rb_velocity : weaponManager.vesselRadarData.lockedTargetData.targetData.velocity;
+                            targetVelocity = isVessel ? weaponManager.slavedTarget.vessel.rb_velocity : weaponManager.vesselRadarData.lockedTargetData.targetData.velocity - BDKrakensbane.FrameVelocityV3f;
                             targetAcceleration = isVessel ? weaponManager.slavedAcceleration : weaponManager.vesselRadarData.lockedTargetData.targetData.acceleration;
                             if (isVessel) targetIsLandedOrSplashed = weaponManager.slavedTarget.vessel.LandedOrSplashed;
                             else targetIsLandedOrSplashed = false;
                             targetAcquired = true;
                             targetAcquisitionType = TargetAcquisitionType.Slaved;
                             if (BDArmorySettings.DEBUG_WEAPONS)
-                                Debug.Log($"[BDArmory.ModuleWeapon - {shortName} had no lock for {(visualTargetVessel != null ? visualTargetVessel.vesselName : "'unknown'")}; isVessel? {isVessel}; slaving to primary lock on {weaponManager.slavedTarget.vessel.name}");
+                                Debug.Log($"[BDArmory.ModuleWeapon - {shortName} had no lock for {(visualTargetVessel != null ? visualTargetVessel.vesselName : "'unknown'")}; isVessel? {isVessel}; slaving to primary lock on {(isVessel ? weaponManager.slavedTarget.vessel.name : weaponManager.vesselRadarData.lockedTargetData.vessel.name)}");
                             return;
                         }
                     }
