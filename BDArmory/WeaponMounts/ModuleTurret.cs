@@ -5,7 +5,6 @@ using BDArmory.Extensions;
 using BDArmory.Settings;
 using BDArmory.UI;
 using BDArmory.Utils;
-using BDArmory.Weapons.Missiles;
 
 namespace BDArmory.WeaponMounts
 {
