@@ -5,6 +5,7 @@ using BDArmory.Extensions;
 using BDArmory.Settings;
 using BDArmory.UI;
 using BDArmory.Utils;
+using BDArmory.Weapons.Missiles;
 
 namespace BDArmory.WeaponMounts
 {
@@ -36,7 +37,7 @@ namespace BDArmory.WeaponMounts
         public float yawRange;
 
         [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "#LOC_BDArmory_YawStandbyAngle"),
-         UI_FloatRange(minValue = -90f, maxValue = 90f, stepIncrement = 0.5f, scene = UI_Scene.All)]
+         UI_FloatRange(minValue = -90f, maxValue = 90f, stepIncrement = 0.5f, scene = UI_Scene.All, affectSymCounterparts = UI_Scene.None)]
         public float yawStandbyAngle = 0;
         Quaternion standbyLocalRotation = Quaternion.identity;
 
@@ -375,6 +376,20 @@ namespace BDArmory.WeaponMounts
         {
             standbyLocalRotation = Quaternion.AngleAxis(yawStandbyAngle, Vector3.up);
             if (yawTransform != null) yawTransform.localRotation = standbyLocalRotation;
+            foreach (Part symmetryPart in part.symmetryCounterparts)
+            {
+                ModuleTurret symmetryTurret = symmetryPart.FindModuleImplementing<ModuleTurret>();
+                if (part.symMethod == SymmetryMethod.Mirror)
+                {
+                    symmetryTurret.yawStandbyAngle = -yawStandbyAngle;
+                }
+                else
+                {
+                    symmetryTurret.yawStandbyAngle = yawStandbyAngle;
+                }
+
+                symmetryTurret.OnStandbyAngleChanged();
+            }
         }
     }
     public class BDAScaleByDistance : PartModule
