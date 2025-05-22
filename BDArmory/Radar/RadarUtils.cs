@@ -2513,7 +2513,7 @@ namespace BDArmory.Radar
         /// </summary>
         public static bool TerrainCheck(Vector3 start, Vector3 end, CelestialBody body, bool ignoreSetting = false)
         {
-            if (!(BDArmorySettings.CHECK_WATER_TERRAIN || ignoreSetting))
+            if (!BDArmorySettings.CHECK_WATER_TERRAIN || ignoreSetting)
                 return Physics.Linecast(start, end, (int)LayerMasks.Scenery);
 
             if (!Physics.Linecast(start, end, (int)LayerMasks.Scenery))
