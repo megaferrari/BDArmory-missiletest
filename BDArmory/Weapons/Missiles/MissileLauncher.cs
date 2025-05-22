@@ -2387,14 +2387,15 @@ namespace BDArmory.Weapons.Missiles
         {
             yield return new WaitForSecondsFixed(0.5f); //wait half sec after boost motor fires, then set crashTolerance to 1. Torps have already waited until splashdown before this is called.
             part.crashTolerance = 1;
-            var missileCOL = part.collider;
             if (useSimpleDragTemp)
             {
                 yield return new WaitForSecondsFixed((clearanceLength * 1.2f) / 2);
                 part.dragModel = Part.DragModel.DEFAULT;
                 useSimpleDragTemp = false;
             }
-            if (missileCOL) missileCOL.enabled = true;
+            var childColliders = part.GetComponentsInChildren<Collider>(includeInactive: false);
+            foreach (var col in childColliders)
+                col.enabled = true;
 
         }
         IEnumerator BoostRoutine()
