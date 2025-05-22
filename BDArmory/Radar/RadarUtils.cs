@@ -2615,8 +2615,11 @@ namespace BDArmory.Radar
                 sqrRange = (float)(a * u * u);
 
                 // If the point of intersection is further than the range we're checking then just ignore this
-                if (range < 0 && u > 1.0)
-                    return false;
+                if (range < 0)
+                {
+                    if (u > 1.0)
+                        return false;
+                }
                 else if (sqrRange > range * range)
                     return false;
 
