@@ -373,8 +373,7 @@ namespace BDArmory.WeaponMounts
         }
         void OnStandbyAngleChanged(BaseField field = null, object obj = null)
         {
-            standbyLocalRotation = Quaternion.AngleAxis(yawStandbyAngle, Vector3.up);
-            if (yawTransform != null) yawTransform.localRotation = standbyLocalRotation;
+            SetStandbyAngle();
             foreach (Part symmetryPart in part.symmetryCounterparts)
             {
                 ModuleTurret symmetryTurret = symmetryPart.FindModuleImplementing<ModuleTurret>();
@@ -387,8 +386,14 @@ namespace BDArmory.WeaponMounts
                     symmetryTurret.yawStandbyAngle = yawStandbyAngle;
                 }
 
-                symmetryTurret.OnStandbyAngleChanged();
+                symmetryTurret.SetStandbyAngle();
             }
+        }
+
+        void SetStandbyAngle()
+        {
+            standbyLocalRotation = Quaternion.AngleAxis(yawStandbyAngle, Vector3.up);
+            if (yawTransform != null) yawTransform.localRotation = standbyLocalRotation;
         }
     }
     public class BDAScaleByDistance : PartModule
