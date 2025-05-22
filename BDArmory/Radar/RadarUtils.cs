@@ -2511,9 +2511,9 @@ namespace BDArmory.Radar
         /// <summary>
         /// Helper method: check if line intersects terrain OR water
         /// </summary>
-        public static bool TerrainCheck(Vector3 start, Vector3 end, CelestialBody body, bool ignoreSetting = false)
+        public static bool TerrainCheck(Vector3 start, Vector3 end, CelestialBody body, bool forceIgnoreWater = false)
         {
-            if (!BDArmorySettings.CHECK_WATER_TERRAIN || ignoreSetting)
+            if (!BDArmorySettings.CHECK_WATER_TERRAIN || forceIgnoreWater)
                 return Physics.Linecast(start, end, (int)LayerMasks.Scenery);
 
             if (!Physics.Linecast(start, end, (int)LayerMasks.Scenery))
@@ -2529,7 +2529,7 @@ namespace BDArmory.Radar
         /// <summary>
         /// Helper method: check if line intersects terrain and gives range and angle of intersection. Note this check goes to up to sqrRange, though the boolean behavior is still restricted to between start and end
         /// </summary>
-        public static bool TerrainCheck(Vector3 start, Vector3 end, CelestialBody body, float range, out float R, out float angle, bool ignoreSetting = false)
+        public static bool TerrainCheck(Vector3 start, Vector3 end, CelestialBody body, float range, out float R, out float angle, bool forceWaterCheck = false)
         {
             angle = 0f;
             if (!BDArmorySettings.IGNORE_TERRAIN_CHECK)
@@ -2551,7 +2551,7 @@ namespace BDArmory.Radar
                 }
                 else
                 {
-                    if (!(BDArmorySettings.CHECK_WATER_TERRAIN || ignoreSetting))
+                    if (!(BDArmorySettings.CHECK_WATER_TERRAIN || forceWaterCheck))
                     {
                         R = float.MaxValue;
                         return false;
