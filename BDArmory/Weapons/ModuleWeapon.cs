@@ -1553,7 +1553,7 @@ namespace BDArmory.Weapons
                 }
                 baseDeviation = maxDeviation; //store original MD value
 
-                sourceInfo = new SourceInfo(vessel, weaponManager.team, part, Vector3.zero);
+                sourceInfo = new SourceInfo(vessel, weaponManager ? weaponManager.team : null, part, Vector3.zero);
                 graphicsInfo = new GraphicsInfo(bulletTexturePath, projectileColorC, startColorC,
                                     tracerStartWidth, tracerEndWidth, tracerLength, tracerLuminance, tracerDeltaFactor,
                                     smokeTexturePath, explModelPath, explSoundPath);
