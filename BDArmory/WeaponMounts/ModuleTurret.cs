@@ -369,29 +369,29 @@ namespace BDArmory.WeaponMounts
             yawStandbyAngleEd.maxValue = yawRange / 2f;
             yawStandbyAngle = Mathf.Clamp(yawStandbyAngle, yawStandbyAngleEd.minValue, yawStandbyAngleEd.maxValue);
             yawStandbyAngleEd.onFieldChanged = OnStandbyAngleChanged;
+            GameEvents.onEditorPartPlaced.Add(OnEditorPartPlaced);
             SetStandbyAngle();
         }
+
+        void OnEditorPartPlaced(Part p = null) { if (p == part) OnStandbyAngleChanged(); }
+
         void OnStandbyAngleChanged(BaseField field = null, object obj = null)
         {
-            if (standbyLocalRotation != null)
-            {
-                foreach (Part symmetryPart in part.symmetryCounterparts)
-                {
-                    ModuleTurret symmetryTurret = symmetryPart.FindModuleImplementing<ModuleTurret>();
-                    if (part.symMethod == SymmetryMethod.Mirror)
-                    {
-                        symmetryTurret.yawStandbyAngle = -yawStandbyAngle;
-                    }
-                    else
-                    {
-                        symmetryTurret.yawStandbyAngle = yawStandbyAngle;
-                    }
-
-                    symmetryTurret.SetStandbyAngle();
-                }
-            }
             SetStandbyAngle();
+            foreach (Part symmetryPart in part.symmetryCounterparts)
+            {
+                ModuleTurret symmetryTurret = symmetryPart.FindModuleImplementing<ModuleTurret>();
+                if (part.symMethod == SymmetryMethod.Mirror)
+                {
+                    symmetryTurret.yawStandbyAngle = -yawStandbyAngle;
+                }
+                else
+                {
+                    symmetryTurret.yawStandbyAngle = yawStandbyAngle;
+                }
 
+                symmetryTurret.SetStandbyAngle();
+            }
         }
 
         void SetStandbyAngle()
