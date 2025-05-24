@@ -817,7 +817,7 @@ namespace BDArmory.Control
                 // goto
                 if (command == PilotCommands.Waypoints)
                 {
-                    Pathfind(VectorUtils.WorldPositionToGeoCoords(waypointPosition, vessel.mainBody));                    
+                    Pathfind(VectorUtils.WorldPositionToGeoCoords(waypointPosition, vessel.mainBody));
                 }
                 else if (leftPath && bypassTarget == null)
                 {
@@ -860,9 +860,10 @@ namespace BDArmory.Control
         void Tactical()
         {
             // enable RCS if we're in combat
-            vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, weaponManager && targetVessel && !BDArmorySettings.PEACE_MODE
-                && (weaponManager.selectedWeapon != null || (vessel.CoM - targetVessel.CoM).sqrMagnitude < MaxEngagementRange * MaxEngagementRange)
-                || weaponManager.underFire || weaponManager.missileIsIncoming);
+            vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, weaponManager && (
+                targetVessel && !BDArmorySettings.PEACE_MODE && (
+                    weaponManager.selectedWeapon != null || (vessel.CoM - targetVessel.CoM).sqrMagnitude < MaxEngagementRange * MaxEngagementRange
+                ) || weaponManager.underFire || weaponManager.missileIsIncoming));
 
             // if weaponManager thinks we're under fire, do the evasive dance
             if (SurfaceType != AIUtils.VehicleMovementType.Stationary && (weaponManager.underFire || weaponManager.missileIsIncoming))
@@ -1069,7 +1070,13 @@ namespace BDArmory.Control
                     if (directionIntegral.sqrMagnitude > 1f) directionIntegral = directionIntegral.normalized;
                     pitchIntegral = 0.4f * Vector3.Dot(directionIntegral, -vesselTransform.forward);
                 }
-                else pitchError = 0;
+                else
+                {
+                    pitchError = Vector3.SignedAngle(upDir.ProjectOnPlanePreNormalized(vesselTransform.right), -vesselTransform.forward, vesselTransform.right);
+                    if (pitchError > 0) pitchError = Mathf.Max(pitchError - MaxSlopeAngle, 0);
+                    else pitchError = Mathf.Min(pitchError + MaxSlopeAngle, 0);
+                    if ((BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) && pitchError != 0) DebugLine($"pitch error: {pitchError}");
+                }
             }
             else
             {
