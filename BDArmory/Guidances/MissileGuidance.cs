@@ -1084,8 +1084,12 @@ namespace BDArmory.Guidances
             
             bool gLimited = false;
 
+            //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileGuidance] gLim: {gLim}");
+
             // Force required to reach g-limit
             gLim *= (float)(ml.vessel.totalMass * PhysicsGlobals.GravitationalAcceleration);
+
+            //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileGuidance] force: {gLim}");
 
             float maxAoA = ml.maxAoA;
 
@@ -1095,7 +1099,7 @@ namespace BDArmory.Guidances
 
             // Factor by which to multiply the lift coefficient to get lift, it's the dynamic pressure times the lift area times
             // the global lift multiplier
-            float qSk = (float) (0.5f * ml.vessel.atmDensity * ml.vessel.srfSpeed * ml.vessel.srfSpeed) * ml.liftArea * BDArmorySettings.GLOBAL_LIFT_MULTIPLIER;
+            float qSk = (float) (0.5 * ml.vessel.atmDensity * ml.vessel.srfSpeed * ml.vessel.srfSpeed) * ml.liftArea * BDArmorySettings.GLOBAL_LIFT_MULTIPLIER;
 
             float currG = 0;
 
@@ -1221,16 +1225,12 @@ namespace BDArmory.Guidances
                             float AoAEq = AoAEqCurve.Evaluate(TRatio);
 
                             // And determine the left hand bound from there
-                            if (AoAEq > linAoA[7])
+                            if (AoAEq > linAoA[6])
                             {
                                 // If we're in the final section then just calculate it directly
-                                currAoA = calcAoAforGNonLin(qSk, gLim, linSlope[7], linIntc[7], 0);
+                                currAoA = calcAoAforGNonLin(qSk, gLim, linSlope[6], linIntc[6], 0);
                                 gLimited = currAoA < maxAoA;
                                 return gLimited ? currAoA : maxAoA;
-                            }
-                            else if (AoAEq > linAoA[6])
-                            {
-                                LHS = 6;
                             }
                             else if (AoAEq > linAoA[5])
                             {
@@ -1273,7 +1273,7 @@ namespace BDArmory.Guidances
                 // Bisection search
                 while ( (RHS - LHS) > 1)
                 {
-                    interval = (int)(0.5f * (RHS + LHS));
+                    interval = Mathf.FloorToInt(0.5f * (RHS + LHS));
 
                     currG = linCL[interval] * qSk + thrust * linSin[interval];
 
@@ -1289,7 +1289,7 @@ namespace BDArmory.Guidances
                     }
                 }
 
-                if (LHS < 2)
+                if (LHS == 0)
                 {
                     // If we're below 15 (here 10 degrees) then use the linear approximation for sin
                     currAoA = calcAoAforGLinear(qSk, gLim, linSlope[LHS], linIntc[LHS], thrust);
@@ -1339,6 +1339,11 @@ namespace BDArmory.Guidances
         // small angle approximation for sin and non-linear uses a 2nd order approximation of sin about pi/2
         public static float calcAoAforGLinear(float qSk, float mg, float CLalpha, float CLintc, float thrust)
         {
+            //if (BDArmorySettings.DEBUG_MISSILES)
+            //{
+            //    float AoA = Mathf.Rad2Deg * (mg - CLintc * qSk) / (CLalpha * qSk + thrust);
+            //    Debug.Log($"[BDArmory.MissileGuidance]: AoA: {AoA}, qSk: {qSk}, Predicted CL: {AoA * CLalpha + CLintc}, actual CL: {DefaultLiftCurve.Evaluate(AoA)}, CLa: {CLalpha}, CLintc: {CLintc}");
+            //}
             return Mathf.Rad2Deg * (mg - CLintc * qSk) / (CLalpha * qSk + thrust);
         }
 
@@ -1346,7 +1351,12 @@ namespace BDArmory.Guidances
         {
             CLalpha *= qSk;
 
-            return Mathf.Rad2Deg * (2f * CLalpha + Mathf.PI * thrust + 2f * BDAMath.Sqrt(CLalpha * CLalpha + Mathf.PI * thrust * CLalpha + 2f * thrust * (CLintc * qSk + thrust - mg))) / (2f * thrust);
+            //if (BDArmorySettings.DEBUG_MISSILES)
+            //{
+            //    float AoA = Mathf.Rad2Deg * (2f * CLalpha + Mathf.PI * thrust - 2f * BDAMath.Sqrt(CLalpha * CLalpha + Mathf.PI * thrust * CLalpha + 2f * thrust * (CLintc * qSk + thrust - mg))) / (2f * thrust);
+            //    Debug.Log($"[BDArmory.MissileGuidance]: AoA: {AoA}, qSk: {qSk}, Predicted CL: {AoA * CLalpha + CLintc}, actual CL: {DefaultLiftCurve.Evaluate(AoA)}, CLa: {CLalpha}, CLintc: {CLintc}");
+            //}
+            return Mathf.Rad2Deg * (2f * CLalpha + Mathf.PI * thrust - 2f * BDAMath.Sqrt(CLalpha * CLalpha + Mathf.PI * thrust * CLalpha + 2f * thrust * (CLintc * qSk + thrust - mg))) / (2f * thrust); ;
         }
 
         public static Vector3 DoAeroForces(MissileLauncher ml, Vector3 targetPosition, float liftArea, float dragArea, float steerMult,
