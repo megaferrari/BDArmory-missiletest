@@ -321,7 +321,7 @@ namespace BDArmory.Weapons.Missiles
         public bool WeaveUseAGMDescentRatio = false; // Weave Guidance will use agmDescentRatio as a floor
 
         [KSPField]
-        public float WeaveRandomRange = 0.5f; // Weave Guidance vert/horz g randomization range (only affects if vert/horz != 0)
+        public Vector2 WeaveRandomRange = new Vector2(0.5f, 0.5f); // Weave Guidance vert/horz g randomization range (only affects if vert/horz != 0)
 
         protected float WeaveOffset = -1f;
 
