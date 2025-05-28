@@ -2515,29 +2515,25 @@ namespace BDArmory.Radar
         /// <summary>
         /// Helper method: check if line intersects terrain OR water
         /// </summary>
-        public static bool TerrainCheck(Vector3 start, Vector3 end, CelestialBody body, bool ignoreSetting = false)
+        public static bool TerrainCheck(Vector3 start, Vector3 end, CelestialBody body, bool forceIgnoreWater = false)
         {
-            if (!ignoreSetting)
+            if (!BDArmorySettings.CHECK_WATER_TERRAIN || forceIgnoreWater)
+                return Physics.Linecast(start, end, (int)LayerMasks.Scenery);
+
+            if (!Physics.Linecast(start, end, (int)LayerMasks.Scenery))
             {
-                if (!BDArmorySettings.CHECK_WATER_TERRAIN)
-                    return Physics.Linecast(start, end, (int)LayerMasks.Scenery);
-
-                if (!Physics.Linecast(start, end, (int)LayerMasks.Scenery))
-                {
-                    float dummyR, dummyA;
-                    bool result = checkWater(start, end, body, -1f, out dummyR, out dummyA);
-                    return result;
-                }
-
-                return true;
+                float dummyR, dummyA;
+                bool result = checkWater(start, end, body, -1f, out dummyR, out dummyA);
+                return result;
             }
-            return false;
+
+            return true;
         }
 
         /// <summary>
         /// Helper method: check if line intersects terrain and gives range and angle of intersection. Note this check goes to up to sqrRange, though the boolean behavior is still restricted to between start and end
         /// </summary>
-        public static bool TerrainCheck(Vector3 start, Vector3 end, CelestialBody body, float range, out float R, out float angle, bool ignoreSetting = false)
+        public static bool TerrainCheck(Vector3 start, Vector3 end, CelestialBody body, float range, out float R, out float angle, bool forceWaterCheck = false)
         {
             angle = 0f;
             if (!BDArmorySettings.IGNORE_TERRAIN_CHECK)
@@ -2553,13 +2549,13 @@ namespace BDArmory.Radar
                     R = hitInfo.distance;
                     angle = 90f - Vector3.Angle(hitInfo.normal, start - end);
 
-                    //if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils.TerrainCheck]: Hit terrain at sqrDist {R * R * 0.000001f} km^2. Terrain blocking?: {(R * R) < sqrDist}");
+                    //if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils.TerrainCheck]: Hit terrain at sqrDist {R * R * 0.000001f} km^2. Terrain blocking?: {(R * R) < offset.sqrMagnitude}");
 
                     return (R * R) < offset.sqrMagnitude;
                 }
                 else
                 {
-                    if (!(BDArmorySettings.CHECK_WATER_TERRAIN || ignoreSetting))
+                    if (!(BDArmorySettings.CHECK_WATER_TERRAIN || forceWaterCheck))
                     {
                         R = float.MaxValue;
                         return false;
@@ -2568,6 +2564,9 @@ namespace BDArmory.Radar
                     if (checkWater(start, end, body, range, out R, out angle, true))
                     {
                         R = BDAMath.Sqrt(R);
+
+                        //if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils.TerrainCheck]: Hit water at sqrDist {R * R * 0.000001f} km^2. Water blocking?: {(R * R) < offset.sqrMagnitude}");
+
                         return (R * R) < offset.sqrMagnitude;
                     }
                     return false;
@@ -2582,57 +2581,60 @@ namespace BDArmory.Radar
             angle = 0f;
             if (body.ocean || !body.hasSolidSurface)
             {
-                float R = (float)body.Radius;
-                float x, y, z;
-                float xB, yB, zB;
-                float a, b, c, det;
+                double R = body.Radius;
+                double x, y, z;
+                double xB, yB, zB;
+                double a, b, c, det;
 
                 x = end.x - start.x;
                 y = end.y - start.y;
                 z = end.z - start.z;
-                xB = (float)body.position.x;
-                yB = (float)body.position.y;
-                zB = (float)body.position.z;
+                xB = body.position.x;
+                yB = body.position.y;
+                zB = body.position.z;
 
                 a = x * x + y * y + z * z;
-                b = 2f * (x * (start.x - xB) + y * (start.y - yB) + z * (start.z - zB));
-                c = xB * xB + yB * yB + zB * zB + start.x * start.x + start.y * start.y + start.z * start.z - 2f * (xB * start.x + yB * start.y + zB * start.z) - R * R;
-                det = b * b - 4f * a * c;
-                if (a < 0.001f || det < 0 || b > 0)
+                b = 2.0 * (x * (start.x - xB) + y * (start.y - yB) + z * (start.z - zB));
+                c = xB * xB + yB * yB + zB * zB + start.x * start.x + start.y * start.y + start.z * start.z - 2.0 * (xB * start.x + yB * start.y + zB * start.z) - R * R;
+                det = b * b - 4.0 * a * c;
+                if (a < 0.001 || det < 0 || b > 0)
                 {
                     sqrRange = float.MaxValue;
                     return false;
                 }
 
-                float u;
+                double u;
 
                 if (det < 0.0001f)
                 {
                     // Quadratic Eq assuming det = 0: u =  - b / (2 * a)
-                    u = (-0.5f * b / a);
+                    u = (-0.5 * b / a);
                 }
                 else
                 {
                     // Quadratic Eq: u = (-b - sqrt(det)) / (2 * a)
-                    u = 0.5f * (-b - BDAMath.Sqrt(det)) / a;
+                    u = 0.5f * (-b - Math.Sqrt(det)) / a;
                 }
 
-                sqrRange = a * u * u;
+                sqrRange = (float)(a * u * u);
 
                 // If the point of intersection is further than the range we're checking then just ignore this
-                if (range < 0 && u > 1f)
-                    return false;
+                if (range < 0)
+                {
+                    if (u > 1.0)
+                        return false;
+                }
                 else if (sqrRange > range * range)
                     return false;
 
                 if (calcAngle)
                 {
                     Vector3 intcptVec;
-                    intcptVec.x = u * x + start.x - xB;
-                    intcptVec.y = u * y + start.y - yB;
-                    intcptVec.z = u * z + start.z - zB;
+                    intcptVec.x = (float)(u * x + start.x - xB);
+                    intcptVec.y = (float)(u * y + start.y - yB);
+                    intcptVec.z = (float)(u * z + start.z - zB);
 
-                    angle = Vector3.Angle(new Vector3(-x, -y, -z), intcptVec);
+                    angle = Vector3.Angle(new Vector3(-(float)x, -(float)y, -(float)z), intcptVec);
                     angle = 90f - angle;
                 }
 

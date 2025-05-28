@@ -36,9 +36,9 @@ namespace BDArmory.WeaponMounts
         public float yawRange;
 
         [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "#LOC_BDArmory_YawStandbyAngle"),
-         UI_FloatRange(minValue = -90f, maxValue = 90f, stepIncrement = 0.5f, scene = UI_Scene.All)]
+         UI_FloatRange(minValue = -90f, maxValue = 90f, stepIncrement = 0.5f, scene = UI_Scene.All, affectSymCounterparts = UI_Scene.None)]
         public float yawStandbyAngle = 0;
-        Quaternion standbyLocalRotation = Quaternion.identity;
+        Quaternion standbyLocalRotation;// = Quaternion.identity;
 
         [KSPField(isPersistant = true)] public float minPitchLimit = 400;
         [KSPField(isPersistant = true)] public float maxPitchLimit = 400;
@@ -369,9 +369,32 @@ namespace BDArmory.WeaponMounts
             yawStandbyAngleEd.maxValue = yawRange / 2f;
             yawStandbyAngle = Mathf.Clamp(yawStandbyAngle, yawStandbyAngleEd.minValue, yawStandbyAngleEd.maxValue);
             yawStandbyAngleEd.onFieldChanged = OnStandbyAngleChanged;
-            OnStandbyAngleChanged();
+            GameEvents.onEditorPartPlaced.Add(OnEditorPartPlaced);
+            SetStandbyAngle();
         }
+
+        void OnEditorPartPlaced(Part p = null) { if (p == part) OnStandbyAngleChanged(); }
+
         void OnStandbyAngleChanged(BaseField field = null, object obj = null)
+        {
+            SetStandbyAngle();
+            foreach (Part symmetryPart in part.symmetryCounterparts)
+            {
+                ModuleTurret symmetryTurret = symmetryPart.FindModuleImplementing<ModuleTurret>();
+                if (part.symMethod == SymmetryMethod.Mirror)
+                {
+                    symmetryTurret.yawStandbyAngle = -yawStandbyAngle;
+                }
+                else
+                {
+                    symmetryTurret.yawStandbyAngle = yawStandbyAngle;
+                }
+
+                symmetryTurret.SetStandbyAngle();
+            }
+        }
+
+        void SetStandbyAngle()
         {
             standbyLocalRotation = Quaternion.AngleAxis(yawStandbyAngle, Vector3.up);
             if (yawTransform != null) yawTransform.localRotation = standbyLocalRotation;
