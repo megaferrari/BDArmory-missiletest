@@ -148,7 +148,7 @@ namespace BDArmory.Extensions
         /// <param name="v">A Vector3.</param>
         /// <returns>True if any of the elements are NaN.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNan(this Vector3 v)
+        public static bool IsNaN(this Vector3 v)
         { return float.IsNaN(v.x) || float.IsNaN(v.y) || float.IsNaN(v.z); }
         /// <summary>
         /// Check if any of the quaternion elements are NaN.
@@ -156,7 +156,28 @@ namespace BDArmory.Extensions
         /// <param name="q">A Quaternion</param>
         /// <returns>True if any of the elements are NaN.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsNan(this Quaternion q) // Techinically not a Vector3 extension, but it fits here.
+        public static bool IsNaN(this Quaternion q) // Techinically not a Vector3 extension, but it fits here.
         { return float.IsNaN(q.w) || float.IsNaN(q.x) || float.IsNaN(q.y) || float.IsNaN(q.z); }
+
+        /// <summary>
+        /// Check if any of the vector elements are Inf.
+        /// </summary>
+        /// <param name="v">A Vector3.</param>
+        /// <returns>True if any of the elements are Inf.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsInf(this Vector3 v)
+        { return float.IsInfinity(v.x) || float.IsInfinity(v.y) || float.IsInfinity(v.z); }
+        /// <summary>
+        /// Check if any of the quaternion elements are Inf.
+        /// </summary>
+        /// <param name="q">A Quaternion</param>
+        /// <returns>True if any of the elements are Inf.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsInf(this Quaternion q) // Techinically not a Vector3 extension, but it fits here.
+        { return float.IsInfinity(q.w) || float.IsInfinity(q.x) || float.IsInfinity(q.y) || float.IsInfinity(q.z); }
+
+        // Combined methods for convenience.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool IsInfOrNaN(this Vector3 v) => v.IsNaN() || v.IsInf();
+        [MethodImpl(MethodImplOptions.AggressiveInlining)] public static bool IsInfOrNaN(this Quaternion q) => q.IsNaN() || q.IsInf();
     }
 }
