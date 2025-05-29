@@ -336,7 +336,7 @@ namespace BDArmory.Utils
                 return true;
             if (ModuleTargetingCamera.windowIsOpen && MouseIsInRect(BDArmorySetup.WindowRectTargetingCam, inverseMousePos))
                 return true;
-            MissileFire wm = BDArmorySetup.Instance.ActiveWeaponManager;
+            MissileFire wm = BDArmorySetup.Instance.OnGUIWM;
             if (wm != null)
             {
                 if (wm.vesselRadarData && wm.vesselRadarData.guiEnabled)
