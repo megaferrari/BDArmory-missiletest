@@ -1563,7 +1563,7 @@ namespace BDArmory.UI
                 lastActiveVessel = FlightGlobals.ActiveVessel;
                 if (!foundActiveVessel)
                 {
-                    var score = 1000 * timeSinceChange / BDArmorySettings.DEATH_CAMERA_SWITCH_INHIBIT_PERIOD;
+                    var score = 100 * timeSinceChange;
                     if (score < bestScore)
                     {
                         bestVessel = null; // stop switching
@@ -1571,7 +1571,7 @@ namespace BDArmory.UI
                 }
                 if (timeSinceChange > BDArmorySettings.CAMERA_SWITCH_FREQUENCY * timeScaleSqrt)
                 {
-                    if (bestVessel != null && bestVessel.loaded && !bestVessel.packed && !(bestVessel.isActiveVessel)) // if a vessel dies it'll use a default score for a few seconds
+                    if (bestVessel != null && bestVessel.loaded && !bestVessel.packed && !bestVessel.isActiveVessel) // if a vessel dies it'll use a default score for a few seconds
                     {
                         if (BDArmorySettings.DEBUG_OTHER) Debug.Log("[BDArmory.LoadedVesselSwitcher]: Switching vessel to " + bestVessel.GetName());
                         ForceSwitchVessel(bestVessel);
