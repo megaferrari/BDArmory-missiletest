@@ -343,7 +343,7 @@ namespace BDArmory.Weapons.Missiles
         private int cruiseTerminationFrames = 0;
 
         public bool SetupComplete => StartSetupComplete;
-        public float initMaxAoA = 0;
+        public Vector3 torqueAoALimit = new Vector3(-1f, -1f, -1f);
         public SmoothingF smoothedAoA;
         #endregion Variable Declarations
 
@@ -508,7 +508,6 @@ namespace BDArmory.Weapons.Missiles
 
             loftState = LoftStates.Boost;
             TimeToImpact = float.PositiveInfinity;
-            initMaxAoA = maxAoA;
             WeaveOffset = -1f;
             terminalHomingActive = false;
 
@@ -1397,7 +1396,6 @@ namespace BDArmory.Weapons.Missiles
                 ml.pronavGain = pronavGain;
                 ml.loftState = LoftStates.Boost;
                 ml.TimeToImpact = float.PositiveInfinity;
-                ml.initMaxAoA = maxAoA;
             }
             /*            if (GuidanceMode == GuidanceModes.AAMHybrid)
                             ml.pronavGain = pronavGain;*/
@@ -1445,7 +1443,6 @@ namespace BDArmory.Weapons.Missiles
                     ml.pronavGain = pronavGain;
                     ml.loftState = LoftStates.Boost;
                     ml.TimeToImpact = float.PositiveInfinity;
-                    ml.initMaxAoA = maxAoA;
                 }
                 if (homingModeTerminal == GuidanceModes.APN || homingModeTerminal == GuidanceModes.PN)
                     ml.pronavGain = pronavGain;

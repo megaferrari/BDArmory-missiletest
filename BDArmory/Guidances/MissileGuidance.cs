@@ -316,13 +316,27 @@ namespace BDArmory.Guidances
             // Set up PIP vector
             Vector3 predictedImpactPoint = AIUtils.PredictPosition(targetPosition, targetVelocity, Vector3.zero, leadTime + TimeWarp.fixedDeltaTime);
 
-            float sinTarget = Vector3.Dot((predictedImpactPoint - ml.vessel.CoM).normalized, -upDirection); //Vector3.Dot((targetPosition - ml.vessel.CoM), -upDirection) / R;
+            bool boostGuidance = (loftState < MissileBase.LoftStates.Midcourse);
 
-            // If still in boost phase
-            if ((loftState < MissileBase.LoftStates.Midcourse) && (midcourseRange > 0f) && (R > midcourseRange) && (sinTarget < Mathf.Sin(loftTermAngle * Mathf.Deg2Rad)) && (-sinTarget < Mathf.Sin(loftAngle * Mathf.Deg2Rad)))
+            Vector3 planarDirectionToTarget = Vector3.zero;
+
+            if (boostGuidance)
             {
-                Vector3 planarDirectionToTarget = ((predictedImpactPoint - ml.vessel.CoM).ProjectOnPlanePreNormalized(upDirection)).normalized;
+                planarDirectionToTarget = ((predictedImpactPoint - ml.vessel.CoM).ProjectOnPlanePreNormalized(upDirection)).normalized;
 
+                // Get angle relative to vertical
+                float pullDownCos = Vector3.Dot(velDirection, upDirection);
+                float pullDownSin = BDAMath.Sqrt(1f - pullDownCos * pullDownCos);
+                // Turn radius is mv^2/r = ma -> v^2/r = a -> v^2/a = r, a = 6 g -> v^2 * 1/6 g = r
+                Vector3 turnLead = (currSpeed * currSpeed * 0.101971618831157684326171875f / ml.gLimit) * (pullDownSin * planarDirectionToTarget + (1f - pullDownCos) * upDirection); //(currSpeed * currSpeed * 0.0169952698051929473876953125f) * (pullDownSin * planarDirectionToTarget + (1f - pullDownCos) * upDirection);
+
+                float sinTarget = Vector3.Dot((predictedImpactPoint - ml.vessel.CoM - turnLead).normalized, -upDirection); //Vector3.Dot((targetPosition - ml.vessel.CoM), -upDirection) / R;
+
+                boostGuidance = (midcourseRange > 0f) && (R > midcourseRange) && (sinTarget < Mathf.Sin(loftTermAngle * Mathf.Deg2Rad)) && (-sinTarget < Mathf.Sin(loftAngle * Mathf.Deg2Rad));
+            }
+            // If still in boost phase
+            if (boostGuidance)
+            {
                 //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileGuidance]: Lofting");
 
                 float altitudeClamp = Mathf.Clamp(targetAlt + 10f * rangeFac * Mathf.Pow(Vector3.Dot(targetPosition - ml.vessel.CoM, planarDirectionToTarget), Mathf.Abs(vertVelComp)), targetAlt, Mathf.Max(maxAltitude, targetAlt));
@@ -494,6 +508,22 @@ namespace BDArmory.Guidances
                 //targetCompVel = targetVelocity + velComp * targetAlVelMag * velDirectionHor; // New velComp logic
                 targetCompVel = targetVelocity + velComp * targetAlVelMag * velDirectionHor + vertVelComp * targetVertVelMag * upDirection; // New velComp logic
 
+                // Use simple lead compensation to minimize over-compensation
+                // Get planar direction to target
+                Vector3 planarDirectionToTarget =
+                    ((AIUtils.PredictPosition(targetPosition, targetVelocity, Vector3.zero, leadTime + TimeWarp.fixedDeltaTime) - missileVessel.CoM).ProjectOnPlanePreNormalized(upDirection)).normalized;
+
+                if (loftState < MissileBase.LoftStates.Midcourse)
+                {
+                    // Get angle relative to vertical
+                    float pullDownCos = Vector3.Dot(velDirection, upDirection);
+                    float pullDownSin = BDAMath.Sqrt(1f - pullDownCos * pullDownCos);
+                    // Turn radius is mv^2/r = ma -> v^2/r = a -> v^2/a = r, a = 6 g -> v^2 * 1/6 g = r
+                    Vector3 turnLead = (currSpeed * currSpeed * 0.0169952698051929473876953125f) * (pullDownSin * planarDirectionToTarget + (1f - pullDownCos) * upDirection);
+
+                    targetPredictedPosition += turnLead;
+                }
+
                 var count = 0;
                 do
                 {
@@ -519,11 +549,6 @@ namespace BDArmory.Guidances
                 float angle = Mathf.Atan2(velUp, velForwards);
 
                 //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileGuidance]: Loft Angle: [{(angle * Mathf.Rad2Deg):G3}]");
-
-                // Use simple lead compensation to minimize over-compensation
-                // Get planar direction to target
-                Vector3 planarDirectionToTarget =
-                    ((AIUtils.PredictPosition(targetPosition, targetVelocity, Vector3.zero, leadTime + TimeWarp.fixedDeltaTime) - missileVessel.CoM).ProjectOnPlanePreNormalized(upDirection)).normalized;
 
                 // Check if termination angle agrees with termAngle
                 if ((loftState < MissileBase.LoftStates.Midcourse) && (angle > -termAngle * Mathf.Deg2Rad))
@@ -1450,10 +1475,14 @@ namespace BDArmory.Guidances
                 Vector3 finalTorque = Vector3.Lerp(previousTorque, torqueDirection * torque, 1).ProjectOnPlanePreNormalized(Vector3.forward);
                 */
 
+                float AoALim = maxAoA;
+                if (ml.torqueAoALimit.x > 0)
+                    AoALim = Mathf.Min(maxAoA, 1.2f * ml.torqueAoALimit.x * ml.torqueAoALimit.y / (float)airSpeed * ml.torqueAoALimit.z / (float)airDensity);
+
                 Vector3 targetDirection = (targetPosition - ml.vessel.CoM).normalized;
                 float targetAngle = VectorUtils.AnglePreNormalized(velNorm, targetDirection);
-                if (targetAngle > maxAoA)
-                    targetDirection = Vector3.Slerp(velNorm, targetDirection, maxAoA / targetAngle);
+                if (targetAngle > AoALim)
+                    targetDirection = Vector3.Slerp(velNorm, targetDirection, AoALim / targetAngle);
                 float turningAngle = VectorUtils.AnglePreNormalized(forward, targetDirection);
                 Vector3 finalTorque;
                 if (turningAngle > 0f)
@@ -1461,6 +1490,10 @@ namespace BDArmory.Guidances
                     Vector3 torqueDirection = Vector3.Cross(forward, targetDirection) / Mathf.Sin(turningAngle * Mathf.Deg2Rad);
                     //Debug.Log($"[BDArmory.MissileGuidance]: torqueDirection = {torqueDirection}, sqrMagnitude = {torqueDirection.sqrMagnitude}.");
                     float torque = Mathf.Clamp(turningAngle * 2f * steerMult, 0f, maxTorque);
+
+                    if (maxAoA < 5f)
+                        torque *= maxAoA * 0.2f;
+
                     float aeroTorqueSqr = aeroTorque.sqrMagnitude;
 
                     // If aeroTorque < maxTorque we're not yet saturated
@@ -1476,13 +1509,30 @@ namespace BDArmory.Guidances
                             torque = BDAMath.Sqrt(temp * temp - (aeroTorque.sqrMagnitude - maxTorque * maxTorque)) - temp;
                             //Debug.Log($"[BDArmory.MissileGuidance]: torque saturation! torque = {torque}.");
                         }
-                        // If we're within 5% of maxTorque and we're pulling in the direction of aerotorque then also tone down torque marginally
-                        if (aeroTorqueSqr > 0.9025f * maxTorque && temp > 0f)
-                            torque *= 0.95f;
+                        // If aeroTorque is within 50% of maxTorque then tone down torque marginally
+                        if (aeroTorqueSqr > 0.25f * maxTorque * maxTorque)// && temp > 0f)
+                        {
+                            //Debug.Log($"[BDArmory.MissileGuidance] torque limiter: {(1f - (aeroTorqueSqr / (maxTorque * maxTorque) - 0.49f) * 1.96078f)}");
+                            //torque *= (1f - (aeroTorqueSqr / (maxTorque * maxTorque) - 0.49f) * 1.96078f);
+                            float aeroTorqueMag = BDAMath.Sqrt(aeroTorqueSqr);
+                            float x = 1.7f - aeroTorqueMag / maxTorque;
+                            //Debug.Log($"[BDArmory.MissileGuidance] torque limiter: {(x*x*x*x - 0.0625f) * 1.066f}");
+                            torque *= (x * x * x * x - 0.0625f) * 1.066f;
+
+                            // If we're approaching the limit (90% of maxTorque) and we're faster than the last time we reached it,
+                            // recalculate the torqueAoALimit as the estimate is a bit more restrictive when going faster
+                            if (ml.torqueAoALimit.x > 0f && aeroTorqueSqr > 0.81f * maxTorque * maxTorque && airSpeed > 1.5f * ml.torqueAoALimit.y)
+                            {
+                                // Here we assume the torqueAoALimit has more or less a quadratic relationship with AoA
+                                ml.torqueAoALimit = new Vector3(1.2f * BDAMath.Sqrt(BDAMath.Sqrt(aeroTorqueSqr / (maxTorque * maxTorque))) * AoA, (float)airSpeed, (float)airDensity);
+                            }
+                        }
+                            
                         // Otherwise we just use torque unmodified
                     }
                     else
                     {
+                        ml.torqueAoALimit = new Vector3(AoA, (float)airSpeed, (float)airDensity);
                         //Debug.Log($"[BDArmory.MissileGuidance]: aeroTorque saturated! torque = {torque}.");
                         // If we're saturated, then as long as torqueDirection somewhat opposes aeroTorque we can look
                         // at how much torque we can apply

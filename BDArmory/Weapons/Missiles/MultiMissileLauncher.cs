@@ -882,7 +882,6 @@ namespace BDArmory.Weapons.Missiles
                     ml.pronavGain = missileLauncher.pronavGain;
                     ml.loftState = LoftStates.Boost;
                     ml.TimeToImpact = float.PositiveInfinity;
-                    ml.initMaxAoA = missileLauncher.maxAoA;
                 }
                 /*if (missileLauncher.GuidanceMode == GuidanceModes.AAMHybrid)
                 {
@@ -935,7 +934,6 @@ namespace BDArmory.Weapons.Missiles
                         ml.pronavGain = missileLauncher.pronavGain;
                         ml.loftState = LoftStates.Boost;
                         ml.TimeToImpact = float.PositiveInfinity;
-                        ml.initMaxAoA = missileLauncher.maxAoA;
                     }
                     if (missileLauncher.homingModeTerminal == GuidanceModes.APN || missileLauncher.homingModeTerminal == GuidanceModes.PN)
                         ml.pronavGain = missileLauncher.pronavGain;
