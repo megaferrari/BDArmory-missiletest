@@ -918,7 +918,7 @@ namespace BDArmory.VesselSpawning
                     }
                     else
                     {
-                        Debug.LogWarning($"[BDArmory.BDArmorySetup]: No default value for actuatorSpeed found in partConfig for {ctrlSrf.name}, defaulting to true.");
+                        Debug.LogWarning($"[BDArmory.BDArmorySetup]: No default value for actuatorSpeed found in partConfig for {ctrlSrf.name}, defaulting to 30°/s.");
                         ctrlSrf.actuatorSpeed = 30;
                     }
                 }
