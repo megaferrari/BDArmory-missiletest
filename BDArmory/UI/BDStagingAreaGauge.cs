@@ -147,8 +147,9 @@ namespace BDArmory.UI
         private void ForceRedraw()
         {
             part.stackIcon.ClearInfoBoxes();
-            //null everything so other gauges will perperly re-initialize post ClearinfoBoxes()
+            //null everything so other gauges will properly re-initialize post ClearinfoBoxes()
             ammoGauge = null;
+            cmGauge = null;
             heatGauge = null;
             reloadBar = null;
             emptyGauge = null;
