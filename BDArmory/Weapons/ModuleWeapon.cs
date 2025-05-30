@@ -2269,6 +2269,8 @@ namespace BDArmory.Weapons
                                     effectsShot = true;
                                 }
 
+                                sourceInfo.vessel = vessel; // The vessel might have changed if it's on a detachable fighter, for example.
+                                sourceInfo.team = WeaponManager.team; // Similarly, teams may change if reassigned after spawning.
                                 sourceInfo.position = fireTransform.position;
                                 graphicsInfo.projectileColor = projectileColorC;
                                 graphicsInfo.startColor = startColorC;

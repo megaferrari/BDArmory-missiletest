@@ -103,7 +103,7 @@ namespace BDArmory.VesselSpawning
             {
                 BDACompetitionMode.Instance.LogResults("due to spawning", "auto-dump-from-spawning"); // Log results first.
                 BDACompetitionMode.Instance.StopCompetition(); // Stop any running competition.
-                BDACompetitionMode.Instance.ResetCompetitionStuff(); // Reset competition scores.
+                BDACompetitionMode.Instance.ResetCompetitionStuff(preSpawn: true); // Reset competition scores.
             }
 
             // Reset the random seed as KSP restores the random seed from the previous save.

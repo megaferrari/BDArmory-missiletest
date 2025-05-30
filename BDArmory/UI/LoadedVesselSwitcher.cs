@@ -761,7 +761,7 @@ namespace BDArmory.UI
                 }
                 else // Sorting of teams by hit counts.
                 {
-                    var orderedTeamManagers = weaponManagers.Select(tm => new Tuple<string, List<MissileFire>>(tm.Key, [.. tm.Value.Where(wm => wm != null && wm.vessel != null)])).ToList();
+                    var orderedTeamManagers = weaponManagers.Select(tm => new Tuple<string, List<MissileFire>>(tm.Key, [.. tm.Value.Where(wm => wm != null && wm.vessel != null && !string.IsNullOrEmpty(wm.vessel.vesselName))])).ToList();
                     if (ContinuousSpawning.Instance.vesselsSpawningContinuously)
                     {
                         foreach (var teamManager in orderedTeamManagers)
@@ -799,7 +799,7 @@ namespace BDArmory.UI
             {
                 foreach (var teamManager in weaponManagers)
                 {
-                    var teamMembers = teamManager.Value.Where(wm => wm != null && wm.vessel != null).ToList();
+                    var teamMembers = teamManager.Value.Where(wm => wm != null && wm.vessel != null && !string.IsNullOrEmpty(wm.vessel.vesselName)).ToList();
                     if (teamMembers.Count == 0) continue;
                     var teamName = teamManager.Key;
                     if (teamMembers.First().Team.Neutral && teamName != "Neutral") teamName += " (Neutral)";
@@ -1377,6 +1377,7 @@ namespace BDArmory.UI
                                     float targetDistance = 5000 + (float)(rng.NextDouble() * 100.0);
                                     float crashTime = 30;
                                     string vesselName = wm.Current.vessel.vesselName;
+                                    if (string.IsNullOrEmpty(vesselName)) continue;
                                     // avoid lingering on dying things
                                     bool recentlyDamaged = false;
                                     bool recentlyLanded = false;
@@ -1562,7 +1563,7 @@ namespace BDArmory.UI
                 lastActiveVessel = FlightGlobals.ActiveVessel;
                 if (!foundActiveVessel)
                 {
-                    var score = 100 * timeSinceChange;
+                    var score = 1000 * timeSinceChange / BDArmorySettings.DEATH_CAMERA_SWITCH_INHIBIT_PERIOD;
                     if (score < bestScore)
                     {
                         bestVessel = null; // stop switching

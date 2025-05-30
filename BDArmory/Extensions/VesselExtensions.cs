@@ -248,6 +248,7 @@ namespace BDArmory.Extensions
         /// <param name="vessel"></param>
         public static void StripTypeFromName(this Vessel vessel)
         {
+            if (vessel == null || string.IsNullOrEmpty(vessel.vesselName)) return;
             if (!VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType) && vessel.vesselName.EndsWith($" {vessel.vesselType}"))
             {
                 vessel.vesselName = vessel.vesselName.Remove(vessel.vesselName.Length - $" {vessel.vesselType}".Length);

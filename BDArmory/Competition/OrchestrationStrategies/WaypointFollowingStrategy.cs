@@ -70,7 +70,7 @@ namespace BDArmory.Competition.OrchestrationStrategies
             if (BDArmorySettings.DEBUG_OTHER) Debug.Log("[BDArmory.WaypointFollowingStrategy]: Started");
             pilots = BDACompetitionMode.Instance.GetAllPilots().Select(p => p.vessel.ActiveController().AI as BDGenericAIBase).ToList();
             if (BDACompetitionMode.Instance.competitionIsActive) BDACompetitionMode.Instance.StopCompetition(); // Stop any currently active competition.
-            BDACompetitionMode.Instance.ResetCompetitionStuff(); // Reset a bunch of stuff related to competitions so they don't interfere.
+            BDACompetitionMode.Instance.ResetCompetitionStuff(preSpawn: true); // Reset a bunch of stuff related to competitions so they don't interfere.
             BDACompetitionMode.Instance.StartCompetitionMode(BDArmorySettings.COMPETITION_DISTANCE, BDArmorySettings.COMPETITION_START_DESPITE_FAILURES, "", CompetitionType.WAYPOINTS);
             if (BDArmorySettings.WAYPOINTS_INFINITE_FUEL_AT_START)
             {

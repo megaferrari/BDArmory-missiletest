@@ -7398,7 +7398,7 @@ namespace BDArmory.Control
             // If we can't directly see the target via sight or radar, AI will head to last known position of target, based on target's vector at time contact was lost,
             // with precision of estimated position degrading over time.
 
-            //extend to allow teamamtes provide vision? Could count scouted tarets as stale to prevent precise targeting, but at least let AI know something is out there
+            //extend to allow teammates provide vision? Could count scouted threats as stale to prevent precise targeting, but at least let AI know something is out there
 
             // can we get a visual sight of the target?
 

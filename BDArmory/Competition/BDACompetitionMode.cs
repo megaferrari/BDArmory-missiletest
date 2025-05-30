@@ -448,7 +448,7 @@ namespace BDArmory.Competition
             Debug.Log("[BDArmory.BDACompetitionMode:" + CompetitionID.ToString() + "]: Competition Started");
         }
 
-        public void ResetCompetitionStuff(string tag = "")
+        public void ResetCompetitionStuff(string tag = "", bool preSpawn = false)
         {
             // reinitilize everything when the button get hit.
             CompetitionID = (int)DateTime.UtcNow.Subtract(new DateTime(2020, 1, 1)).TotalSeconds;
@@ -472,14 +472,21 @@ namespace BDArmory.Competition
             decisionTick = BDArmorySettings.COMPETITION_KILLER_GM_FREQUENCY > 60 ? -1 : competitionStartTime + BDArmorySettings.COMPETITION_KILLER_GM_FREQUENCY; // every 60 seconds we do nasty things
             killerGMenabled = false;
             BulletHitFX.CleanPartsOnFireInfo();
-            // Get a list of pilot vessels with unique names for the scoring.
-            var pilotVessels = GetAllPilots().Select(p => p.vessel).ToList();
-            foreach (var vessel in pilotVessels) SpawnUtils.DeconflictVesselName(vessel); // Make sure the names are unique.
-            Scores.ConfigurePlayers(pilotVessels); // Get the competitors.
-            if (!string.IsNullOrEmpty(BDArmorySettings.PINATA_NAME) && Scores.Players.Contains(BDArmorySettings.PINATA_NAME)) { hasPinata = true; pinataAlive = false; } else { hasPinata = false; pinataAlive = false; } // Piñata.
-            if (SpawnUtils.originalTeams.Count == 0) SpawnUtils.SaveTeams(); // If the vessels weren't spawned in with Vessel Spawner, save the current teams.
-            if (LoadedVesselSwitcher.Instance is not null) LoadedVesselSwitcher.Instance.ResetDeadVessels();
             dragLimiting.Clear();
+            if (preSpawn)
+            {
+                Scores.ConfigurePlayers([]); // Clear the scores.
+            }
+            else
+            {
+                // Get a list of pilot vessels with unique names for the scoring.
+                var pilotVessels = GetAllPilots().Select(p => p.vessel).ToList();
+                foreach (var vessel in pilotVessels) SpawnUtils.DeconflictVesselName(vessel); // Make sure the names are unique.
+                Scores.ConfigurePlayers(pilotVessels); // Get the competitors.
+                if (!string.IsNullOrEmpty(BDArmorySettings.PINATA_NAME) && Scores.Players.Contains(BDArmorySettings.PINATA_NAME)) { hasPinata = true; pinataAlive = false; } else { hasPinata = false; pinataAlive = false; } // Piñata.
+                if (SpawnUtils.originalTeams.Count == 0) SpawnUtils.SaveTeams(); // If the vessels weren't spawned in with Vessel Spawner, save the current teams.
+            }
+            if (LoadedVesselSwitcher.Instance is not null) LoadedVesselSwitcher.Instance.ResetDeadVessels();
             GC.Collect(); // Clear out garbage at a convenient time.
         }
 

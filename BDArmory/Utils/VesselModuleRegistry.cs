@@ -12,6 +12,7 @@ using BDArmory.Settings;
 using BDArmory.Weapons;
 using BDArmory.Weapons.Missiles;
 using BDArmory.UI;
+using BDArmory.VesselSpawning;
 
 namespace BDArmory.Utils
 {
@@ -870,12 +871,14 @@ namespace BDArmory.Utils
     ///       get
     ///       {
     ///           if (_weaponManager == null || !_weaponManager.IsPrimaryWM || _weaponManager.vessel != vessel)
-    ///               _weaponManager = vessel && vessel.loaded ? vessel.ActiveController().WM : null;
+    ///               _weaponManager = (vessel != null && vessel.loaded) ? vessel.ActiveController().WM : null;
+    ///           if (_weaponManager != null && _weaponManager.vessel != vessel) _weaponManager = null;
     ///           return _weaponManager;
     ///       }
     ///   }
     ///   MissileFire _weaponManager;
     /// Note: Take a local copy if accessing it repeatedly without the possibility of it changing.
+    /// Note: The secondary check is necessary if vessel is FlightGlobals.ActiveVessel due to the DeathCam switch delay while the vessel is being removed.
     ///   
     /// 2. Access pattern for parts that need the primary AI every frame:
     ///   public IBDAIControl AI
@@ -946,6 +949,10 @@ namespace BDArmory.Utils
         public IBDAIControl AI { get; private set; } // The active AI (if any are active) or the closest AI to the root.
         public string SourceVesselURL { get; set; } = null; // The original .craft file this vessel came from, if known. Spawning via BDA's spawners will set this.
         public bool VesselNamingDeconflictionHasBeenApplied { get; set; } = false; // Whether vessel naming deconfliction has been applied to this vessel or not.
+        public string VesselName { get; set; } = null; // The vesselName of this vessel. This is to revert KSP's automatic renaming of vessels when we don't want it to.
+
+        // FIXMEAI If a fighter has parts of the parent still attached and is getting attacked, then it detaches from that part, the attackers continue attacking the part without a WM.
+        // FIXMEAI Tournaments aren't reusing names properly.
 
         // Note: If using these below, check that ai.pilotEnabled is true to see if it's the active AI.
         public BDModulePilotAI PilotAI { get; private set; } // The primary or most recently active pilot AI.
@@ -987,14 +994,14 @@ namespace BDArmory.Utils
             UpdateAIModules(true);
 
             // Update the registry.
-            registry = registry.Where(kvp => kvp.Key != null).ToDictionary(kvp => kvp.Key, kvp => kvp.Value); // Remove any null vessels.
+            registry = registry.Where(kvp => kvp.Key != null || kvp.Key != kvp.Value.Vessel).ToDictionary(kvp => kvp.Key, kvp => kvp.Value); // Remove any null or non-matching vessels.
 
             updateRequired = false;
             if (BDArmorySettings.DEBUG_OTHER)
             {
                 var vesselName = Vessel.GetName();
                 if (string.IsNullOrEmpty(vesselName)) vesselName = "new vessel";
-                Debug.Log($"[BDArmory.ActiveController]: ActiveController modules updated on {(string.IsNullOrEmpty(vesselName) ? Vessel.rootPart.partInfo.name : vesselName)} ({Vessel.vesselType}), WM: {WM != null}, PilotAI: {PilotAI != null}, SurfaceAI: {SurfaceAI != null}, VTOLAI: {VTOLAI != null}, OrbitalAI: {OrbitalAI != null}, AI: {AI}");
+                Debug.Log($"[BDArmory.ActiveController]: ActiveController modules updated on {(string.IsNullOrEmpty(vesselName) ? Vessel.rootPart.partInfo.name : vesselName)} ({Vessel.persistentId}, {Vessel.vesselType}), WM: {WM != null}, PilotAI: {PilotAI != null}, SurfaceAI: {SurfaceAI != null}, VTOLAI: {VTOLAI != null}, OrbitalAI: {OrbitalAI != null}, AI: {AI}");
             }
             LoadedVesselSwitcher.Instance.UpdateWMs(); // Flag the the WMs in the VS need refreshing.
         }
@@ -1065,6 +1072,7 @@ namespace BDArmory.Utils
         void UpdateVesselType()
         {
             TimingManager.FixedUpdateRemove(TimingManager.TimingStage.Precalc, UpdateVesselType); // Do it only once.
+            if (Vessel == null) return;
             var origType = Vessel.vesselType;
             Vessel.StripTypeFromName();
             if (AI != null)
@@ -1111,6 +1119,8 @@ namespace BDArmory.Utils
             base.OnLoadVessel();
             GameEvents.onVesselPartCountChanged.Add(OnVesselPartCountChanged);
             TimingManager.FixedUpdateAdd(TimingManager.TimingStage.Precalc, UpdateModules);
+            TimingManager.FixedUpdateAdd(TimingManager.TimingStage.ObscenelyEarly, GetVesselName);
+            updateRequired = true;
             UpdateModules();
 
             if (WM != null)
@@ -1130,6 +1140,7 @@ namespace BDArmory.Utils
                     {
                         BDACompetitionMode.Instance.AddToCompetitionWhenReady(WM);
                     }
+                    WM.ParentWM = null; // Clear the parent WM at the end of frame in case the WM is not on the root part since losing the root part will trigger OnLoadVessel again.
                 }
             }
         }
@@ -1140,24 +1151,44 @@ namespace BDArmory.Utils
         /// <param name="vessel"></param>
         void OnVesselPartCountChanged(Vessel vessel)
         {
-            if (vessel == Vessel) updateRequired = true;
+            if (vessel != Vessel) return;
+            updateRequired = true;
+            if (WM != null && !string.IsNullOrEmpty(VesselName) && vessel.vesselName != VesselName)
+            {
+                Debug.Log($"DEBUG Reverting name change of {VesselName} ({vessel.persistentId}) from {vessel.vesselName}");
+                vessel.vesselName = VesselName;
+            }
+        }
+
+        // The vessel name of new vessels gets assigned during the ObscenelyEarly timing phase.
+        void GetVesselName()
+        {
+            VesselName = vessel.vesselName;
+            if (!string.IsNullOrEmpty(VesselName))
+            {
+                TimingManager.FixedUpdateRemove(TimingManager.TimingStage.ObscenelyEarly, GetVesselName);
+            }
         }
 
         /// <summary>
         /// Clean up the event handlers.
         /// </summary>
-        /// <param name="vessel"></param>
-        public override void OnUnloadVessel()
+        public void RemoveHandlers()
         {
             TimingManager.FixedUpdateRemove(TimingManager.TimingStage.Precalc, UpdateModules);
+            TimingManager.FixedUpdateRemove(TimingManager.TimingStage.ObscenelyEarly, GetVesselName);
             GameEvents.onVesselPartCountChanged.Remove(OnVesselPartCountChanged);
+        }
+
+        public override void OnUnloadVessel()
+        {
+            RemoveHandlers();
             base.OnUnloadVessel();
         }
 
         void OnDestroy() // Make sure stuff gets removed if the vessel module is destroyed without unloading the vessel (e.g., docking, fast quit, etc.).
         {
-            TimingManager.FixedUpdateRemove(TimingManager.TimingStage.Precalc, UpdateModules);
-            GameEvents.onVesselPartCountChanged.Remove(OnVesselPartCountChanged);
+            RemoveHandlers();
         }
     }
 }

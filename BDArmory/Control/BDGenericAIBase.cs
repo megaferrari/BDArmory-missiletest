@@ -276,7 +276,6 @@ namespace BDArmory.Control
             if (HighLogic.LoadedSceneIsFlight)
             {
                 part.OnJustAboutToBeDestroyed += DeactivatePilot;
-                vessel.OnJustAboutToBeDestroyed += DeactivatePilot;
                 GameEvents.onVesselWasModified.Add(onVesselWasModified);
                 MissileFire.OnChangeTeam += OnToggleTeam;
                 GameEvents.onPartDie.Add(OnPartDie);
@@ -306,7 +305,6 @@ namespace BDArmory.Control
         protected virtual void OnDestroy()
         {
             part.OnJustAboutToBeDestroyed -= DeactivatePilot;
-            if (vessel != null) vessel.OnJustAboutToBeDestroyed -= DeactivatePilot;
             GameEvents.onVesselWasModified.Remove(onVesselWasModified);
             GameEvents.onVesselDestroy.Remove(RemoveAutopilot);
             MissileFire.OnChangeTeam -= OnToggleTeam;
@@ -335,14 +333,7 @@ namespace BDArmory.Control
             if (v != activeVessel)
                 return;
 
-            if (vessel != activeVessel)
-            {
-                if (activeVessel)
-                    activeVessel.OnJustAboutToBeDestroyed -= DeactivatePilot;
-                if (vessel)
-                    vessel.OnJustAboutToBeDestroyed += DeactivatePilot;
-                activeVessel = vessel;
-            }
+            activeVessel = vessel;
         }
 
         #endregion events

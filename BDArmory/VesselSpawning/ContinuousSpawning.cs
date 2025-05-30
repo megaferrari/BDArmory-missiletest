@@ -75,7 +75,7 @@ namespace BDArmory.VesselSpawning
             // Reset competition stuff.
             BDACompetitionMode.Instance.LogResults("due to continuous spawning", "auto-dump-from-spawning"); // Log results first.
             BDACompetitionMode.Instance.StopCompetition();
-            BDACompetitionMode.Instance.ResetCompetitionStuff(); // Reset competition scores.
+            BDACompetitionMode.Instance.ResetCompetitionStuff(preSpawn: true); // Reset competition scores.
             SpawnUtilsInstance.Instance.gunGameProgress.Clear(); // Clear gun-game progress.
             ScoreWindow.SetMode(ScoreWindow.Mode.ContinuousSpawn, Toggle.Off);
         }
