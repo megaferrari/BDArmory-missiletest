@@ -188,7 +188,7 @@ namespace BDArmory.CounterMeasure
                     audioSource.dopplerLevel = 1;
                 }
             }
-            if (maxCMCount > 0) gauge.UpdateCMMeter((float)((cmCount >= 1 ? cmCount : 0) / maxCMCount));
+            if (maxCMCount > 0) gauge.UpdateCMMeter((cmCount >= 1 ? cmCount : 0) / (float)maxCMCount);
         }
 
         void FireParticleEffects()
