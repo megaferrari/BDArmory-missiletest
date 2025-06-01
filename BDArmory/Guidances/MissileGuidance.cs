@@ -1036,8 +1036,8 @@ namespace BDArmory.Guidances
         }
 
         public static FloatCurve DefaultLiftCurve = new([
-            new(0, 0),
-            new(8, 0.35f),
+            new(0, 0, 0.04375f, 0.04375f),
+            new(8, 0.35f, 0.04801136f, 0.04801136f),
             //new(19, 1f),
             //new(23, 0.9f),
             new(30, 1.5f),
@@ -1372,10 +1372,10 @@ namespace BDArmory.Guidances
         {
             //if (BDArmorySettings.DEBUG_MISSILES)
             //{
-            //    float AoA = Mathf.Rad2Deg * (mg - CLintc * qSk) / (CLalpha * qSk + thrust);
-            //    Debug.Log($"[BDArmory.MissileGuidance]: AoA: {AoA}, qSk: {qSk}, Predicted CL: {AoA * CLalpha + CLintc}, actual CL: {DefaultLiftCurve.Evaluate(AoA)}, CLa: {CLalpha}, CLintc: {CLintc}");
+            //    float AoA = (mg - CLintc * qSk) / (CLalpha * qSk + thrust * Mathf.Deg2Rad);
+            //    Debug.Log($"[BDArmory.MissileGuidance]: AoA: {AoA}, qSk: {qSk}, Predicted CL: {AoA * CLalpha + CLintc}, actual CL: {DefaultLiftCurve.Evaluate(AoA)}, CLa: {CLalpha}, CLintc: {CLintc}, predicted force: {qSk * (AoA * CLalpha + CLintc) + thrust * AoA * Mathf.Deg2Rad}, actual force: {qSk * DefaultLiftCurve.Evaluate(AoA) + thrust * Mathf.Sin(AoA * Mathf.Deg2Rad)}, desired: {mg}");
             //}
-            return Mathf.Rad2Deg * (mg - CLintc * qSk) / (CLalpha * qSk + thrust);
+            return (mg - CLintc * qSk) / (CLalpha * qSk + thrust * Mathf.Deg2Rad);
         }
 
         public static float calcAoAforGNonLin(float qSk, float mg, float CLalpha, float CLintc, float thrust)
@@ -1384,10 +1384,10 @@ namespace BDArmory.Guidances
 
             //if (BDArmorySettings.DEBUG_MISSILES)
             //{
-            //    float AoA = Mathf.Rad2Deg * (2f * CLalpha + Mathf.PI * thrust - 2f * BDAMath.Sqrt(CLalpha * CLalpha + Mathf.PI * thrust * CLalpha + 2f * thrust * (CLintc * qSk + thrust - mg))) / (2f * thrust);
-            //    Debug.Log($"[BDArmory.MissileGuidance]: AoA: {AoA}, qSk: {qSk}, Predicted CL: {AoA * CLalpha + CLintc}, actual CL: {DefaultLiftCurve.Evaluate(AoA)}, CLa: {CLalpha}, CLintc: {CLintc}");
+            //    float AoA = (2f * CLalpha + Mathf.PI * thrust * Mathf.Deg2Rad - 2f * BDAMath.Sqrt(CLalpha * CLalpha + Mathf.PI * thrust * Mathf.Deg2Rad * CLalpha + 2f * thrust * (CLintc * qSk + thrust - mg) * Mathf.Deg2Rad * Mathf.Deg2Rad)) / (2f * thrust * Mathf.Deg2Rad * Mathf.Deg2Rad);
+            //    Debug.Log($"[BDArmory.MissileGuidance]: AoA: {AoA}, qSk: {qSk}, Predicted CL: {AoA * CLalpha + CLintc}, actual CL: {DefaultLiftCurve.Evaluate(AoA)}, CLa: {CLalpha}, CLintc: {CLintc}, predicted force: {qSk * (AoA * CLalpha + CLintc) + thrust * (1f - (-Mathf.PI * 0.5f + Mathf.Deg2Rad * AoA) * (-Mathf.PI * 0.5f + Mathf.Deg2Rad * AoA) * 0.5f)}, actual force: {qSk * DefaultLiftCurve.Evaluate(AoA) + thrust * Mathf.Sin(AoA * Mathf.Deg2Rad)}, desired: {mg}");
             //}
-            return Mathf.Rad2Deg * (2f * CLalpha + Mathf.PI * thrust - 2f * BDAMath.Sqrt(CLalpha * CLalpha + Mathf.PI * thrust * CLalpha + 2f * thrust * (CLintc * qSk + thrust - mg))) / (2f * thrust); ;
+            return (2f * CLalpha + Mathf.PI * thrust * Mathf.Deg2Rad - 2f * BDAMath.Sqrt(CLalpha * CLalpha + Mathf.PI * thrust * Mathf.Deg2Rad * CLalpha + 2f * thrust * (CLintc * qSk + thrust - mg) * Mathf.Deg2Rad * Mathf.Deg2Rad)) / (2f * thrust * Mathf.Deg2Rad * Mathf.Deg2Rad);
         }
 
         public static Vector3 DoAeroForces(MissileLauncher ml, Vector3 targetPosition, float liftArea, float dragArea, float steerMult,
@@ -1477,7 +1477,7 @@ namespace BDArmory.Guidances
 
                 float AoALim = maxAoA;
                 if (ml.torqueAoALimit.x > 0)
-                    AoALim = Mathf.Min(maxAoA, 1.2f * ml.torqueAoALimit.x * ml.torqueAoALimit.y / (float)airSpeed * ml.torqueAoALimit.z / (float)airDensity);
+                    AoALim = Mathf.Min(maxAoA, 1.2f * ml.torqueAoALimit.x * ml.torqueAoALimit.y / (float)airSpeed * BDAMath.Sqrt(ml.torqueAoALimit.z / (float)airDensity));
 
                 Vector3 targetDirection = (targetPosition - ml.vessel.CoM).normalized;
                 float targetAngle = VectorUtils.AnglePreNormalized(velNorm, targetDirection);

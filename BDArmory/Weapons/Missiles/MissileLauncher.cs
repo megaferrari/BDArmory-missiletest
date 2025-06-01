@@ -3056,10 +3056,15 @@ namespace BDArmory.Weapons.Missiles
 
         void DoAero(Vector3 targetPosition, float currgLimit = -1f)
         {
-            if (currgLimit < 0f || (currgLimit > gLimit && gLimit > 0f))
-            {
+            if (currgLimit < 0f)
                 currgLimit = gLimit;
+            else
+            {
+                currgLimit += Mathf.Min(0.05f * currgLimit, 0.5f);
+                if (gLimit > 0f)
+                    currgLimit = Mathf.Min(currgLimit, gLimit);
             }
+                
 
             float currAoALimit = maxAoA;
 
