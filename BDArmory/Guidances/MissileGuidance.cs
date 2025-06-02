@@ -513,15 +513,19 @@ namespace BDArmory.Guidances
                 Vector3 planarDirectionToTarget =
                     ((AIUtils.PredictPosition(targetPosition, targetVelocity, Vector3.zero, leadTime + TimeWarp.fixedDeltaTime) - missileVessel.CoM).ProjectOnPlanePreNormalized(upDirection)).normalized;
 
+                float turnTimeOffset = 0f;
+
                 if (loftState < MissileBase.LoftStates.Midcourse)
                 {
                     // Get angle relative to vertical
                     float pullDownCos = Vector3.Dot(velDirection, upDirection);
                     float pullDownSin = BDAMath.Sqrt(1f - pullDownCos * pullDownCos);
                     // Turn radius is mv^2/r = ma -> v^2/r = a -> v^2/a = r, a = 6 g -> v^2 * 1/6 g = r
-                    Vector3 turnLead = (currSpeed * currSpeed * 0.0169952698051929473876953125f) * (pullDownSin * planarDirectionToTarget + (1f - pullDownCos) * upDirection);
+                    // We use 1.5f * currSpeed to account for accelerating missiles
+                    Vector3 turnLead = (2.25f * currSpeed * currSpeed * 0.0169952698051929473876953125f) * ((pullDownSin + Mathf.Sin(termAngle * Mathf.Deg2Rad)) * planarDirectionToTarget + (1f - pullDownCos) * upDirection);
 
-                    targetPredictedPosition += turnLead;
+                    firePosition += turnLead;
+                    turnTimeOffset = (termAngle * Mathf.Deg2Rad - Mathf.Acos(pullDownCos)) * currSpeed * 1.5f * 0.0169952698051929473876953125f;
                 }
 
                 var count = 0;
@@ -536,10 +540,10 @@ namespace BDArmory.Guidances
                     missileRelativeVelocity = targetVelocity - currVel;
                     missileRelativeAcceleration = targetAcceleration - missileAcceleration;
                     timeToCPA = AIUtils.TimeToCPA(missileRelativePosition, missileRelativeVelocity, missileRelativeAcceleration, timeToImpact * 3f);
-                    targetPredictedPosition = AIUtils.PredictPosition(targetPosition, targetCompVel, Vector3.zero, Mathf.Min(timeToCPA, 16f));
+                    targetPredictedPosition = AIUtils.PredictPosition(targetPosition, targetCompVel, Vector3.zero, Mathf.Min(timeToCPA, 16f) + turnTimeOffset);
                     missileDropOffset = -0.5f * missileAcceleration * timeToCPA * timeToCPA;
                     ballisticTarget = targetPredictedPosition + missileDropOffset;
-                    velDirection = (ballisticTarget - missileVessel.CoM).normalized;
+                    velDirection = (ballisticTarget - firePosition).normalized;
                 } while (++count < 10 && Vector3.Angle(lastVelDirection, velDirection) > 1f); // 1° margin of error is sufficient to prevent premature firing (usually)
 
 
@@ -594,7 +598,7 @@ namespace BDArmory.Guidances
 
                     loftAngle = Mathf.Max(loftAngle, angle);
 
-                    gLimit = 6f;
+                    gLimit = 10f;
 
                     //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileGuidance]: AAM Loft altitudeClamp: [{altitudeClamp:G6}] COS: [{Mathf.Cos(loftAngle * turnFactor * Mathf.Deg2Rad):G3}], SIN: [{Mathf.Sin(loftAngle * turnFactor * Mathf.Deg2Rad):G3}], turnFactor: [{turnFactor:G3}].");
                     return missileVessel.CoM + (float)missileVessel.srfSpeed * ((Mathf.Cos(loftAngle * turnFactor * Mathf.Deg2Rad) * planarDirectionToTarget) + (Mathf.Sin(loftAngle * turnFactor * Mathf.Deg2Rad) * upDirection));
@@ -678,7 +682,7 @@ namespace BDArmory.Guidances
                             return (1f - blendFac) * GetPNTarget(targetPosition, targetVelocity, missileVessel, N, out timeToImpact, out gLimit) + blendFac * finalTargetPos; // Default to PN
                     }
                     else
-                        gLimit = Mathf.Clamp(6f * (1 - (targetDistance - termDist - 100f) / Mathf.Clamp(termDist * 4f, 5000f, 25000f)), 1f, 6f);
+                        gLimit = Mathf.Clamp(20f * (1 - (targetDistance - termDist - 100f) / Mathf.Clamp(termDist * 4f, 5000f, 25000f)), 6f, 20f);
 
 
                     // No mixing if targetDistance > 2 * termDist
