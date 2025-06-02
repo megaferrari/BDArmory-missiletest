@@ -1814,8 +1814,8 @@ namespace BDArmory.Weapons.Missiles
             if (!HasMissed && checkMiss)
             {
                 Vector3 tgtVel = TargetVelocity == Vector3.zero && targetVessel != null ? targetVessel.Vessel.Velocity() : TargetVelocity;
-                bool noProgress = MissileState == MissileStates.PostThrust && (Vector3.Dot(vessel.Velocity() - tgtVel, TargetPosition - vessel.transform.position) < 0 ||
-                    (!vessel.InVacuum() && vessel.srfSpeed < GetKinematicSpeed()) && weaponClass == WeaponClasses.Missile);
+                bool noProgress = MissileState == MissileStates.PostThrust && ((Vector3.Dot(vessel.Velocity() - tgtVel, TargetPosition - vessel.transform.position) < 0) ||
+                    (!vessel.InVacuum() && vessel.srfSpeed < GetKinematicSpeed() && weaponClass == WeaponClasses.Missile));
                 bool pastGracePeriod = TimeIndex > ((MissileState == MissileStates.PostThrust ? 1 : optimumAirspeed / vessel.speed) * ((vessel.LandedOrSplashed ? 0f : dropTime) + guidanceDelay + Mathf.Clamp(maxTurnRateDPS / 15f, 1, 8))); //180f / maxTurnRateDPS);
                 if ((pastGracePeriod && targetBehindMissile) || noProgress) // Check that we're not moving away from the target after a grace period
                 {
@@ -2853,7 +2853,8 @@ namespace BDArmory.Weapons.Missiles
         void AAMGuidance()
         {
             Vector3 aamTarget = TargetPosition;
-            float currgLimit = -1;
+            float currgLimit = -1f;
+            float currAoALimit = -1f;
 
             if (TargetAcquired)
             {
@@ -2903,6 +2904,8 @@ namespace BDArmory.Weapons.Missiles
 
                             //if (loftState > LoftStates.Boost)
                             //    maxAoA = Mathf.Clamp(initMaxAoA * fac, 4f, initMaxAoA);
+                            if (loftState == LoftStates.Midcourse)
+                                currAoALimit = 30f;
 
                             TimeToImpact = currTimeToImpact;
 
@@ -2967,7 +2970,7 @@ namespace BDArmory.Weapons.Missiles
 
             if (TimeIndex > dropTime + 0.25f)
             {
-                DoAero(aamTarget, currgLimit);
+                DoAero(aamTarget, currgLimit, currAoALimit);
                 CheckMiss();
             }
 
@@ -3054,23 +3057,27 @@ namespace BDArmory.Weapons.Missiles
 
         }
 
-        void DoAero(Vector3 targetPosition, float currgLimit = -1f)
+        void DoAero(Vector3 targetPosition, float currgLimit = -1f, float currAoALimit = -1f)
         {
-            if (currgLimit < 0f)
-                currgLimit = gLimit;
-            else
+            if (gLimit > 0f)
             {
-                currgLimit += Mathf.Min(0.05f * currgLimit, 2f);
-                if (gLimit > 0f)
+                if (currgLimit < 0f)
+                    currgLimit = gLimit;
+                else
+                {
                     currgLimit = Mathf.Min(currgLimit, gLimit);
+                    currgLimit += Mathf.Min(0.15f * currgLimit, 2f);
+                }
             }
-                
 
-            float currAoALimit = maxAoA;
+            if (currAoALimit < 0f)
+                currAoALimit = maxAoA;
+            else
+                currAoALimit = Mathf.Min(currAoALimit, maxAoA);
 
             if (currgLimit > 0f)
             {
-                currAoALimit = MissileGuidance.getGLimit(this, MissileState == MissileStates.PostThrust ? 0f : currentThrust * Throttle, currgLimit, gMargin);
+                currAoALimit = MissileGuidance.getGLimit(this, MissileState == MissileStates.PostThrust ? 0f : currentThrust * Throttle, currgLimit, gMargin, currAoALimit);
                 //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: maxAoA: {maxAoA}, currAoALimit: {currAoALimit}, currgLimit: {currgLimit}");
             }
 
