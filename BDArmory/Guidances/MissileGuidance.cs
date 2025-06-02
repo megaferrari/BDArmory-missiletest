@@ -682,7 +682,7 @@ namespace BDArmory.Guidances
                             return (1f - blendFac) * GetPNTarget(targetPosition, targetVelocity, missileVessel, N, out timeToImpact, out gLimit) + blendFac * finalTargetPos; // Default to PN
                     }
                     else
-                        gLimit = Mathf.Clamp(20f * (1 - (targetDistance - termDist - 100f) / Mathf.Clamp(termDist * 4f, 5000f, 25000f)), 6f, 20f);
+                        gLimit = Mathf.Clamp(20f * (1 - (targetDistance - termDist - 100f) / Mathf.Clamp(termDist * 4f, 5000f, 25000f)), 10f, 20f);
 
 
                     // No mixing if targetDistance > 2 * termDist
