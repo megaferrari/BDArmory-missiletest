@@ -3060,7 +3060,7 @@ namespace BDArmory.Weapons.Missiles
                 currgLimit = gLimit;
             else
             {
-                currgLimit += Mathf.Min(0.05f * currgLimit, 0.5f);
+                currgLimit += Mathf.Min(0.05f * currgLimit, 2f);
                 if (gLimit > 0f)
                     currgLimit = Mathf.Min(currgLimit, gLimit);
             }
