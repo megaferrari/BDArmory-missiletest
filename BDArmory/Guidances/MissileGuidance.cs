@@ -1091,16 +1091,21 @@ namespace BDArmory.Guidances
             new(65, 0.6f),
             new(90, 0.7f)
             ]);
-      
+
         public static FloatCurve DefaultDragCurve = new([
-            new(0, 0.00215f, 0.00014f, 0.00014f),
-            new(5, .00285f, 0.0002775f, 0.0002775f),
-            new(15, .007f, 0.0003146428f, 0.0003146428f),
-            new(29, .01f, 0.0002142857f, 0.01115385f),
-            new(55, .3f, 0.008434067f, 0.008434067f),
-            new(90, .5f, 0.005714285f, 0.005714285f)
+            //new(0, 0.00215f, 0.00014f, 0.00014f),
+            //new(5, .00285f, 0.0002775f, 0.0002775f),
+            //new(15, .007f, 0.0003146428f, 0.0003146428f),
+            //new(29, .01f, 0.0002142857f, 0.01115385f),
+            //new(55, .3f, 0.008434067f, 0.008434067f),
+            //new(90, .5f, 0.005714285f, 0.005714285f)
+            new(0f, 0.00215f, 0f, 0f),
+            new(5f, 0.00285f, 0.0002775f, 0.0002775f),
+            new(30f, 0.01f, 0.0002142857f, 0.01115385f),
+            new(55f, 0.3f, 0.008434067f, 0.008434067f),
+            new(90f, 0.5f, 0.005714285f, 0.005714285f)
         ]);
-      
+
         // The below curves and constants are derived from the lift and drag curves and will need to be re-calculated
         // if these are changed
 
