@@ -1115,33 +1115,33 @@ namespace BDArmory.Guidances
         // longer exists, above this every section must be searched
 
         public static FloatCurve AoACurve = new([
-            new(0.0000000000f, 30.0000000000f),
-            new(0.7107107107f, 33.9639639640f),
-            new(1.5315315315f, 39.6396396396f),
-            new(1.9419419419f, 43.6936936937f),
-            new(2.1421421421f, 46.6666666667f),
-            new(2.2122122122f, 48.3783783784f),
-            new(2.2422422422f, 49.7297297297f)
+            new(0.0000000000f, 30.0000000000f, 5.577463f, 5.577463f),
+            new(0.7107107107f, 33.9639639640f, 6.24605f, 6.24605f),
+            new(1.5315315315f, 39.6396396396f, 8.396343f, 8.396343f),
+            new(1.9419419419f, 43.6936936937f, 12.36403f, 12.36403f),
+            new(2.1421421421f, 46.6666666667f, 19.63926f, 19.63926f),
+            new(2.2122122122f, 48.3783783784f, 34.71423f, 34.71423f),
+            new(2.2422422422f, 49.7297297297f, 44.99994f, 44.99994f)
         ]); // Floatcurve containing AoA of (local) max acceleration
         // for a given thrust to lift (at the max CL of 1.5 at 30 degrees of AoA) ratio. Limited to a max
         // of TRatioInflec2 where a local maximum no longer exists
 
         public static FloatCurve AoAEqCurve = new([
-            new(1.1911911912f, 89.6396396396f),
-            new(1.3413413413f, 81.6216216216f),
-            new(1.5215215215f, 73.3333333333f),
-            new(1.7217217217f, 67.4774774775f),
-            new(1.9819819820f, 62.4324324324f),
-            new(2.1821821822f, 56.6666666667f),
-            new(2.2422422422f, 52.6126126126f)
+            new(1.1911911912f, 89.6396396396f, -53.40001f, -53.40001f),
+            new(1.3413413413f, 81.6216216216f, -49.69999f, -49.69999f),
+            new(1.5215215215f, 73.3333333333f, -37.62499f, -37.62499f),
+            new(1.7217217217f, 67.4774774775f, -24.31731f, -24.31731f),
+            new(1.9819819820f, 62.4324324324f, -24.09232f, -24.09232f),
+            new(2.1821821822f, 56.6666666667f, -48.1499f, -48.1499f),
+            new(2.2422422422f, 52.6126126126f, -67.49978f, -67.49978f)
         ]); // Floatcurve containing AoA after which the acceleration goes above
         // that of the local maximums'. Only exists between TRatioInflec1 and TRatioInflec2.
 
         public static FloatCurve gMaxCurve = new([
-            new(0.0000000000f, 1.5000000000f),
-            new(1.2012012012f, 2.4907813293f),
-            new(1.9119119119f, 3.1757276995f),
-            new(2.2422422422f, 3.5307206802f)
+            new(0.0000000000f, 1.5000000000f, 0.8248255f, 0.8248255f),
+            new(1.2012012012f, 2.4907813293f, 0.8942869f, 0.8942869f),
+            new(1.9119119119f, 3.1757276995f, 1.019205f, 1.019205f),
+            new(2.2422422422f, 3.5307206802f, 1.074661f, 1.074661f)
         ]); // Floatcurve containing max acceleration times the mass (total force)
         // normalized by q*S*GLOBAL_LIFT_MULTIPLIER for TRatio between 0 and TRatioInflec2. Note that after TRatioInflec1
         // this becomes a local maxima not a global maxima. This is used to narrow down what part of the curve we should
