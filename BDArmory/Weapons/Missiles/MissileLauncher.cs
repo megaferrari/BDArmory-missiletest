@@ -343,7 +343,8 @@ namespace BDArmory.Weapons.Missiles
         private int cruiseTerminationFrames = 0;
 
         public bool SetupComplete => StartSetupComplete;
-        public Vector3 torqueAoALimit = new Vector3(-1f, -1f, -1f);
+        public int[] torqueBounds = [-1,7];
+        public float[] torqueAoABounds = [-1f, -1f, -1f];
         public SmoothingF smoothedAoA;
         #endregion Variable Declarations
 
@@ -505,6 +506,8 @@ namespace BDArmory.Weapons.Missiles
                 if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: OnStart missile {shortName}: setting default dragArea to liftArea {liftArea}:");
                 dragArea = liftArea;
             }
+
+            MissileGuidance.setupTorqueAoALimit(this, liftArea, dragArea);
 
             loftState = LoftStates.Boost;
             TimeToImpact = float.PositiveInfinity;

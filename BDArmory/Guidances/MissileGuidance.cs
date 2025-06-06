@@ -1459,6 +1459,174 @@ namespace BDArmory.Guidances
             return (2f * CLalpha + Mathf.PI * thrust * Mathf.Deg2Rad - 2f * BDAMath.Sqrt(CLalpha * CLalpha + Mathf.PI * thrust * Mathf.Deg2Rad * CLalpha + 2f * thrust * (CLintc * qSk + thrust - mg) * Mathf.Deg2Rad * Mathf.Deg2Rad)) / (2f * thrust * Mathf.Deg2Rad * Mathf.Deg2Rad);
         }
 
+        // Linearized curves for cos*CL and sin*CD v.s. AoA for fast solving of the AoA at which maxTorque no longer is sufficient to maintain
+        // control of the missile.
+
+        public static FloatCurve torqueAoAReturn = new([
+                new(2.6496350364963499f, 88.7129999999999939f, -106.9758f, -106.9758f),
+                new(2.73134328358208922f, 79.9722000000000008f, -70.59726f, -70.59726f),
+                new(3.14937759336099621f, 65.6675999999999931f, -28.9337f, -28.9337f),
+                new(3.52488687782805465f, 56.7873000000000019f, -31.87921f, -31.87921f),
+                new(3.69483568075117441f, 49.9707000000000008f, -61.73428f, -61.73428f),
+                new(3.76190476190476275f, 44.3798999999999992f, -83.35883f, -18.59649f),
+                new(3.83091787439613629f, 43.0964999999999989f, -23.74979f, -23.74979f),
+                new(3.92610837438423754f, 40.3451999999999984f, -28.9031f, -28.9031f)
+            ]);
+
+        // Note we use linAoA for this as well
+        public static float[] linLiftTorque = { 0f, 0.449212170675488687f, 1.23071251302548967f, 1.29903810567665712f, 1.08779669420507852f, 0.391903830317496704f, 0.253570957044423284f, 0f };
+        public static float[] linDragTorque = { 0f, 0.000748453415988048856f, 0.00346671023416293559f, 0.00499999999999927499f, 0.0656669812489726473f, 0.26524150275361541f, 0.336257675049945692f, 0.5f };
+
+        // Slope of cos * CL at the intervals
+        public static float[] linLiftTorqueSlope = { 0.0449212178074f, 0.0558214214286f, 0.0113876666667f, -0.026405125f, -0.0366259562991f, -0.0172916091591f, -0.0101428382818f };
+        // y-Intercept of line at those intervals
+        public static float[] linLiftTorqueIntc = { 0f, -0.109002114286f, 0.957408f, 2.09119175f, 2.47958333937f, 1.37752555239f, 0.91285544536f };
+
+        // Slope of sin * CD at the intervals
+        public static float[] linDragTorqueSlope = { 0.000166666666667f, 0.000166666666667f, 0.000166666666667f, 0.00691309375f, 0.0107346842105f, 0.009046f, 0.00653472f };
+        // y-Intercept of line at those intervals
+        public static float[] linDragTorqueIntc = { 0f, 0f, 0f, 0.005f, -0.347613f, -0.251358f, -0.0881248f };
+
+        const float DLRatioInflec1 = 2.63636363636363624f;
+        const float DLRatioInflec2 = 3.92610837438423754f;
+
+        // Algorithm is similar to getGLimit, except in this case we only calculate which sections to search in whenever
+        // the liftArea and dragArea change. We define this using a set of numbers, torqueAoAReturn, the AoA at which torque goes past the local
+        // maximum which occurs at around 28° AoA, if this is set to -1, then we ONLY search the lower portion of the plot and torqueMaxLocal which
+        // gives the non-dim torque (which needs to be pre-multiplied by the SUM of liftArea * liftMult and dragArea * dragMult before being saved)
+        // which is +ve when there's a local maximum, it is set to the negative of the number when a local maximum does not exist, it is not set to
+        // -1 instead as it still provides a useful bisection point, with which we can determine the first LHS/RHS index.
+        //public static float[] linAoA = { 0f, 10f, 24f, 30f, 38f, 57f, 65f, 90f };
+        public static void setupTorqueAoALimit(MissileLauncher ml, float liftArea, float dragArea)
+        {
+            // Drag / Lift ratio
+            float DL = (BDArmorySettings.GLOBAL_DRAG_MULTIPLIER * dragArea)/(BDArmorySettings.GLOBAL_LIFT_MULTIPLIER * liftArea);
+            // The % contribution of drag, note that this will error out if there's no drag,
+            // but that's not supposed to happen.
+            float SkR = DL / (DL + 1);
+
+            // If we're above DLRationInflec2 then we must search the whole range of AoAs
+            if (DL < DLRatioInflec2)
+            {
+                // If we're below DLRatioInflec1 then we're bounded on the right by 30° 
+                if (DL < DLRatioInflec1)
+                    ml.torqueBounds = [3, -1];
+                else
+                {
+                    float AoARHS = torqueAoAReturn.Evaluate(DL);
+                    if (AoARHS > linAoA[6])
+                        ml.torqueBounds = [6, 7];
+                    else if (AoARHS > linAoA[5])
+                        ml.torqueBounds = [5, 7];
+                    else
+                        ml.torqueBounds = [4, 7];
+
+                    ml.torqueAoABounds[2] = AoARHS;
+                }
+                // This AoA happens to be a linear function of D/L
+                ml.torqueAoABounds[0] = 0.0307482f * DL + 28.49333f;
+                // This non-dimensionalized torque happens to be a
+                // linear function of SkR
+                ml.torqueAoABounds[1] = -1.30417f * SkR + 1.30879f;
+            }
+
+            //Debug.Log($"[BDArmory.MissileGuidance] TorqueAoALimits for {ml} at SkR: {SkR}, D/L: {DL} are, torqueAoABounds: {ml.torqueAoABounds[0]}, {ml.torqueAoABounds[1]}, {ml.torqueAoABounds[2]}, torqueBounds: {ml.torqueBounds[0]}, {ml.torqueBounds[1]}");
+        }
+
+        public static float getTorqueAoALimit(MissileLauncher ml, float liftArea, float dragArea, float maxTorque)
+        {
+            // Dynamic pressure
+            float q = (float)(0.5 * ml.vessel.atmDensity * ml.vessel.srfSpeed * ml.vessel.srfSpeed);
+            // Technically not required, but in case anyone starts allowing for the CoL to vary
+            float CoLDist = 1f;
+
+            // Divide out the dynamic pressure and CoLDist components of torque
+            maxTorque /= q * CoLDist;
+            maxTorque *= 0.8f; // Let's only go up to 80% of maxTorque to leave some leeway
+
+            int LHS = 0;
+            int RHS = 7;
+            int interval = 3;
+
+            // Drag and Lift Area multipliers
+            float dragSk = dragArea * BDArmorySettings.GLOBAL_DRAG_MULTIPLIER;
+            float liftSk = liftArea * BDArmorySettings.GLOBAL_LIFT_MULTIPLIER;
+
+            // Here we store the AoA of local max torque, we set it to 180f as for the case
+            // where the entire range must be searched, this gives the correct AoA
+            float currAoA = 180f;
+
+            if (ml.torqueBounds[0] > 0)
+            {
+                // If we have a left torque bound then we don't need to search the entire range
+                float torqueMaxLocal = ml.torqueAoABounds[0];
+                currAoA = ml.torqueAoABounds[1];
+
+                if (ml.torqueBounds[1] > 0)
+                {
+                    // If we have a right torque bound then we need to determine if we're searching
+                    // in the low AoA or the high AoA section, this is decided by if the maxTorque
+                    // is greater than torqueAoABounds times dragSk + liftSk
+                    if (maxTorque > torqueMaxLocal * (dragSk + liftSk))
+                    {
+                        // If maxTorque exceeds the max aerodynamic torque possible, then just return 180f
+                        if (maxTorque > (liftSk * linLiftTorque[7] + dragSk * linDragTorque[7]))
+                            return 180f;
+
+                        LHS = ml.torqueBounds[0];
+                        RHS = ml.torqueBounds[1];
+                    }
+                    else
+                    {
+                        RHS = ml.torqueBounds[0];
+                    }
+                }
+                else
+                {
+                    // If we don't have a right torque bound then we're bound only by the low
+                    // AoA section, and hence can return immediately if torque exceeds the localMax
+                    if (maxTorque > torqueMaxLocal * (dragSk + liftSk))
+                        return 180f;
+
+                    // Otherwise we just search the low AoA portion
+                    RHS = ml.torqueBounds[0];
+                }
+            }
+            else
+            {
+                // If maxTorque exceeds the max aerodynamic torque possible, then just return 180f
+                if (maxTorque > (liftSk * linLiftTorque[7] + dragSk * linDragTorque[7]))
+                    return 180f;
+            }
+
+            float currTorque;
+
+            // Bisection search
+            while ((RHS - LHS) > 1)
+            {
+                interval = Mathf.FloorToInt(0.5f * (RHS + LHS));
+
+                currTorque = liftSk * linLiftTorque[interval] + dragSk * linDragTorque[interval];
+
+                //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileGuidance]: LHS: {LHS}, RHS: {RHS}, interval: {interval}, currTorque: {currTorque}, maxTorque: {maxTorque}");
+
+                if (currTorque < maxTorque)
+                {
+                    LHS = interval;
+                }
+                else
+                {
+                    RHS = interval;
+                }
+            }
+
+            currAoA = (maxTorque - (linLiftTorqueIntc[LHS] * liftSk + linDragTorqueIntc[LHS] * dragSk)) / (linLiftTorqueSlope[LHS] * liftSk + linDragTorqueSlope[LHS] * dragSk);
+
+            //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileGuidance]: Final Interval: {LHS}, currAoA: {currAoA}, maxTorque: {maxTorque}");
+
+            return currAoA;
+        }
+
         public static Vector3 DoAeroForces(MissileLauncher ml, Vector3 targetPosition, float liftArea, float dragArea, float steerMult,
             Vector3 previousTorque, float maxTorque, float maxAoA)
         {
@@ -1544,9 +1712,9 @@ namespace BDArmory.Guidances
                 Vector3 finalTorque = Vector3.Lerp(previousTorque, torqueDirection * torque, 1).ProjectOnPlanePreNormalized(Vector3.forward);
                 */
 
-                float AoALim = maxAoA + Mathf.Min(0.1f * maxAoA, 2f);
-                if (ml.torqueAoALimit.x > 0)
-                    AoALim = Mathf.Min(maxAoA + Mathf.Min(0.1f * maxAoA, 2f), 1.2f * ml.torqueAoALimit.x * ml.torqueAoALimit.y / (float)airSpeed * BDAMath.Sqrt(ml.torqueAoALimit.z / (float)airDensity));
+                float AoALim = Mathf.Min(maxAoA + Mathf.Min(0.1f * maxAoA, 2f), getTorqueAoALimit(ml, liftArea, dragArea, maxTorque));
+                //if (ml.torqueAoALimit.x > 0)
+                //    AoALim = Mathf.Min(maxAoA + Mathf.Min(0.1f * maxAoA, 2f), 1.2f * ml.torqueAoALimit.x * ml.torqueAoALimit.y / (float)airSpeed * BDAMath.Sqrt(ml.torqueAoALimit.z / (float)airDensity));
 
                 Vector3 targetDirection = (targetPosition - ml.vessel.CoM).normalized;
                 float targetAngle = VectorUtils.AnglePreNormalized(velNorm, targetDirection);
@@ -1558,7 +1726,7 @@ namespace BDArmory.Guidances
                 {
                     Vector3 torqueDirection = Vector3.Cross(forward, targetDirection) / Mathf.Sin(turningAngle * Mathf.Deg2Rad);
                     //Debug.Log($"[BDArmory.MissileGuidance]: torqueDirection = {torqueDirection}, sqrMagnitude = {torqueDirection.sqrMagnitude}.");
-                    float torque = Mathf.Clamp(turningAngle * 4f * steerMult, 0f, maxTorque);
+                    float torque = Mathf.Clamp(Mathf.Min(turningAngle, AoALim) * 4f * steerMult, 0f, maxTorque);
 
                     float aeroTorqueSqr = aeroTorque.sqrMagnitude;
 
@@ -1586,19 +1754,22 @@ namespace BDArmory.Guidances
                         //    torque *= (x * x * x * x - 0.0625f) * 1.066f;
                         //}
 
+                        if (temp < 0)
+                            torque *= 0.5f;
+
                         // If we're approaching the limit (90% of maxTorque) and we're faster than the last time we reached it,
                         // recalculate the torqueAoALimit as the estimate is a bit more restrictive when going faster
-                        if (ml.torqueAoALimit.x > 0f && aeroTorqueSqr > 0.81f * maxTorque * maxTorque && airSpeed > 1.5f * ml.torqueAoALimit.y)
-                        {
-                            // Here we assume the torqueAoALimit has more or less a quadratic relationship with AoA
-                            ml.torqueAoALimit = new Vector3(1.2f * BDAMath.Sqrt(BDAMath.Sqrt(aeroTorqueSqr / (maxTorque * maxTorque))) * AoA, (float)airSpeed, (float)airDensity);
-                        }
+                        //if (ml.torqueAoALimit.x > 0f && aeroTorqueSqr > 0.81f * maxTorque * maxTorque && airSpeed > 1.5f * ml.torqueAoALimit.y)
+                        //{
+                        //    // Here we assume the torqueAoALimit has more or less a quadratic relationship with AoA
+                        //    ml.torqueAoALimit = new Vector3(1.2f * BDAMath.Sqrt(BDAMath.Sqrt(aeroTorqueSqr / (maxTorque * maxTorque))) * AoA, (float)airSpeed, (float)airDensity);
+                        //}
 
                         // Otherwise we just use torque unmodified
                     }
                     else
                     {
-                        ml.torqueAoALimit = new Vector3(AoA, (float)airSpeed, (float)airDensity);
+                        //ml.torqueAoALimit = new Vector3(AoA, (float)airSpeed, (float)airDensity);
                         //Debug.Log($"[BDArmory.MissileGuidance]: aeroTorque saturated! torque = {torque}.");
                         // If we're saturated, then as long as torqueDirection somewhat opposes aeroTorque we can look
                         // at how much torque we can apply
