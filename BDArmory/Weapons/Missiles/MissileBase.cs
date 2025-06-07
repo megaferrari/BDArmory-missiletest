@@ -327,6 +327,8 @@ namespace BDArmory.Weapons.Missiles
 
         protected Vector3 WeaveStart = Vector3.zero;
 
+        protected float WeaveAlt = -1f;
+
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_LoftMaxAltitude"), UI_FloatRange(minValue = 5000f, maxValue = 30000f, stepIncrement = 100f, scene = UI_Scene.Editor, affectSymCounterparts = UI_Scene.All)]//Loft Max Altitude
         public float LoftMaxAltitude = 16000;
 
