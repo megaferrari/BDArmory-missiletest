@@ -11,6 +11,7 @@
 	- Add an option to disable the behaviour of disabling guard mode when vessels are spawned.
 	- Fix pilot AI's standby mode to automatically trigger AG10 and enable engines if necessary when a threat is detected.
 	- Tweaks to the auto-tuning loss function to give a more stable roll-relevance. Show an auto-tuning summary to reduce confusion in the SPH about the auto-tuning results.
+	- Disable Battle Damage while auto-tuning to avoid wooden parts catching fire.
 - Countermeasures:
 	- Add 'Ammo' gauges for Countermeasure dispensers for how many CMs they have remaining.
 - Sensors:

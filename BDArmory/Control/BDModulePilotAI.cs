@@ -1632,6 +1632,7 @@ namespace BDArmory.Control
 
             SetAutoTuneFields();
             MaintainFuelLevels(autoTune); // Prevent fuel drain while auto-tuning.
+            DisableBattleDamage(autoTune); // Disable battle damage while auto-tuning.
             OtherUtils.SetTimeOverride(autoTune);
         }
         void SetAutoTuneFields()
