@@ -302,7 +302,10 @@ namespace BDArmory.GameModes
             var relocationTimeout = 2d;
             while (raining)
             {
-                if (cleaningInProgress > 0) // Don't spawn anything if asteroids are getting added to the pool.
+                if (
+                    cleaningInProgress > 0 || // Don't spawn anything if asteroids are getting added to the pool.
+                    (TimeWarp.WarpMode == TimeWarp.Modes.HIGH && TimeWarp.CurrentRate > 1) // Or we're in high warp.
+                )
                 {
                     yield return waitForFixedUpdate;
                     continue;
