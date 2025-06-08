@@ -138,7 +138,8 @@ namespace BDArmory.GameModes
         int numberOfAsteroids;
         float altitude;
         float radius;
-        float initialSpeed = -100f;
+        float initialSpeed = -150f;
+        float initialSpeedVariation = 50f; // random inside sphere added to initial vertical velocity
         double spawnRate;
         Vector2d geoCoords;
         Vector3d spawnPoint;
@@ -382,7 +383,7 @@ namespace BDArmory.GameModes
                 var position = spawnPoint + offset;
                 position += (altitude - BodyUtils.GetRadarAltitudeAtPos(position, false)) * upDirection;
                 asteroid.transform.position = position;
-                asteroid.SetWorldVelocity(initialSpeed * upDirection);
+                asteroid.SetWorldVelocity(initialSpeed * upDirection + initialSpeedVariation * UnityEngine.Random.insideUnitSphere);
                 // Apply a gaussian random torque to the asteroid.
                 asteroid.rootPart.Rigidbody.angularVelocity = Vector3.zero;
                 asteroid.rootPart.Rigidbody.AddTorque(VectorUtils.GaussianVector3d(Vector3d.zero, 300 * Vector3d.one), ForceMode.Acceleration);
@@ -402,7 +403,7 @@ namespace BDArmory.GameModes
                 foreach (var asteroid in asteroidPool)
                 {
                     if (asteroid == null || !asteroid.gameObject.activeInHierarchy || asteroid.packed || !asteroid.loaded || asteroid.rootPart.Rigidbody == null) continue;
-                    var timeToImpact = (float)((asteroid.radarAltitude - asteroid.GetRadius()) / asteroid.srfSpeed); // Simple estimate.
+                    var timeToImpact = (float)((asteroid.radarAltitude - asteroid.GetRadius()) / asteroid.srfSpeed); // Simple estimate (verticalSpeed doesn't seem to work very well).
                     if (!beingRemoved.Contains(asteroid) && (timeToImpact < 1.5f * interval || asteroid.LandedOrSplashed))
                     {
                         StartCoroutine(RemoveAfterDelay(asteroid, timeToImpact - TimeWarp.fixedDeltaTime));
