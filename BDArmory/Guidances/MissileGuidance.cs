@@ -216,7 +216,19 @@ namespace BDArmory.Guidances
                 ttgoWeave = weaveFactor * 1.5f * weaveDist / speed;
                 right = Vector3.Cross(weaveDir, upDirection);
             }
-                    
+
+            if (useAGMDescentRatio)
+            {
+                if (WeaveAlt < 0f)
+                    WeaveAlt = (float)missileVessel.altitude;
+
+                float altitudeClamp = Mathf.Clamp(
+                    (weaveDist - ((float)missileVessel.srfSpeed * agmDescentRatio)) * 0.22f, 0f,
+                    WeaveAlt + Mathf.Max(VectorUtils.AnglePreNormalized(upDirection, missileVel.normalized) - 90f, 0f) * Mathf.Deg2Rad * weaveDist);
+
+                Rdir += altitudeClamp * upDirection;
+            }
+
             float omegaBeta = PI2 * omega * ttgoWeave;
             float sinOmegaBeta = Mathf.Sin(omegaBeta);
             float cosOmegaBeta = Mathf.Cos(omegaBeta);
@@ -254,26 +266,6 @@ namespace BDArmory.Guidances
             float leadTime = Mathf.Min(4f, ttgoWeave);
 
             Vector3 aimPos = missileVessel.CoM + leadTime * missileVel + accel * (0.5f * leadTime * leadTime);
-
-            if (useAGMDescentRatio)
-            {
-                if (WeaveAlt < 0f)
-                    WeaveAlt = (float)missileVessel.altitude + 
-                        Mathf.Max(VectorUtils.AnglePreNormalized(upDirection, missileVel.normalized) - 90f, 0f) * Mathf.Deg2Rad * weaveDist;
-
-                float altitudeClamp = Mathf.Clamp(
-                    (weaveDist - ((float)missileVessel.srfSpeed * agmDescentRatio)) * 0.22f, 0f,
-                    WeaveAlt + Mathf.Max(VectorUtils.AnglePreNormalized(upDirection, missileVel.normalized) - 90f, 0f) * Mathf.Deg2Rad * weaveDist);
-
-                float altDiff = Vector3.Dot(aimPos - missileVessel.CoM, upDirection) + (float)missileVessel.altitude - Mathf.Max(FlightGlobals.getAltitudeAtPos(targetPosition), -2f);
-
-                if (altDiff < altitudeClamp)
-                {
-                    aimPos += (altitudeClamp - altDiff) * upDirection;
-
-                    gLimit += 1f;
-                }
-            }
 
             return aimPos;
         }
