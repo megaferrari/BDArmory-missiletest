@@ -455,6 +455,8 @@ namespace BDArmory.GameModes
             {
                 if (Time.time - startTime >= 10) Debug.LogWarning($"[BDArmory.Asteroids]: Timed out waiting for colliders on {asteroid.vesselName} to be generated.");
                 AsteroidUtils.CleanOutAsteroid(asteroid);
+                asteroid.rootPart.crashTolerance = float.MaxValue; // Make the asteroids nigh indestructible.
+                asteroid.rootPart.maxTemp = float.MaxValue;
                 asteroid.gameObject.SetActive(false);
             }
             --cleaningInProgress;
