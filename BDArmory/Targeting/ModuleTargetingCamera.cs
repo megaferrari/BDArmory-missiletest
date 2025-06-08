@@ -1465,7 +1465,7 @@ namespace BDArmory.Targeting
             {
                 if (tgtVessel != null)
                 {
-                    position = tgtVessel.CoM; //+ tgtVessel.Velocity() * Time.fixedDeltaTime;
+                    position = tgtVessel.CoM + tgtVessel.Velocity() * Time.fixedDeltaTime;
                     lockedVessel = tgtVessel;
                 }
                 else lockedVessel = null;
