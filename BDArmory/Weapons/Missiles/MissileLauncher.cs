@@ -3072,6 +3072,8 @@ namespace BDArmory.Weapons.Missiles
                     currgLimit += Mathf.Min(0.15f * currgLimit, 2f);
                 }
             }
+            else
+                currgLimit = -1f;
 
             if (currAoALimit < 0f)
                 currAoALimit = maxAoA;
