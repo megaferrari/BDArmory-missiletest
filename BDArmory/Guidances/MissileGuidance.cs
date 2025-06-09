@@ -325,7 +325,7 @@ namespace BDArmory.Guidances
                 float pullDownCos = Vector3.Dot(velDirection, upDirection);
                 float pullDownSin = BDAMath.Sqrt(1f - pullDownCos * pullDownCos);
                 // Turn radius is mv^2/r = ma -> v^2/r = a -> v^2/a = r, a = 6 g -> v^2 * 1/6 g = r
-                float invG = 0.101971618831157684326171875f / ml.gLimit;
+                float invG = 0.101971618831157684326171875f / (ml.gLimit > 0.0f ? ml.gLimit : 20f);
                 Vector3 turnLead = (currSpeed * currSpeed * invG) * (pullDownCos * planarDirectionToTarget + (1f - pullDownSin) * upDirection); //(currSpeed * currSpeed * 0.0169952698051929473876953125f) * (pullDownSin * planarDirectionToTarget + (1f - pullDownCos) * upDirection);
                 //float turnTimeOffset = (loftTermAngle * Mathf.Deg2Rad + 0.5f * Mathf.PI - Mathf.Acos(pullDownCos)) * currSpeed * invG;
 
@@ -538,10 +538,10 @@ namespace BDArmory.Guidances
                         if (Mathf.Cos(loftAngle) * targetDistance > Vector3.Dot(missileRelativePosition, upDirection))
                         {
                             float pullDownSin = BDAMath.Sqrt(1f - pullDownCos * pullDownCos);
-                            // Turn radius is mv^2/r = ma -> v^2/r = a -> v^2/a = r, a = 6 g -> v^2 * 1/6 g = r
+                            // Turn radius is mv^2/r = ma -> v^2/r = a -> v^2/a = r, a = 10 g -> v^2 * 1/(10 g) = r
                             // We use 1.5f * currSpeed to account for accelerating missiles
                             float tempSpeed = Mathf.Max(currSpeed * 1.5f, optimumAirspeed);
-                            Vector3 turnLead = (tempSpeed * tempSpeed * 0.0169952698051929473876953125f) * ((pullDownCos + Mathf.Sin(termAngle * Mathf.Deg2Rad)) * planarDirectionToTarget + (1f - pullDownSin) * upDirection);
+                            Vector3 turnLead = (tempSpeed * tempSpeed * 0.0101971621297792824257009274319f) * ((pullDownCos + Mathf.Sin(termAngle * Mathf.Deg2Rad)) * planarDirectionToTarget + (1f - pullDownSin) * upDirection);
 
                             firePosition += turnLead;
                             //turnTimeOffset = (termAngle * Mathf.Deg2Rad + (Mathf.PI * 0.5f - Mathf.Acos(pullDownCos))) * tempSpeed * 0.0169952698051929473876953125f;
