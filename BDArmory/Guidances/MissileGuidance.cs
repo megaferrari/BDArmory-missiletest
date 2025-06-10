@@ -186,7 +186,9 @@ namespace BDArmory.Guidances
 
             Vector3 right = Vector3.Cross(planarDirToTarget, upDirection);
 
-            float verticalAngle = (Mathf.Deg2Rad * Mathf.Sign(Vector3.Dot(missileVel, upDirection))) * Vector3.Angle(missileVel.ProjectOnPlanePreNormalized(right), planarDirToTarget);
+            float pullUpCos = Vector3.Dot(missileVel.normalized, upDirection);
+
+            float verticalAngle = (Mathf.Deg2Rad * Mathf.Sign(pullUpCos)) * Vector3.Angle(missileVel.ProjectOnPlanePreNormalized(right), planarDirToTarget);
 
             float horizontalAngle = (Mathf.Deg2Rad * Mathf.Sign(Vector3.Dot(missileVel, right))) * Vector3.Angle(missileVel.ProjectOnPlanePreNormalized(upDirection), planarDirToTarget);
 
@@ -217,18 +219,6 @@ namespace BDArmory.Guidances
                 right = Vector3.Cross(weaveDir, upDirection);
             }
 
-            if (useAGMDescentRatio)
-            {
-                if (WeaveAlt < 0f)
-                    WeaveAlt = (float)missileVessel.altitude;
-
-                float altitudeClamp = Mathf.Clamp(
-                    (weaveDist - ((float)missileVessel.srfSpeed * agmDescentRatio)) * 0.22f, 0f,
-                    WeaveAlt + Mathf.Max(VectorUtils.AnglePreNormalized(upDirection, missileVel.normalized) - 90f, 0f) * Mathf.Deg2Rad * weaveDist);
-
-                Rdir += altitudeClamp * upDirection;
-            }
-
             float omegaBeta = PI2 * omega * ttgoWeave;
             float sinOmegaBeta = Mathf.Sin(omegaBeta);
             float cosOmegaBeta = Mathf.Cos(omegaBeta);
@@ -243,22 +233,108 @@ namespace BDArmory.Guidances
             float ttgoWeaveInv = 1f / ttgoWeave;
             float omegaBetaInv = 1f / (Mathf.Max(omegaBeta * omegaBeta, 0.000001f));
 
-            float aVert = ((terminalAngle > 0) ? (speed * (6f * Mathf.Asin(Vector3.Dot(upDirection, Rdir) / Rdir.magnitude) - 4f * verticalAngle + 2f * terminalAngle * Mathf.Deg2Rad) * ttgoWeaveInv) : 0.0f) // A_BPN                                                                                                                                    
-                + ((gVert != 0.0f) ? (gVert * g * ((ka + omegaBeta * omegaBeta) * sinOmegaBetaOff + kj * cosOmegaBetaOff) * omegaBetaInv) : 0.0f); // A_W
-            float aHor = ((terminalAngle > 0) ? (-6f * speed * horizontalAngle) * ttgoWeaveInv : 0.0f) // A_BPN            
+            float gVertTemp = gVert;
+            float vertGuidanceAngle;
+            float ttgoWeaveInvVert = ttgoWeaveInv;
+            bool useA_BPN = (terminalAngle > 0);
+
+            if (useAGMDescentRatio)
+            {
+                float currAlt = (float)missileVessel.altitude;
+
+                if (WeaveAlt < 0f)
+                    WeaveAlt = currAlt;
+
+                float altitudeClamp = Mathf.Clamp(
+                    (weaveDist - ((float)missileVessel.srfSpeed * agmDescentRatio)) * 0.22f, 0f,
+                    WeaveAlt);// + Mathf.Max(VectorUtils.AnglePreNormalized(upDirection, missileVel.normalized) - 90f, 0f) * Mathf.Deg2Rad * weaveDist);
+
+                Rdir += altitudeClamp * upDirection;
+
+                vertGuidanceAngle = Mathf.Asin(Vector3.Dot(upDirection, Rdir) / Rdir.magnitude);
+
+                /*
+                // If we have a vertical weave
+                if (pullUpCos < 0)
+                {
+                    // Get distance to pull up
+                    float pullUpSin = BDAMath.Sqrt(1f - pullUpCos * pullUpCos);
+                    // Turn radius is mv^2/r = ma -> v^2/r = a -> v^2/a = r, a = 6 g -> v^2 * 1/6 g = r
+                    float pullUpg = gVertTemp > 0.0f ? gVertTemp * 0.8f : (gHorz > 0.0f ? Mathf.Min(gHorz * 0.8f, 6f) : 6f);
+                    float invG = 0.101971618831157684326171875f / pullUpg;
+                    float pullUpDist = (speed * speed * invG) * (1f - pullUpSin);
+                    float altDiff = currAlt - altitudeClamp;
+
+                    if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileGuidance] speed: {speed}, altitude: {missileVessel.altitude}, altitudeClamp: {altitudeClamp}, pullUpDist: {pullUpDist}, altDiff: {altDiff}, pullUpCos: {pullUpCos}, pullUpSin: {pullUpSin}, verticalAngle: {verticalAngle}, ttgoWeaveInvVert: {ttgoWeaveInvVert}.");
+
+                    if (pullUpDist > currAlt)
+                    {
+                        // If we desperately need to pull up
+                        gVertTemp = 0f;
+                        // Calculate the vertical acceleration required to pull up in time
+                        aVert = pullUpDist / currAlt * pullUpg * 9.8066f;
+                        calcaVert = false;
+                    }
+                    // If we're above the target altitude and we need to pull up
+                    if (altDiff > 0 && altDiff < pullUpDist)
+                        gVertTemp = 0f;
+                }
+                */
+                
+                if (pullUpCos < 0)
+                {
+                    // Get angle relative to vertical
+                    float pullUpSin = BDAMath.Sqrt(1f - pullUpCos * pullUpCos);
+                    // Turn radius is mv^2/r = ma -> v^2/r = a -> v^2/a = r, a = 6 g -> v^2 * 1/6 g = r
+                    float invG = 0.101971618831157684326171875f / (gVertTemp > 0.0f ? gVertTemp * 0.8f : (gHorz > 0.0f ? Mathf.Min(gHorz * 0.8f, 6f) : 6f));
+                    float pullUpDist = (speed * speed * invG) * (1f - pullUpSin);
+                    float altDiff = currAlt - altitudeClamp;
+
+                    if (altDiff < 0)
+                    {
+                        gVertTemp = 0f;
+                        float remainingSin = pullUpSin + altDiff / (speed * speed * invG);
+                        float remainingCos = BDAMath.Sqrt(1f - remainingSin * remainingSin);
+                        float remainingAngle = Mathf.Asin(remainingSin);
+
+                        Vector3 turnLead = (speed * speed * invG * -0.8f) * ((pullUpCos + remainingCos) * planarDirToTarget) - altDiff * upDirection;
+                        vertGuidanceAngle = Mathf.Asin(Vector3.Dot(upDirection, turnLead) / turnLead.magnitude);
+                        ttgoWeaveInvVert = 1f / (Mathf.Max(-verticalAngle + remainingAngle, 0.00001f) * speed * invG * 0.8f);
+                        terminalAngle = 0f;
+                    }
+                    else if (altDiff < pullUpDist)
+                    {
+                        gVertTemp = 0f;
+                        Vector3 turnLead = (speed * speed * invG * -0.8f) * (pullUpCos * planarDirToTarget) - altDiff * upDirection;
+                        vertGuidanceAngle = Mathf.Asin(Vector3.Dot(upDirection, turnLead) / turnLead.magnitude);
+                        ttgoWeaveInvVert = 1f / (Mathf.Max(-verticalAngle, 0.00001f) * speed * invG * 0.8f);
+                        terminalAngle = 0f;
+                        useA_BPN = true;
+                    }
+
+                    //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileGuidance]: speed: {speed}, altitude: {missileVessel.altitude}, altitudeClamp: {altitudeClamp}, pullUpDist: {pullUpDist}, altDiff: {altDiff}, leadx: {speed * speed * invG * -0.8f * pullUpCos}, pullUpCos: {pullUpCos}, pullUpSin: {pullUpSin}, verticalAngle: {verticalAngle}, ttgoWeaveInvVert: {ttgoWeaveInvVert}.");
+                }
+                
+            }
+            else
+                vertGuidanceAngle = Mathf.Asin(Vector3.Dot(upDirection, Rdir) / Rdir.magnitude);
+
+            float aVert = (useA_BPN ? (speed * (6f * vertGuidanceAngle - 4f * verticalAngle + 2f * terminalAngle * Mathf.Deg2Rad) * ttgoWeaveInvVert) : 0.0f) // A_BPN                                                                                                                                    
+                    + ((gVertTemp != 0.0f) ? (gVertTemp * g * ((ka + omegaBeta * omegaBeta) * sinOmegaBetaOff + kj * cosOmegaBetaOff) * omegaBetaInv) : 0.0f); // A_W
+            float aHor = (useA_BPN ? (-6f * speed * horizontalAngle) * ttgoWeaveInv : 0.0f) // A_BPN            
                 + ((gHorz != 0.0f) ? (gHorz * g * ((ka + omegaBeta * omegaBeta) * cosOmegaBetaOff + kj * sinOmegaBetaOff) * omegaBetaInv) : 0.0f); // A_W
 
             Quaternion rotationPitch = Quaternion.AngleAxis(verticalAngle, right);
             Quaternion rotationYaw = Quaternion.AngleAxis(horizontalAngle, upDirection);
 
             Vector3 accel = (aVert * (rotationPitch * rotationYaw * upDirection) + aHor * (rotationYaw * right));// + GetPNAccel(targetPosition, targetVelocity, missileVessel, 3f);
-            if (terminalAngle < 0)
+            if (useA_BPN)
+                gLimit = BDAMath.Sqrt(aVert * aVert + aHor * aHor) / (float)PhysicsGlobals.GravitationalAcceleration;
+            else
             {
                 accel += GetPNAccel(targetPosition, targetVelocity, missileVessel, 3f);
                 gLimit = accel.magnitude / (float)PhysicsGlobals.GravitationalAcceleration;
             }
-            else
-                gLimit = BDAMath.Sqrt(aVert * aVert + aHor * aHor) / (float)PhysicsGlobals.GravitationalAcceleration;
 
             if (BDArmorySettings.DEBUG_MISSILES)
                 Debug.Log($"[BDArmory.MissileGuidance] Weave guidance ttgoWeave: {ttgoWeave}, omegaBeta: {omegaBeta}, ka: {ka}, kj: {kj}, vertAngle: {Mathf.Rad2Deg * verticalAngle}, horAngle: {Mathf.Rad2Deg * horizontalAngle}, aVert: {aVert} m/s^2, aHor: {aHor} m/s^2.");
@@ -540,7 +616,7 @@ namespace BDArmory.Guidances
                             float pullDownSin = BDAMath.Sqrt(1f - pullDownCos * pullDownCos);
                             // Turn radius is mv^2/r = ma -> v^2/r = a -> v^2/a = r, a = 10 g -> v^2 * 1/(10 g) = r
                             // We use 1.5f * currSpeed to account for accelerating missiles
-                            float tempSpeed = Mathf.Max(currSpeed * 1.5f, optimumAirspeed);
+                            float tempSpeed = Mathf.Max(currSpeed * 1.1f, optimumAirspeed);
                             Vector3 turnLead = (tempSpeed * tempSpeed * 0.0101971621297792824257009274319f) * ((pullDownCos + Mathf.Sin(termAngle * Mathf.Deg2Rad)) * planarDirectionToTarget + (1f - pullDownSin) * upDirection);
 
                             firePosition += turnLead;
@@ -1522,7 +1598,7 @@ namespace BDArmory.Guidances
                 ml.torqueAoABounds[1] = -1.30417f * SkR + 1.30879f;
             }
 
-            //Debug.Log($"[BDArmory.MissileGuidance] TorqueAoALimits for {ml} at SkR: {SkR}, D/L: {DL} are, torqueAoABounds: {ml.torqueAoABounds[0]}, {ml.torqueAoABounds[1]}, {ml.torqueAoABounds[2]}, torqueBounds: {ml.torqueBounds[0]}, {ml.torqueBounds[1]}");
+            //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileGuidance] TorqueAoALimits for {ml} at SkR: {SkR}, D/L: {DL} are, torqueAoABounds: {ml.torqueAoABounds[0]}, {ml.torqueAoABounds[1]}, {ml.torqueAoABounds[2]}, torqueBounds: {ml.torqueBounds[0]}, {ml.torqueBounds[1]}");
         }
 
         public static float getTorqueAoALimit(MissileLauncher ml, float liftArea, float dragArea, float maxTorque)
@@ -1614,7 +1690,7 @@ namespace BDArmory.Guidances
 
             currAoA = (maxTorque - (linLiftTorqueIntc[LHS] * liftSk + linDragTorqueIntc[LHS] * dragSk)) / (linLiftTorqueSlope[LHS] * liftSk + linDragTorqueSlope[LHS] * dragSk);
 
-            //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileGuidance]: Final Interval: {LHS}, currAoA: {currAoA}, maxTorque: {maxTorque}");
+            //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileGuidance]: q: {q}, Final Interval: {LHS}, currAoA: {currAoA}, maxTorque: {maxTorque}");
 
             return currAoA;
         }
