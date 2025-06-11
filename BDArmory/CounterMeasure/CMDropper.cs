@@ -61,7 +61,7 @@ namespace BDArmory.CounterMeasure
 
         private BDStagingAreaGauge gauge;
         private int cmCount = 0;
-        private int maxCMCount = 1;
+        private int maxCMCount = 0;
 
         [KSPAction("#LOC_BDArmory_FireCountermeasure")]
         public void AGDropCM(KSPActionParam param)
@@ -178,17 +178,9 @@ namespace BDArmory.CounterMeasure
         public override void OnUpdate()
         {
             if (audioSource)
-            {
-                if (vessel.isActiveVessel)
-                {
-                    audioSource.dopplerLevel = 0;
-                    gauge.UpdateCMMeter((float)((cmCount >= 1 ? cmCount : 0) / maxCMCount));
-                }
-                else
-                {
-                    audioSource.dopplerLevel = 1;
-                }
-            }
+                audioSource.dopplerLevel = vessel.isActiveVessel ? 0 : 1;
+            if (vessel.isActiveVessel && maxCMCount > 0)
+                gauge.UpdateCMMeter((cmCount >= 1 ? cmCount : 0) / (float)maxCMCount);
         }
 
         void FireParticleEffects()

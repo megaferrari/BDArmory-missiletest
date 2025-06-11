@@ -359,6 +359,10 @@ namespace BDArmory.FX
                                             if (isReportingWeapon)
                                                 registered = true;
                                             break;
+                                        case ExplosionSourceType.BattleDamage:
+                                            if (BDACompetitionMode.Instance && BDACompetitionMode.Instance.competitionIsActive)
+                                                registered = true;
+                                            break;
                                     }
                                     if (registered)
                                             explosionEventsVesselsHit[damagedVesselName] = explosionEventsVesselsHit.GetValueOrDefault(damagedVesselName) + 1;
@@ -426,6 +430,10 @@ namespace BDArmory.FX
                                     message += (message == "" ? "" : " and ") + vesselName + " had " + explosionEventsVesselsHit[vesselName] + " parts damaged from";
                                     message += (SourceVesselName != null ? $" from {SourceVesselName}'s" : "") + (SourceWeaponName != null ? $" ({SourceWeaponName})" : " rocket hit") + $" at {travelDistance:F3}m" + ".";
                                 }
+                                break;
+                            case ExplosionSourceType.BattleDamage:
+                                message += (message == "" ? "" : " and ") + vesselName + " had " + explosionEventsVesselsHit[vesselName];
+                                message += " parts damaged due to" + SourceWeaponName != null ? SourceWeaponName.Contains("Fuel") ? $"Fuel detonation ({ExplosivePart.partInfo.title})." : "Ammo explosion(" + SourceWeaponName + ")" + (SourceVesselName != null ? $" from {SourceVesselName}" : "") + "." : "part failure.";
                                 break;
                         }
                     if (!string.IsNullOrEmpty(message)) BDACompetitionMode.Instance.competitionStatus.Add(message);

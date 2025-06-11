@@ -15,6 +15,7 @@ using BDArmory.Settings;
 using BDArmory.Targeting;
 using BDArmory.Utils;
 using BDArmory.WeaponMounts;
+using static KSP.UI.Screens.MessageSystem;
 
 namespace BDArmory.GameModes
 {
@@ -513,9 +514,12 @@ namespace BDArmory.GameModes
                                 crewMember.StartRespawnPeriod();
                             }
                             //ScreenMessages.PostScreenMessage(crewMember.name + " killed by damage to " + part.vessel.name + part.partName + ".", 5.0f, ScreenMessageStyle.UPPER_LEFT);
-                            ScreenMessages.PostScreenMessage("Cockpit snipe on " + part.vessel.GetName() + "! " + crewMember.name + " killed!", 5.0f, ScreenMessageStyle.UPPER_CENTER);
-                            BDACompetitionMode.Instance.OnVesselModified(part.vessel);
-
+                            //ScreenMessages.PostScreenMessage("Cockpit snipe on " + part.vessel.GetName() + "! " + crewMember.name + " killed!", 5.0f, ScreenMessageStyle.UPPER_CENTER);
+                            if (BDACompetitionMode.Instance)
+                            {
+                                BDACompetitionMode.Instance.competitionStatus.Add($"Cockpit snipe on {part.vessel.GetName()}! {crewMember.name} killed!");
+                                BDACompetitionMode.Instance.OnVesselModified(part.vessel);
+                            }
                         }
                     }
                 }
