@@ -647,7 +647,10 @@ namespace BDArmory.UI
 
         private static float GetSeekerBias(float anglePos, Vector3 angularVel, Vector3 prevAngularVel, FloatCurve seekerBiasCurvePosition, FloatCurve seekerBiasCurveVelocity)
         {
-            float seekerBias = Mathf.Clamp01(seekerBiasCurvePosition.Evaluate(anglePos)) * Mathf.Clamp01(seekerBiasCurveVelocity.Evaluate(Vector3.Angle(angularVel, prevAngularVel))) * Mathf.Clamp01(1f - Mathf.Abs((angularVel.sqrMagnitude - prevAngularVel.sqrMagnitude) / Mathf.Max(prevAngularVel.sqrMagnitude, 0.001f)));
+            float angularVelMagnitude = angularVel.magnitude;
+            float prevAngularVelMagnitude = prevAngularVel.magnitude;
+
+            float seekerBias = Mathf.Clamp01(seekerBiasCurvePosition.Evaluate(anglePos)) * Mathf.Clamp01(seekerBiasCurveVelocity.Evaluate(VectorUtils.AnglePreNormalized(angularVel, prevAngularVel, angularVelMagnitude, prevAngularVelMagnitude))) * Mathf.Clamp01(1f - Mathf.Abs((angularVelMagnitude - prevAngularVelMagnitude) / Mathf.Max(prevAngularVelMagnitude, 0.001f)));
 
             return seekerBias;
         }
