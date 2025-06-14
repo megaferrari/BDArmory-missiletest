@@ -1249,6 +1249,17 @@ namespace BDArmory.Weapons.Missiles
                             removeFromQueue = false;
                         }
                         wpm.UpdateMissilesAway(ml.targetVessel, ml);
+
+                        if (ml.radarTarget.exists && ml.radarTarget.lockedByRadar && ml.radarTarget.lockedByRadar.vessel != ml.SourceVessel)
+                        {
+                            MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(ml.radarTarget.lockedByRadar.vessel, true);
+                            if (datalinkwpm)
+                            {
+                                datalinkwpm.UpdateMissilesAway(ml.targetVessel, ml, false);
+                                if (removeFromQueue)
+                                    datalinkwpm.UpdateQueuedLaunches(ml.targetVessel, ml, false, false);
+                            }
+                        }
                     }
                     if (BDArmorySettings.DEBUG_MISSILES)
                         Debug.Log($"[BDArmory.MultiMissileLauncher]: Missile {ml.shortName} with target {(ml.targetVessel != null ? ml.targetVessel.Vessel.GetName() : "null vessel")} added to FiredMissiles.");

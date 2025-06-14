@@ -1891,7 +1891,7 @@ namespace BDArmory.Control
             ClearQueuedLaunches();
         }
 
-        public void UpdateQueuedLaunches(TargetInfo target, MissileBase missile, bool addition)
+        public void UpdateQueuedLaunches(TargetInfo target, MissileBase missile, bool addition, bool sourceVessel = true)
         {
             if (!guardMode) return;
             if (target)
@@ -1903,13 +1903,15 @@ namespace BDArmory.Control
                     {
                         queuedLaunchesTimeSinceLastAddition = Time.time;
                         queuedLaunchesRequireClearing = true;
-                        tempArr[0]++;
+                        if (sourceVessel)
+                            tempArr[0]++;
                         if (activeSARH)
                             tempArr[1]++;
                     }
                     else
                     {
-                        tempArr[0]--;
+                        if (sourceVessel)
+                            tempArr[0]--;
                         if (activeSARH)
                             tempArr[1]--;
                     }
@@ -1920,16 +1922,18 @@ namespace BDArmory.Control
                     {
                         queuedLaunchesTimeSinceLastAddition = Time.time;
                         queuedLaunchesRequireClearing = true;
-                        queuedLaunches.Add(target, [1, activeSARH ? 1 : 0]);
+                        queuedLaunches.Add(target, [sourceVessel ? 1 : 0, activeSARH ? 1 : 0]);
                     }
                     else
                         Debug.LogWarning($"[BDArmory.MissileFire] Attempted to remove missile: {missile.shortName} from queuedLaunches for: {target.Vessel.GetName()} but no entry was found!");
                 }
-                if (target == currentTarget)
+                if (sourceVessel && target == currentTarget)
+                {
                     if (addition)
                         firedMissiles++;
                     else
                         firedMissiles--;
+                }
                 if (BDArmorySettings.DEBUG_MISSILES)
                     Debug.Log($"[BDArmory.MissileFire] Updating queuedLaunches for {((target != null && target.Vessel != null) ? target.Vessel.GetName() : "null")}, activeSARH: {activeSARH}, addition: {addition}.");
             }
@@ -1948,7 +1952,7 @@ namespace BDArmory.Control
             }
         }
 
-        public void UpdateMissilesAway(TargetInfo target, MissileBase missile)
+        public void UpdateMissilesAway(TargetInfo target, MissileBase missile, bool sourceVessel = true)
         {
             if (!guardMode) return;
             if (target)
@@ -1956,17 +1960,18 @@ namespace BDArmory.Control
                 bool activeSARH = (missile.TargetingMode == MissileBase.TargetingModes.Radar || missile.TargetingMode == MissileBase.TargetingModes.Gps);
                 if (missilesAway.TryGetValue(target, out int[] tempArr))
                 {
-                    tempArr[0]++;
+                    if (sourceVessel)
+                        tempArr[0]++;
                     if (activeSARH)
                         tempArr[1]++;
                 }
                 else
                 {
-                    missilesAway.Add(target, [1, activeSARH ? 1 : 0]);
+                    missilesAway.Add(target, [sourceVessel ? 1 : 0, activeSARH ? 1 : 0]);
                     engagedTargets++;
                 }
 
-                if (currentTarget != null && currentTarget == target) //change to previous target?
+                if (sourceVessel && currentTarget != null && currentTarget == target) //change to previous target?
                     firedMissiles++;
                 if (BDArmorySettings.DEBUG_MISSILES)
                     Debug.Log($"[BDArmory.MissileFire] Updating missilesAway for {((target != null && target.Vessel != null) ? target.Vessel.GetName() : "null")}, activeSARH: {activeSARH}.");
@@ -2002,28 +2007,43 @@ namespace BDArmory.Control
             // int tempMissilesAway = 0;
             //firedMissiles = 0;
             if (!guardMode) return;
+
+            bool sourceVessel;
+            MissileBase missileBase;
+
             using (List<IBDWeapon>.Enumerator Missiles = BDATargetManager.FiredMissiles.GetEnumerator())
                 while (Missiles.MoveNext())
                 {
                     if (Missiles.Current == null) continue;
 
-                    var missileBase = Missiles.Current as MissileBase;
+                    missileBase = Missiles.Current as MissileBase;
 
                     if (missileBase.targetVessel == null) continue;
-                    if (missileBase.SourceVessel != this.vessel) continue;
+                    sourceVessel = missileBase.SourceVessel == this.vessel;
+                    if (!sourceVessel)
+                    {
+                        if (!missileBase.ActiveRadar && missileBase.TargetingMode == MissileBase.TargetingModes.Radar && missileBase.radarTarget.exists)
+                        {
+                            if (missileBase.radarTarget.lockedByRadar.vessel != this.vessel)
+                                continue;
+                        }
+                        else
+                            continue;
+                    }
                     //if (missileBase.MissileState != MissileBase.MissileStates.PostThrust && !missileBase.HasMissed && !missileBase.HasExploded)
                     if ((missileBase.HasFired || missileBase.launched) && !missileBase.HasMissed && !missileBase.HasExploded || missileBase.GetWeaponClass() == WeaponClasses.Bomb) //culling post-thrust missiles makes AGMs get cleared almost immediately after launch
                     {
                         bool activeSARH = (missileBase.TargetingMode == MissileBase.TargetingModes.Radar && !missileBase.ActiveRadar) || (missileBase.TargetingMode == MissileBase.TargetingModes.Gps && missileBase.gpsUpdates >= 0);
                         if (missilesAway.TryGetValue(missileBase.targetVessel, out int[] tempArr))
                         {
-                            tempArr[0]++; //tabulate all missiles fired by the vessel at various targets; only need # missiles fired at current target forlaunching, but need all vessels with missiles targeting them for vessel targeting
+                            if (sourceVessel)
+                                tempArr[0]++; //tabulate all missiles fired by the vessel at various targets; only need # missiles fired at current target forlaunching, but need all vessels with missiles targeting them for vessel targeting
                             if (activeSARH)
                                 tempArr[1]++;
                         }
                         else
                         {
-                            missilesAway.Add(missileBase.targetVessel, [1, activeSARH ? 1 : 0]);
+                            missilesAway.Add(missileBase.targetVessel, [sourceVessel ? 1 : 0, activeSARH ? 1 : 0]);
                         }
                     }
                 }

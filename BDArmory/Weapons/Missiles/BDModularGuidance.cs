@@ -1536,11 +1536,18 @@ namespace BDArmory.Weapons.Missiles
 
                 BDATargetManager.FiredMissiles.Add(this);
 
-                var wpm = VesselModuleRegistry.GetMissileFire(vessel, true);
+                var wpm = VesselModuleRegistry.GetMissileFire(SourceVessel, true);
                 if (wpm != null)
                 {
                     Team = wpm.Team;
                     wpm.UpdateMissilesAway(targetVessel, this);
+                }
+
+                if (radarTarget.exists && radarTarget.lockedByRadar && radarTarget.lockedByRadar.vessel != SourceVessel)
+                {
+                    MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(radarTarget.lockedByRadar.vessel, true);
+                    if (datalinkwpm)
+                        datalinkwpm.UpdateMissilesAway(targetVessel, this, false);
                 }
 
                 initialMissileRollPlane = -vessel.transform.up;
