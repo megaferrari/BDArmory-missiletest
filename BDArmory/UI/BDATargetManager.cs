@@ -542,7 +542,7 @@ namespace BDArmory.UI
                         tInfo = vessel.gameObject.AddComponent<TargetInfo>();
                     }
                     else
-                        return finalData; //shouldn't this be continue, so a non-target, non-WM vessel doesn't prevent scanning viable vessels in the area?
+                        continue; //return finalData; //shouldn't this be continue, so a non-target, non-WM vessel doesn't prevent scanning viable vessels in the area?
                 }
                 // If no weaponManager or no target or the target is not a missile with engines on..??? and the target weighs less than 50kg, abort.
                 if (mf == null ||
@@ -567,7 +567,7 @@ namespace BDArmory.UI
 
                 Vector3 relativePosVessel = vessel.CoM - ray.origin;
                 //float angle = Vector3.Angle(vessel.CoM - ray.origin, ray.direction); at very close ranges for very narrow sensor Fovs this will cause a problem if the heatsource is an engine plume
-                float angle = Vector3.Angle(priorHeatTarget.exists && priorHeatTarget.vessel == vessel ? (priorHeatTarget.position - ray.origin) : relativePosVessel, ray.direction);
+                float angle = Vector3.Angle((priorHeatTarget.exists && priorHeatTarget.vessel == vessel) ? (priorHeatTarget.position - ray.origin) : relativePosVessel, ray.direction);
                 if ((angle < scanRadius) || (uncagedLock && !priorHeatTarget.exists)) // Allow allAspect=true missiles to find target outside of seeker FOV before launch
                 {
                     if (RadarUtils.TerrainCheck(ray.origin, vessel.CoM, FlightGlobals.currentMainBody))
