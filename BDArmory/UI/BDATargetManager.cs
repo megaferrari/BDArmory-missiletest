@@ -417,6 +417,9 @@ namespace BDArmory.UI
             float heatSignature = heatTarget.signalStrength;
             float bestScore = 0f;
 
+            Vector3 heatTargetRelativePos = heatTarget.position - ray.origin;
+            Vector3 heatTargetAngularVel = Vector3.Cross(heatTargetRelativePos, heatTarget.velocity) / heatTargetRelativePos.sqrMagnitude;
+
             using (List<CMFlare>.Enumerator flare = BDArmorySetup.Flares.GetEnumerator())
                 while (flare.MoveNext())
                 {
@@ -425,11 +428,11 @@ namespace BDArmory.UI
                     float angle = Vector3.Angle(relativePosFlare, ray.direction);
                     if (angle < scanRadius)
                     {
-                        Vector3 relativePosHeatTarget = heatTarget.position - ray.origin;
+                        
                         float score = flare.Current.thermal * Mathf.Clamp01(15 / angle); // Reduce score on anything outside 15 deg of look ray
 
                         // Add bias targets closer to center of seeker FOV
-                        score *= GetSeekerBias(angle, Vector3.Angle(Vector3.Cross(relativePosFlare, flare.Current.velocity)/relativePosFlare.sqrMagnitude, Vector3.Cross(relativePosHeatTarget, heatTarget.velocity)/relativePosHeatTarget.sqrMagnitude), lockedSensorFOVBias, lockedSensorVelocityBias);
+                        score *= GetSeekerBias(angle, Vector3.Cross(relativePosFlare, flare.Current.velocity) / relativePosFlare.sqrMagnitude, heatTargetAngularVel, lockedSensorFOVBias, lockedSensorVelocityBias);
 
                         score *= (1400 * 1400) / Mathf.Clamp(relativePosFlare.sqrMagnitude, 90000, 36000000);
                         score *= Mathf.Clamp(Vector3.Angle(relativePosFlare, -VectorUtils.GetUpDirection(ray.origin)) / 90, 0.5f, 1.5f);
@@ -462,6 +465,9 @@ namespace BDArmory.UI
             float AcousticSignature = noiseTarget.signalStrength;
             float bestScore = 0f;
 
+            Vector3 noiseTargetRelativePos = noiseTarget.position - ray.origin;
+            Vector3 noiseTargetAngularVel = Vector3.Cross(noiseTargetRelativePos, noiseTarget.velocity) / noiseTargetRelativePos.sqrMagnitude;
+
             using (List<CMDecoy>.Enumerator decoy = BDArmorySetup.Decoys.GetEnumerator())
                 while (decoy.MoveNext())
                 {
@@ -471,11 +477,10 @@ namespace BDArmory.UI
                     float angle = Vector3.Angle(relativePosDecoy, ray.direction);
                     if (angle < scanRadius)
                     {
-                        Vector3 relativePosNoiseTarget = noiseTarget.position - ray.origin;
                         float score = decoy.Current.acousticSig * Mathf.Clamp01(15 / angle); // Reduce score on anything outside 15 deg of look ray
 
                         // Add bias targets closer to center of seeker FOV
-                        score *= GetSeekerBias(angle, Vector3.Angle(Vector3.Cross(relativePosDecoy, decoy.Current.velocity) / relativePosDecoy.sqrMagnitude, Vector3.Cross(relativePosNoiseTarget, noiseTarget.velocity) / relativePosNoiseTarget.sqrMagnitude), lockedSensorFOVBias, lockedSensorVelocityBias);
+                        score *= GetSeekerBias(angle, Vector3.Cross(relativePosDecoy, decoy.Current.velocity) / relativePosDecoy.sqrMagnitude, noiseTargetAngularVel, lockedSensorFOVBias, lockedSensorVelocityBias);
 
                         score *= (1400 * 1400) / Mathf.Clamp(relativePosDecoy.sqrMagnitude, 90000, 36000000);
                         score *= Mathf.Clamp(Vector3.Angle(relativePosDecoy, -VectorUtils.GetUpDirection(ray.origin)) / 90, 0.5f, 1.5f);
@@ -577,9 +582,11 @@ namespace BDArmory.UI
                     float score = IRSig.Item1 * Mathf.Clamp01(15 / angle);
                     score *= (1400 * 1400) / Mathf.Max(relativePosVessel.sqrMagnitude, 90000); // Clamp below 300m
 
+                    Vector3 angularVel = Vector3.Cross(relativePosVessel, vessel.Velocity()) / relativePosVessel.sqrMagnitude;
+
                     // Add bias targets closer to center of seeker FOV, only once missile seeker can see target
                     if ((priorHeatScore > 0f) && (angle < scanRadius))
-                        score *= GetSeekerBias(angle, Vector3.Angle(Vector3.Cross(relativePosVessel, vessel.Velocity()) / relativePosVessel.sqrMagnitude, priorHeatTargetAngularVel), lockedSensorFOVBias, lockedSensorVelocityBias);
+                        score *= GetSeekerBias(angle, angularVel, priorHeatTargetAngularVel, lockedSensorFOVBias, lockedSensorVelocityBias);
                     score *= Mathf.Clamp(Vector3.Angle(relativePosVessel, -VectorUtils.GetUpDirection(ray.origin)) / 90, 0.5f, 1.5f);
                     if ((finalScore > 0f) && (score > 0f) && (priorHeatScore > 0))
                     // If we were passed a target heat score, look for the most similar non-zero heat score after picking a target
@@ -638,9 +645,9 @@ namespace BDArmory.UI
                 return finalData;
         }
 
-        private static float GetSeekerBias(float anglePos, float angleVel, FloatCurve seekerBiasCurvePosition, FloatCurve seekerBiasCurveVelocity)
+        private static float GetSeekerBias(float anglePos, Vector3 angularVel, Vector3 prevAngularVel, FloatCurve seekerBiasCurvePosition, FloatCurve seekerBiasCurveVelocity)
         {
-            float seekerBias = Mathf.Clamp01(seekerBiasCurvePosition.Evaluate(anglePos)) * Mathf.Clamp01(seekerBiasCurveVelocity.Evaluate(angleVel));
+            float seekerBias = Mathf.Clamp01(seekerBiasCurvePosition.Evaluate(anglePos)) * Mathf.Clamp01(seekerBiasCurveVelocity.Evaluate(Vector3.Angle(angularVel, prevAngularVel))) * Mathf.Clamp01(Mathf.Abs((angularVel.sqrMagnitude - prevAngularVel.sqrMagnitude) / prevAngularVel.sqrMagnitude));
 
             return seekerBias;
         }
@@ -840,9 +847,10 @@ namespace BDArmory.UI
                         score *= Mathf.Pow(0.8f, (vessel.CoM - ray.origin).magnitude / 1450); //some reflection losses at surface, using 0.8 as arbitrary value. technically should take depth/seafloor depth into account
                     // else // //below thermocline, subject to Deep Sound Channel and basically 0 propagation loss
 
+                    Vector3 angularVel = Vector3.Cross(relativePosVessel, vessel.Velocity()) / relativePosVessel.sqrMagnitude;
                     // Add bias targets closer to center of seeker FOV, only once missile seeker can see target
                     if ((priorNoiseScore > 0f) && (angle < scanRadius))
-                        score *= GetSeekerBias(angle, Vector3.Angle(Vector3.Cross(relativePosVessel, vessel.Velocity()) / relativePosVessel.sqrMagnitude, priorNoiseTargetAngularVel), lockedSensorFOVBias, lockedSensorVelocityBias);
+                        score *= GetSeekerBias(angle, angularVel, priorNoiseTargetAngularVel, lockedSensorFOVBias, lockedSensorVelocityBias);
                     //not messing about with thermocline at this time. 
                     score *= Mathf.Clamp(Vector3.Angle(relativePosVessel, -VectorUtils.GetUpDirection(ray.origin)) / 90, 0.5f, 1.5f);
 
