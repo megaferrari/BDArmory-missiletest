@@ -2512,7 +2512,11 @@ namespace BDArmory.Weapons.Missiles
                         }
                     }
 
+                if (spoolEngine)
+                {
                     currentThrust = Mathf.MoveTowards(currentThrust, thrust, thrust / 10);
+                }
+
                 yield return wait;
             }
             EndBoost();
@@ -2695,7 +2699,11 @@ namespace BDArmory.Weapons.Missiles
                         }
                     }
 
-                currentThrust = Mathf.MoveTowards(currentThrust, cruiseThrust, cruiseThrust / 10);
+                if (spoolEngine)
+                {
+                    currentThrust = Mathf.MoveTowards(currentThrust, cruiseThrust, cruiseThrust / 10);
+                }
+
                 yield return wait;
             }
 
