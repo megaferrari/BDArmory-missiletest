@@ -2118,7 +2118,7 @@ namespace BDArmory.Weapons.Missiles
                     CheckMiss();
                     if (aero)
                     {
-                        aeroTorque = MissileGuidance.DoAeroForces(this, TargetPosition, liftArea, dragArea, .25f, aeroTorque, maxTorque, maxAoA, MissileGuidance.DefaultLiftCurve, MissileGuidance.DefaultDragCurve);
+                        aeroTorque = MissileGuidance.DoAeroForces(this, TargetPosition, liftArea, dragArea, .25f, aeroTorque, maxTorque, 0.0f, MissileGuidance.DefaultLiftCurve, MissileGuidance.DefaultDragCurve);
                     }
                 }
 
