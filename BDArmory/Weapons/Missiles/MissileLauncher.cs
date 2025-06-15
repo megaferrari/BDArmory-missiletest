@@ -1617,8 +1617,8 @@ namespace BDArmory.Weapons.Missiles
                     VacuumClearanceStates.Clearing : VacuumClearanceStates.Cleared; // Set up clearance check if missile is vacuumSteerable, and is in space, and was not launched from a turret
 
                 StartCoroutine(MissileRoutine());
-                var tnt = part.FindModuleImplementing<BDExplosivePart>();
-                if (tnt)
+                List<BDWarheadBase> tntList = part.FindModulesImplementing<BDWarheadBase>();
+                foreach (BDWarheadBase tnt in tntList)
                 {
                     tnt.Team = Team;
                     tnt.sourcevessel = SourceVessel;
@@ -3269,6 +3269,7 @@ namespace BDArmory.Weapons.Missiles
                     warheadType == WarheadTypes.Custom ||
                     warheadType == WarheadTypes.CustomStandard || warheadType == WarheadTypes.CustomContinuous)
                 {
+                    /*
                     if (warheadType == WarheadTypes.Standard || warheadType == WarheadTypes.ContinuousRod ||
                     warheadType == WarheadTypes.CustomStandard || warheadType == WarheadTypes.CustomContinuous)
                     {
@@ -3289,6 +3290,16 @@ namespace BDArmory.Weapons.Missiles
                         if (FuseFailed)
                             HasExploded = false;
                     }
+                    */
+                    var tntList = part.FindModulesImplementing<BDWarheadBase>();
+                    foreach (BDWarheadBase tnt in tntList)
+                    {
+                        tnt.DetonateIfPossible();
+                        FuseFailed = tnt.fuseFailed || FuseFailed;
+                    }
+                    guidanceActive = false;
+                    if (FuseFailed)
+                        HasExploded = false;
                 }
                 else if (warheadType == WarheadTypes.Nuke)
                 {
