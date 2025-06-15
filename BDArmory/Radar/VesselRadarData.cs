@@ -1964,12 +1964,14 @@ namespace BDArmory.Radar
             UpdateLockedTargets();
         }
 
-        public void UnlockAllTargets()
+        public void UnlockAllTargets(bool unlockDatalinkedRadars = true)
         {
             List<ModuleRadar>.Enumerator radar = weaponManager.radars.GetEnumerator();
             while (radar.MoveNext())
             {
                 if (radar.Current == null) continue;
+                if (radar.Current.vessel != vessel) continue;
+                if (!unlockDatalinkedRadars && radar.Current.linkedVRDs > 0) continue;
                 radar.Current.UnlockAllTargets();
             }
             radar.Dispose();

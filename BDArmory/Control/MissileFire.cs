@@ -5228,7 +5228,7 @@ namespace BDArmory.Control
 
                 if (vesselRadarData && vesselRadarData.locked && missilesAway.Count == 0) // Don't unlock targets while we've got missiles in the air.
                 {
-                    vesselRadarData.UnlockAllTargets();
+                    vesselRadarData.UnlockAllTargets(false);
                 }
                 return;
             }

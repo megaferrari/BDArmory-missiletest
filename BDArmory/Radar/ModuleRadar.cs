@@ -288,6 +288,10 @@ namespace BDArmory.Radar
 
         //linked vessels
         private List<VesselRadarData> linkedToVessels;
+        public int linkedVRDs
+        {
+            get { return linkedToVessels.Count; }
+        }
         public List<ModuleRadar> availableRadarLinks;
         private bool unlinkOnDestroy = true;
 
