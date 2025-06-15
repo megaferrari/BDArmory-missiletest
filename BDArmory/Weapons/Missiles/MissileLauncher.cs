@@ -2781,6 +2781,7 @@ namespace BDArmory.Weapons.Missiles
             float fadeoutStartTime = Time.time;
             while (Time.time - fadeoutStartTime < 5)
             {
+                /*
                 using (var pe = pEmitters.GetEnumerator())
                     while (pe.MoveNext())
                     {
@@ -2788,6 +2789,7 @@ namespace BDArmory.Weapons.Missiles
                         pe.Current.maxEmission = Mathf.FloorToInt(pe.Current.maxEmission * 0.8f);
                         pe.Current.minEmission = Mathf.FloorToInt(pe.Current.minEmission * 0.8f);
                     }
+                */
                 using (var gpe = gaplessEmitters.GetEnumerator())
                     while (gpe.MoveNext())
                     {
