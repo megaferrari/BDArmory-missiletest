@@ -653,15 +653,35 @@ namespace BDArmory.Weapons.Missiles
             }
 
             // fill lockedSensorVelocityBias with default values if not set by part config:
-            if ((TargetingMode == TargetingModes.Heat || TargetingModeTerminal == TargetingModes.Heat) && heatThreshold > 0 && lockedSensorVelocityBias.minTime == float.MaxValue)
+            if ((TargetingMode == TargetingModes.Heat || TargetingModeTerminal == TargetingModes.Heat) && heatThreshold > 0)
             {
-                lockedSensorVelocityBias.Add(0f, 1f);
-                lockedSensorVelocityBias.Add(180f, 1f);
-                if (BDArmorySettings.DEBUG_MISSILES)
+                bool defaultVelocityBias = false;
+                if (lockedSensorVelocityBias.minTime == float.MaxValue)
                 {
-                    Debug.Log($"[BDArmory.BDModularGuidance]: OnStart missile {shortName}: setting default lockedSensorVelocityBias curve to:");
-                    Debug.Log("key = 0 1");
-                    Debug.Log("key = 180 1");
+                    lockedSensorVelocityBias.Add(0f, 1f);
+                    lockedSensorVelocityBias.Add(180f, 1f);
+                    defaultVelocityBias = true;
+                    if (BDArmorySettings.DEBUG_MISSILES)
+                    {
+                        Debug.Log($"[BDArmory.BDModularGuidance]: OnStart missile {shortName}: setting default lockedSensorVelocityBias curve to:");
+                        Debug.Log("key = 0 1");
+                        Debug.Log("key = 180 1");
+                    }
+                }
+
+                if (lockedSensorVelocityMagnitudeBias.minTime == float.MaxValue)
+                {
+                    lockedSensorVelocityMagnitudeBias.Add(0f, 1f);
+                    if (defaultVelocityBias)
+                        lockedSensorVelocityMagnitudeBias.Add(1f, 1f);
+                    else
+                        lockedSensorVelocityMagnitudeBias.Add(1f, 0f);
+                    if (BDArmorySettings.DEBUG_MISSILES)
+                    {
+                        Debug.Log($"[BDArmory.MissileLauncher]: OnStart missile {shortName}: setting default lockedSensorVelocityMagnitudeBias curve to:");
+                        Debug.Log("key = 0 1");
+                        Debug.Log("key = 1 1");
+                    }
                 }
             }
 

@@ -1028,15 +1028,34 @@ namespace BDArmory.Weapons.Missiles
             }
 
             // fill lockedSensorVelocityBias with default values if not set by part config:
-            if ((TargetingMode == TargetingModes.Heat || TargetingModeTerminal == TargetingModes.Heat) && heatThreshold > 0 && lockedSensorVelocityBias.minTime == float.MaxValue)
+            if ((TargetingMode == TargetingModes.Heat || TargetingModeTerminal == TargetingModes.Heat) && heatThreshold > 0)
             {
-                lockedSensorVelocityBias.Add(0f, 1f);
-                lockedSensorVelocityBias.Add(180f, 1f);
-                if (BDArmorySettings.DEBUG_MISSILES)
+                bool defaultVelocityBias = false;
+                if (lockedSensorVelocityBias.minTime == float.MaxValue)
                 {
-                    Debug.Log($"[BDArmory.MissileLauncher]: OnStart missile {shortName}: setting default lockedSensorVelocityBias curve to:");
-                    Debug.Log("key = 0 1");
-                    Debug.Log("key = 180 1");
+                    lockedSensorVelocityBias.Add(0f, 1f);
+                    lockedSensorVelocityBias.Add(180f, 1f);
+                    defaultVelocityBias = true;
+                    if (BDArmorySettings.DEBUG_MISSILES)
+                    {
+                        Debug.Log($"[BDArmory.MissileLauncher]: OnStart missile {shortName}: setting default lockedSensorVelocityBias curve to:");
+                        Debug.Log("key = 0 1");
+                        Debug.Log("key = 180 1");
+                    }
+                }
+                if (lockedSensorVelocityMagnitudeBias.minTime == float.MaxValue)
+                {
+                    lockedSensorVelocityMagnitudeBias.Add(0f, 1f);
+                    if (defaultVelocityBias)
+                        lockedSensorVelocityMagnitudeBias.Add(1f, 1f);
+                    else
+                        lockedSensorVelocityMagnitudeBias.Add(1f, 0f);
+                    if (BDArmorySettings.DEBUG_MISSILES)
+                    {
+                        Debug.Log($"[BDArmory.MissileLauncher]: OnStart missile {shortName}: setting default lockedSensorVelocityMagnitudeBias curve to:");
+                        Debug.Log("key = 0 1");
+                        Debug.Log("key = 1 1");
+                    }
                 }
             }
 
@@ -2166,10 +2185,10 @@ namespace BDArmory.Weapons.Missiles
                         // gets ground heat targets and after locking one, disallows the lock to break to another target
 
                         if (activeRadarRange < 0 && torpedo)
-                            heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, new Ray(vessel.CoM, tempTargetPos - vessel.CoM), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias,
+                            heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, new Ray(vessel.CoM, tempTargetPos - vessel.CoM), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity,
                                 (SourceVessel == null ? null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>()), targetVessel, IFF: hasIFF);
                         else
-                            heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, new Ray(vessel.CoM, tempTargetPos - vessel.CoM), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, SourceVessel ? VesselModuleRegistry.GetModule<MissileFire>(SourceVessel) : null, targetVessel, IFF: hasIFF);
+                            heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, new Ray(vessel.CoM, tempTargetPos - vessel.CoM), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity, SourceVessel ? VesselModuleRegistry.GetModule<MissileFire>(SourceVessel) : null, targetVessel, IFF: hasIFF);
                         if (heatTarget.exists && CheckTargetEngagementEnvelope(heatTarget.targetInfo))
                         {
                             if (BDArmorySettings.DEBUG_MISSILES)

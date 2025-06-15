@@ -137,7 +137,13 @@ namespace BDArmory.Weapons.Missiles
         public FloatCurve lockedSensorFOVBias = new FloatCurve();             // weighting of targets and flares from center (0) to edge of FOV (lockedSensorFOV)
 
         [KSPField]
-        public FloatCurve lockedSensorVelocityBias = new FloatCurve();             // weighting of targets and flares from velocity angle of prior target and new target aligned (0) to opposite (180)
+        public FloatCurve lockedSensorVelocityBias = new FloatCurve();             // weighting of targets and flares from angular velocity angle of prior target and new target aligned (0) to opposite (180)
+
+        [KSPField]
+        public FloatCurve lockedSensorVelocityMagnitudeBias = new FloatCurve();             // weighting of targets and flares from angular velocity magnitude of prior target and new target, normalized by the prior target angular velocity magnitude
+
+        [KSPField]
+        public float lockedSensorMinAngularVelocity = 5; // minimum target/flare angular velocity detectable, in deg/s, used primarily for dealing with divide-by-zero issues in MagnitudeBias
 
         [KSPField]
         public float heatThreshold = 150;
@@ -837,10 +843,10 @@ namespace BDArmory.Weapons.Missiles
                 //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[MissileBase] offboresightAngle {offBoresightAngle > maxOffBoresight}; lockFailtimer: {lockFailTimer}; heatTarget? {heatTarget.exists}; predictedheattaret? {predictedHeatTarget.exists}; heatTarget vessel {(heatTarget.exists && heatTarget.vessel != null ? heatTarget.vessel.name : "null")}");
                 // Update heat target
                 if (activeRadarRange < 0)
-                    heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, lookRay, predictedHeatTarget, lockedSensorFOV / 2, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias,
+                    heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, lookRay, predictedHeatTarget, lockedSensorFOV / 2, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity,
                         (SourceVessel == null ? null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>()), targetVessel, IFF: hasIFF);
                 else
-                    heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, lookRay, predictedHeatTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, (SourceVessel == null ? null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>()), targetVessel, IFF: hasIFF);
+                    heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, lookRay, predictedHeatTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity, (SourceVessel == null ? null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>()), targetVessel, IFF: hasIFF);
 
                 if (heatTarget.exists)
                 {
