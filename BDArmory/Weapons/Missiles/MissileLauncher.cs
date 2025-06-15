@@ -59,18 +59,6 @@ namespace BDArmory.Weapons.Missiles
 
         #region Effects
 
-        [KSPField]
-        public string engageEffectName = "engage";
-
-        [KSPField]
-        public string boostEffectName = "boost";
-
-        [KSPField]
-        public string cruiseEffectName = "cruise";
-
-        [KSPField]
-        public string flameoutEffectName = "flameout";
-
         // Classic FX
 
         [KSPField]
@@ -454,9 +442,6 @@ namespace BDArmory.Weapons.Missiles
         public override void OnStart(StartState state)
         {
             //base.OnStart(state);
-
-            //Defailt all the FX to 0
-            StopFX();
 
             if (useFuel)
             {
@@ -1190,7 +1175,6 @@ namespace BDArmory.Weapons.Missiles
         {
             //Debug.Log("{TorpDebug] torpedo crash tolerance: " + part.crashTolerance);
             DetachExhaustPrefabs();
-            StopFX();
             KillRCS();
             if (upRCS) EffectBehaviour.RemoveParticleEmitter(upRCS);
             if (downRCS) EffectBehaviour.RemoveParticleEmitter(downRCS);
@@ -2457,7 +2441,6 @@ namespace BDArmory.Weapons.Missiles
             }
 
             StartBoost();
-            PlayEngageFX();
             StartCoroutine(updateCrashTolerance());
 
             var wait = new WaitForFixedUpdate();
@@ -2529,15 +2512,7 @@ namespace BDArmory.Weapons.Missiles
                         }
                     }
 
-                if (spoolEngine)
-                {
                     currentThrust = Mathf.MoveTowards(currentThrust, thrust, thrust / 10);
-                    SetBoostFX(Mathf.Clamp01(currentThrust / thrust));
-                }
-                else
-                {
-                    SetBoostFX(Throttle);
-                }
                 yield return wait;
             }
             EndBoost();
@@ -2597,7 +2572,6 @@ namespace BDArmory.Weapons.Missiles
 
         void EndBoost()
         {
-            SetBoostFX();
 
             using (var emitter = boostEmitters.GetEnumerator())
                 while (emitter.MoveNext())
@@ -2721,15 +2695,7 @@ namespace BDArmory.Weapons.Missiles
                         }
                     }
 
-                if (spoolEngine)
-                {
-                    currentThrust = Mathf.MoveTowards(currentThrust, cruiseThrust, cruiseThrust / 10);
-                    SetCruiseFX(Mathf.Clamp01(currentThrust / cruiseThrust));
-                }
-                else 
-                {
-                    SetCruiseFX(Throttle);
-                }
+                currentThrust = Mathf.MoveTowards(currentThrust, cruiseThrust, cruiseThrust / 10);
                 yield return wait;
             }
 
@@ -2807,8 +2773,6 @@ namespace BDArmory.Weapons.Missiles
             float fadeoutStartTime = Time.time;
             while (Time.time - fadeoutStartTime < 5)
             {
-                SetCruiseFX(5f / (Time.time - fadeoutStartTime));
-                /*
                 using (var pe = pEmitters.GetEnumerator())
                     while (pe.MoveNext())
                     {
@@ -2816,7 +2780,6 @@ namespace BDArmory.Weapons.Missiles
                         pe.Current.maxEmission = Mathf.FloorToInt(pe.Current.maxEmission * 0.8f);
                         pe.Current.minEmission = Mathf.FloorToInt(pe.Current.minEmission * 0.8f);
                     }
-                */
                 using (var gpe = gaplessEmitters.GetEnumerator())
                     while (gpe.MoveNext())
                     {
@@ -2843,7 +2806,6 @@ namespace BDArmory.Weapons.Missiles
                     gpe2.Current.emit = false;
                 }
 
-            PlayFlameoutFX();
         }
 
         [KSPField]
@@ -4170,57 +4132,6 @@ namespace BDArmory.Weapons.Missiles
             }
             exhaustPrefabs.Clear();
         }
-
-        #region EFFECTS
-        
-        void SetCruiseFX(float throttle = 0f)
-        {
-            part.Effect(cruiseEffectName, throttle);
-            part.Effect(boostEffectName, 0f);
-
-            Debug.Log("[BDWaterfall] CruiseFX called");
-        }
-
-        void SetBoostFX(float throttle = 0f)
-        {
-            part.Effect(boostEffectName, throttle);
-            part.Effect(cruiseEffectName, 0f);
-
-            Debug.Log("[BDWaterfall] BoostFX called");
-        }
-
-        void PlayEngageFX()
-        {
-            part.Effect(engageEffectName, 1f);
-
-            Debug.Log("[BDWaterfall] EngageFX called");
-        }
-
-        void PlayFlameoutFX()
-        {
-            part.Effect(flameoutEffectName, 1f);
-
-            Debug.Log("[BDWaterfall] FlameoutFX called");
-        }
-
-        void StopFX()
-        {
-            part.Effect(engageEffectName, 0f);
-            part.Effect(boostEffectName, 0f);
-            part.Effect(cruiseEffectName, 0f);
-            part.Effect(flameoutEffectName, 0f);
-
-            // Force the KSP particle system to refresh
-            foreach (var pe in part.FindModelComponents<KSPParticleEmitter>())
-            {
-                pe.enabled = false;
-                pe.emit = false;
-            }
-
-            Debug.Log("[BDWaterfall] StopFX called");
-        }
-
-        #endregion
 
         #endregion
         public double GetDeltaV()
