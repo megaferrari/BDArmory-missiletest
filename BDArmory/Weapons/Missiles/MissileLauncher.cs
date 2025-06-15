@@ -1285,12 +1285,6 @@ namespace BDArmory.Weapons.Missiles
                     {
                         if (wpm)
                             wpm.UpdateQueuedLaunches(targetVessel, this, true);
-                        if (radarTarget.exists && radarTarget.lockedByRadar && radarTarget.lockedByRadar.vessel != SourceVessel)
-                        {
-                            MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(radarTarget.lockedByRadar.vessel, true);
-                            if (datalinkwpm)
-                                datalinkwpm.UpdateQueuedLaunches(targetVessel, this, true, false);
-                        }
                         multiLauncher.fireMissile();
                     }
                     launched = true;
@@ -1304,12 +1298,6 @@ namespace BDArmory.Weapons.Missiles
                         {
                             if (wpm)
                                 wpm.UpdateQueuedLaunches(targetVessel, this, true);
-                            if (radarTarget.exists && radarTarget.lockedByRadar && radarTarget.lockedByRadar.vessel != SourceVessel)
-                            {
-                                MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(radarTarget.lockedByRadar.vessel, true);
-                                if (datalinkwpm)
-                                    datalinkwpm.UpdateQueuedLaunches(targetVessel, this, true, false);
-                            }
                             reloadableMissile = StartCoroutine(FireReloadableMissile());
                         }
                         launched = true;
@@ -1353,12 +1341,6 @@ namespace BDArmory.Weapons.Missiles
                     {
                         if (wpm)
                             wpm.UpdateQueuedLaunches(targetVessel, this, true);
-                        if (radarTarget.exists && radarTarget.lockedByRadar && radarTarget.lockedByRadar.vessel != SourceVessel)
-                        {
-                            MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(radarTarget.lockedByRadar.vessel, true);
-                            if (datalinkwpm)
-                                datalinkwpm.UpdateQueuedLaunches(targetVessel, this, true, false);
-                        }
                         reloadableMissile = StartCoroutine(FireReloadableMissile());
                     }
                     launched = true;

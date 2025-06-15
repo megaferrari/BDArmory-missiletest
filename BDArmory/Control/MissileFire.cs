@@ -2414,6 +2414,9 @@ namespace BDArmory.Control
                         {
                             if (vesselRadarData) //no check for radar present, but off/out of juice
                             {
+                                Vessel externalLockVessel = null;
+                                TargetInfo externalLockTargetInfo = null;
+
                                 float BayTriggerTime = -1;
                                 if (SetCargoBays())
                                 {
@@ -2497,6 +2500,20 @@ namespace BDArmory.Control
 
                                     yield return new WaitForSecondsFixed(tryLockTime);
                                 }
+
+                                if (ml && vesselRadarData.locked && vesselRadarData.lockedTargetData.vessel == targetVessel)
+                                {
+                                    if (vesselRadarData.lockedTargetData.targetData.lockedByRadar.vessel != vessel)
+                                    {
+                                        MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(vesselRadarData.lockedTargetData.targetData.lockedByRadar.vessel, true);
+                                        if (datalinkwpm)
+                                        {
+                                            externalLockTargetInfo = vesselRadarData.lockedTargetData.targetData.targetInfo;
+                                            externalLockVessel = datalinkwpm.vessel;
+                                            datalinkwpm.UpdateQueuedLaunches(externalLockTargetInfo, ml, true, false);
+                                        }
+                                    }
+                                }
                                 // if (ml && AIMightDirectFire() && vesselRadarData.locked)
                                 // {
                                 //     SetCargoBays();
@@ -2565,11 +2582,27 @@ namespace BDArmory.Control
                                             FireCurrentMissile(ml, true, targetVessel);
                                             //StartCoroutine(MissileAwayRoutine(mlauncher));
                                         }
+                                        else
+                                        {
+                                            if (externalLockVessel)
+                                            {
+                                                MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(externalLockVessel, true);
+                                                if (datalinkwpm)
+                                                    datalinkwpm.UpdateQueuedLaunches(externalLockTargetInfo, ml, false, false);
+                                            }
+                                        }
                                     }
                                     else
                                     {
                                         if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: {vessel.vesselName}'s {(CurrentMissile ? CurrentMissile.name : "null missile")} could not lock, attempting unguided fire.");
                                         dumbfiring = true; //so let them be used as unguided ordinance
+
+                                        if (externalLockVessel)
+                                        {
+                                            MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(externalLockVessel, true);
+                                            if (datalinkwpm)
+                                                datalinkwpm.UpdateQueuedLaunches(externalLockTargetInfo, ml, false, false);
+                                        }
                                     }
                                 }
                             }
