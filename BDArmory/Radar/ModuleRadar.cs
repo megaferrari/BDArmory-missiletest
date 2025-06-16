@@ -1026,6 +1026,25 @@ namespace BDArmory.Radar
             }
         }
 
+        public bool ClearUnneededLocks(bool unlockAll = false)
+        {
+            if (!unlockAll && (currentLocks < maxLocks))
+                return true;
+
+            bool cleared = false;
+            for (int i = 0; i < lockedTargets.Count; i++)
+            {
+                if (weaponManager.GetMissilesAway(lockedTargets[i].targetInfo)[1] == 0)
+                {
+                    vesselRadarData.UnlockSelectedTarget(lockedTargets[i].vessel);
+                    cleared = true;
+                    if (!unlockAll) break;
+                }
+            }
+
+            return cleared;
+        }
+
         public void RefreshLockArray()
         {
             if (wpmr != null)

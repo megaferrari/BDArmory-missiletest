@@ -143,7 +143,7 @@ namespace BDArmory.Radar
 
         public List<TargetSignatureData> GetLockedTargets()
         {
-            List<TargetSignatureData> lockedTargets = new List<TargetSignatureData>();
+            List<TargetSignatureData> lockedTargets = new List<TargetSignatureData>(lockedTargetIndexes.Count);
             for (int i = 0; i < lockedTargetIndexes.Count; i++)
             {
                 lockedTargets.Add(displayedTargets[lockedTargetIndexes[i]].targetData);
@@ -807,7 +807,10 @@ namespace BDArmory.Radar
             ModuleRadar lockingRadar = null;
             //first try using the last radar to detect that target
             bool acquiredLock = false;
-            if (CheckRadarForLock(radarTarget.detectedByRadar, radarTarget))
+            bool testRadar = true;
+            if (radarTarget.detectedByRadar.vessel != vessel && !(radarTarget.detectedByRadar.currentLocks < radarTarget.detectedByRadar.maxLocks))
+                testRadar = !radarTarget.detectedByRadar.ClearUnneededLocks();
+            if (testRadar && CheckRadarForLock(radarTarget.detectedByRadar, radarTarget))
             {
                 lockingRadar = radarTarget.detectedByRadar;
                 acquiredLock = (lockingRadar.TryLockTarget(radarTarget.targetData.predictedPosition, radarTarget.vessel));
@@ -818,7 +821,10 @@ namespace BDArmory.Radar
                     while (radar.MoveNext())
                     {
                         if (radar.Current == null) continue;
-                        if (!CheckRadarForLock(radar.Current, radarTarget)) continue;
+                        testRadar = true;
+                        if (radar.Current.vessel != vessel)
+                            testRadar = !radar.Current.ClearUnneededLocks();
+                        if (!(testRadar && CheckRadarForLock(radar.Current, radarTarget))) continue;
                         lockingRadar = radar.Current;
                         if (lockingRadar.TryLockTarget(radarTarget.targetData.predictedPosition, radarTarget.vessel))
                         {
@@ -885,15 +891,18 @@ namespace BDArmory.Radar
         {
             if (!radar) return false;
 
+            if (!radar.canLock || (radar.locked && !(radar.currentLocks < radar.maxLocks))) return false;
+
+            Vector3 relativePos = radarTarget.targetData.predictedPosition - radar.transform.position;
+            float dist = relativePos.magnitude / 1000f;
+
             return
             (
-                radar.canLock
-                && (!radar.locked || radar.currentLocks < radar.maxLocks)
-                && RadarUtils.RadarCanDetect(radar, radarTarget.targetData.signalStrength, (radarTarget.targetData.predictedPosition - radar.transform.position).magnitude / 1000f)
-                && radarTarget.targetData.signalStrength >= radar.radarLockTrackCurve.Evaluate((radarTarget.targetData.predictedPosition - radar.transform.position).magnitude / 1000f)
+                RadarUtils.RadarCanDetect(radar, radarTarget.targetData.signalStrength, dist)
+                && radarTarget.targetData.signalStrength >= radar.radarLockTrackCurve.Evaluate(dist)
                 &&
                 (radar.omnidirectional ||
-                 Vector3.Angle(radar.transform.up, radarTarget.targetData.predictedPosition - radar.transform.position) <
+                 VectorUtils.AnglePreNormalized(radar.transform.up, relativePos, 1f, dist * 1000f) <
                  radar.directionalFieldOfView / 2)
             );
         }

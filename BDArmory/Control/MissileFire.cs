@@ -1980,7 +1980,7 @@ namespace BDArmory.Control
             //    Debug.LogWarning($"[BDArmory.MissileFire] Attempted to update missilesAway with missile: {missile.shortName} but target was null!");
         }
 
-        private int[] GetMissilesAway(TargetInfo target)
+        public int[] GetMissilesAway(TargetInfo target)
         {
             if (!guardMode) return [0, 0];
             if (target)
@@ -2363,7 +2363,20 @@ namespace BDArmory.Control
                              .sqrMagnitude > 40 * 40))
                     {
                         //vesselRadarData.TryLockTarget(guardTarget.transform.position);
-                        vesselRadarData.TryLockTarget(guardTarget);
+                        //vesselRadarData.TryLockTarget(guardTarget);
+
+                        if (vesselRadarData.locked)
+                        {
+                            bool locksMaxed = GuardCheckLock(guardTarget, out bool existingLock);
+
+                            if (existingLock)
+                                vesselRadarData.SwitchActiveLockedTarget(guardTarget);
+                            else if (!locksMaxed)
+                                vesselRadarData.TryLockTarget(guardTarget);
+                        }
+                        else
+                            vesselRadarData.TryLockTarget(guardTarget);
+
                         yield return new WaitForSecondsFixed(0.5f);
                         if (guardTarget && vesselRadarData && vesselRadarData.locked &&
                             vesselRadarData.lockedTargetData.vessel == guardTarget)
@@ -2425,26 +2438,8 @@ namespace BDArmory.Control
                                 {
                                     if (vesselRadarData.locked)
                                     {
-                                        List<TargetSignatureData> possibleTargets = vesselRadarData.GetLockedTargets();
-                                        bool existingLock = false;
-                                        bool locksMaxed = MaxradarLocks <= possibleTargets.Count;
-                                        for (int i = 0; i < possibleTargets.Count; i++)
-                                        {
-                                            if (possibleTargets[i].vessel == targetVessel)
-                                            {
-                                                existingLock = true;
-                                                if (!locksMaxed) break;
-                                                else continue;
-                                            }
+                                        bool locksMaxed = GuardCheckLock(targetVessel, out bool existingLock);
 
-                                            if (locksMaxed)
-                                                if (GetMissilesAway(possibleTargets[i].targetInfo)[1] == 0)
-                                                {
-                                                    vesselRadarData.UnlockSelectedTarget(possibleTargets[i].vessel);
-                                                    locksMaxed = false;
-                                                    if (existingLock) break;
-                                                }
-                                        }
                                         if (existingLock)
                                         {
                                             vesselRadarData.SwitchActiveLockedTarget(targetVessel);
@@ -2606,18 +2601,20 @@ namespace BDArmory.Control
                                 {
                                     if (_radarsEnabled)
                                     {
-                                        if (!vesselRadarData.locked ||
-                                            (vesselRadarData.lockedTargetData.targetData.predictedPosition -
-                                             targetVessel.transform.position).sqrMagnitude > 40 * 40)
+                                        if (vesselRadarData.locked)
                                         {
-                                            //vesselRadarData.TryLockTarget(guardTarget.transform.position);
-                                            if (PreviousMissile != null && PreviousMissile.ActiveRadar && PreviousMissile.targetVessel != null) //previous missile has gone active, don't need that lock anymore
+                                            if ((vesselRadarData.lockedTargetData.targetData.predictedPosition - targetVessel.transform.position).sqrMagnitude > 40 * 40)
                                             {
-                                                vesselRadarData.UnlockSelectedTarget(PreviousMissile.targetVessel.Vessel);
+                                                bool locksMaxed = GuardCheckLock(targetVessel, out bool existingLock);
+                                                if (existingLock)
+                                                    vesselRadarData.SwitchActiveLockedTarget(targetVessel);
+                                                else if (!locksMaxed)
+                                                    vesselRadarData.TryLockTarget(targetVessel);
+                                                yield return new WaitForSecondsFixed(Mathf.Min(1, (targetScanInterval * tryLockTime)));
                                             }
-                                            vesselRadarData.TryLockTarget(targetVessel);
-                                            yield return new WaitForSecondsFixed(Mathf.Min(1, (targetScanInterval * tryLockTime)));
                                         }
+                                        else
+                                            vesselRadarData.TryLockTarget(targetVessel);
                                     }
                                     else if (_irstsEnabled)
                                     {
@@ -2765,26 +2762,8 @@ namespace BDArmory.Control
                                         {
                                             if (vesselRadarData.locked)
                                             {
-                                                List<TargetSignatureData> possibleTargets = vesselRadarData.GetLockedTargets();
-                                                bool existingLock = false;
-                                                bool locksMaxed = MaxradarLocks <= possibleTargets.Count;
-                                                for (int i = 0; i < possibleTargets.Count; i++)
-                                                {
-                                                    if (possibleTargets[i].vessel == targetVessel)
-                                                    {
-                                                        existingLock = true;
-                                                        if (!locksMaxed) break;
-                                                        else continue;
-                                                    }
-
-                                                    if (locksMaxed)
-                                                        if (GetMissilesAway(possibleTargets[i].targetInfo)[1] == 0)
-                                                        {
-                                                            vesselRadarData.UnlockSelectedTarget(possibleTargets[i].vessel);
-                                                            locksMaxed = false;
-                                                            if (existingLock) break;
-                                                        }
-                                                }
+                                                bool locksMaxed = GuardCheckLock(targetVessel, out bool existingLock);
+                                                
                                                 if (existingLock)
                                                 {
                                                     vesselRadarData.SwitchActiveLockedTarget(targetVessel);
@@ -3065,13 +3044,24 @@ namespace BDArmory.Control
                                 {
                                     if (vesselRadarData.locked) //we got radar, can we get a lock for better datalink update rate?
                                     {
-                                        vesselRadarData.SwitchActiveLockedTarget(targetVessel);
-                                        yield return wait;
+                                        bool locksMaxed = GuardCheckLock(targetVessel, out bool existingLock);
+
+                                        if (existingLock)
+                                        {
+                                            vesselRadarData.SwitchActiveLockedTarget(targetVessel);
+                                            yield return wait;
+                                        }
+                                        else if (!locksMaxed)
+                                        {
+                                            vesselRadarData.TryLockTarget(targetVessel);
+                                        }
+                                        else
+                                            // Not a huge deal if we can't get a lock
+                                            break;
                                     }
                                     else
-                                    {
                                         vesselRadarData.TryLockTarget(targetVessel);
-                                    }
+
                                     yield return new WaitForSecondsFixed(tryLockTime);
                                 }
                                 if (vessel && INSTarget.exists && INSTarget.vessel == targetVessel)
@@ -3364,6 +3354,62 @@ namespace BDArmory.Control
 
             designatedGPSInfo = new GPSTargetInfo();
             guardFiringMissile = false;
+        }
+
+        private bool GuardCheckLock(Vessel targetVessel, out bool existingLock)
+        {
+            List<TargetSignatureData> possibleTargets = vesselRadarData.GetLockedTargets();
+            existingLock = false;
+            bool locksMaxed = MaxradarLocks <= possibleTargets.Count;
+            bool externalRadars = false;
+            int unlockTarget = -1;
+            for (int i = 0; i < possibleTargets.Count; i++)
+            {
+                if (possibleTargets[i].vessel == targetVessel)
+                {
+                    existingLock = true;
+                    return locksMaxed;
+                }
+
+                if (locksMaxed)
+                {
+                    if (possibleTargets[i].lockedByRadar.vessel == vessel)
+                    {
+                        if (GetMissilesAway(possibleTargets[i].targetInfo)[1] == 0)
+                        {
+                            unlockTarget = i;
+                            locksMaxed = false;
+                        }
+                    }
+                    else
+                        externalRadars = true;
+                }
+            }
+
+            if (!existingLock && unlockTarget > 0)
+            {
+                vesselRadarData.UnlockSelectedTarget(possibleTargets[unlockTarget].vessel);
+            }
+
+            if (externalRadars)
+                // We handle the case of external radars separately in TryLockTarget
+                return false;
+
+            return locksMaxed;
+        }
+
+        void ClearUnneededLocks(bool unlockAll = false)
+        {
+            List<TargetSignatureData> locks = vesselRadarData.GetLockedTargets();
+            for (int i = 0; i < locks.Count; i++)
+            {
+                if (GetMissilesAway(locks[i].targetInfo)[1] == 0)
+                {
+                    vesselRadarData.UnlockSelectedTarget(locks[i].vessel);
+                    if (!unlockAll)
+                        return;
+                }
+            }
         }
 
         //IEnumerator MissileAwayRoutine(MissileBase ml)
@@ -7338,6 +7384,7 @@ namespace BDArmory.Control
                     }
                     else
                     {
+                        /*
                         if (firedMissiles >= maxMissilesOnTarget && (multiMissileTgtNum > 1 && BDATargetManager.TargetList(Team).Count > 1)) //if there are multiple potential targets, see how many can be fired at with missiles
                         {
                             if (ml && !ml.radarLOAL) //switch active lock instead of clearing locks for SARH missiles
@@ -7356,6 +7403,14 @@ namespace BDArmory.Control
                             }
                             vesselRadarData.TryLockTarget(guardTarget);
                         }
+                        */
+
+                        bool locksMaxed = GuardCheckLock(guardTarget, out bool existingLock);
+
+                        if (existingLock)
+                            vesselRadarData.SwitchActiveLockedTarget(guardTarget);
+                        else if (!locksMaxed)
+                            vesselRadarData.TryLockTarget(guardTarget);
                     }
                 }
             }
@@ -8813,6 +8868,7 @@ namespace BDArmory.Control
                                 }
                                 else
                                 {
+                                    /*
                                     if (firedMissiles >= maxMissilesOnTarget && (multiMissileTgtNum > 1 && BDATargetManager.TargetList(Team).Count > 1))
                                     {
                                         if (!currMissile.radarLOAL) //switch active lock instead of clearing locks for SARH missiles
@@ -8845,6 +8901,14 @@ namespace BDArmory.Control
                                         }
                                         vesselRadarData.TryLockTarget(PDMslTgts[MissileID].Vessel);
                                     }
+                                    */
+
+                                    bool locksMaxed = GuardCheckLock(PDMslTgts[MissileID].Vessel, out bool existingLock);
+
+                                    if (existingLock)
+                                        vesselRadarData.SwitchActiveLockedTarget(PDMslTgts[MissileID].Vessel);
+                                    else if (!locksMaxed)
+                                        vesselRadarData.TryLockTarget(PDMslTgts[MissileID].Vessel);
                                 }
                             }
                             if (currMissile.TargetingMode == MissileBase.TargetingModes.Heat)
