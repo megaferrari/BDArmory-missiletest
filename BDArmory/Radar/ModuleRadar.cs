@@ -837,6 +837,7 @@ namespace BDArmory.Radar
                     if (linkedToVessels.Count > 0)
                         foreach (VesselRadarData vrd in linkedToVessels)
                         {
+                            vrd.AddRadarContact(this, lockedTarget, true);
                             vrd.UpdateLockedTargets();
                         }
                     attemptedLocks[i] = TargetSignatureData.noTarget;

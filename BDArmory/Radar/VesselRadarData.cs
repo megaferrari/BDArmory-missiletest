@@ -1736,7 +1736,7 @@ namespace BDArmory.Radar
             }
             mr.Dispose();
             SaveExternalVRDVessels();
-            UpdateLockedTargets();
+            StartCoroutine(UpdateLocksAfterFrame());
         }
 
         public void LinkToRadar(ModuleRadar mr)
