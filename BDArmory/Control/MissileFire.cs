@@ -3362,7 +3362,6 @@ namespace BDArmory.Control
             existingLock = false;
             bool locksMaxed = MaxradarLocks <= possibleTargets.Count;
             bool externalRadars = false;
-            int unlockTarget = -1;
             for (int i = 0; i < possibleTargets.Count; i++)
             {
                 if (possibleTargets[i].vessel == targetVessel)
@@ -3377,18 +3376,13 @@ namespace BDArmory.Control
                     {
                         if (GetMissilesAway(possibleTargets[i].targetInfo)[1] == 0)
                         {
-                            unlockTarget = i;
+                            vesselRadarData.UnlockSelectedTarget(i);
                             locksMaxed = false;
                         }
                     }
                     else
                         externalRadars = true;
                 }
-            }
-
-            if (!existingLock && unlockTarget > 0)
-            {
-                vesselRadarData.UnlockSelectedTarget(possibleTargets[unlockTarget].vessel);
             }
 
             if (externalRadars)
@@ -3405,7 +3399,7 @@ namespace BDArmory.Control
             {
                 if (GetMissilesAway(locks[i].targetInfo)[1] == 0)
                 {
-                    vesselRadarData.UnlockSelectedTarget(locks[i].vessel);
+                    vesselRadarData.UnlockSelectedTarget(i);
                     if (!unlockAll)
                         return;
                 }

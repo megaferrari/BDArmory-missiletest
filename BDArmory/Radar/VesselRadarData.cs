@@ -821,10 +821,20 @@ namespace BDArmory.Radar
                     while (radar.MoveNext())
                     {
                         if (radar.Current == null) continue;
-                        testRadar = true;
+                        // If the radar is external
                         if (radar.Current.vessel != vessel)
-                            testRadar = !radar.Current.ClearUnneededLocks();
-                        if (!(testRadar && CheckRadarForLock(radar.Current, radarTarget))) continue;
+                        {
+                            // We first check if the radar can lock the target without worrying about if it has locks available
+                            if (CheckRadarForLock(radar.Current, radarTarget, false))
+                            {
+                                // If we're at max locks, try and free up a spot
+                                if (!(radar.Current.currentLocks < radar.Current.maxLocks) && !radar.Current.ClearUnneededLocks())
+                                    continue;
+                            }
+                            else
+                                continue;
+                        }
+                        else if (CheckRadarForLock(radar.Current, radarTarget)) continue;
                         lockingRadar = radar.Current;
                         if (lockingRadar.TryLockTarget(radarTarget.targetData.predictedPosition, radarTarget.vessel))
                         {
@@ -887,11 +897,11 @@ namespace BDArmory.Radar
             //return false;
         }
 
-        private bool CheckRadarForLock(ModuleRadar radar, RadarDisplayData radarTarget)
+        private bool CheckRadarForLock(ModuleRadar radar, RadarDisplayData radarTarget, bool checkRadarLocks = true)
         {
             if (!radar) return false;
 
-            if (!radar.canLock || (radar.locked && !(radar.currentLocks < radar.maxLocks))) return false;
+            if (checkRadarLocks && (!radar.canLock || (radar.locked && !(radar.currentLocks < radar.maxLocks)))) return false;
 
             Vector3 relativePos = radarTarget.targetData.predictedPosition - radar.transform.position;
             float dist = relativePos.magnitude / 1000f;
@@ -1993,6 +2003,7 @@ namespace BDArmory.Radar
             ModuleRadar rad = displayedTargets[lockedTargetIndexes[activeLockedTargetIndex]].detectedByRadar;
             rad.UnlockTargetAt(rad.currentLockIndex);
         }
+
         public void UnlockSelectedTarget(Vessel vessel)
         {
             if (!locked) return;
@@ -2000,7 +2011,17 @@ namespace BDArmory.Radar
             if (vesselIndex != -1)
             {
                 ModuleRadar rad = displayedTargets[vesselIndex].detectedByRadar;
-                rad.UnlockTargetAt(rad.currentLockIndex);
+                rad.UnlockTargetVessel(vessel);
+            }
+        }
+
+        public void UnlockSelectedTarget(int index)
+        {
+            if (!locked) return;
+            if (index != -1)
+            {
+                ModuleRadar rad = displayedTargets[lockedTargetIndexes[index]].detectedByRadar;
+                rad.UnlockTargetVessel(displayedTargets[lockedTargetIndexes[index]].vessel);
             }
         }
 

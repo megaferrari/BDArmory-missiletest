@@ -839,7 +839,7 @@ namespace BDArmory.Radar
                         {
                             if (vrd)
                             {
-                                vrd.AddRadarContact(this, lockedTarget, true);
+                                vrd.AddRadarContact(this, lockedTarget, true, true);
                                 vrd.UpdateLockedTargets();
                             }
                         }
