@@ -136,11 +136,11 @@ namespace BDArmory.Guidances
             Vector3 targetAcceleration, Vessel missileVessel, out float timeToImpact, float minSpeed = 200)
         {
             float leadTime = 0;
-            float RSqr = Vector3.SqrMagnitude(targetPosition - missileVessel.CoM);
 
             Vector3 currVel = Mathf.Max((float)missileVessel.srfSpeed, minSpeed) * missileVessel.Velocity().normalized;
 
             Vector3 Rdir = (targetPosition - missileVessel.CoM);
+            float RSqr = Rdir.sqrMagnitude;
             leadTime = -RSqr / Vector3.Dot(targetVelocity - currVel, Rdir);
 
             if (leadTime <= 0f)
