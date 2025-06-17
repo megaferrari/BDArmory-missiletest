@@ -3399,7 +3399,7 @@ namespace BDArmory.Control
             {
                 if (GetMissilesAway(locks[i].targetInfo)[1] == 0)
                 {
-                    vesselRadarData.UnlockSelectedTarget(i);
+                    vesselRadarData.UnlockSelectedTarget(locks[i].vessel);
                     if (!unlockAll)
                         return;
                 }
