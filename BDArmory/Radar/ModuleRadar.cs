@@ -1054,6 +1054,7 @@ namespace BDArmory.Radar
                 if (weaponManager.GetMissilesAway(lockedTargets[i].targetInfo)[1] == 0)
                 {
                     UnlockTargetAt(i);
+                    i--;
                     cleared = true;
                     if (!unlockAll) break;
                 }
