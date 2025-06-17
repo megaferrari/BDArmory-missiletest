@@ -165,6 +165,11 @@ namespace BDArmory.WeaponMounts
             }
         }
 
+        void OnDestroy()
+        {
+            GameEvents.onEditorPartPlaced.Remove(OnEditorPartPlaced);
+        }
+
         public void AimToTarget(Vector3 targetPosition, bool pitch = true, bool yaw = true)
         {
             AimInDirection(targetPosition - referenceTransform.position, pitch, yaw);

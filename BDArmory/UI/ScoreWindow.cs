@@ -265,6 +265,7 @@ namespace BDArmory.UI
         Dictionary<string, NumericInputField> scoreWeightFields; // The numeric input fields.
         void LoadWeights()
         {
+            if (scoreWeightFields != null) foreach (var value in scoreWeightFields.Values) Destroy(value); // Get rid of any old NumericInputField components.
             switch (mode)
             {
                 case Mode.Tournament:
@@ -299,14 +300,20 @@ namespace BDArmory.UI
         }
         void ResetDefaultWeights()
         {
-            weights = mode switch
+            switch (mode)
             {
-                Mode.Tournament => new(TournamentScores.defaultWeights),
-                Mode.ContinuousSpawn => new(ContinuousSpawning.defaultWeights),
-                _ => null
-            };
+                case Mode.Tournament:
+                    TournamentScores.weights = new(TournamentScores.defaultWeights);
+                    weights = TournamentScores.weights;
+                    break;
+                case Mode.ContinuousSpawn:
+                    ContinuousSpawning.weights = new(ContinuousSpawning.defaultWeights);
+                    weights = ContinuousSpawning.weights;
+                    break;
+            }
+            if (scoreWeightFields != null) foreach (var value in scoreWeightFields.Values) Destroy(value); // Get rid of any old NumericInputField components.
             scoreWeightFields = weights.ToDictionary(kvp => kvp.Key, kvp => gameObject.AddComponent<NumericInputField>().Initialise(0, kvp.Value));
-            RecomputeScores();
+            SaveWeights();
         }
         void RecomputeScores()
         {
