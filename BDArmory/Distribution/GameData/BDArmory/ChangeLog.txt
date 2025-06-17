@@ -8,13 +8,16 @@
 	- When assigning turret targets, AI now checks if target is within max range of the turret.
 	- Add an option to disable the behaviour of disabling guard mode when vessels are spawned.
 	- Fix pilot AI's standby mode to automatically trigger AG10 and enable engines if necessary when a threat is detected.
+	- Fix behavior of Guard Mode with regards to datalinked radars, Guard Mode should no longer unlock targets when these locks are being used by a datalinked vessel to guide a missile.
 - Countermeasures:
 	- Add 'Ammo' gauges for Countermeasure dispensers for how many CMs they have remaining.
 - Sensors:
 	- Add support for slaving turrets via targeting cameras.
+	- Fix Guard Mode targeting camera issues with moving targets.
 	- Fix 'Slave Turret' button occasionally locking the turret to the vessel's origin point or non-target point in space.
 	- Locking a target will no longer automatically slave active turrets to the target when manually controlling a craft. To slave turrets to a locked radar/camera, use the 'Slave Turret' button.
 	- Fix bug that allowed radars to lock on below the radar horizon when the appropriate settings are toggled.
+	- Fix datalinked radars not conveying lock information to all datalinked vessels.
 - Weapons:
 	- Add a "Yaw Standby Angle" slider to gun turrets.
 	- Multi-barreled guns now no longer swap to the next ammo type in the belt until after all barrels have fired.
@@ -23,11 +26,17 @@
 	- Missiles:
 		- Add improved missile controller.
 			- Missiles will now better respect gLimit as well as guidance-commanded acceleration, note this means some parameters may need to be tweaked to retain previous performance, specifically pronavGain and weave guidance accelerations.
+		- Improve AAMloft and Kappa's ability to hit targets with high closure rates close to the launch point, particularly for VLS and other 0/0 launch conditions.
 		- Fix multi-missile launcher issues when railAmmo > launcher rails on the mode
 		- Fix check for multi-mode engines being ignited and having fuel.
 		- Fix maddog ARH missile launches not turning on seeker.
 		- Add WeaveUseAGMDescentRatio and WeaveRandomRange to weave guidance, when WeaveUseAGMDescentRatio is true it forces the use of agmDescentRatio to allow for sea-skimming weave missiles. WeaveRandomRange is a float that allows for randomization of weave maneuver parameters.
 		- Fix certain missiles becoming ghost-like entities that ignored bullets and interceptor missiles when fired from MultiMissileLaunchers with "ignoreLauncherColliders = true".
+		- Fix buggy behavior caused by partial failure of missile warheads to detonate when a custom warhead and a standard warhead were used in conjunction with non-zero fuze failure settings.
+		- Heat seeking missiles now more realistically use angular velocity rather than vector velocity for flare rejection.
+			- Added a new FloatCurve "lockedSensorVelocityMagnitudeBias", weights target score based on the normalized angular velocity magnitude difference, where 1 is when the target's angular velocity magnitude matches the expected angular velocity magnitude and 0 is when the angular velocity magnitude is off by the expected angular velocity magnitude (either 0, or twice the expected).
+			- FloatCurve defaults to all 1s when lockedSensorVelocityBias is not specified and linear when specified.
+			- Added lockedSensorMinAngularVelocity field which sets the minimum detectable angular velocity magnitude for angular velocity magnitude differencing.
 - Competition:
 	- Add a "defaults" button to the scoring window to reset score weights to their default values.
 	- Updated parsing and plotting scripts.

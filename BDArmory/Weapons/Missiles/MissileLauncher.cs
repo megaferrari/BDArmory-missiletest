@@ -1045,16 +1045,19 @@ namespace BDArmory.Weapons.Missiles
                 }
                 if (lockedSensorVelocityMagnitudeBias.minTime == float.MaxValue)
                 {
-                    lockedSensorVelocityMagnitudeBias.Add(0f, 1f);
+                    lockedSensorVelocityMagnitudeBias.Add(1f, 1f);
                     if (defaultVelocityBias)
-                        lockedSensorVelocityMagnitudeBias.Add(1f, 1f);
+                        lockedSensorVelocityMagnitudeBias.Add(0f, 1f);
                     else
-                        lockedSensorVelocityMagnitudeBias.Add(1f, 0f);
+                        lockedSensorVelocityMagnitudeBias.Add(0f, 0f);
                     if (BDArmorySettings.DEBUG_MISSILES)
                     {
                         Debug.Log($"[BDArmory.MissileLauncher]: OnStart missile {shortName}: setting default lockedSensorVelocityMagnitudeBias curve to:");
-                        Debug.Log("key = 0 1");
                         Debug.Log("key = 1 1");
+                        if (defaultVelocityBias)
+                            Debug.Log("key = 0 1");
+                        else
+                            Debug.Log("key = 0 0");
                     }
                 }
             }

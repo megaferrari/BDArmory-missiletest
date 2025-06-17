@@ -302,7 +302,7 @@ namespace BDArmory.Guidances
                         Vector3 turnLead = (speed * speed * invG * -0.8f) * ((pullUpCos + remainingCos) * planarDirToTarget) - altDiff * upDirection;
                         vertGuidanceAngle = Mathf.Asin(Vector3.Dot(upDirection, turnLead) / turnLead.magnitude);
                         ttgoWeaveInvVert = 1f / (Mathf.Max(-verticalAngle + remainingAngle, 0.00001f) * speed * invG * 0.8f);
-                        terminalAngle = 0f;
+                        //terminalAngle = 0f;
                     }
                     else if (altDiff < pullUpDist)
                     {
