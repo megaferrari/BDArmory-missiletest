@@ -837,8 +837,11 @@ namespace BDArmory.Radar
                     if (linkedToVessels.Count > 0)
                         foreach (VesselRadarData vrd in linkedToVessels)
                         {
-                            vrd.AddRadarContact(this, lockedTarget, true);
-                            vrd.UpdateLockedTargets();
+                            if (vrd)
+                            {
+                                vrd.AddRadarContact(this, lockedTarget, true);
+                                vrd.UpdateLockedTargets();
+                            }
                         }
                     attemptedLocks[i] = TargetSignatureData.noTarget;
                     return true;
@@ -956,6 +959,13 @@ namespace BDArmory.Radar
                 vesselRadarData.UnlockAllTargetsOfRadar(this);
             }
 
+            if (linkedToVessels.Count > 0)
+                foreach (VesselRadarData vrd in linkedToVessels)
+                {
+                    if (vrd)
+                        vrd.UnlockAllTargetsOfRadar(this);
+                }
+
             if (BDArmorySettings.DEBUG_RADAR)
                 Debug.Log("[BDArmory.ModuleRadar]: Radar Targets were cleared (" + radarName + ").");
         }
@@ -1006,6 +1016,12 @@ namespace BDArmory.Radar
                 //vesselRadarData.UnlockTargetAtPosition(position);
                 vesselRadarData.RemoveVesselFromTargets(rVess);
             }
+            if (linkedToVessels.Count > 0)
+                foreach (VesselRadarData vrd in linkedToVessels)
+                {
+                    if (vrd)
+                        vrd.RemoveVesselFromTargets(rVess);
+                }
         }
 
         IEnumerator RetryLockRoutine(Vessel v)
@@ -1037,7 +1053,7 @@ namespace BDArmory.Radar
             {
                 if (weaponManager.GetMissilesAway(lockedTargets[i].targetInfo)[1] == 0)
                 {
-                    vesselRadarData.UnlockSelectedTarget(lockedTargets[i].vessel);
+                    UnlockTargetAt(i);
                     cleared = true;
                     if (!unlockAll) break;
                 }
