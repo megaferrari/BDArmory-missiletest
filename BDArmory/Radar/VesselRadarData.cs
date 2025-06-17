@@ -2004,6 +2004,13 @@ namespace BDArmory.Radar
             rad.UnlockTargetAt(rad.currentLockIndex);
         }
 
+        /// <summary>
+        /// Unlocks the target vessel. This variant is less efficient than the index variant, however it is
+        /// generally more useful as it will search through displayedTargets and find the vessel. Useful in
+        /// instances where the index of the target in lockedTargetIndexes is not known, or where the index
+        /// may change due to changes in the locks.
+        /// </summary>
+        /// <param name="vessel">Vessel to unlock.</param>
         public void UnlockSelectedTarget(Vessel vessel)
         {
             if (!locked) return;
@@ -2015,14 +2022,19 @@ namespace BDArmory.Radar
             }
         }
 
+        /// <summary>
+        /// Unlocks the target at lockedTargetIndexes[index]. NOTE! Since lockedTargetIndexes WILL change when
+        /// a target is locked/unlocked, this should ONLY be called in instances when you are only unlocking
+        /// a single target. When unlocking multiple target, use the vessel variant instead. Note this function
+        /// is entirely unprotected, it is the user's responsibility to ensure index is valid for
+        /// lockedTargetIndexes.
+        /// </summary>
+        /// <param name="index">Index of target in lockedTargetIndexes.</param>
         public void UnlockSelectedTarget(int index)
         {
             if (!locked) return;
-            if (index != -1)
-            {
-                ModuleRadar rad = displayedTargets[lockedTargetIndexes[index]].detectedByRadar;
-                rad.UnlockTargetVessel(displayedTargets[lockedTargetIndexes[index]].vessel);
-            }
+            ModuleRadar rad = displayedTargets[lockedTargetIndexes[index]].detectedByRadar;
+            rad.UnlockTargetVessel(displayedTargets[lockedTargetIndexes[index]].vessel);
         }
 
         private void CleanDisplayedContacts()
