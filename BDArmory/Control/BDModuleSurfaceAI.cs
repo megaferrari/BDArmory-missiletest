@@ -400,7 +400,7 @@ namespace BDArmory.Control
             if (IsRunningWaypoints) UpdateWaypoint(); // Update the waypoint state.
             if (SurfaceType == AIUtils.VehicleMovementType.Stationary)
             {
-                if (Physics.Raycast(new Ray(vessel.CoM, -upDir), out RaycastHit hit, (float)vessel.radarAltitude + 100f, (int)LayerMasks.Scenery))
+                if (!vessel.Splashed && Physics.Raycast(new Ray(vessel.CoM, -upDir), out RaycastHit hit, (float)vessel.radarAltitude + vessel.GetRadius(), (int)LayerMasks.Scenery))
                     terrainNormal = hit.normal;
                 else
                     terrainNormal = upDir;
