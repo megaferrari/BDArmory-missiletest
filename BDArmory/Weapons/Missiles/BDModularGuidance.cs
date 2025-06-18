@@ -118,7 +118,7 @@ namespace BDArmory.Weapons.Missiles
         public bool HasIFF = true;
 
         [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "#LOC_BDArmory_terminalHomingRange"),
-            UI_FloatRange(minValue = 500f, maxValue = 20000f, stepIncrement = 100f, scene = UI_Scene.Editor, affectSymCounterparts = UI_Scene.All)]
+            UI_FloatRange(minValue = 500f, maxValue = 20000f, stepIncrement = 100f, scene = UI_Scene.All, affectSymCounterparts = UI_Scene.All)]
         public float TerminalHomingRange = 3000;
 
         private Vector3 initialMissileRollPlane;
@@ -251,46 +251,57 @@ namespace BDArmory.Weapons.Missiles
             }
             else
             {
-                Fields["LoftMaxAltitude"].guiActive = true;
                 Fields["LoftMaxAltitude"].guiActiveEditor = true;
-                Fields["LoftRangeOverride"].guiActive = true;
                 Fields["LoftRangeOverride"].guiActiveEditor = true;
-                Fields["LoftAltitudeAdvMax"].guiActive = true;
                 Fields["LoftAltitudeAdvMax"].guiActiveEditor = true;
-                Fields["LoftMinAltitude"].guiActive = true;
                 Fields["LoftMinAltitude"].guiActiveEditor = true;
                 //Fields["terminalHomingRange"].guiActive = true;
                 //Fields["terminalHomingRange"].guiActiveEditor = true;
 
                 if (!GameSettings.ADVANCED_TWEAKABLES)
                 {
-                    Fields["LoftAngle"].guiActive = false;
                     Fields["LoftAngle"].guiActiveEditor = false;
-                    Fields["LoftTermAngle"].guiActive = false;
                     Fields["LoftTermAngle"].guiActiveEditor = false;
-                    Fields["LoftRangeFac"].guiActive = false;
                     Fields["LoftRangeFac"].guiActiveEditor = false;
-                    Fields["LoftVelComp"].guiActive = false;
                     Fields["LoftVelComp"].guiActiveEditor = false;
-                    Fields["LoftVertVelComp"].guiActive = false;
                     Fields["LoftVertVelComp"].guiActiveEditor = false;
                     //Fields["LoftAltComp"].guiActive = false;
                     //Fields["LoftAltComp"].guiActiveEditor = false;
                 }
                 else
                 {
-                    Fields["LoftAngle"].guiActive = true;
                     Fields["LoftAngle"].guiActiveEditor = true;
-                    Fields["LoftTermAngle"].guiActive = true;
                     Fields["LoftTermAngle"].guiActiveEditor = true;
-                    Fields["LoftRangeFac"].guiActive = true;
                     Fields["LoftRangeFac"].guiActiveEditor = true;
-                    Fields["LoftVelComp"].guiActive = true;
                     Fields["LoftVelComp"].guiActiveEditor = true;
-                    Fields["LoftVertVelComp"].guiActive = true;
                     Fields["LoftVertVelComp"].guiActiveEditor = true;
                     //Fields["LoftAltComp"].guiActive = true;
                     //Fields["LoftAltComp"].guiActiveEditor = true;
+                }
+
+                if (!BDArmorySettings.DEBUG_MISSILES)
+                {
+                    Fields["LoftMaxAltitude"].guiActive = false;
+                    Fields["LoftRangeOverride"].guiActive = false;
+                    Fields["LoftAltitudeAdvMax"].guiActive = false;
+                    Fields["LoftMinAltitude"].guiActive = false;
+                    Fields["LoftAngle"].guiActive = false;
+                    Fields["LoftTermAngle"].guiActive = false;
+                    Fields["LoftRangeFac"].guiActive = false;
+                    Fields["LoftVelComp"].guiActive = false;
+                    Fields["LoftVertVelComp"].guiActive = false;
+                }
+                else
+                {
+                    Fields["LoftMaxAltitude"].guiActive = true;
+                    Fields["LoftRangeOverride"].guiActive = true;
+                    Fields["LoftAltitudeAdvMax"].guiActive = true;
+                    Fields["LoftMinAltitude"].guiActive = true;
+                    Fields["LoftAngle"].guiActive = true;
+                    Fields["LoftTermAngle"].guiActive = true;
+                    Fields["LoftRangeFac"].guiActive = true;
+                    Fields["LoftVelComp"].guiActive = true;
+                    Fields["LoftVertVelComp"].guiActive = true;
                 }
             }
 
@@ -301,6 +312,11 @@ namespace BDArmory.Weapons.Missiles
             }
             else
             {
+                if (!BDArmorySettings.DEBUG_MISSILES)
+                    Fields["TerminalHomingRange"].guiActive = false;
+                else
+                    Fields["TerminalHomingRange"].guiActive = true;
+
                 Fields["terminalHomingRange"].guiActive = true;
                 Fields["TerminalHomingRange"].guiActiveEditor = true;
             }

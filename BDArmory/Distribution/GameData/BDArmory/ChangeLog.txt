@@ -41,6 +41,8 @@
 			- Added a new FloatCurve "lockedSensorVelocityMagnitudeBias", weights target score based on the normalized angular velocity magnitude difference, where 1 is when the target's angular velocity magnitude matches the expected angular velocity magnitude and 0 is when the angular velocity magnitude is off by the expected angular velocity magnitude (either 0, or twice the expected).
 			- FloatCurve defaults to all 1s when lockedSensorVelocityBias is not specified and linear when specified.
 			- Added lockedSensorMinAngularVelocity field which sets the minimum detectable angular velocity magnitude for angular velocity magnitude differencing.
+		= Loft guidance parameters are now no longer persistent and inaccessible in the SPH for non-modular missiles. Modders may still tune these parameters in-flight by enabling the "Debug Missiles" option in the BDArmory Settings menu.
+			- For modular missiles, parameters are persistent and editable in the SPH. Turning on "Debug Missiles" will also allow for in-flight adjustment of these parameters.
 - GameModes:
 	- Don't spawn new asteroids in asteroid rain mode while in high time-warp.
 - Competition:

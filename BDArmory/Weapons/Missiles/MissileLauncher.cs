@@ -935,33 +935,42 @@ namespace BDArmory.Weapons.Missiles
             }
             else
             {
-                Fields["LoftMaxAltitude"].guiActive = true;
+                
                 Fields["LoftMaxAltitude"].guiActiveEditor = true;
-                Fields["LoftRangeOverride"].guiActive = true;
                 Fields["LoftRangeOverride"].guiActiveEditor = true;
-
 
                 if (!GameSettings.ADVANCED_TWEAKABLES)
                 {
-                    Fields["LoftAngle"].guiActive = false;
                     Fields["LoftAngle"].guiActiveEditor = false;
-                    Fields["LoftTermAngle"].guiActive = false;
                     Fields["LoftTermAngle"].guiActiveEditor = false;
-                    Fields["LoftRangeFac"].guiActive = false;
                     Fields["LoftRangeFac"].guiActiveEditor = false;
-                    Fields["LoftVertVelComp"].guiActive = false;
                     Fields["LoftVertVelComp"].guiActiveEditor = false;
                 }
                 else
                 {
-                    Fields["LoftAngle"].guiActive = true;
                     Fields["LoftAngle"].guiActiveEditor = true;
-                    Fields["LoftTermAngle"].guiActive = true;
                     Fields["LoftTermAngle"].guiActiveEditor = true;
-                    Fields["LoftRangeFac"].guiActive = true;
                     Fields["LoftRangeFac"].guiActiveEditor = true;
-                    Fields["LoftVertVelComp"].guiActive = true;
                     Fields["LoftVertVelComp"].guiActiveEditor = true;
+                }
+
+                if (!BDArmorySettings.DEBUG_MISSILES)
+                {
+                    Fields["LoftMaxAltitude"].guiActive = false;
+                    Fields["LoftRangeOverride"].guiActive = false;
+                    Fields["LoftAngle"].guiActive = false;
+                    Fields["LoftTermAngle"].guiActive = false;
+                    Fields["LoftRangeFac"].guiActive = false;
+                    Fields["LoftVertVelComp"].guiActive = false;
+                }
+                else
+                {
+                    Fields["LoftMaxAltitude"].guiActive = true;
+                    Fields["LoftRangeOverride"].guiActive = true;
+                    Fields["LoftAngle"].guiActive = true;
+                    Fields["LoftTermAngle"].guiActive = true;
+                    Fields["LoftRangeFac"].guiActive = true;
+                    Fields["LoftVertVelComp"].guiActive = true;
                 }
             }
 
@@ -971,6 +980,8 @@ namespace BDArmory.Weapons.Missiles
                 Fields["LoftMinAltitude"].guiActiveEditor = false;
                 Fields["LoftVelComp"].guiActive = false;
                 Fields["LoftVelComp"].guiActiveEditor = false;
+                Fields["LoftVertVelComp"].guiActive = false;
+                Fields["LoftVertVelComp"].guiActiveEditor = false;
                 Fields["LoftAltitudeAdvMax"].guiActive = false;
                 Fields["LoftAltitudeAdvMax"].guiActiveEditor = false;
                 //Fields["LoftAltComp"].guiActive = false;
@@ -980,26 +991,39 @@ namespace BDArmory.Weapons.Missiles
             }
             else
             {
-                Fields["LoftMinAltitude"].guiActive = true;
                 Fields["LoftMinAltitude"].guiActiveEditor = true;
-                Fields["LoftAltitudeAdvMax"].guiActive = true;
                 Fields["LoftAltitudeAdvMax"].guiActiveEditor = true;
                 //Fields["terminalHomingRange"].guiActive = true;
                 //Fields["terminalHomingRange"].guiActiveEditor = true;
 
                 if (!GameSettings.ADVANCED_TWEAKABLES)
                 {
-                    Fields["LoftVelComp"].guiActive = false;
                     Fields["LoftVelComp"].guiActiveEditor = false;
+                    Fields["LoftVertVelComp"].guiActiveEditor = false;
                     //Fields["LoftAltComp"].guiActive = false;
                     //Fields["LoftAltComp"].guiActiveEditor = false;
                 }
                 else
                 {
-                    Fields["LoftVelComp"].guiActive = true;
                     Fields["LoftVelComp"].guiActiveEditor = true;
+                    Fields["LoftVertVelComp"].guiActiveEditor = true;
                     //Fields["LoftAltComp"].guiActive = true;
                     //Fields["LoftAltComp"].guiActiveEditor = true;
+                }
+
+                if (!BDArmorySettings.DEBUG_MISSILES)
+                {
+                    Fields["LoftMinAltitude"].guiActive = false;
+                    Fields["LoftAltitudeAdvMax"].guiActive = false;
+                    Fields["LoftVelComp"].guiActive = false;
+                    Fields["LoftVertVelComp"].guiActive = false;
+                }
+                else
+                {
+                    Fields["LoftMinAltitude"].guiActive = true;
+                    Fields["LoftAltitudeAdvMax"].guiActive = true;
+                    Fields["LoftVelComp"].guiActive = true;
+                    Fields["LoftVertVelComp"].guiActive = true;
                 }
             }
             if (!terminalHoming && GuidanceMode != GuidanceModes.AAMLoft) //(GuidanceMode != GuidanceModes.AAMHybrid && GuidanceMode != GuidanceModes.AAMLoft)
