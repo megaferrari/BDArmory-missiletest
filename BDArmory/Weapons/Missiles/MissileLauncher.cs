@@ -492,7 +492,7 @@ namespace BDArmory.Weapons.Missiles
 
             if (shortName == string.Empty)
             {
-                shortName = part.partInfo.title;                
+                shortName = part.partInfo.title;
             }
             gaplessEmitters = new List<BDAGaplessParticleEmitter>();
             pEmitters = new List<KSPParticleEmitter>();
@@ -752,9 +752,9 @@ namespace BDArmory.Weapons.Missiles
                                 warheadType = WarheadTypes.ContinuousRod;
                         else
                             if (warheadType == WarheadTypes.Custom)
-                                warheadType = WarheadTypes.CustomStandard;
-                            else
-                                warheadType = WarheadTypes.Standard;
+                            warheadType = WarheadTypes.CustomStandard;
+                        else
+                            warheadType = WarheadTypes.Standard;
                         continue; //EMPs sometimes have BDExplosivePart modules for FX, so keep going
                     case "BDCustomWarhead":
                         if (warheadType == WarheadTypes.ContinuousRod)
@@ -1271,7 +1271,7 @@ namespace BDArmory.Weapons.Missiles
             }
             var wpm = VesselModuleRegistry.GetMissileFire(SourceVessel, true);
             if (wpm != null) Team = wpm.Team;
-            
+
             if (multiLauncher)
             {
                 if (multiLauncher.isMultiLauncher)
@@ -1968,7 +1968,7 @@ namespace BDArmory.Weapons.Missiles
                 {
                     WarnTarget();
                     if (TimeIndex - dropTime > guidanceDelay)
-                    {    
+                    {
                         //if (targetVessel && targetVessel.loaded)
                         //{
                         //   Vector3 targetCoMPos = targetVessel.CoM;
@@ -2326,7 +2326,7 @@ namespace BDArmory.Weapons.Missiles
 
             if (deployStates != null) StartCoroutine(DeployAnimRoutine());
             yield return new WaitForSecondsFixed(dropTime);
-			if (animStates != null) StartCoroutine(FlightAnimRoutine());
+            if (animStates != null) StartCoroutine(FlightAnimRoutine());
             yield return StartCoroutine(BoostRoutine());
 
             yield return new WaitForSecondsFixed(cruiseDelay);
@@ -2588,7 +2588,6 @@ namespace BDArmory.Weapons.Missiles
 
         void EndBoost()
         {
-
             using (var emitter = boostEmitters.GetEnumerator())
                 while (emitter.MoveNext())
                 {
@@ -2663,7 +2662,6 @@ namespace BDArmory.Weapons.Missiles
                 }
 
                 audioSource.volume = Throttle;
-
 
                 //particleFx
                 using (var emitter = pEmitters.GetEnumerator())
@@ -2827,7 +2825,6 @@ namespace BDArmory.Weapons.Missiles
                     if (gpe2.Current == null) continue;
                     gpe2.Current.emit = false;
                 }
-
         }
 
         [KSPField]
@@ -3071,7 +3068,7 @@ namespace BDArmory.Weapons.Missiles
             {
                 //DrawDebugLine(transform.position + (part.rb.velocity * Time.fixedDeltaTime), TargetPosition);
                 float timeToImpact;
-                
+
                 SLWTarget = MissileGuidance.GetAirToAirTarget(TargetPosition, TargetVelocity, TargetAcceleration, vessel, out timeToImpact, optimumAirspeed);
                 if (Vector3.Angle(SLWTarget - transform.position, transform.forward) > maxOffBoresight * 0.75f)
                 {
@@ -3773,7 +3770,7 @@ namespace BDArmory.Weapons.Missiles
                     terminalGuidanceShouldActivate = false;
                     TargetingModeTerminal = TargetingModes.None;
                 }
-                    
+
             }
 
             if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: parsing guidance and homing complete on {part.name}");
@@ -4154,8 +4151,8 @@ namespace BDArmory.Weapons.Missiles
             }
             exhaustPrefabs.Clear();
         }
-
         #endregion
+
         public double GetDeltaV()
         {
             double specificImpulse;
