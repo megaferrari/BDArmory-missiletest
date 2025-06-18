@@ -808,12 +808,15 @@ namespace BDArmory.Radar
             //first try using the last radar to detect that target
             bool acquiredLock = false;
             bool testRadar = true;
-            if (radarTarget.detectedByRadar.vessel != vessel && !(radarTarget.detectedByRadar.currentLocks < radarTarget.detectedByRadar.maxLocks))
-                testRadar = !radarTarget.detectedByRadar.ClearUnneededLocks();
-            if (testRadar && CheckRadarForLock(radarTarget.detectedByRadar, radarTarget))
+            if (radarTarget.detectedByRadar)
             {
-                lockingRadar = radarTarget.detectedByRadar;
-                acquiredLock = (lockingRadar.TryLockTarget(radarTarget.targetData.predictedPosition, radarTarget.vessel));
+                if (radarTarget.detectedByRadar.vessel != vessel && !(radarTarget.detectedByRadar.currentLocks < radarTarget.detectedByRadar.maxLocks))
+                    testRadar = !radarTarget.detectedByRadar.ClearUnneededLocks();
+                if (testRadar && CheckRadarForLock(radarTarget.detectedByRadar, radarTarget))
+                {
+                    lockingRadar = radarTarget.detectedByRadar;
+                    acquiredLock = (lockingRadar.TryLockTarget(radarTarget.targetData.predictedPosition, radarTarget.vessel));
+                }
             }
             if (!acquiredLock) //locks exceeded/target off scope, test if remaining radars have available locks & coveravge
             {
@@ -899,7 +902,8 @@ namespace BDArmory.Radar
 
         private bool CheckRadarForLock(ModuleRadar radar, RadarDisplayData radarTarget, bool checkRadarLocks = true)
         {
-            if (!radar) return false;
+            // Technically all instances of this are now gated by a null check so this is no longer necessary
+            //if (!radar) return false;
 
             if (checkRadarLocks && (!radar.canLock || (radar.locked && !(radar.currentLocks < radar.maxLocks)))) return false;
 
@@ -1868,7 +1872,7 @@ namespace BDArmory.Radar
             }
             // We have locked target(s)  Lets see if we can select the next one in the list (if it exists)
             displayedTargetIndex = lockedTargetIndexes[activeLockedTargetIndex];
-            // Lets store the displayed target that is ative
+            // Lets store the displayed target that is active
             ModuleRadar rad = displayedTargets[displayedTargetIndex].detectedByRadar;
             if (lockedTargetIndexes.Count > 1)
             {

@@ -1461,6 +1461,7 @@ namespace BDArmory.Targeting
                 slewingToPosition = false;
                 yield break;
             }
+            var wait = new WaitForFixedUpdate();
             while (!stopPTPR && Vector3.Angle(cameraParentTransform.transform.forward, (tgtVessel != null ? tgtVessel.CoM : position) - (cameraParentTransform.transform.position)) > 0.1f)
             {
                 if (tgtVessel != null)
@@ -1472,7 +1473,7 @@ namespace BDArmory.Targeting
                 Vector3 newForward = Vector3.RotateTowards(cameraParentTransform.transform.forward, position - cameraParentTransform.transform.position, traverseRate * Mathf.Deg2Rad * Time.fixedDeltaTime, 0);
                 //cameraParentTransform.rotation = Quaternion.LookRotation(newForward, VectorUtils.GetUpDirection(transform.position));
                 PointCameraModel(newForward);
-                yield return new WaitForFixedUpdate();
+                yield return wait;
                 if (cameraParentTransform == null)
                 {
                     slewingToPosition = false;

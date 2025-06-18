@@ -380,7 +380,7 @@ namespace BDArmory.Utils
                 return 0f;
 
             float num2 = Mathf.Clamp(Vector3.Dot(from, to) / (fromMag * toMag), -1f, 1f);
-            return Mathf.Acos(num2) * 57.29578f;
+            return Mathf.Acos(num2) * Mathf.Rad2Deg;
         }
 
         /// <summary>

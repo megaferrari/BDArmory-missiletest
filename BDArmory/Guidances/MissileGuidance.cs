@@ -11,6 +11,8 @@ namespace BDArmory.Guidances
 {
     public class MissileGuidance
     {
+        const float invg = 1f / 9.80665f; // 1/gravity on Earth/Kerbin
+
         public static Vector3 GetAirToGroundTarget(Vector3 targetPosition, Vector3 targetVelocity, Vessel missileVessel, float descentRatio, float minSpeed = 200)
         {
             // Incorporate lead for target velocity
@@ -263,7 +265,7 @@ namespace BDArmory.Guidances
                     float pullUpSin = BDAMath.Sqrt(1f - pullUpCos * pullUpCos);
                     // Turn radius is mv^2/r = ma -> v^2/r = a -> v^2/a = r, a = 6 g -> v^2 * 1/6 g = r
                     float pullUpg = gVertTemp > 0.0f ? gVertTemp * 0.8f : (gHorz > 0.0f ? Mathf.Min(gHorz * 0.8f, 6f) : 6f);
-                    float invG = 0.101971618831157684326171875f / pullUpg;
+                    float invG = invg / pullUpg;
                     float pullUpDist = (speed * speed * invG) * (1f - pullUpSin);
                     float altDiff = currAlt - altitudeClamp;
 
@@ -289,7 +291,7 @@ namespace BDArmory.Guidances
                     // Get angle relative to vertical
                     float pullUpSin = BDAMath.Sqrt(1f - pullUpCos * pullUpCos);
                     // Turn radius is mv^2/r = ma -> v^2/r = a -> v^2/a = r, a = 6 g -> v^2 * 1/6 g = r
-                    float invG = 0.101971618831157684326171875f / (gVertTemp > 0.0f ? gVertTemp * 0.8f : (gHorz > 0.0f ? Mathf.Min(gHorz * 0.8f, 6f) : 6f));
+                    float invG = invg / (gVertTemp > 0.0f ? gVertTemp * 0.8f : (gHorz > 0.0f ? Mathf.Min(gHorz * 0.8f, 6f) : 6f));
                     float pullUpDist = (speed * speed * invG) * (1f - pullUpSin);
 
                     if (altDiff < 0)
@@ -403,7 +405,7 @@ namespace BDArmory.Guidances
                 float pullDownCos = Vector3.Dot(velDirection, upDirection);
                 float pullDownSin = BDAMath.Sqrt(1f - pullDownCos * pullDownCos);
                 // Turn radius is mv^2/r = ma -> v^2/r = a -> v^2/a = r, a = 6 g -> v^2 * 1/6 g = r
-                float invG = 0.101971618831157684326171875f / (ml.gLimit > 0.0f ? ml.gLimit : 20f);
+                float invG = invg / (ml.gLimit > 0.0f ? ml.gLimit : 20f);
                 Vector3 turnLead = (currSpeed * currSpeed * invG) * (pullDownCos * planarDirectionToTarget + (1f - pullDownSin) * upDirection); //(currSpeed * currSpeed * 0.0169952698051929473876953125f) * (pullDownSin * planarDirectionToTarget + (1f - pullDownCos) * upDirection);
                 //float turnTimeOffset = (loftTermAngle * Mathf.Deg2Rad + 0.5f * Mathf.PI - Mathf.Acos(pullDownCos)) * currSpeed * invG;
 
@@ -623,7 +625,7 @@ namespace BDArmory.Guidances
                             float tempSpeed = Mathf.Max(currSpeed * 1.1f, optimumAirspeed);
 
                             float curvatureCompensation = (1f - Vector3.Dot(upDirection, VectorUtils.GetUpDirection(targetPosition))) * (float)FlightGlobals.currentMainBody.Radius;
-                            float turnRadius = (tempSpeed * tempSpeed * 0.0101971621297792824257009274319f);
+                            float turnRadius = (tempSpeed * tempSpeed * invg * 0.1f);
 
                             Vector3 turnLead = (turnRadius * (pullDownCos + Mathf.Sin(termAngle * Mathf.Deg2Rad))) * planarDirectionToTarget + (turnRadius * (1f - pullDownSin) - curvatureCompensation) * upDirection;
 

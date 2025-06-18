@@ -207,7 +207,7 @@ UI_FloatRange(minValue = 1f, maxValue = 4, stepIncrement = 1f, scene = UI_Scene.
                                         if (col)
                                         {
                                             scaleMax = Mathf.Max(scaleMax, Mathf.Max(col.bounds.size.x, col.bounds.size.y, col.bounds.size.z));
-                                            scaleMin = Mathf.Max(scaleMax, Mathf.Min(col.bounds.size.x, col.bounds.size.y, col.bounds.size.z));
+                                            scaleMin = Mathf.Max(scaleMin, Mathf.Min(col.bounds.size.x, col.bounds.size.y, col.bounds.size.z));
                                         }
                                     }
                                     missileScale = new Vector2(scaleMax, scaleMin);
