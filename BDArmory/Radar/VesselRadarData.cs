@@ -807,15 +807,12 @@ namespace BDArmory.Radar
             ModuleRadar lockingRadar = null;
             //first try using the last radar to detect that target
             bool acquiredLock = false;
-            bool testRadar = true;
             if (radarTarget.detectedByRadar)
             {
-                if (radarTarget.detectedByRadar.vessel != vessel && !(radarTarget.detectedByRadar.currentLocks < radarTarget.detectedByRadar.maxLocks))
-                    testRadar = !radarTarget.detectedByRadar.ClearUnneededLocks();
-                if (testRadar && CheckRadarForLock(radarTarget.detectedByRadar, radarTarget))
+                if (CheckRadarForLock(radarTarget.detectedByRadar, radarTarget))
                 {
                     lockingRadar = radarTarget.detectedByRadar;
-                    acquiredLock = (lockingRadar.TryLockTarget(radarTarget.targetData.predictedPosition, radarTarget.vessel));
+                    acquiredLock = lockingRadar.TryLockTarget(radarTarget.targetData.predictedPosition, radarTarget.vessel);
                 }
             }
             if (!acquiredLock) //locks exceeded/target off scope, test if remaining radars have available locks & coveravge
@@ -825,19 +822,7 @@ namespace BDArmory.Radar
                     {
                         if (radar.Current == null) continue;
                         // If the radar is external
-                        if (radar.Current.vessel != vessel)
-                        {
-                            // We first check if the radar can lock the target without worrying about if it has locks available
-                            if (CheckRadarForLock(radar.Current, radarTarget, false))
-                            {
-                                // If we're at max locks, try and free up a spot
-                                if (!(radar.Current.currentLocks < radar.Current.maxLocks) && !radar.Current.ClearUnneededLocks())
-                                    continue;
-                            }
-                            else
-                                continue;
-                        }
-                        else if (CheckRadarForLock(radar.Current, radarTarget)) continue;
+                        if (!CheckRadarForLock(radar.Current, radarTarget)) continue;
                         lockingRadar = radar.Current;
                         if (lockingRadar.TryLockTarget(radarTarget.targetData.predictedPosition, radarTarget.vessel))
                         {
@@ -900,12 +885,14 @@ namespace BDArmory.Radar
             //return false;
         }
 
-        private bool CheckRadarForLock(ModuleRadar radar, RadarDisplayData radarTarget, bool checkRadarLocks = true)
+        private bool CheckRadarForLock(ModuleRadar radar, RadarDisplayData radarTarget)
         {
             // Technically all instances of this are now gated by a null check so this is no longer necessary
             //if (!radar) return false;
 
-            if (checkRadarLocks && (!radar.canLock || (radar.locked && !(radar.currentLocks < radar.maxLocks)))) return false;
+            if (!radar.canLock) return false;
+
+            if (!weaponManager.guardMode && (radar.locked && (radar.currentLocks == radar.maxLocks))) return false;
 
             Vector3 relativePos = radarTarget.targetData.predictedPosition - radar.transform.position;
             float dist = relativePos.magnitude / 1000f;

@@ -799,9 +799,12 @@ namespace BDArmory.Radar
 
             if (currentLocks == maxLocks)
             {
-                if (BDArmorySettings.DEBUG_RADAR)
-                    Debug.Log("[BDArmory.ModuleRadar]: - Failed, this radar already has the maximum allowed targets locked.");
-                return false;
+                if (!weaponManager.guardMode || !ClearUnneededLocks())
+                {
+                    if (BDArmorySettings.DEBUG_RADAR)
+                        Debug.Log("[BDArmory.ModuleRadar]: - Failed, this radar already has the maximum allowed targets locked.");
+                    return false;
+                }
             }
 
             Vector3 targetPlanarDirection = (position - referenceTransform.position).ProjectOnPlanePreNormalized(referenceTransform.up);
