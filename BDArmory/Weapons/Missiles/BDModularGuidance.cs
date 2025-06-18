@@ -117,6 +117,10 @@ namespace BDArmory.Weapons.Missiles
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_MissileIFF"), UI_Toggle(controlEnabled = true, enabledText = "#LOC_BDArmory_MissileIFF_enabledText", disabledText = "#LOC_BDArmory_MissileIFF_disabledText", scene = UI_Scene.Editor, affectSymCounterparts = UI_Scene.All)]//Roll Correction--Roll enabled--Roll disabled
         public bool HasIFF = true;
 
+        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "#LOC_BDArmory_terminalHomingRange"),
+            UI_FloatRange(minValue = 500f, maxValue = 20000f, stepIncrement = 100f, scene = UI_Scene.Editor, affectSymCounterparts = UI_Scene.All)]
+        public float TerminalHomingRange = 3000;
+
         private Vector3 initialMissileRollPlane;
         private Vector3 initialMissileForward;
 
@@ -293,12 +297,12 @@ namespace BDArmory.Weapons.Missiles
             if (!terminalHoming && GuidanceMode != GuidanceModes.AAMLoft) //GuidanceMode != GuidanceModes.AAMHybrid && GuidanceMode != GuidanceModes.AAMLoft)
             {
                 Fields["terminalHomingRange"].guiActive = false;
-                Fields["terminalHomingRange"].guiActiveEditor = false;
+                Fields["TerminalHomingRange"].guiActiveEditor = false;
             }
             else
             {
                 Fields["terminalHomingRange"].guiActive = true;
-                Fields["terminalHomingRange"].guiActiveEditor = true;
+                Fields["TerminalHomingRange"].guiActiveEditor = true;
             }
 
             if (GuidanceMode != GuidanceModes.Orbital)
@@ -623,6 +627,7 @@ namespace BDArmory.Weapons.Missiles
             missileCMRange = MissileCMRange;
             missileCMInterval = MissileCMInterval;
             hasIFF = HasIFF;
+            terminalHomingRange = TerminalHomingRange;
             //TODO: BDModularGuidance should be configurable?
             heatThreshold = 50;
             lockedSensorFOV = 5;
@@ -722,6 +727,27 @@ namespace BDArmory.Weapons.Missiles
                 Fields["detonationTime"].guiActive = false;
                 Fields["detonationTime"].guiActiveEditor = false;
             }
+
+            Fields["LoftMaxAltitude"].isPersistant = true;
+            Fields["LoftRangeOverride"].isPersistant = true;
+            Fields["LoftAltitudeAdvMax"].isPersistant = true;
+            Fields["LoftMinAltitude"].isPersistant = true;
+            Fields["LoftAngle"].isPersistant = true;
+            Fields["LoftTermAngle"].isPersistant = true;
+            Fields["LoftRangeFac"].isPersistant = true;
+            Fields["LoftVelComp"].isPersistant = true;
+            Fields["LoftVertVelComp"].isPersistant = true;
+            Fields["terminalHomingRange"].guiActiveEditor = false;
+
+            Fields["LoftMaxAltitude"].uiControlEditor = (UI_FloatRange)Fields["LoftMaxAltitude"].uiControlFlight;
+            Fields["LoftRangeOverride"].uiControlEditor = (UI_FloatRange)Fields["LoftRangeOverride"].uiControlFlight;
+            Fields["LoftAltitudeAdvMax"].uiControlEditor = (UI_FloatRange)Fields["LoftAltitudeAdvMax"].uiControlFlight;
+            Fields["LoftMinAltitude"].uiControlEditor = (UI_FloatRange)Fields["LoftMinAltitude"].uiControlFlight;
+            Fields["LoftAngle"].uiControlEditor = (UI_FloatRange)Fields["LoftAngle"].uiControlFlight;
+            Fields["LoftTermAngle"].uiControlEditor = (UI_FloatRange)Fields["LoftTermAngle"].uiControlFlight;
+            Fields["LoftRangeFac"].uiControlEditor = (UI_FloatRange)Fields["LoftRangeFac"].uiControlFlight;
+            Fields["LoftVelComp"].uiControlEditor = (UI_FloatRange)Fields["LoftVelComp"].uiControlFlight;
+            Fields["LoftVertVelComp"].uiControlEditor = (UI_FloatRange)Fields["LoftVertVelComp"].uiControlFlight;
 
             if (HighLogic.LoadedSceneIsEditor)
             {
