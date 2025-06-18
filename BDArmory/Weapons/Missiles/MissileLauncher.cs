@@ -771,7 +771,7 @@ namespace BDArmory.Weapons.Missiles
                         if (!String.IsNullOrEmpty(((MultiMissileLauncher)partModule).subMunitionName))
                         {
                             //shouldn't have both MML and ClusterBomb/BDExplosivepart/ModuleEMP/BDModuleNuke on the same part; explosive would be on the submunition .cfg
-                            //so instead need a check if the MML comes with a default ordinance, and see what it is to inherit stats.
+                            //so instead need a check if the MML comes with a default ordnance, and see what it is to inherit stats.
                             using (var parts = PartLoader.LoadedPartsList.GetEnumerator())
                                 while (parts.MoveNext())
                                 {
@@ -1596,7 +1596,7 @@ namespace BDArmory.Weapons.Missiles
 
         public IEnumerator MissileReload()
         {
-            reloadableRail.loadOrdinance(multiLauncher ? multiLauncher.launchTubes : 1);
+            reloadableRail.loadOrdnance(multiLauncher ? multiLauncher.launchTubes : 1);
             if (reloadableRail.railAmmo > 0 || BDArmorySettings.INFINITE_ORDINANCE)
             {
                 if (vessel.isActiveVessel) gauge.UpdateReloadMeter(reloadTimer);
@@ -1657,6 +1657,25 @@ namespace BDArmory.Weapons.Missiles
             if (TargetingMode == TargetingModes.AntiRad)
             {
                 RadarWarningReceiver.OnRadarPing -= ReceiveRadarPing;
+            }
+        }
+
+        void Update()
+        {
+            if (!HighLogic.LoadedSceneIsFlight) return;
+            if (!vessel.isActiveVessel) return;
+            if (reloadableRail)
+            {
+                if (launched && reloadRoutine != null)
+                {
+                    reloadTimer += TimeWarp.deltaTime;
+                    gauge.UpdateReloadMeter(Mathf.Clamp01(reloadTimer / reloadableRail.reloadTime));
+                }
+            }
+            if (multiLauncher && heatTimer > 0)
+            {
+                heatTimer -= TimeWarp.deltaTime;
+                gauge.UpdateHeatMeter(Mathf.Clamp01(heatTimer / multiLauncher.launcherCooldown));
             }
         }
 
@@ -1742,14 +1761,6 @@ namespace BDArmory.Weapons.Missiles
             }
             if (reloadableRail)
             {
-                if (launched && reloadRoutine != null)
-                {
-                    reloadTimer = Mathf.Clamp((reloadTimer + 1 * TimeWarp.fixedDeltaTime / reloadableRail.reloadTime), 0, 1);
-                }
-                if (heatTimer > 0)
-                {
-                    heatTimer -= TimeWarp.fixedDeltaTime;
-                }
                 if (OldInfAmmo != BDArmorySettings.INFINITE_ORDINANCE)
                 {
                     if (reloadableRail.railAmmo < 1 && BDArmorySettings.INFINITE_ORDINANCE)
@@ -2066,9 +2077,9 @@ namespace BDArmory.Weapons.Missiles
                     }
                 }
 
-                if (aero && aeroSteerDamping > 0)
+                if (aero && aeroSteerDamping > 0f)
                 {
-                    part.rb.AddRelativeTorque(-aeroSteerDamping * part.transform.InverseTransformVector(part.rb.angularVelocity));
+                    part.rb.AddRelativeTorque(-aeroSteerDamping * part.transform.InverseTransformDirection(part.rb.angularVelocity));
                 }
 
                 if (hasRCS && !guidanceActive)
@@ -2130,9 +2141,9 @@ namespace BDArmory.Weapons.Missiles
 
                         if (activeRadarRange < 0 && torpedo)
                             heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, new Ray(transform.position, tempTargetPos - transform.position), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias,
-                                (SourceVessel == null ? null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>()), targetVessel);
+                                (SourceVessel == null ? null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>()), targetVessel, IFF: hasIFF);
                         else
-                            heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, new Ray(transform.position, tempTargetPos - transform.position), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, SourceVessel ? VesselModuleRegistry.GetModule<MissileFire>(SourceVessel) : null, targetVessel);
+                            heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, new Ray(transform.position, tempTargetPos - transform.position), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, SourceVessel ? VesselModuleRegistry.GetModule<MissileFire>(SourceVessel) : null, targetVessel, IFF: hasIFF);
                         if (heatTarget.exists && CheckTargetEngagementEnvelope(heatTarget.targetInfo))
                         {
                             if (BDArmorySettings.DEBUG_MISSILES)
@@ -2201,7 +2212,7 @@ namespace BDArmory.Weapons.Missiles
 
                         for (int i = 0; i < scannedTargets.Length; i++)
                         {
-                            if (scannedTargets[i].exists && !Team.IsFriendly(scannedTargets[i].Team))
+                            if (scannedTargets[i].exists && (!hasIFF || !Team.IsFriendly(scannedTargets[i].Team)))
                             {
                                 currDist = (scannedTargets[i].predictedPosition - tempTargetPos).sqrMagnitude;
 
@@ -2417,14 +2428,15 @@ namespace BDArmory.Weapons.Missiles
         {
             yield return new WaitForSecondsFixed(0.5f); //wait half sec after boost motor fires, then set crashTolerance to 1. Torps have already waited until splashdown before this is called.
             part.crashTolerance = 1;
-            var missileCOL = part.collider;
             if (useSimpleDragTemp)
             {
                 yield return new WaitForSecondsFixed((clearanceLength * 1.2f) / 2);
                 part.dragModel = Part.DragModel.DEFAULT;
                 useSimpleDragTemp = false;
             }
-            if (missileCOL) missileCOL.enabled = true;
+            var childColliders = part.GetComponentsInChildren<Collider>(includeInactive: false);
+            foreach (var col in childColliders)
+                col.enabled = true;
 
         }
         IEnumerator BoostRoutine()
@@ -2977,7 +2989,7 @@ namespace BDArmory.Weapons.Missiles
 
                     case GuidanceModes.Weave:
                         {
-                            aamTarget = MissileGuidance.GetWeaveTarget(TargetPosition, TargetVelocity, vessel, WeaveVerticalG, ref WeaveHorizontalG, WeaveFrequency, WeaveTerminalAngle, WeaveFactor, ref WeaveOffset, ref WeaveStart, out timeToImpact, out currgLimit);
+                            aamTarget = MissileGuidance.GetWeaveTarget(TargetPosition, TargetVelocity, vessel, ref WeaveVerticalG, ref WeaveHorizontalG, WeaveRandomRange, WeaveFrequency, WeaveTerminalAngle, WeaveFactor, WeaveUseAGMDescentRatio, agmDescentRatio, ref WeaveOffset, ref WeaveStart, out timeToImpact, out currgLimit);
                             TimeToImpact = timeToImpact;
                             break;
                         }
@@ -3093,16 +3105,16 @@ namespace BDArmory.Weapons.Missiles
 
         }
 
-        void DoAero(Vector3 targetPosition, float currgLimit = -1)
+        void DoAero(Vector3 targetPosition, float currgLimit = -1f)
         {
-            if (currgLimit < 0 || currgLimit > gLimit)
+            if (currgLimit < 0f || (currgLimit > gLimit && gLimit > 0f))
             {
                 currgLimit = gLimit;
             }
 
             float currAoALimit = maxAoA;
 
-            if (currgLimit > 0)
+            if (currgLimit > 0f)
             {
                 currAoALimit = MissileGuidance.getGLimit(this, MissileState == MissileStates.PostThrust ? 0f : currentThrust * Throttle, currgLimit, gMargin);
                 //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: maxAoA: {maxAoA}, currAoALimit: {currAoALimit}, currgLimit: {currgLimit}");
@@ -3798,7 +3810,7 @@ namespace BDArmory.Weapons.Missiles
             }
             if (missileType.ToLower() == "launcher")
             {
-                return "Requires Ordinance";
+                return "Requires Ordnance";
             }
             //else: missiles:
 

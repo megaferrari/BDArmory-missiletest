@@ -19,6 +19,7 @@ using BDArmory.WeaponMounts;
 using BDArmory.Weapons.Missiles;
 using BDArmory.Weapons;
 using BDArmory.Bullets;
+using static BDArmory.Weapons.ModuleWeapon;
 
 namespace BDArmory.Control
 {
@@ -320,8 +321,7 @@ namespace BDArmory.Control
         bool showBombAimer;
         List<(Vector3, Texture2D, float, float)> missileAimerUI = []; // GUIUtils.DrawTextureOnWorldPos arguments: (position, texture, size, wobble)
 
-        public static Dictionary<int, ObjectPool> boresights = new Dictionary<int, ObjectPool>();
-        GameObject boreRing;
+        static GameObject boreRing;
         Renderer r_ring;
         //GameObject boreRadarRing;
         //Renderer r_rRing;
@@ -457,7 +457,7 @@ namespace BDArmory.Control
 
         //weapon slaving
         public bool slavingTurrets = false;
-        public Vector3 slavedPosition;
+        public Vector3 slavedPosition = Vector3.zero;
         public Vector3 slavedVelocity;
         public Vector3 slavedAcceleration;
         public TargetSignatureData slavedTarget;
@@ -527,7 +527,7 @@ namespace BDArmory.Control
         public bool debilitated = false;
 
         public bool guardFiringMissile;
-        public bool hasAntiRadiationOrdinance;
+        public bool hasAntiRadiationOrdnance;
         public RadarWarningReceiver.RWRThreatTypes[] antiradTargets;
         public bool antiRadTargetAcquired;
         Vector3 antiRadiationTarget;
@@ -827,7 +827,7 @@ namespace BDArmory.Control
                             _irstsEnabled = true;
                         }
                 }
-                if (hasAntiRadiationOrdinance)
+                if (hasAntiRadiationOrdnance)
                 {
                     if (rwr && !rwr.rwrEnabled) rwr.EnableRWR();
                     if (rwr && rwr.rwrEnabled && !rwr.displayRWR) rwr.displayRWR = true;
@@ -1076,7 +1076,21 @@ namespace BDArmory.Control
         {
             get
             {
-                if ((sw != null && sw.GetPart().vessel == vessel) || weaponIndex <= 0) return sw;
+                if (sw != null) //we have a weapon set by bool SmartPick, or set by the last time this was called
+                {
+                    var gun = sw.GetWeaponModule();
+                    if (gun == null || ((gun.useThisWeaponForAim || !(gun.isReloading || gun.isOverheated || gun.pointingAtSelf)) && (gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO))) //it's a missile, or an aim-override enabled weapon with ammo
+                        if (sw.GetPart().vessel == vessel) return sw;
+                }
+                sw = null; //weapon no longer on craft. Null in case below while loop doesn't find other weapons in the same group on craft.
+                //missile no longer on craft, or a gun that isn't aim overridden, or sw hasn't been set yet
+                if (weaponIndex <= 0) return sw; //no weapon selected
+                //if ((sw != null && sw.GetPart().vessel == vessel) || weaponIndex <= 0) return sw; //this is going to return the first gun of a weaponGroup, regardless of overheat/reload state, as long as gun was valid when first selected
+                // should only apply if selected weapon is missile/bomb/slw
+
+                IBDWeapon candidateGun = null;
+                float candidateMuzVel = 0;
+
                 using (var weapon = VesselModuleRegistry.GetModules<IBDWeapon>(vessel).GetEnumerator())
                     while (weapon.MoveNext())
                     {
@@ -1084,11 +1098,27 @@ namespace BDArmory.Control
                         if (weapon.Current.GetShortName() != selectedWeaponString) continue;
                         if (weapon.Current.GetWeaponClass() == WeaponClasses.Gun || weapon.Current.GetWeaponClass() == WeaponClasses.Rocket || weapon.Current.GetWeaponClass() == WeaponClasses.DefenseLaser)
                         {
+                            if (candidateGun == null) candidateGun = weapon.Current; //set this here to ensure a weapon gets elected, in event *all* guns are currently reloading/overheated/etc so Ai continues targeting
                             var gun = weapon.Current.GetWeaponModule();
-                            sw = weapon.Current; //check against salvofiring turrets - if all guns overheat at the same time, turrets get stuck in standby mode
+                            if (gun.useThisWeaponForAim)
+                            {
+                                if (gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO) //don't force aim override if this weapon is no longer viable.
+                                {
+                                    candidateGun = weapon.Current;
+                                    break;
+                                }
+                            }
                             if (gun.isReloading || gun.isOverheated || gun.pointingAtSelf || !(gun.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO)) continue; //instead of returning the first weapon in a weapon group, return the first weapon in a group that actually can fire
-                            //no check for if all weapons in the group are reloading/overheated...
-                            //Doc also was floating the idea of a 'use this gun' button for aiming, though that would be more a PilotAi thing...
+                            //use longest range gun for aiming. Guns with vastly differing aim lead (rockets + lasers, railguns + grenade launchers, etc.) really should not be grouped in the same weapongroup, or at least have range brakcets defined. 
+                            float muzVel = gun.eWeaponType == WeaponTypes.Rocket ? gun.thrust / gun.rocketMass : gun.eWeaponType == WeaponTypes.Ballistic ? gun.bulletVelocity : 300000000;
+                            if (gun.GetEngageRange() >= candidateGun.GetEngageRange())
+                            {
+                                if (muzVel / gun.GetEngageRange() > candidateMuzVel) //if both weapons have the same range, which has a lower lead time? 
+                                {
+                                    candidateGun = weapon.Current;
+                                    candidateMuzVel = muzVel;
+                                }
+                            }
                         }
                         if (weapon.Current.GetWeaponClass() == WeaponClasses.Missile || weapon.Current.GetWeaponClass() == WeaponClasses.Bomb || weapon.Current.GetWeaponClass() == WeaponClasses.SLW)
                         {
@@ -1099,9 +1129,11 @@ namespace BDArmory.Control
                             if (msl.GetEngageRange() != selectedWeaponsEngageRangeMax) continue;
                             if (msl.GetEngageFOV() != selectedWeaponsMissileFOV) continue;
                             sw = weapon.Current;
+                            UpdateSelectedWeaponState(); // Update things like CurrentMissile.
+                            break;
                         }
-                        break;
                     }
+                if (candidateGun != null) sw = candidateGun;
                 return sw;
             }
             set
@@ -1197,6 +1229,7 @@ namespace BDArmory.Control
 
         private LineRenderer lr = null;
         private StringBuilder debugString = new StringBuilder();
+        private string dynRangeDebug = string.Empty;
         #endregion Declarations
 
         #region KSP Events
@@ -1250,15 +1283,20 @@ namespace BDArmory.Control
             if (HighLogic.LoadedSceneIsFlight)
             {
                 part.force_activate();
-                if (guardMode) ToggleGuardMode();
-                selectionMessage = new ScreenMessage("", 2.0f, ScreenMessageStyle.LOWER_CENTER);
 
                 UpdateList();
                 if (weaponArray.Length > 0) selectedWeapon = weaponArray[weaponIndex];
                 //selectedWeaponString = GetWeaponName(selectedWeapon);
+                selectionMessage = new ScreenMessage("", 2.0f, ScreenMessageStyle.LOWER_CENTER);
+                if (guardMode)
+                {
+                    ToggleGuardMode(); // Disable guard mode
+                    if (!BDArmorySettings.DISABLE_GUARDMODE_ON_SPAWN)
+                        StartCoroutine(ReenableGuardModeWhenReady());
+                }
+
                 cameraTransform = part.FindModelTransform("BDARPMCameraTransform");
 
-                part.force_activate();
                 rippleTimer = Time.time;
                 targetListTimer = Time.time;
 
@@ -1328,27 +1366,26 @@ namespace BDArmory.Control
                     SF = (ModuleSpaceFriction)vessel.rootPart.AddModule("ModuleSpaceFriction");
                 }
                 //either have this added on spawn to allow vessels to respond to space hack settings getting toggled, or have the Spacefriction module it's own separate part
-
-                var ring = GameDatabase.Instance.GetModel("BDArmory/Models/boresight/boresight");
-                if (ring == null)
+                if (boreRing == null)
                 {
-                    Debug.LogError("[BDArmory.MissileFire]: model BDArmory/Models/boresight/boresight not found.");
-                    ring = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    var dc = ring.GetComponent<Collider>();
-                    if (dc)
+                    boreRing = GameDatabase.Instance.GetModel("BDArmory/Models/boresight/boresight");
+                    if (boreRing == null)
                     {
-                        dc.enabled = false;
-                        Destroy(dc);
+                        Debug.LogError("[BDArmory.MissileFire]: model BDArmory/Models/boresight/boresight not found.");
+                        boreRing = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                        var dc = boreRing.GetComponent<Collider>();
+                        if (dc)
+                        {
+                            dc.enabled = false;
+                            Destroy(dc);
+                        }
                     }
                 }
-
                 //Renderer d = ring.GetComponentInChildren<Renderer>();
                 //if (d != null)
                 //{
                 //d.material = new Material(Shader.Find("KSP/Particles/Alpha Blended"));
                 //d.material.SetColor("_TintColor", Color.green);
-                ring.SetActive(false);
-                boresights[0] = ObjectPool.CreateObjectPool(ring, 1, true, true);
                 //}
                 /*
                 var radarRing = GameDatabase.Instance.GetModel("BDArmory/Models/boresight/radarBoresight");
@@ -1372,13 +1409,12 @@ namespace BDArmory.Control
                     boresights[1] = ObjectPool.CreateObjectPool(radarRing, 1, true, true);
                 }    
                 */
-                if (boresights[0] != null)
+                if (ShowBoreRing(false))
                 {
-                    boreRing = boresights[0].GetPooledObject();
                     boreRing.transform.SetPositionAndRotation(transform.position, transform.rotation);
                     boreRing.transform.localScale = Vector3.zero;
                     r_ring = boreRing.GetComponent<Renderer>();
-                    Debug.Log("[BDArmory.MissileFire]: boresight set up.");
+                    if (BDArmorySettings.DEBUG_AI) Debug.Log("[BDArmory.MissileFire]: boresight set up.");
                 }
                 /*
                 if (boresights[1] != null)
@@ -1519,255 +1555,192 @@ namespace BDArmory.Control
 
             UpdateTargetingAudio();
 
-            if (vessel.isActiveVessel && !guardMode) // Manual firing.
+            if (vessel.isActiveVessel)
             {
-                bool missileTriggerHeld = false;
-                if (!CheckMouseIsOnGui() && isArmed && BDInputUtils.GetKey(BDInputSettingsFields.WEAP_FIRE_KEY) && !ModuleTargetingCamera.IsSlewing)
+                if (!guardMode) // Manual firing.)
                 {
-                    triggerTimer += Time.fixedDeltaTime;
-                    missileTriggerHeld = true;
-                }
-                else
-                {
-                    triggerTimer = 0;
-                }
-                if (BDInputUtils.GetKey(BDInputSettingsFields.WEAP_FIRE_MISSILE_KEY))
-                {
-                    FireMissileManually(false);
-                    missileTriggerHeld = true;
-                }
-                if (hasSingleFired && !missileTriggerHeld)
-                {
-                    hasSingleFired = false;
-                }
-                if (BDInputUtils.GetKeyDown(BDInputSettingsFields.WEAP_NEXT_KEY)) CycleWeapon(true);
-                if (BDInputUtils.GetKeyDown(BDInputSettingsFields.WEAP_PREV_KEY)) CycleWeapon(false);
-                if (BDInputUtils.GetKeyDown(BDInputSettingsFields.WEAP_TOGGLE_ARMED_KEY)) ToggleArm();
-                if (BDInputUtils.GetKeyDown(BDInputSettingsFields.TGP_SELECT_NEXT_GPS_TARGET)) SelectNextGPSTarget();
+                    bool missileTriggerHeld = false;
+                    if (!CheckMouseIsOnGui() && isArmed && BDInputUtils.GetKey(BDInputSettingsFields.WEAP_FIRE_KEY) && !ModuleTargetingCamera.IsSlewing)
+                    {
+                        triggerTimer += Time.fixedDeltaTime;
+                        missileTriggerHeld = true;
+                    }
+                    else
+                    {
+                        triggerTimer = 0;
+                    }
+                    if (BDInputUtils.GetKey(BDInputSettingsFields.WEAP_FIRE_MISSILE_KEY))
+                    {
+                        FireMissileManually(false);
+                        missileTriggerHeld = true;
+                    }
+                    if (hasSingleFired && !missileTriggerHeld)
+                    {
+                        hasSingleFired = false;
+                    }
+                    if (BDInputUtils.GetKeyDown(BDInputSettingsFields.WEAP_NEXT_KEY)) CycleWeapon(true);
+                    if (BDInputUtils.GetKeyDown(BDInputSettingsFields.WEAP_PREV_KEY)) CycleWeapon(false);
+                    if (BDInputUtils.GetKeyDown(BDInputSettingsFields.WEAP_TOGGLE_ARMED_KEY)) ToggleArm();
+                    if (BDInputUtils.GetKeyDown(BDInputSettingsFields.TGP_SELECT_NEXT_GPS_TARGET)) SelectNextGPSTarget();
 
-                //firing missiles and rockets===
-                if (selectedWeapon != null &&
-                    (selectedWeapon.GetWeaponClass() == WeaponClasses.Missile
-                     || selectedWeapon.GetWeaponClass() == WeaponClasses.Bomb
-                     || selectedWeapon.GetWeaponClass() == WeaponClasses.SLW
-                    ))
-                {
-                    canRipple = true;
-                    FireMissileManually(true);
-                }
-                else if (selectedWeapon != null &&
-                         ((selectedWeapon.GetWeaponClass() == WeaponClasses.Gun
-                         || selectedWeapon.GetWeaponClass() == WeaponClasses.Rocket
-                         || selectedWeapon.GetWeaponClass() == WeaponClasses.DefenseLaser) && currentGun.canRippleFire))//&& currentGun.roundsPerMinute < 1500)) //set this based on if the WG can ripple vs if first weapon in the WG happens to be > 1500 RPM
-                {
-                    canRipple = true;
+                    //firing missiles and rockets===
+                    if (selectedWeapon != null &&
+                        (selectedWeapon.GetWeaponClass() == WeaponClasses.Missile
+                         || selectedWeapon.GetWeaponClass() == WeaponClasses.Bomb
+                         || selectedWeapon.GetWeaponClass() == WeaponClasses.SLW
+                        ))
+                    {
+                        canRipple = true;
+                        FireMissileManually(true);
+                    }
+                    else if (selectedWeapon != null &&
+                             ((selectedWeapon.GetWeaponClass() == WeaponClasses.Gun
+                             || selectedWeapon.GetWeaponClass() == WeaponClasses.Rocket
+                             || selectedWeapon.GetWeaponClass() == WeaponClasses.DefenseLaser) && currentGun.canRippleFire))//&& currentGun.roundsPerMinute < 1500)) //set this based on if the WG can ripple vs if first weapon in the WG happens to be > 1500 RPM
+                    {
+                        canRipple = true;
+                    }
+                    else
+                    {
+                        canRipple = false; // Disable the ripple options in the WM gui.
+                    }
                 }
                 else
                 {
                     canRipple = false; // Disable the ripple options in the WM gui.
+                    triggerTimer = 0;
+                    hasSingleFired = false; // The AI uses this as part of its authorisation check for guns!
                 }
-            }
-            else
-            {
-                canRipple = false; // Disable the ripple options in the WM gui.
-                triggerTimer = 0;
-                hasSingleFired = false; // The AI uses this as part of it's authorisation check for guns!
-            }
 
-            //BOMB/MISSILE HUD - calculate GUI element positions here instead of OnGUI for smoother display 
-            missileAimerUI.Clear();
-            MissileBase ml = CurrentMissile;
-            if (ml)
-            {
-                if (showBombAimer)
+                //BOMB/MISSILE HUD - calculate GUI element positions here instead of OnGUI for smoother display 
+                missileAimerUI.Clear();
+                MissileBase ml = CurrentMissile;
+                dynRangeDebug = string.Empty;
+                if (ml)
                 {
-                    MissileLauncher msl = CurrentMissile as MissileLauncher;
-                    if (vessel.altitude > msl.GetBlastRadius())
+                    if (showBombAimer)
                     {
-                        boreRing.SetActive(true);
-                        Quaternion rotation = Quaternion.LookRotation(FlightCamera.fetch.mainCamera.transform.forward, boreRing.transform.forward);
-                        boreRing.transform.SetPositionAndRotation(bombAimerPosition, rotation);
-                        if (guardTarget && (msl.guidanceActive && foundCam && (foundCam.groundTargetPosition - guardTarget.transform.position).sqrMagnitude <= 100))
-                            missileAimerUI.Add((bombAimerPosition, BDArmorySetup.Instance.largeGreenCircleTexture, 256, 3));
-                        boreRing.transform.localScale = Mathf.Min(150, msl.GetBlastRadius() * 0.68f) / 10 * Vector3.one; //ring model has 10m radius. GBR uses a min of 0.68x radius for single bombs
-                        missileAimerUI.Add((bombAimerPosition, BDArmorySetup.Instance.greenCross, 48, 0));
-                        if (guardTarget) missileAimerUI.Add((AIUtils.PredictPosition(guardTarget, bombFlightTime, immediate: false), BDArmorySetup.Instance.greenDotTexture, 6, 3));
+                        MissileLauncher msl = CurrentMissile as MissileLauncher;
+                        if (vessel.altitude > msl.GetBlastRadius())
+                        {
+                            if (ShowBoreRing(true))
+                            {
+                                Quaternion rotation = Quaternion.LookRotation(FlightCamera.fetch.mainCamera.transform.forward, boreRing.transform.forward);
+                                boreRing.transform.SetPositionAndRotation(bombAimerPosition, rotation);
+                                if (guardTarget && (msl.guidanceActive && foundCam && (foundCam.groundTargetPosition - guardTarget.transform.position).sqrMagnitude <= 100))
+                                    missileAimerUI.Add((bombAimerPosition, BDArmorySetup.Instance.largeGreenCircleTexture, 256, 3));
+                                boreRing.transform.localScale = Mathf.Min(150, msl.GetBlastRadius() * 0.68f) / 10 * Vector3.one; //ring model has 10m radius. GBR uses a min of 0.68x radius for single bombs
+                                missileAimerUI.Add((bombAimerPosition, BDArmorySetup.Instance.greenCross, 48, 0));
+                                if (guardTarget) missileAimerUI.Add((AIUtils.PredictPosition(guardTarget, bombFlightTime, immediate: false), BDArmorySetup.Instance.greenDotTexture, 6, 3));
+                            }
+                        }
+                        else
+                        {
+                            missileAimerUI.Add((bombAimerPosition, BDArmorySetup.Instance.greenSpikedPointCircleTexture, 128, 0));
+                        }
                     }
                     else
                     {
-                        boreRing.SetActive(false);
-                        missileAimerUI.Add((bombAimerPosition, BDArmorySetup.Instance.greenSpikedPointCircleTexture, 128, 0));
-                    }
-                }
-                else
-                {
-                    boreRing.SetActive(false);
-                    //float dynamicBoresight = ml.maxOffBoresight * ((vessel.LandedOrSplashed || (guardTarget && guardTarget.LandedOrSplashed) || ml.uncagedLock) ? 0.75f : 0.35f); // for larger boresights (> ~60 or so) may want thinner ring model so ring isn't stupidly thick at larger scale.
-                    // boresights > 90 or so may want to simply be capped, else they'll fill the whole screen for something that has a 120deg bore, or a 180deg, or a 240deg, or whatever
-                    //dynamicBoresight = Mathf.Clamp(dynamicBoresight, 1, 90);
-                    Vector3 missileReferencePosition = ml.MissileReferenceTransform.position;
-                    //float AoA = Mathf.Min(Vector3.Angle(vessel.vesselTransform.up, -VectorUtils.GetUpDirection(vessel.CoM)), 90);
-                    //float unlockedAimerDist = vessel.altitude < Mathf.Cos(AoA) * 2000 ? (Mathf.Cos(AoA) * 2000) - 15 : 2000; //account for distance to water, since raycasts ignore it.
-                    //Quaternion rotation = unlockedAimerDist < 1995 ? Quaternion.LookRotation(VectorUtils.GetUpDirection(vessel.CoM), boreRing.transform.forward) : ml.MissileReferenceTransform.rotation;
+                        ShowBoreRing(false);
+                        //float dynamicBoresight = ml.maxOffBoresight * ((vessel.LandedOrSplashed || (guardTarget && guardTarget.LandedOrSplashed) || ml.uncagedLock) ? 0.75f : 0.35f); // for larger boresights (> ~60 or so) may want thinner ring model so ring isn't stupidly thick at larger scale.
+                        // boresights > 90 or so may want to simply be capped, else they'll fill the whole screen for something that has a 120deg bore, or a 180deg, or a 240deg, or whatever
+                        //dynamicBoresight = Mathf.Clamp(dynamicBoresight, 1, 90);
+                        Vector3 missileReferencePosition = ml.MissileReferenceTransform.position;
+                        //float AoA = Mathf.Min(Vector3.Angle(vessel.vesselTransform.up, -VectorUtils.GetUpDirection(vessel.CoM)), 90);
+                        //float unlockedAimerDist = vessel.altitude < Mathf.Cos(AoA) * 2000 ? (Mathf.Cos(AoA) * 2000) - 15 : 2000; //account for distance to water, since raycasts ignore it.
+                        //Quaternion rotation = unlockedAimerDist < 1995 ? Quaternion.LookRotation(VectorUtils.GetUpDirection(vessel.CoM), boreRing.transform.forward) : ml.MissileReferenceTransform.rotation;
 
-                    if (ml.GetWeaponClass() == WeaponClasses.SLW && !vessel.LandedOrSplashed) //if flying with air-drop torps, adjust aimer pos based on predicted water impact point. torps aren't AAMs
-                    {
-                        Vector3 torpImpactPos = ml.MissileReferenceTransform.position + vessel.srf_vel_direction * (vessel.horizontalSrfSpeed * bombFlightTime); //might need a projectonPlane, check what srf_vel_dir actually outputs - parallel to surface, or vel direction when !orbit?
-                        missileReferencePosition = torpImpactPos - ((float)FlightGlobals.getAltitudeAtPos(torpImpactPos) * VectorUtils.GetUpDirection(torpImpactPos));
-                        //rotation = Quaternion.LookRotation(VectorUtils.GetUpDirection(vessel.CoM), boreRing.transform.forward);
-                    }
-                    /*
-                    Ray terrainDist = new Ray(ml.MissileReferenceTransform.position, ml.GetForwardTransform());
-                    if (Physics.Raycast(terrainDist, out RaycastHit hit, 2000, (int)LayerMasks.Scenery))
-                    {
-                      unlockedAimerDist = hit.distance - 5;
-                        bombAimerPosition = hit.point;
-                        rotation = Quaternion.LookRotation(hit.normal, boreRing.transform.forward);
-                    }
-                    */
-                    switch (ml.TargetingMode)
-                    {
-                        case MissileBase.TargetingModes.Laser:
-                            {
-                                if (laserPointDetected && foundCam)
+                        if (ml.GetWeaponClass() == WeaponClasses.SLW && !vessel.LandedOrSplashed) //if flying with air-drop torps, adjust aimer pos based on predicted water impact point. torps aren't AAMs
+                        {
+                            Vector3 torpImpactPos = ml.MissileReferenceTransform.position + vessel.srf_vel_direction * (vessel.horizontalSrfSpeed * bombFlightTime); //might need a projectonPlane, check what srf_vel_dir actually outputs - parallel to surface, or vel direction when !orbit?
+                            missileReferencePosition = torpImpactPos - ((float)FlightGlobals.getAltitudeAtPos(torpImpactPos) * VectorUtils.GetUpDirection(torpImpactPos));
+                            //rotation = Quaternion.LookRotation(VectorUtils.GetUpDirection(vessel.CoM), boreRing.transform.forward);
+                        }
+                        /*
+                        Ray terrainDist = new Ray(ml.MissileReferenceTransform.position, ml.GetForwardTransform());
+                        if (Physics.Raycast(terrainDist, out RaycastHit hit, 2000, (int)LayerMasks.Scenery))
+                        {
+                          unlockedAimerDist = hit.distance - 5;
+                            bombAimerPosition = hit.point;
+                            rotation = Quaternion.LookRotation(hit.normal, boreRing.transform.forward);
+                        }
+                        */
+                        switch (ml.TargetingMode)
+                        {
+                            case MissileBase.TargetingModes.Laser:
                                 {
-                                    missileAimerUI.Add((foundCam.groundTargetPosition, BDArmorySetup.Instance.greenCircleTexture, 48, 1));
-                                }
-                                else
-                                {
-                                    missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 96, 0));
-                                }
-                                using (List<ModuleTargetingCamera>.Enumerator cam = BDATargetManager.ActiveLasers.GetEnumerator())
-                                    while (cam.MoveNext())
+                                    if (laserPointDetected && foundCam)
                                     {
-                                        if (cam.Current == null) continue;
-                                        if (cam.Current.vessel != vessel && cam.Current.surfaceDetected && cam.Current.groundStabilized && !cam.Current.gimbalLimitReached)
+                                        missileAimerUI.Add((foundCam.groundTargetPosition, BDArmorySetup.Instance.greenCircleTexture, 48, 1));
+                                    }
+                                    else
+                                    {
+                                        missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 96, 0));
+                                    }
+                                    using (List<ModuleTargetingCamera>.Enumerator cam = BDATargetManager.ActiveLasers.GetEnumerator())
+                                        while (cam.MoveNext())
                                         {
-                                            missileAimerUI.Add((cam.Current.groundTargetPosition, BDArmorySetup.Instance.greenDiamondTexture, 18, 0));
+                                            if (cam.Current == null) continue;
+                                            if (cam.Current.vessel != vessel && cam.Current.surfaceDetected && cam.Current.groundStabilized && !cam.Current.gimbalLimitReached)
+                                            {
+                                                missileAimerUI.Add((cam.Current.groundTargetPosition, BDArmorySetup.Instance.greenDiamondTexture, 18, 0));
+                                            }
                                         }
-                                    }
-                                break;
-                            }
-                        case MissileBase.TargetingModes.Heat:
-                            {
-                                // MissileBase ml = CurrentMissile; redundant?
-                                //boreRadarRing.SetActive(false);
-                                //boreRing.SetActive(true);
-                                //boreRing.transform.rotation = ml.MissileReferenceTransform.rotation;
-                                if (heatTarget.exists)
-                                {
-                                    missileAimerUI.Add((heatTarget.position, BDArmorySetup.Instance.greenCircleTexture, 36, 3));
-                                    float distanceToTarget = Vector3.Distance(heatTarget.position, missileReferencePosition);
-                                    missileAimerUI.Add((missileReferencePosition + (distanceToTarget * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 128, 0));
-                                    //boreRing.transform.position = missileReferencePosition + (distanceToTarget * ml.GetForwardTransform());
-                                    //boreRing.transform.localScale = Vector3.one * ((Mathf.Sin(Mathf.Deg2Rad * dynamicBoresight) * distanceToTarget) / 10);
-
-                                    Vector3 fireSolution = MissileGuidance.GetAirToAirFireSolution(ml, heatTarget.position, heatTarget.velocity);
-                                    Vector3 fsDirection = (fireSolution - missileReferencePosition).normalized;
-                                    missileAimerUI.Add((missileReferencePosition + (distanceToTarget * fsDirection), BDArmorySetup.Instance.greenDotTexture, 6, 0));
+                                    break;
                                 }
-                                else
+                            case MissileBase.TargetingModes.Heat:
                                 {
-                                    missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.greenCircleTexture, 36, 3));
-                                    missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 156, 0));
-                                    //boreRing.transform.SetPositionAndRotation(missileReferencePosition + (unlockedAimerDist * ml.GetForwardTransform()), rotation);
-                                    //boreRing.transform.localScale = Vector3.one * (Mathf.Sin(Mathf.Deg2Rad * dynamicBoresight) * unlockedAimerDist) / 10; //ring model has 10m radius.
-                                }
-                                break;
-                            }
-                        case MissileBase.TargetingModes.Radar:
-                            {
-                                //MissileBase ml = CurrentMissile; //... and inconsistant?
-                                //if(radar && radar.locked)
-                                if (vesselRadarData && vesselRadarData.locked)
-                                {
-                                    //boreRadarRing.SetActive(true);
-                                    //boreRing.SetActive(false);
-                                    float distanceToTarget = Vector3.Distance(vesselRadarData.lockedTargetData.targetData.predictedPosition, missileReferencePosition);
-                                    missileAimerUI.Add((missileReferencePosition + (distanceToTarget * ml.GetForwardTransform()), BDArmorySetup.Instance.dottedLargeGreenCircle, 128, 0));
-                                    //boreRadarRing.transform.position = missileReferencePosition + (distanceToTarget * ml.GetForwardTransform());
-                                    //boreRadarRing.transform.rotation = ml.MissileReferenceTransform.rotation;
-                                    //boreRadarRing.transform.localScale = Vector3.one * ((Mathf.Sin(Mathf.Deg2Rad * dynamicBoresight) * distanceToTarget) / 10);
-
-                                    //Vector3 fireSolution = MissileGuidance.GetAirToAirFireSolution(CurrentMissile, radar.lockedTarget.predictedPosition, radar.lockedTarget.velocity);
-                                    Vector3 fireSolution = MissileGuidance.GetAirToAirFireSolution(ml, vesselRadarData.lockedTargetData.targetData.predictedPosition, vesselRadarData.lockedTargetData.targetData.velocity);
-                                    Vector3 fsDirection = (fireSolution - missileReferencePosition).normalized;
-                                    missileAimerUI.Add((missileReferencePosition + (distanceToTarget * fsDirection), BDArmorySetup.Instance.greenDotTexture, 6, 0));
-
-                                    //if (BDArmorySettings.DEBUG_MISSILES)
-                                    if (BDArmorySettings.DEBUG_TELEMETRY)
-                                    {
-                                        string dynRangeDebug = string.Empty;
-                                        MissileLaunchParams dlz = MissileLaunchParams.GetDynamicLaunchParams(ml, vesselRadarData.lockedTargetData.targetData.velocity, vesselRadarData.lockedTargetData.targetData.predictedPosition);
-                                        dynRangeDebug += "MaxDLZ: " + dlz.maxLaunchRange;
-                                        dynRangeDebug += "\nMinDLZ: " + dlz.minLaunchRange;
-                                        GUI.Label(new Rect(800, 600, 200, 200), dynRangeDebug);
-                                    }
-                                }
-                                else
-                                {
+                                    // MissileBase ml = CurrentMissile; redundant?
                                     //boreRadarRing.SetActive(false);
                                     //boreRing.SetActive(true);
-                                    missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 48, 0));
-                                    //boreRing.transform.SetPositionAndRotation(missileReferencePosition + (unlockedAimerDist * ml.GetForwardTransform()), rotation);
-                                    //boreRing.transform.localScale = Vector3.one * (Mathf.Sin(Mathf.Deg2Rad * 1) * unlockedAimerDist) / 10;
-                                }
-                                break;
-                            }
-                        case MissileBase.TargetingModes.AntiRad:
-                            {
-                                if (rwr && rwr.rwrEnabled && rwr.displayRWR)
-                                {
-                                    MissileLauncher msl = CurrentMissile as MissileLauncher;
-                                    for (int i = 0; i < rwr.pingsData.Length; i++)
+                                    //boreRing.transform.rotation = ml.MissileReferenceTransform.rotation;
+                                    if (heatTarget.exists)
                                     {
-                                        if (rwr.pingsData[i].exists && msl.antiradTargets.Contains(rwr.pingsData[i].signalType) && Vector3.Dot(rwr.pingWorldPositions[i] - ml.transform.position, ml.GetForwardTransform()) > 0)
-                                        {
-                                            missileAimerUI.Add((rwr.pingWorldPositions[i], BDArmorySetup.Instance.greenDiamondTexture, 22, 0));
-                                        }
+                                        missileAimerUI.Add((heatTarget.position, BDArmorySetup.Instance.greenCircleTexture, 36, 3));
+                                        float distanceToTarget = Vector3.Distance(heatTarget.position, missileReferencePosition);
+                                        missileAimerUI.Add((missileReferencePosition + (distanceToTarget * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 128, 0));
+                                        //boreRing.transform.position = missileReferencePosition + (distanceToTarget * ml.GetForwardTransform());
+                                        //boreRing.transform.localScale = Vector3.one * ((Mathf.Sin(Mathf.Deg2Rad * dynamicBoresight) * distanceToTarget) / 10);
+
+                                        Vector3 fireSolution = MissileGuidance.GetAirToAirFireSolution(ml, heatTarget.position, heatTarget.velocity);
+                                        Vector3 fsDirection = (fireSolution - missileReferencePosition).normalized;
+                                        missileAimerUI.Add((missileReferencePosition + (distanceToTarget * fsDirection), BDArmorySetup.Instance.greenDotTexture, 6, 0));
                                     }
-                                }
-
-                                if (antiRadTargetAcquired)
-                                {
-                                    missileAimerUI.Add((antiRadiationTarget, BDArmorySetup.Instance.openGreenSquare, 22, 0));
-                                }
-                                break;
-                            }
-                        case MissileBase.TargetingModes.Inertial:
-                            {
-                                //MissileBase ml = CurrentMissile;
-                                float distanceToTarget = 0;
-
-                                if (vesselRadarData)
-                                {
-                                    TargetSignatureData targetData = TargetSignatureData.noTarget;
-                                    if (_radarsEnabled || ml.GetWeaponClass() == WeaponClasses.SLW && _sonarsEnabled)
+                                    else
                                     {
-                                        if (vesselRadarData.locked)
-                                            targetData = vesselRadarData.lockedTargetData.targetData;
-                                        else
-                                            targetData = vesselRadarData.detectedRadarTarget(guardTarget != null ? guardTarget : null, this);
+                                        missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.greenCircleTexture, 36, 3));
+                                        missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 156, 0));
+                                        //boreRing.transform.SetPositionAndRotation(missileReferencePosition + (unlockedAimerDist * ml.GetForwardTransform()), rotation);
+                                        //boreRing.transform.localScale = Vector3.one * (Mathf.Sin(Mathf.Deg2Rad * dynamicBoresight) * unlockedAimerDist) / 10; //ring model has 10m radius.
                                     }
-                                    else if (_irstsEnabled)
-                                        targetData = vesselRadarData.activeIRTarget(null, this);
-
-                                    if (targetData.exists)
+                                    break;
+                                }
+                            case MissileBase.TargetingModes.Radar:
+                                {
+                                    //MissileBase ml = CurrentMissile; //... and inconsistant?
+                                    //if(radar && radar.locked)
+                                    if (vesselRadarData && vesselRadarData.locked)
                                     {
                                         //boreRadarRing.SetActive(true);
                                         //boreRing.SetActive(false);
-
-                                        distanceToTarget = Vector3.Distance(targetData.predictedPosition, missileReferencePosition);
-                                        Vector3 fireSolution = MissileGuidance.GetAirToAirFireSolution(ml, targetData.predictedPosition, targetData.velocity);
-                                        Vector3 fsDirection = (fireSolution - missileReferencePosition).normalized;
-                                        if (vesselRadarData.locked)
-                                            missileAimerUI.Add((missileReferencePosition + (distanceToTarget * fsDirection), BDArmorySetup.Instance.greenDotTexture, 6, 0));
-                                        else
-                                            missileAimerUI.Add((missileReferencePosition + (distanceToTarget * fsDirection), BDArmorySetup.Instance.greenCircleTexture, 36, 5));
+                                        float distanceToTarget = Vector3.Distance(vesselRadarData.lockedTargetData.targetData.predictedPosition, missileReferencePosition);
                                         missileAimerUI.Add((missileReferencePosition + (distanceToTarget * ml.GetForwardTransform()), BDArmorySetup.Instance.dottedLargeGreenCircle, 128, 0));
                                         //boreRadarRing.transform.position = missileReferencePosition + (distanceToTarget * ml.GetForwardTransform());
                                         //boreRadarRing.transform.rotation = ml.MissileReferenceTransform.rotation;
                                         //boreRadarRing.transform.localScale = Vector3.one * ((Mathf.Sin(Mathf.Deg2Rad * dynamicBoresight) * distanceToTarget) / 10);
+
+                                        //Vector3 fireSolution = MissileGuidance.GetAirToAirFireSolution(CurrentMissile, radar.lockedTarget.predictedPosition, radar.lockedTarget.velocity);
+                                        Vector3 fireSolution = MissileGuidance.GetAirToAirFireSolution(ml, vesselRadarData.lockedTargetData.targetData.predictedPosition, vesselRadarData.lockedTargetData.targetData.velocity);
+                                        Vector3 fsDirection = (fireSolution - missileReferencePosition).normalized;
+                                        missileAimerUI.Add((missileReferencePosition + (distanceToTarget * fsDirection), BDArmorySetup.Instance.greenDotTexture, 6, 0));
+
+                                        //if (BDArmorySettings.DEBUG_MISSILES)
+                                        if (BDArmorySettings.DEBUG_TELEMETRY)
+                                        {
+                                            MissileLaunchParams dlz = MissileLaunchParams.GetDynamicLaunchParams(ml, vesselRadarData.lockedTargetData.targetData.velocity, vesselRadarData.lockedTargetData.targetData.predictedPosition);
+                                            dynRangeDebug += "MaxDLZ: " + dlz.maxLaunchRange;
+                                            dynRangeDebug += "\nMinDLZ: " + dlz.minLaunchRange;
+                                        }
                                     }
                                     else
                                     {
@@ -1776,45 +1749,111 @@ namespace BDArmory.Control
                                         missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 48, 0));
                                         //boreRing.transform.SetPositionAndRotation(missileReferencePosition + (unlockedAimerDist * ml.GetForwardTransform()), rotation);
                                         //boreRing.transform.localScale = Vector3.one * (Mathf.Sin(Mathf.Deg2Rad * 1) * unlockedAimerDist) / 10;
-                                        break;
                                     }
+                                    break;
                                 }
-                                else
+                            case MissileBase.TargetingModes.AntiRad:
                                 {
-                                    //boreRadarRing.SetActive(false);
-                                    //.SetActive(true);
-                                    missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 48, 0));
-                                    //boreRing.transform.SetPositionAndRotation(missileReferencePosition + (unlockedAimerDist * ml.GetForwardTransform()), rotation);
-                                    //boreRing.transform.localScale = Vector3.one * (Mathf.Sin(Mathf.Deg2Rad * 1) * unlockedAimerDist) / 10;
+                                    if (rwr && rwr.rwrEnabled && rwr.displayRWR)
+                                    {
+                                        MissileLauncher msl = CurrentMissile as MissileLauncher;
+                                        for (int i = 0; i < rwr.pingsData.Length; i++)
+                                        {
+                                            if (rwr.pingsData[i].exists && msl.antiradTargets.Contains(rwr.pingsData[i].signalType) && Vector3.Dot(rwr.pingWorldPositions[i] - ml.transform.position, ml.GetForwardTransform()) > 0)
+                                            {
+                                                missileAimerUI.Add((rwr.pingWorldPositions[i], BDArmorySetup.Instance.greenDiamondTexture, 22, 0));
+                                            }
+                                        }
+                                    }
+
+                                    if (antiRadTargetAcquired)
+                                    {
+                                        missileAimerUI.Add((antiRadiationTarget, BDArmorySetup.Instance.openGreenSquare, 22, 0));
+                                    }
+                                    break;
                                 }
-                                break;
-                            }
-                        case MissileBase.TargetingModes.None:
-                            {
-                                if (selectedWeapon.GetWeaponClass() != WeaponClasses.Bomb)
+                            case MissileBase.TargetingModes.Inertial:
                                 {
-                                    //boreRadarRing.SetActive(false);
-                                    //boreRing.SetActive(true);
-                                    missileAimerUI.Add((missileReferencePosition + (1250 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 48, 0));
-                                    //boreRing.transform.SetPositionAndRotation(missileReferencePosition + (unlockedAimerDist * ml.GetForwardTransform()), rotation);
-                                    //boreRing.transform.localScale = Vector3.one * (Mathf.Sin(Mathf.Deg2Rad * 1) * unlockedAimerDist) / 10;
+                                    //MissileBase ml = CurrentMissile;
+                                    float distanceToTarget = 0;
+
+                                    if (vesselRadarData)
+                                    {
+                                        TargetSignatureData targetData = TargetSignatureData.noTarget;
+                                        if (_radarsEnabled || ml.GetWeaponClass() == WeaponClasses.SLW && _sonarsEnabled)
+                                        {
+                                            if (vesselRadarData.locked)
+                                                targetData = vesselRadarData.lockedTargetData.targetData;
+                                            else
+                                                targetData = vesselRadarData.detectedRadarTarget(guardTarget != null ? guardTarget : null, this);
+                                        }
+                                        else if (_irstsEnabled)
+                                            targetData = vesselRadarData.activeIRTarget(null, this);
+
+                                        if (targetData.exists)
+                                        {
+                                            //boreRadarRing.SetActive(true);
+                                            //boreRing.SetActive(false);
+
+                                            distanceToTarget = Vector3.Distance(targetData.predictedPosition, missileReferencePosition);
+                                            Vector3 fireSolution = MissileGuidance.GetAirToAirFireSolution(ml, targetData.predictedPosition, targetData.velocity);
+                                            Vector3 fsDirection = (fireSolution - missileReferencePosition).normalized;
+                                            if (vesselRadarData.locked)
+                                                missileAimerUI.Add((missileReferencePosition + (distanceToTarget * fsDirection), BDArmorySetup.Instance.greenDotTexture, 6, 0));
+                                            else
+                                                missileAimerUI.Add((missileReferencePosition + (distanceToTarget * fsDirection), BDArmorySetup.Instance.greenCircleTexture, 36, 5));
+                                            missileAimerUI.Add((missileReferencePosition + (distanceToTarget * ml.GetForwardTransform()), BDArmorySetup.Instance.dottedLargeGreenCircle, 128, 0));
+                                            //boreRadarRing.transform.position = missileReferencePosition + (distanceToTarget * ml.GetForwardTransform());
+                                            //boreRadarRing.transform.rotation = ml.MissileReferenceTransform.rotation;
+                                            //boreRadarRing.transform.localScale = Vector3.one * ((Mathf.Sin(Mathf.Deg2Rad * dynamicBoresight) * distanceToTarget) / 10);
+                                        }
+                                        else
+                                        {
+                                            //boreRadarRing.SetActive(false);
+                                            //boreRing.SetActive(true);
+                                            missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 48, 0));
+                                            //boreRing.transform.SetPositionAndRotation(missileReferencePosition + (unlockedAimerDist * ml.GetForwardTransform()), rotation);
+                                            //boreRing.transform.localScale = Vector3.one * (Mathf.Sin(Mathf.Deg2Rad * 1) * unlockedAimerDist) / 10;
+                                            break;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        //boreRadarRing.SetActive(false);
+                                        //.SetActive(true);
+                                        missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 48, 0));
+                                        //boreRing.transform.SetPositionAndRotation(missileReferencePosition + (unlockedAimerDist * ml.GetForwardTransform()), rotation);
+                                        //boreRing.transform.localScale = Vector3.one * (Mathf.Sin(Mathf.Deg2Rad * 1) * unlockedAimerDist) / 10;
+                                    }
+                                    break;
                                 }
-                                break;
-                            }
-                    }
-                    if (ml.TargetingMode == MissileBase.TargetingModes.Gps || BDArmorySetup.Instance.showingWindowGPS)
-                    {
-                        if (designatedGPSCoords != Vector3d.zero)
+                            case MissileBase.TargetingModes.None:
+                                {
+                                    if (selectedWeapon.GetWeaponClass() != WeaponClasses.Bomb)
+                                    {
+                                        //boreRadarRing.SetActive(false);
+                                        //boreRing.SetActive(true);
+                                        missileAimerUI.Add((missileReferencePosition + (1250 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 48, 0));
+                                        //boreRing.transform.SetPositionAndRotation(missileReferencePosition + (unlockedAimerDist * ml.GetForwardTransform()), rotation);
+                                        //boreRing.transform.localScale = Vector3.one * (Mathf.Sin(Mathf.Deg2Rad * 1) * unlockedAimerDist) / 10;
+                                    }
+                                    break;
+                                }
+                        }
+                        if (ml.TargetingMode == MissileBase.TargetingModes.Gps || BDArmorySetup.Instance.showingWindowGPS)
                         {
-                            missileAimerUI.Add((VectorUtils.GetWorldSurfacePostion(designatedGPSCoords, vessel.mainBody), BDArmorySetup.Instance.greenSpikedPointCircleTexture, 22, 0));
+                            if (designatedGPSCoords != Vector3d.zero)
+                            {
+                                missileAimerUI.Add((VectorUtils.GetWorldSurfacePostion(designatedGPSCoords, vessel.mainBody), BDArmorySetup.Instance.greenSpikedPointCircleTexture, 22, 0));
+                            }
                         }
                     }
                 }
-            }
-            else
-            {
-                boreRing.SetActive(false);
-                //boreRadarRing.SetActive(false);
+                else
+                {
+                    ShowBoreRing(false);
+                    //boreRadarRing.SetActive(false);
+                }
             }
         }
 
@@ -2048,7 +2087,7 @@ namespace BDArmory.Control
             GameEvents.onEditorPartPlaced.Remove(UpdateMaxGunRange);
             GameEvents.onEditorPartDeleted.Remove(UpdateMaxGunRange);
             TimingManager.FixedUpdateRemove(TimingManager.TimingStage.Earlyish, PointDefence);
-            if (boreRing != null) boreRing.SetActive(false);
+            if (boreRing != null) ShowBoreRing(false);
             //if (boreRadarRing != null) boreRadarRing.SetActive(false);
         }
 
@@ -2104,6 +2143,7 @@ namespace BDArmory.Control
 
                 if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_MISSILES || BDArmorySettings.DEBUG_WEAPONS)
                     debugString.Length = 0;
+                int lineCount = 0;
                 if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_MISSILES)
                 {
                     debugString.AppendLine($"Missiles away: {firedMissiles}; Current Target: {currentTarget}; targeted vessels: {engagedTargets}");
@@ -2123,7 +2163,6 @@ namespace BDArmory.Control
                 }
                 if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_WEAPONS)
                 {
-                    int lineCount = 0;
                     if (weaponArray != null) // Heat debugging
                     {
                         List<string> weaponHeatDebugStrings = new List<string>();
@@ -2136,12 +2175,12 @@ namespace BDArmory.Control
                             if (weapon is null) continue;
                             weaponHeatDebugStrings.Add(string.Format(" - {0}: heat: {1,6:F1}, max: {2}, overheated: {3}", weapon.shortName, weapon.heat, weapon.maxHeat, weapon.isOverheated));
 
-                            weaponAimDebugStrings.Add($" - Target: {(weapon.visualTargetPart != null ? weapon.visualTargetPart.name : weapon.visualTargetVessel != null ? weapon.visualTargetVessel.vesselName : weapon.GPSTarget ? "GPS" : weapon.slaved ? "slaved" : weapon.radarTarget ? "radar" : weapon.atprAcquired ? "atpr" : "none")}, Lead Offset: {weapon.GetLeadOffset()}, FinalAimTgt: {weapon.finalAimTarget}, tgt Position: {weapon.targetPosition}, pointingAtSelf: {weapon.pointingAtSelf}, safeToFire: {weapon.safeToFire}, tgt CosAngle {weapon.targetCosAngle}, wpn CosAngle {weapon.targetAdjustedMaxCosAngle}, Wpn Autofire {weapon.autoFire}, target Radius {weapon.targetRadius}, RoF {weapon.roundsPerMinute}, MaxRoF {weapon.baseRPM}");
+                            weaponAimDebugStrings.Add($" - {weapon.shortName} - Target: {(weapon.visualTargetPart != null ? weapon.visualTargetPart.name : weapon.visualTargetVessel != null ? weapon.visualTargetVessel.vesselName : weapon.GPSTarget ? "GPS" : weapon.slaved ? "slaved" : weapon.radarTarget ? "radar" : weapon.atprAcquired ? "atpr" : "none")}, Lead Offset: {weapon.GetLeadOffset()}, FinalAimTgt: {weapon.finalAimTarget}, tgt Position: {weapon.targetPosition}, pointingAtSelf: {weapon.pointingAtSelf}, safeToFire: {weapon.safeToFire}, tgt CosAngle {Mathf.Min(1, weapon.targetCosAngle)}, wpn CosAngle {weapon.targetAdjustedMaxCosAngle}, Wpn Autofire {weapon.autoFire}{(weapon.autoFire ? "" : $" ({weapon.autoFireFailReason})")}, target Radius {weapon.targetRadius}, RoF {weapon.roundsPerMinute}, MaxRoF {weapon.baseRPM}");
 
                             // weaponAimDebugStrings.Add($" - Target pos: {weapon.targetPosition.ToString("G3")}, vel: {weapon.targetVelocity.ToString("G4")}, acc: {weapon.targetAcceleration.ToString("G6")}");
                             // weaponAimDebugStrings.Add($" - Target rel pos: {(weapon.targetPosition - weapon.fireTransforms[0].position).ToString("G3")} ({(weapon.targetPosition - weapon.fireTransforms[0].position).magnitude:F1}), rel vel: {(weapon.targetVelocity - weapon.part.rb.velocity).ToString("G4")}, rel acc: {((Vector3)(weapon.targetAcceleration - weapon.vessel.acceleration)).ToString("G6")}");
 #if DEBUG
-                            if (weapon.visualTargetVessel != null && weapon.visualTargetVessel.loaded) weaponAimDebugStrings.Add($" - Visual target {(weapon.visualTargetPart != null ? weapon.visualTargetPart.name : "CoM")} on {weapon.visualTargetVessel.vesselName}, distance: {(weapon.fireTransforms[0] != null ? (weapon.finalAimTarget - weapon.fireTransforms[0].position).magnitude : 0):F1}, radius: {weapon.targetRadius:F1} ({weapon.visualTargetVessel.GetBounds()}), max deviation: {weapon.maxDeviation}, firing tolerance: {weapon.FiringTolerance}");
+                            if (weapon.visualTargetVessel != null && weapon.visualTargetVessel.loaded) weaponAimDebugStrings.Add($" - Visual target {(weapon.visualTargetPart != null ? weapon.visualTargetPart.name : "CoM")} on {weapon.visualTargetVessel.vesselName}, distance: {(weapon.fireTransforms[0] != null ? (weapon.finalAimTarget - weapon.fireTransforms[0].position).magnitude : 0):F1}, radius: {weapon.targetRadius:F1} ({weapon.visualTargetVessel.GetBounds()}), max deviation: {weapon.maxDeviation}, firing tolerance: {weapon.FiringTolerance}, stale target: {staleTarget}{(staleTarget ? $" ({weapon.staleGoodTargetTime:0.0}s/{detectedTargetTimeout:0.0}s)" : "")}");
                             if (weapon.turret) weaponAimDebugStrings.Add($" - Turret: pitch: {weapon.turret.Pitch:F3}° ({weapon.turret.minPitch}°—{weapon.turret.maxPitch}°), yaw: {weapon.turret.Yaw:F3}° ({-weapon.turret.yawRange / 2f}°—{weapon.turret.yawRange / 2f}°)");
 #endif
                         }
@@ -2163,10 +2202,13 @@ namespace BDArmory.Control
                             lineCount += weaponHeatDebugStrings.Count + weaponAimDebugStrings.Count;
                         }
                         if (!string.IsNullOrEmpty(bombAimerDebugString)) debugString.AppendLine($"Bomb aimer: {bombAimerDebugString}");
-                        lineCount += debugString.Length;
                     }
-                    GUI.Label(new Rect(200, Screen.height - 700, Screen.width / 2 - 200, 16 * lineCount), debugString.ToString());
                 }
+                lineCount += debugString.Length;
+                if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_MISSILES || BDArmorySettings.DEBUG_WEAPONS)
+                    GUI.Label(new Rect(200, Screen.height - 700, Screen.width / 2 - 200, 16 * lineCount), debugString.ToString());
+                if (BDArmorySettings.DEBUG_TELEMETRY && !string.IsNullOrEmpty(dynRangeDebug))
+                    GUI.Label(new Rect(800, 600, 200, 200), dynRangeDebug);
             }
             //else
             //{
@@ -2186,15 +2228,22 @@ namespace BDArmory.Control
 
         IEnumerator StartupListUpdater()
         {
+            var wait = new WaitForFixedUpdate();
             while (!FlightGlobals.ready || (vessel is not null && (vessel.packed || !vessel.loaded)))
             {
-                yield return null;
+                yield return wait;
                 if (vessel.isActiveVessel)
                 {
                     BDArmorySetup.Instance.ActiveWeaponManager = this;
                 }
             }
             UpdateList();
+        }
+
+        IEnumerator ReenableGuardModeWhenReady()
+        {
+            yield return new WaitWhileFixed(() => !FlightGlobals.ready || (vessel is not null && (vessel.packed || !vessel.loaded))); // Wait at least one frame so other modules have started.
+            ToggleGuardMode(); // Then re-enable it so that other effects from enabling it occur.
         }
 
         IEnumerator MissileWarningResetRoutine()
@@ -2386,7 +2435,7 @@ namespace BDArmory.Control
                                         }
                                         else
                                         {
-                                            // if a low lock capacity radar , and it already has a lock on another target, TLT will return false, because the radar already at lock cap
+                                            // if a low lock capacity radar, and it already has a lock on another target, TLT will return false, because the radar already at lock cap
                                             // end result: radar lock stuck on wrong target; need unlock, then lock if lock num = max locks
                                             //if availableLocks, tryLocktarget, else, unlock target -> try locktarget
                                             /*if (MaxradarLocks <= possibleTargets.Count) //not currently checking if available radar locks are viable, e.g. a rear-facing radar w/ lock capability
@@ -2503,14 +2552,14 @@ namespace BDArmory.Control
                                     else
                                     {
                                         if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: {vessel.vesselName}'s {(CurrentMissile ? CurrentMissile.name : "null missile")} could not lock, attempting unguided fire.");
-                                        dumbfiring = true; //so let them be used as unguided ordinance
+                                        dumbfiring = true; //so let them be used as unguided ordnance
                                     }
                                 }
                             }
-                            else //no radar, missiles now expensive unguided ordinance
+                            else //no radar, missiles now expensive unguided ordnance
                             {
                                 if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: {vessel.vesselName}'s {(CurrentMissile ? CurrentMissile.name : "null missile")} has no radar, attempting unguided fire.");
-                                dumbfiring = true; //so let them be used as unguided ordinance
+                                dumbfiring = true; //so let them be used as unguided ordnance
                             }
                             break;
                         }
@@ -2681,14 +2730,14 @@ namespace BDArmory.Control
                                         designatedGPSInfo = new GPSTargetInfo(VectorUtils.WorldPositionToGeoCoords(foundCam.groundTargetPosition, vessel.mainBody), targetVessel.vesselName.Substring(0, Mathf.Min(12, targetVessel.vesselName.Length)));
                                     else //cam gimbal locked/target behind a hill or something
                                     {
-                                        dumbfiring = true; //so let them be used as unguided ordinance
+                                        dumbfiring = true; //so let them be used as unguided ordnance
                                         if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: No Camera lock! Available cams: {targetingPods.Count}; assignedCam: {assignedCamera}; Tgt Error Sqr {(foundCam ? (foundCam.groundTargetPosition - targetVessel.CoM).sqrMagnitude : -999)}); attempting radar lock...");
                                         assignedCamera = false;
                                     }
                                 }
                                 if (!assignedCamera) //no cam, get ranging from radar lock? Limit to aerial targets only to not obsolete the tgtCam? Or see if the speed improvements to camera tracking speed permit cams to now be able to track planes
                                 {
-                                    // unguidedWeapon = true; //so let them be used as unguided ordinance
+                                    // unguidedWeapon = true; //so let them be used as unguided ordnance
                                     //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: No targeting cam! Available cams: {targetingPods.Count}; switching to unguided firing");
                                     //break;
                                     if (vesselRadarData)
@@ -2748,14 +2797,14 @@ namespace BDArmory.Control
                                         }
                                         else
                                         {
-                                            dumbfiring = true; //so let them be used as unguided ordinance
+                                            dumbfiring = true; //so let them be used as unguided ordnance
                                             if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: No Radar locks! Available cams: {targetingPods.Count}; switching to unguided firing");
                                             break;
                                         }
                                     }
                                     else
                                     {
-                                        dumbfiring = true; //so let them be used as unguided ordinance
+                                        dumbfiring = true; //so let them be used as unguided ordnance
                                         if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: No Radar! Available cams: {targetingPods.Count}; switching to unguided firing");
                                         break;
                                     }
@@ -2903,7 +2952,7 @@ namespace BDArmory.Control
                                         //}
                                     }
                             }
-                            else //no cam, laser missiles now expensive unguided ordinance
+                            else //no cam, laser missiles now expensive unguided ordnance
                             {
                                 if (foundCam && (foundCam.groundTargetPosition - targetVessel.CoM).sqrMagnitude < targetpaintAccuracyThreshold) //ally target acquisition
                                 {
@@ -2911,7 +2960,7 @@ namespace BDArmory.Control
                                 }
                                 else //allied laser dot isn't present
                                 {
-                                    dumbfiring = true; //so let them be used as unguided ordinance
+                                    dumbfiring = true; //so let them be used as unguided ordnance
                                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: No Laser target! Available cams: {targetingPods.Count}; switching to unguided firing");
                                     break;
                                 }
@@ -3017,7 +3066,7 @@ namespace BDArmory.Control
                                 else
                                 {
                                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: No radar or IRST target! Switching to unguided firing.");
-                                    dumbfiring = true; //so let them be used as unguided ordinance
+                                    dumbfiring = true; //so let them be used as unguided ordnance
                                     break;
                                 }
                                 MissileLauncher mlauncher = ml as MissileLauncher;
@@ -3075,14 +3124,14 @@ namespace BDArmory.Control
                                     else
                                     {
                                         if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: No radar or IRST target! Switching to unguided firing.");
-                                        dumbfiring = true; //so let them be used as unguided ordinance
+                                        dumbfiring = true; //so let them be used as unguided ordnance
                                     }
                                 }
                             }
                             else
                             {
                                 if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: No radar or IRST target! Switching to unguided firing.");
-                                dumbfiring = true; //so let them be used as unguided ordinance
+                                dumbfiring = true; //so let them be used as unguided ordnance
                             }
                             break;
                         }
@@ -3996,7 +4045,7 @@ namespace BDArmory.Control
             weaponTypesGround.Clear();
             weaponTypesSLW.Clear();
             //gunRippleIndex.Clear(); //since there keeps being issues with the more limited ripple dict, lets just make it perisitant for all weapons on the craft
-            hasAntiRadiationOrdinance = false;
+            hasAntiRadiationOrdnance = false;
             if (vessel == null || !vessel.loaded) return;
 
             using (var weapon = VesselModuleRegistry.GetModules<IBDWeapon>(vessel).GetEnumerator())
@@ -4109,10 +4158,10 @@ namespace BDArmory.Control
 
                         if ((ml is not null && ml.TargetingMode == MissileBase.TargetingModes.AntiRad) || (mmg is not null && mmg.TargetingMode == MissileBase.TargetingModes.AntiRad))
                         {
-                            hasAntiRadiationOrdinance = true;
+                            hasAntiRadiationOrdnance = true;
                             //antiradTargets = OtherUtils.ParseToFloatArray(ml != null ? ml.antiradTargetTypes : "0,5"); //limited Antirad options for MMG
                             //FIXME shouldn't this be set as part of currentMissile? Else having multiple ARH with different target types would overwrite this with potentially the wrong set of target types
-                            //or otherwise have this array contain the target types for *all* ARH ordinance on the vessel.
+                            //or otherwise have this array contain the target types for *all* ARH ordnance on the vessel.
                             antiradTargets.Union(OtherUtils.ParseEnumArray<RadarWarningReceiver.RWRThreatTypes>(ml != null ? ml.antiradTargetTypes : "0,5"));
                         }
                     }
@@ -4192,18 +4241,19 @@ namespace BDArmory.Control
             if (selectedWeapon != null && (selectedWeapon.GetWeaponClass() == WeaponClasses.Bomb || selectedWeapon.GetWeaponClass() == WeaponClasses.Missile || selectedWeapon.GetWeaponClass() == WeaponClasses.SLW))
             {
                 //Debug.Log("[BDArmory.MissileFire]: =====selected weapon: " + selectedWeapon.GetPart().name);
-                if (!CurrentMissile || CurrentMissile.GetPartName() != selectedWeapon.GetPartName() || CurrentMissile.engageRangeMax != selectedWeaponsEngageRangeMax || CurrentMissile.missileFireAngle != selectedWeaponsMissileFOV)
+                if (!CurrentMissile || CurrentMissile.GetPartName() != selectedWeapon.GetPartName() || CurrentMissile.engageRangeMax != selectedWeaponsEngageRangeMax || CurrentMissile.missileFireAngle != selectedWeaponsMissileFOV || CurrentMissile.vessel != vessel)
                 {
-                    using (var Missile = VesselModuleRegistry.GetModules<MissileBase>(vessel).GetEnumerator())
-                        while (Missile.MoveNext())
-                        {
-                            if (Missile.Current == null) continue;
-                            if (Missile.Current.GetPartName() != selectedWeapon.GetPartName()) continue;
-                            if (Missile.Current.launched) continue;
-                            if (Missile.Current.engageRangeMax != selectedWeaponsEngageRangeMax) continue;
-                            if (Missile.Current.missileFireAngle != selectedWeaponsMissileFOV) continue;
-                            CurrentMissile = Missile.Current;
-                        }
+                    using var Missile = VesselModuleRegistry.GetModules<MissileBase>(vessel).GetEnumerator();
+                    while (Missile.MoveNext())
+                    {
+                        if (Missile.Current == null) continue;
+                        if (Missile.Current.GetPartName() != selectedWeapon.GetPartName()) continue;
+                        if (Missile.Current.launched) continue;
+                        if (Missile.Current.engageRangeMax != selectedWeaponsEngageRangeMax) continue;
+                        if (Missile.Current.missileFireAngle != selectedWeaponsMissileFOV) continue;
+                        CurrentMissile = Missile.Current;
+                        break;
+                    }
                     //CurrentMissile = selectedWeapon.GetPart().FindModuleImplementing<MissileBase>();
                 }
             }
@@ -4211,7 +4261,10 @@ namespace BDArmory.Control
             {
                 CurrentMissile = null;
             }
+            if (CurrentMissile != null)
+                selectedWeapon = CurrentMissile;
             //selectedWeapon = weaponArray[weaponIndex];
+            if (CurrentMissile != null) selectedWeapon = CurrentMissile; // Make sure selectedWeapon matches the actually selected missile.
 
             //gun ripple stuff
             if (selectedWeapon != null && (selectedWeapon.GetWeaponClass() == WeaponClasses.Gun || selectedWeapon.GetWeaponClass() == WeaponClasses.Rocket || selectedWeapon.GetWeaponClass() == WeaponClasses.DefenseLaser))
@@ -4899,11 +4952,11 @@ namespace BDArmory.Control
                         if (GetMissilesAway(target.Current)[0] >= maxMissilesOnTarget)
                         {
                             targetsAssigned.Add(target.Current);
-                            if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: Adding {target.Current.Vessel.GetName()} to exclusion list; length: {targetsAssigned.Count}");
+                            if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: {vessel.GetName()} Adding {target.Current.Vessel.GetName()} to exclusion list; length: {targetsAssigned.Count}");
                         }
                     }
                 }
-                if (targetsAssigned.Count == BDATargetManager.TargetList(Team).Count) //oops, already fired missiles at all available targets
+                if (targetsAssigned.Count >= BDATargetManager.TargetList(Team).Count) //oops, already fired missiles at all available targets
                 {
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileFire]: max targets fired on, resetting target list!");
                     targetsAssigned.Clear(); //clear targets tried, so AI can track best current target until such time as it can fire again
@@ -4995,8 +5048,11 @@ namespace BDArmory.Control
                         targetDebugText = " is engaging an airborne target with ";
                     }
                 }
-                potentialTarget = BDATargetManager.GetLeastEngagedTarget(this);
-                targetDebugText = " is engaging the least engaged target with ";
+                else
+                {
+                    potentialTarget = BDATargetManager.GetLeastEngagedTarget(this);
+                    targetDebugText = " is engaging the least engaged target with ";
+                }
             }
 
             if (potentialTarget)
@@ -5020,7 +5076,7 @@ namespace BDArmory.Control
                 }
                 else if (!BDArmorySettings.DISABLE_RAMMING)
                 {
-                    if (!HasWeaponsAndAmmo() && pilotAI != null && pilotAI.allowRamming && !(!pilotAI.allowRammingGroundTargets && potentialTarget.Vessel.LandedOrSplashed))
+                    if (!HasWeaponsAndAmmo() && pilotAI != null && pilotAI.allowRamming && (pilotAI.allowRammingGroundTargets || !potentialTarget.Vessel.LandedOrSplashed))
                     {
                         if (BDArmorySettings.DEBUG_AI)
                         {
@@ -5285,7 +5341,7 @@ namespace BDArmory.Control
             // Calculate score values
             float targetBiasValue = targetBias;
             float targetRangeValue = target.TargetPriRange(this);
-            float targetPreferencevalue = target.TargetPriEngagement(target.weaponManager);
+            float targetPreferencevalue = target.TargetPriEngagement(target.weaponManager, this.vessel.radarAltitude);
             float targetATAValue = target.TargetPriATA(this);
             float targetAoDValue = target.TargetPriAoD(this);
             float targetAccelValue = target.TargetPriAcceleration();
@@ -5528,7 +5584,7 @@ namespace BDArmory.Control
                                     break;
                                 }
                         }
-                        /*
+
                         if (candidateClass == WeaponClasses.Missile)
                         {
                             if (firedMissiles >= maxMissilesOnTarget) continue;// Max missiles are fired, try another weapon
@@ -5540,9 +5596,10 @@ namespace BDArmory.Control
 
                             if (mlauncher != null)
                             {
+                                /*
                                 if (mlauncher.TargetingMode == MissileBase.TargetingModes.Radar && (!_radarsEnabled && !mlauncher.radarLOAL)) continue; //dont select RH missiles when no radar aboard
                                 if (mlauncher.TargetingMode == MissileBase.TargetingModes.Laser && targetingPods.Count <= 0) continue; //don't select LH missiles when no FLIR aboard
-                                if (mlauncher.reloadableRail != null && (mlauncher.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordinance
+                                if (mlauncher.reloadableRail != null && (mlauncher.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordnance
                                 candidateDetDist = mlauncher.DetonationDistance;
                                 candidateAccel = mlauncher.thrust / mlauncher.part.mass; //for anti-missile, prioritize proxidetonation and accel
                                 bool EMP = mlauncher.warheadType == MissileBase.WarheadTypes.EMP;
@@ -5556,6 +5613,8 @@ namespace BDArmory.Control
                                 {
                                     candidateTDPS = candidateDetDist + candidateAccel; // weight selection faster missiles and larger proximity detonations that might catch an incoming missile in the blast
                                 }
+								*/
+                                continue; //Missile interception for MissileLauncher-based missiles handled in the point defense logic
                             }
                             else
                             { //is modular missile
@@ -5584,7 +5643,6 @@ namespace BDArmory.Control
                             targetWeaponTDPS = candidateTDPS;
                             targetWeaponPriority = candidatePriority;
                         }
-                        */
                     }
             }
 
@@ -5616,7 +5674,7 @@ namespace BDArmory.Control
                                     {
                                         MissileLauncher Bomb = item.Current as MissileLauncher;
 
-                                        if (Bomb.reloadableRail != null && (Bomb.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordinance
+                                        if (Bomb.reloadableRail != null && (Bomb.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordnance
                                                                                                                                                                   //if (firedMissiles >= maxMissilesOnTarget) continue;// Max missiles are fired, try another weapon
                                                                                                                                                                   // only useful if we are flying
                                         float candidateYield = Bomb.GetBlastRadius();
@@ -5948,7 +6006,7 @@ namespace BDArmory.Control
                                     MissileLauncher mlauncher = item.Current as MissileLauncher;
                                     if (mlauncher != null)
                                     {
-                                        if (mlauncher.reloadableRail != null && (mlauncher.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordinance                                 
+                                        if (mlauncher.reloadableRail != null && (mlauncher.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordnance                                 
                                         candidateDetDist = mlauncher.DetonationDistance;
                                         candidateTurning = mlauncher.maxTurnRateDPS; //for anti-aircraft, prioritize detonation dist and turn capability. Rejigger to use kinematic missile perf. based on missile maxAoA/maxG/optimalAirspeed instead of arbitrary static value?
                                         candidatePriority = Mathf.RoundToInt(mlauncher.priority);
@@ -6162,7 +6220,7 @@ namespace BDArmory.Control
                                     bool candidateGimbal = Gun.turret;
                                     float candidateMinrange = Gun.engageRangeMin;
                                     float candidateMaxRange = Gun.engageRangeMax;
-                                    float candidateTraverse = Gun.yawRange * Gun.maxPitch;
+                                    float candidateTraverse = Gun.yawRange * (Gun.maxPitch - Gun.minPitch);
                                     float candidateRadius = currentTarget.Vessel.GetRadius(Gun.fireTransforms[0].forward, target.bounds);
                                     float candidateCaliber = Gun.caliber;
                                     Transform fireTransform = Gun.fireTransforms[0];
@@ -6269,7 +6327,7 @@ namespace BDArmory.Control
                                 {
                                     if (vessel.Splashed && vessel.altitude < currentTarget.Vessel.altitude) continue; //I guess depth charges would sorta apply here, but those are SLW instead
                                     MissileLauncher Bomb = item.Current as MissileLauncher;
-                                    if (Bomb.reloadableRail != null && (Bomb.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordinance
+                                    if (Bomb.reloadableRail != null && (Bomb.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordnance
                                                                                                                                                               //if (firedMissiles >= maxMissilesOnTarget) continue;// Max missiles are fired, try another weapon
                                                                                                                                                               // only useful if we are flying
                                     float candidateYield = Bomb.GetBlastRadius();
@@ -6366,7 +6424,7 @@ namespace BDArmory.Control
                                     {
                                         //if (Missile.TargetingMode == MissileBase.TargetingModes.Radar && radars.Count <= 0) continue; //dont select RH missiles when no radar aboard
                                         //if (Missile.TargetingMode == MissileBase.TargetingModes.Laser && targetingPods.Count <= 0) continue; //don't select LH missiles when no FLIR aboard
-                                        if (Missile.reloadableRail != null && (Missile.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordinance
+                                        if (Missile.reloadableRail != null && (Missile.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordnance
                                         if (vessel.Splashed && (!surfaceAI || surfaceAI.SurfaceType != AIUtils.VehicleMovementType.Submarine) && FlightGlobals.getAltitudeAtPos(item.Current.GetPart().transform.position) < -10) continue;
                                         //if (firedMissiles >= maxMissilesOnTarget) continue;// Max missiles are fired, try another weapon
                                         candidateYield = Missile.GetBlastRadius();
@@ -6548,7 +6606,7 @@ namespace BDArmory.Control
                                     //if (firedMissiles >= maxMissilesOnTarget) continue;// Max missiles are fired, try another weapon
                                     MissileLauncher SLW = item.Current as MissileLauncher;
                                     if (item.Current.GetMissileType().ToLower() == "depthcharge") continue; // don't use depth charges against surface ships
-                                    if (SLW.reloadableRail != null && (SLW.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordinance
+                                    if (SLW.reloadableRail != null && (SLW.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordnance
                                     float candidateYield = SLW.GetBlastRadius() * 4;
                                     bool EMP = SLW.warheadType == MissileBase.WarheadTypes.EMP;
                                     int candidatePriority = Mathf.RoundToInt(SLW.priority);
@@ -6620,7 +6678,7 @@ namespace BDArmory.Control
                                     MissileLauncher SLW = item.Current as MissileLauncher;
                                     if (SLW.TargetingMode == MissileBase.TargetingModes.Radar && (!_sonarsEnabled && !SLW.radarLOAL)) continue; //dont select RH missiles when no radar aboard
                                     if (SLW.TargetingMode == MissileBase.TargetingModes.Laser && targetingPods.Count <= 0) continue; //don't select LH missiles when no FLIR aboard
-                                    if (SLW.reloadableRail != null && (SLW.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordinance
+                                    if (SLW.reloadableRail != null && (SLW.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordnance
                                     float candidateYield = SLW.GetBlastRadius();
                                     float candidateTurning = SLW.maxTurnRateDPS;
                                     float candidateTDPS = 0f;
@@ -6902,8 +6960,11 @@ namespace BDArmory.Control
                 //take target vel into account? //if you're going 250m/s, that's only an extra 500m to the maxRange; if the enemy is closing towards you at 250m/s, that's 250m addition
                 //Max 1.5x engagement, or engagementRange + vel*4?
                 //min 2x engagement, or engagement + 2000m?
-                if (weaponCandidate.GetWeaponClass() != WeaponClasses.Missile || ((MissileBase)weaponCandidate).UseStaticMaxLaunchRange)
-                    if (distanceToTarget > engageableWeapon.GetEngagementRangeMax() + Mathf.Max(1000, (float)(vessel.srf_velocity - targetVessel.srf_velocity).magnitude * 2)) return false; //have AI preemptively begin to lead 2s out from max weapon range
+                if (weaponCandidate.GetWeaponClass() != WeaponClasses.Bomb)
+                {
+                    if (weaponCandidate.GetWeaponClass() != WeaponClasses.Missile || ((MissileBase)weaponCandidate).UseStaticMaxLaunchRange)
+                        if (distanceToTarget > engageableWeapon.GetEngagementRangeMax() + Mathf.Max(1000, (float)(vessel.srf_velocity - targetVessel.srf_velocity).magnitude * 2)) return false; //have AI preemptively begin to lead 2s out from max weapon range
+                }
                 switch (weaponCandidate.GetWeaponClass())
                 {
                     case WeaponClasses.DefenseLaser:
@@ -7226,7 +7287,7 @@ namespace BDArmory.Control
                 if (target != null && !target.isMissile)
                     if (pilotAI && pilotAI.IsExtending && target.Vessel != pilotAI.extendTarget)
                     {
-                        pilotAI.StopExtending("changed target"); // Only stop extending if the target is different from the extending target
+                        pilotAI.StopExtending($"changed target from {pilotAI.extendTarget.GetName()} to {target.Vessel.GetName()}"); // Only stop extending if the target is different from the extending target
                     }
                 currentTarget = target;
                 guardTarget = target.Vessel;
@@ -7387,7 +7448,7 @@ namespace BDArmory.Control
                     return true;
                 }
                 //carrying antirads and picking up RWR pings?
-                if (rwr && rwr.rwrEnabled && rwr.displayRWR && hasAntiRadiationOrdinance)//see if RWR is picking up a ping from unseen radar source and craft has HARMs
+                if (rwr && rwr.rwrEnabled && rwr.displayRWR && hasAntiRadiationOrdnance)//see if RWR is picking up a ping from unseen radar source and craft has HARMs
                 {
                     for (int i = 0; i < rwr.pingsData.Length; i++) //using copy of antirad targets due to CanSee running before weapon selection
                     {
@@ -7561,8 +7622,8 @@ namespace BDArmory.Control
                     : currMissile.GetForwardTransform();
                 // remove AI target check/move to a missile .cfg option to allow older gen heaters?
                 if (currMissile.GuidanceMode != MissileBase.GuidanceModes.SLW || currMissile.GuidanceMode == MissileBase.GuidanceModes.SLW && currMissile.activeRadarRange > 0)
-                    heatTarget = BDATargetManager.GetHeatTarget(vessel, vessel, new Ray(currMissile.MissileReferenceTransform.position + (50 * currMissile.GetForwardTransform()), direction), TargetSignatureData.noTarget, scanRadius, currMissile.heatThreshold, currMissile.frontAspectHeatModifier, currMissile.uncagedLock, currMissile.targetCoM, currMissile.lockedSensorFOVBias, currMissile.lockedSensorVelocityBias, this, targetMissile != null ? targetMissile : guardMode ? currentTarget : null);
-                else heatTarget = BDATargetManager.GetAcousticTarget(vessel, vessel, new Ray(currMissile.MissileReferenceTransform.position + (50 * currMissile.GetForwardTransform()), direction), TargetSignatureData.noTarget, scanRadius, currMissile.heatThreshold, currMissile.targetCoM, currMissile.lockedSensorFOVBias, currMissile.lockedSensorVelocityBias, this, targetMissile != null ? targetMissile : guardMode ? currentTarget : null);
+                    heatTarget = BDATargetManager.GetHeatTarget(vessel, vessel, new Ray(currMissile.MissileReferenceTransform.position + (50 * currMissile.GetForwardTransform()), direction), TargetSignatureData.noTarget, scanRadius, currMissile.heatThreshold, currMissile.frontAspectHeatModifier, currMissile.uncagedLock, currMissile.targetCoM, currMissile.lockedSensorFOVBias, currMissile.lockedSensorVelocityBias, this, targetMissile != null ? targetMissile : guardMode ? currentTarget : null, IFF: currMissile.hasIFF);
+                else heatTarget = BDATargetManager.GetAcousticTarget(vessel, vessel, new Ray(currMissile.MissileReferenceTransform.position + (50 * currMissile.GetForwardTransform()), direction), TargetSignatureData.noTarget, scanRadius, currMissile.heatThreshold, currMissile.targetCoM, currMissile.lockedSensorFOVBias, currMissile.lockedSensorVelocityBias, this, targetMissile != null ? targetMissile : guardMode ? currentTarget : null, IFF: currMissile.hasIFF);
             }
         }
 
@@ -7669,6 +7730,10 @@ namespace BDArmory.Control
                         {
                             dumbfire = true;
                             validTarget = true;
+                        }
+                        if (vesselRadarData)
+                        {
+                            ml.vrd = vesselRadarData;
                         }
                         break;
                     }
@@ -7892,6 +7957,7 @@ namespace BDArmory.Control
                         if (weapon.Current.isAPS) continue;
                         // if (weapon.Current.GetShortName() != selectedWeapon.GetShortName()) continue; 
                         weapon.Current.autoFire = false;
+                        weapon.Current.autoFireFailReason = "Deselected";
                         weapon.Current.autofireShotCount = 0;
                         weapon.Current.visualTargetVessel = null;
                         weapon.Current.visualTargetPart = null;
@@ -8317,7 +8383,7 @@ namespace BDArmory.Control
 
                     if (multiTargetNum > 1)
                     {
-                        if (weapon.Current.turret)
+                        if (weapon.Current.turret && (weapon.Current.maxPitch > weapon.Current.minPitch || weapon.Current.yawRange > 0))
                         {
                             if (TurretID >= Mathf.Min((targetsAssigned.Count), multiTargetNum))
                             {
@@ -8457,7 +8523,7 @@ namespace BDArmory.Control
                     {
                         APScount++;
                         if (weapon.Current.ammoCount <= 0 && !BDArmorySettings.INFINITE_AMMO) continue;
-                        if (weapon.Current.eAPSType == ModuleWeapon.APSTypes.Missile || weapon.Current.eAPSType == ModuleWeapon.APSTypes.Omni)
+                        if ((weapon.Current.eAPSType == ModuleWeapon.APSTypes.Missile || weapon.Current.eAPSType == ModuleWeapon.APSTypes.Omni) && !guardMode)
                         {
                             interceptiontarget = BDATargetManager.GetClosestMissileThreat(this);
                             if (interceptiontarget != null) PDMslTgts.Add(interceptiontarget);
@@ -8519,7 +8585,7 @@ namespace BDArmory.Control
                         }
                     }
                 }
-            //Debug.Log($"[BDArmory.MissileFire - {(this.vessel != null ? vessel.GetName() : "null")}] tgtcount: {PDBulletTgts.Count + PDRktTgts.Count + PDMslTgts.Count}, APS count: {APScount}");
+
             using (var missile = VesselModuleRegistry.GetModules<MissileBase>(vessel).GetEnumerator())
             {
                 while (missile.MoveNext())
@@ -8536,11 +8602,23 @@ namespace BDArmory.Control
                         missileCount += Mathf.CeilToInt(ml.multiLauncher.missileSpawner.ammoCount / ml.multiLauncher.salvoSize);
                     }
                     else missileCount++;
-                    interceptiontarget = BDATargetManager.GetClosestMissileThreat(this);
-                    if (interceptiontarget != null && !PDMslTgts.Contains(interceptiontarget)) PDMslTgts.Add(interceptiontarget);
+                    if (!guardMode)
+                    {
+                        interceptiontarget = BDATargetManager.GetClosestMissileThreat(this);
+                        if (interceptiontarget != null && !PDMslTgts.Contains(interceptiontarget)) PDMslTgts.Add(interceptiontarget);
+                    }
                 }
             }
-
+            //We already have a list of incoming threat missiles, just use that
+            if (guardMode && missileIsIncoming)
+            {
+                foreach (var incomingMissile in results.incomingMissiles)
+                {
+                    if (incomingMissile.vessel != null && incomingMissile.vessel.gameObject.TryGetComponent<TargetInfo>(out var tInfo))
+                        PDMslTgts.Add(tInfo);
+                }
+            }
+            //Debug.Log($"[BDArmory.MissileFire - {(this.vessel != null ? vessel.GetName() : "null")}] tgtcount: {PDBulletTgts.Count + PDRktTgts.Count + PDMslTgts.Count}, APS count: {APScount}; interceptor count: {missileCount}");
             if (APScount + missileCount <= 0)
             {
                 PDScanTimer = -100;
@@ -8646,6 +8724,7 @@ namespace BDArmory.Control
                                         if (viableTarget && TargetInTurretRange(weapon.Current.turret, 7, PDMslTgts[TurretID].Vessel.CoM, weapon.Current))
                                         {
                                             weapon.Current.visualTargetPart = PDMslTgts[TurretID].Vessel.rootPart;  // if target within turret fire zone, assign
+                                            //Debug.Log($"[BDArmory.MissileLauncher] assigning missile target {PDMslTgts[TurretID].Vessel.name}, ID {TurretID}");
                                             weapon.Current.tgtShell = null;
                                             weapon.Current.tgtRocket = null;
                                         }
@@ -8659,6 +8738,7 @@ namespace BDArmory.Control
                                                     if (TargetInTurretRange(weapon.Current.turret, 7, item.Current.Vessel.CoM, weapon.Current))
                                                     {
                                                         weapon.Current.visualTargetPart = item.Current.Vessel.rootPart;
+                                                        //Debug.Log($"[BDArmory.MissileLauncher] assigning missile target {PDMslTgts[TurretID].Vessel.name} as secondary target, ID {TurretID}");
                                                         weapon.Current.tgtShell = null;
                                                         weapon.Current.tgtRocket = null;
                                                         break;
@@ -8673,13 +8753,14 @@ namespace BDArmory.Control
                                     if (guardTarget == null)
                                     {
                                         weapon.Current.visualTargetPart = null;
+                                        //Debug.Log($"[BDArmory.MissileLauncher] No Target! nulling visaltargetpart!");
                                     }
                                     // weapon.Current.tgtShell = null; // FIXME These were wiping Omni type APS shell and rocket targets.
                                     // weapon.Current.tgtRocket = null;
                                 }
                             }
                             if (BDArmorySettings.DEBUG_WEAPONS)
-                                Debug.Log($"[BDArmory.MissileFire - {(this.vessel != null ? vessel.GetName() : "null")}]: {weapon.Current.shortName} assigned shell:{(weapon.Current.tgtShell != null ? "true" : "false")}; rocket: {(weapon.Current.tgtRocket != null ? "true" : "false")}; missile:{(weapon.Current.visualTargetPart != null ? weapon.Current.visualTargetPart.vessel.GetName() : "null")}");
+                                Debug.Log($"[BDArmory.MissileFire - {(this.vessel != null ? vessel.GetName() : "null")}]: PDMslTgts: {PDMslTgts.Count}; {weapon.Current.shortName} assigned shell:{(weapon.Current.tgtShell != null ? "true" : "false")}; rocket: {(weapon.Current.tgtRocket != null ? "true" : "false")}; missile:{(weapon.Current.visualTargetPart != null ? weapon.Current.visualTargetPart.vessel.GetName() : "null")}");
                             weapon.Current.autoFireTimer = Time.time;
                             weapon.Current.autoFireLength = (fireBurstLength < 0.01f) ? targetScanInterval / 2f : fireBurstLength;
                             weapon.Current.autofireShotCount = 0;
@@ -9108,7 +9189,6 @@ namespace BDArmory.Control
             {
                 return false;
             }
-
             if (gTarget == default && !guardTarget)
             {
                 if (BDArmorySettings.DEBUG_WEAPONS)
@@ -9118,7 +9198,7 @@ namespace BDArmory.Control
                 return false;
             }
             if (gTarget == default) gTarget = guardTarget.CoM;
-
+            if (weapon != null && (gTarget - weapon.fireTransforms[0].transform.position).sqrMagnitude > (weapon.engageRangeMax * 1.25f) * (weapon.engageRangeMax * 1.25f)) return false; //target too far away
             Transform turretTransform = turret.yawTransform.parent;
             Vector3 direction = gTarget - turretTransform.position;
             if (weapon != null && weapon.bulletDrop) // Account for bullet drop (rough approximation not accounting for target movement).
@@ -9318,6 +9398,12 @@ namespace BDArmory.Control
         #endregion Turret
 
         #region Aimer
+        bool ShowBoreRing(bool visible)
+        {
+            if (vessel == null || !vessel.isActiveVessel) return false; // We're not in control.
+            if (boreRing != null) boreRing.SetActive(visible);
+            return true; // We're in control.
+        }
 
         string bombAimerDebugString = "";
         float BombAimer()
@@ -9367,9 +9453,9 @@ namespace BDArmory.Control
 
             // FIXME values for MMG missiles (launcher == null) need calculating.
             // FIXME mk82 bombs on reloadable rails behave like mk83 bombs.
-            float ordinanceMass = launcher != null && launcher.multiLauncher ? launcher.multiLauncher.missileMass : ml.part.partInfo.partPrefab.mass;
-            float ordinanceThrust = launcher != null ? launcher.cruiseThrust : 0;
-            float ordinanceBoost = launcher != null ? launcher.thrust : 0;
+            float ordnanceMass = launcher != null && launcher.multiLauncher ? launcher.multiLauncher.missileMass : ml.part.partInfo.partPrefab.mass;
+            float ordnanceThrust = launcher != null ? launcher.cruiseThrust : 0;
+            float ordnanceBoost = launcher != null ? launcher.thrust : 0;
             float thrustTime = launcher != null ? launcher.cruiseTime + launcher.boostTime : 0;
             Vector3 pointingDirection = ml.MissileReferenceTransform.forward;
             var upDirection = VectorUtils.GetUpDirection(currPos);
@@ -9408,7 +9494,7 @@ namespace BDArmory.Control
                     bombAimerPosition = hitInfo.point;
                     //bombAimerTerrainNormal = hitInfo.normal;
                     simTime += (distance - hitInfo.distance) / distance * simDeltaTime;
-                    bombAimerCPA = guardTarget ? AIUtils.PredictPosition(prevPos, simVelocity, simAcceleration, AIUtils.TimeToCPA(prevPos - guardTarget.CoM, simVelocity - guardTarget.Velocity(), simAcceleration - guardTarget.acceleration_immediate)) : bombAimerPosition;
+                    bombAimerCPA = guardTarget ? AIUtils.PredictPosition(prevPos, simVelocity, simAcceleration, AIUtils.TimeToCPA(prevPos - guardTarget.CoM, simVelocity - guardTarget.Velocity(), simAcceleration - (guardTarget.Splashed ? Vector3.zero : guardTarget.acceleration_immediate))) : bombAimerPosition;
                     if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_WEAPONS) bombAimerDebugString = $"Scenery / part hit at {simTime:0.00}s";
                     break;
                 }
@@ -9420,7 +9506,7 @@ namespace BDArmory.Control
                         bombAimerPosition = currPos - currentAlt * upDirection;
                         var prevAlt = FlightGlobals.getAltitudeAtPos(prevPos);
                         simTime += prevAlt / (prevAlt - currentAlt) * simDeltaTime;
-                        bombAimerCPA = guardTarget ? AIUtils.PredictPosition(prevPos, simVelocity, simAcceleration, AIUtils.TimeToCPA(prevPos - guardTarget.CoM, simVelocity - guardTarget.Velocity(), simAcceleration - guardTarget.acceleration_immediate)) : bombAimerPosition;
+                        bombAimerCPA = guardTarget ? AIUtils.PredictPosition(prevPos, simVelocity, simAcceleration, AIUtils.TimeToCPA(prevPos - guardTarget.CoM, simVelocity - guardTarget.Velocity(), simAcceleration - (guardTarget.Splashed ? Vector3.zero : guardTarget.acceleration_immediate))) : bombAimerPosition;
                         if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_WEAPONS) bombAimerDebugString = $"Water hit at {simTime:0.00}s";
                         break;
                     }
@@ -9432,7 +9518,7 @@ namespace BDArmory.Control
                     var currentAlt = FlightGlobals.getAltitudeAtPos(currPos);
                     if (targetDist < blastRadiusThreshold && currentAlt < guardTarget.altitude) //adjusting bombaimer pos based on guardTarget proximity should only occur for targeting above ground targets, so the AI knows when to release/where to aim vs something on top of a building or bridge, or trying to bomb an ArsenalBird or similar
                     {
-                        var timeToCPA = AIUtils.TimeToCPA(currPos - guardPos, simVelocity - guardTarget.Velocity(), simAcceleration - guardTarget.acceleration_immediate);
+                        var timeToCPA = AIUtils.TimeToCPA(currPos - guardPos, simVelocity - guardTarget.Velocity(), simAcceleration - (guardTarget.Splashed ? Vector3.zero : guardTarget.acceleration_immediate));
                         bombAimerCPA = AIUtils.PredictPosition(currPos, simVelocity, simAcceleration, timeToCPA);
                         (distance, direction) = (bombAimerCPA - currPos).MagNorm();
                         if (Physics.Raycast(currPos, direction, out hitInfo, distance, simTime < ml.dropTime ? (int)LayerMasks.Scenery : (int)(LayerMasks.Scenery | LayerMasks.Parts | LayerMasks.EVA))) // Only consider scenery during the drop time to avoid self hits.
@@ -9458,7 +9544,7 @@ namespace BDArmory.Control
 
                 if (launcher != null)
                 {
-                    dragArea = launcher.aero ? launcher.dragArea : (simTime > launcher.deployTime ? launcher.deployedDrag : launcher.simpleDrag) * (0.008f * ordinanceMass);
+                    dragArea = launcher.aero ? launcher.dragArea : (simTime > launcher.deployTime ? launcher.deployedDrag : launcher.simpleDrag) * (0.008f * ordnanceMass);
                     liftArea = launcher.liftArea;
                 }
                 else
@@ -9478,16 +9564,16 @@ namespace BDArmory.Control
                 {
                     // Lift
                     liftForce = 0.5f * atmDensity * simSpeedSquared * liftArea * BDArmorySettings.GLOBAL_LIFT_MULTIPLIER * Mathf.Max(MissileGuidance.DefaultLiftCurve.Evaluate(AoA), 0);
-                    simAcceleration += liftForce / ordinanceMass * -simVelocity.ProjectOnPlanePreNormalized(pointingDirection).normalized;
+                    simAcceleration += liftForce / ordnanceMass * -simVelocity.ProjectOnPlanePreNormalized(pointingDirection).normalized;
 
                     // Drag
                     dragForce = 0.5f * atmDensity * simSpeedSquared * dragArea * BDArmorySettings.GLOBAL_DRAG_MULTIPLIER * Mathf.Max(MissileGuidance.DefaultDragCurve.Evaluate(AoA), 0f);
-                    simAcceleration += dragForce / ordinanceMass * -simVelocityDir;
+                    simAcceleration += dragForce / ordnanceMass * -simVelocityDir;
                 }
                 else // Simple drag. This works fairly well for mk82 and mk82-brake bombs, but not JDAMs or B-83.
                 {
                     dragForce = 0.5f * atmDensity * simSpeedSquared * dragArea;
-                    simAcceleration += dragForce / ordinanceMass * -simVelocityDir;
+                    simAcceleration += dragForce / ordnanceMass * -simVelocityDir;
                 }
 
                 // Thrusting
@@ -9495,11 +9581,11 @@ namespace BDArmory.Control
                 {
                     if (simTime < launcher.boostTime)
                     {
-                        simAcceleration += ordinanceBoost / ordinanceMass * pointingDirection;
+                        simAcceleration += ordnanceBoost / ordnanceMass * pointingDirection;
                     }
                     else
                     {
-                        simAcceleration += ordinanceThrust / ordinanceMass * pointingDirection;
+                        simAcceleration += ordnanceThrust / ordnanceMass * pointingDirection;
                     }
                 }
 

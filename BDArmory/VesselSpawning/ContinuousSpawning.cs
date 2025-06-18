@@ -81,7 +81,7 @@ namespace BDArmory.VesselSpawning
             BDACompetitionMode.Instance.StopCompetition();
             BDACompetitionMode.Instance.ResetCompetitionStuff(); // Reset competition scores.
             SpawnUtilsInstance.Instance.gunGameProgress.Clear(); // Clear gun-game progress.
-            ScoreWindow.SetMode(ScoreWindow.Mode.ContinuousSpawn);
+            ScoreWindow.SetMode(ScoreWindow.Mode.ContinuousSpawn, Toggle.Off);
         }
 
         public void SpawnVesselsContinuously(CircularSpawnConfig spawnConfig)
@@ -129,7 +129,7 @@ namespace BDArmory.VesselSpawning
                 LogMessage($"Spawning {Math.Min(BDArmorySettings.VESSEL_SPAWN_CONCURRENT_VESSELS, spawnConfig.craftFiles.Count)} of {spawnConfig.craftFiles.Count} vessels at an altitude of {(spawnConfig.altitude < 1000 ? $"{spawnConfig.altitude:G5}m" : $"{spawnConfig.altitude / 1000:G5}km")} with rolling-spawning.");
             #endregion
 
-            yield return AcquireSpawnPoint(spawnConfig, 2f * spawnDistance, true);
+            yield return AcquireSpawnPoint(spawnConfig, spawnDistance, true);
             if (spawnFailureReason != SpawnFailureReason.None)
             {
                 vesselsSpawningContinuously = false;
@@ -486,7 +486,7 @@ namespace BDArmory.VesselSpawning
         }
 
         #region Scoring (in-game)
-        public static Dictionary<string, float> weights = new()
+        public static readonly Dictionary<string, float> defaultWeights = new()
         {
             {"Clean Kills",             3f},
             {"Assists",                 1.5f},
@@ -494,10 +494,10 @@ namespace BDArmory.VesselSpawning
             {"Hits",                    0.004f},
             {"Bullet Damage",           0.0001f},
             {"Bullet Damage Taken",     4e-05f},
-            {"Rocket Hits",             0.035f},
-            {"Rocket Parts Hit",        0.0006f},
-            {"Rocket Damage",           0.00015f},
-            {"Rocket Damage Taken",     5e-05f},
+            {"Rocket Hits",             0.01f},
+            {"Rocket Parts Hit",        0.0005f},
+            {"Rocket Damage",           0.0001f},
+            {"Rocket Damage Taken",     4e-05f},
             {"Missile Hits",            0.15f},
             {"Missile Parts Hit",       0.002f},
             {"Missile Damage",          3e-05f},
@@ -506,10 +506,11 @@ namespace BDArmory.VesselSpawning
             {"Parts Lost To Asteroids", 0f},
             // FIXME Add tag fields?
         };
+        public static Dictionary<string, float> weights = new(defaultWeights);
 
         public static void SaveWeights()
         {
-            ConfigNode fileNode = ConfigNode.Load(BDArmorySettings.settingsConfigURL);
+            ConfigNode fileNode = ConfigNode.Load(ScoreWindow.scoreWeightsURL) ?? new ConfigNode();
 
             if (!fileNode.HasNode("CtsScoreWeights"))
             {
@@ -522,13 +523,13 @@ namespace BDArmory.VesselSpawning
             {
                 settings.SetValue(kvp.Key, kvp.Value.ToString(), true);
             }
-            fileNode.Save(BDArmorySettings.settingsConfigURL);
+            fileNode.Save(ScoreWindow.scoreWeightsURL);
         }
 
         public static void LoadWeights()
         {
-            ConfigNode fileNode = ConfigNode.Load(BDArmorySettings.settingsConfigURL);
-            if (!fileNode.HasNode("CtsScoreWeights")) return;
+            ConfigNode fileNode = ConfigNode.Load(ScoreWindow.scoreWeightsURL);
+            if (fileNode == null || !fileNode.HasNode("CtsScoreWeights")) return;
             ConfigNode settings = fileNode.GetNode("CtsScoreWeights");
 
             foreach (var key in weights.Keys.ToList())

@@ -13,7 +13,6 @@ using BDArmory.Weapons;
 using BDArmory.Weapons.Missiles;
 using System.Text;
 using System;
-using UnityEngine.UIElements;
 
 namespace BDArmory.Targeting
 {
@@ -65,7 +64,7 @@ namespace BDArmory.Targeting
         public bool CoMLock;
 
         public bool radarLock;
-        Vessel lockedVessel;
+        public Vessel lockedVessel;
 
         [KSPField(isPersistant = true)]
         public bool groundStabilized;
@@ -326,6 +325,8 @@ namespace BDArmory.Targeting
                     if (slaveTurrets)
                     {
                         weaponManager.slavingTurrets = false;
+                        weaponManager.slavedPosition = Vector3.zero;
+                        weaponManager.slavedTarget = TargetSignatureData.noTarget;
                     }
                 }
             }
@@ -729,7 +730,7 @@ namespace BDArmory.Targeting
             windowIsOpen = true;
             var guiMatrix = GUI.matrix;
 
-            GUI.DragWindow(new Rect(0, 0, BDArmorySetup.WindowRectTargetingCam.width - 18, 30));
+            GUI.DragWindow(new Rect(0, 0, BDArmorySetup.WindowRectTargetingCam.width - 18, controlsStartY));
             if (GUI.Button(new Rect(BDArmorySetup.WindowRectTargetingCam.width - 18, 2, 16, 16), "X", GUI.skin.button))
             {
                 DisableCamera();
@@ -900,6 +901,7 @@ namespace BDArmory.Targeting
                 {
                     GroundStabilize();
                 }
+                ++line; //stabilizerect is two lines tall, so account for that for later incrementing of linecount
             }
             else
             {
@@ -1144,16 +1146,18 @@ namespace BDArmory.Targeting
             {
                 weaponManager.slavingTurrets = false;
             }
+            weaponManager.slavedPosition = Vector3.zero;
+            weaponManager.slavedTarget = TargetSignatureData.noTarget; //reset and null these so hitting the slave target button on a weapon later doesn't lock it to a legacy position/target
         }
 
         void UpdateSlaveData()
         {
             if (!slaveTurrets) return;
             if (!weaponManager) return;
-            weaponManager.slavingTurrets = true;
+            if (weaponManager.slavingTurrets) return; //turrets already slaved to active radar lock
             weaponManager.slavedPosition = groundStabilized ? groundTargetPosition : targetPointPosition;
             weaponManager.slavedVelocity = Vector3.zero;
-            weaponManager.slavedAcceleration = Vector3.zero;
+            weaponManager.slavedAcceleration = Vector3.zero; 
         }
 
         internal static void ResizeTargetWindow()
@@ -1514,7 +1518,9 @@ namespace BDArmory.Targeting
                 {
                     if (slaveTurrets)
                     {
-                        weaponManager.slavingTurrets = false;
+                        weaponManager.slavingTurrets = false; //this should already be false...
+                        weaponManager.slavedPosition = Vector3.zero;
+                        weaponManager.slavedTarget = TargetSignatureData.noTarget;
                     }
                 }
             }

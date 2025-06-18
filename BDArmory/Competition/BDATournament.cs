@@ -106,7 +106,7 @@ namespace BDArmory.Competition
         HashSet<string> npcs = [];
         Dictionary<string, List<ScoringData>> scoreDetails = []; // Scores per player per round. Rounds players weren't involved in contain default ScoringData entries.
         List<CompetitionOutcome> competitionOutcomes = [];
-        public static Dictionary<string, float> weights = new()
+        public static readonly Dictionary<string, float> defaultWeights = new()
         {
             {"Wins",                    1f},
             {"Survived",                0f},
@@ -120,12 +120,12 @@ namespace BDArmory.Competition
             {"Hits Taken",              0f},
             {"Bullet Damage",           0.0001f},
             {"Bullet Damage Taken",     4e-05f},
-            {"Rocket Hits",             0.035f},
+            {"Rocket Hits",             0.01f},
             {"Rocket Hits Taken",       0f},
-            {"Rocket Parts Hit",        0.0006f},
+            {"Rocket Parts Hit",        0.0005f},
             {"Rocket Parts Hit Taken",  0f},
-            {"Rocket Damage",           0.00015f},
-            {"Rocket Damage Taken",     5e-05f},
+            {"Rocket Damage",           0.0001f},
+            {"Rocket Damage Taken",     4e-05f},
             {"Missile Hits",            0.15f},
             {"Missile Hits Taken",      0f},
             {"Missile Parts Hit",       0.002f},
@@ -139,10 +139,11 @@ namespace BDArmory.Competition
             {"HP Remaining",            0f},
             {"Accuracy",                0f},
             {"Rocket Accuracy",         0f},
-            {"Waypoint Count",         10f},
-            {"Waypoint Time",          -1f},
-            {"Waypoint Deviation",     -1f}
+            {"Waypoint Count",         1f}, // Waypoint weighting logic: 1 for passing a gate, 1s = 5 deviation, break-even at 60s + 200 deviation per gate.
+            {"Waypoint Time",          -0.01f},
+            {"Waypoint Deviation",     -0.002f}
         };
+        public static Dictionary<string, float> weights = new(defaultWeights);
 
         /// <summary>
         /// Reset scores for a new tournament.
@@ -509,7 +510,7 @@ namespace BDArmory.Competition
 
         public static void SaveWeights()
         {
-            ConfigNode fileNode = ConfigNode.Load(BDArmorySettings.settingsConfigURL);
+            ConfigNode fileNode = ConfigNode.Load(ScoreWindow.scoreWeightsURL) ?? new ConfigNode();
 
             if (!fileNode.HasNode("ScoreWeights"))
             {
@@ -522,13 +523,13 @@ namespace BDArmory.Competition
             {
                 settings.SetValue(kvp.Key, kvp.Value.ToString(), true);
             }
-            fileNode.Save(BDArmorySettings.settingsConfigURL);
+            fileNode.Save(ScoreWindow.scoreWeightsURL);
         }
 
         public static void LoadWeights()
         {
-            ConfigNode fileNode = ConfigNode.Load(BDArmorySettings.settingsConfigURL);
-            if (!fileNode.HasNode("ScoreWeights")) return;
+            ConfigNode fileNode = ConfigNode.Load(ScoreWindow.scoreWeightsURL);
+            if (fileNode == null || !fileNode.HasNode("ScoreWeights")) return;
 
             ConfigNode settings = fileNode.GetNode("ScoreWeights");
 
@@ -636,7 +637,7 @@ namespace BDArmory.Competition
                 case -1: // Auto
                     var autoVesselsPerHeat = OptimiseVesselsPerHeat(craftFiles.Count, npcsPerHeat);
                     vesselsPerHeat = autoVesselsPerHeat.Item1;
-                    fullHeatCount = Mathf.CeilToInt(craftFiles.Count / vesselsPerHeat) - autoVesselsPerHeat.Item2;
+                    fullHeatCount = Mathf.CeilToInt(craftFiles.Count / (float)vesselsPerHeat) - autoVesselsPerHeat.Item2;
                     break;
                 case 0: // Unlimited (all vessels in one heat).
                     vesselsPerHeat = craftFiles.Count;
@@ -644,7 +645,8 @@ namespace BDArmory.Competition
                     break;
                 default:
                     vesselsPerHeat = Mathf.Clamp(Mathf.Max(1, vesselsPerHeat - npcsPerHeat), 1, craftFiles.Count);
-                    fullHeatCount = craftFiles.Count / vesselsPerHeat;
+                    fullHeatCount = Mathf.CeilToInt(craftFiles.Count / (float)vesselsPerHeat) - (Mathf.CeilToInt(craftFiles.Count / (float)vesselsPerHeat) * vesselsPerHeat - craftFiles.Count); // Spread the deficit amongst the other heats if possible.
+                    if (fullHeatCount <= 0) fullHeatCount = craftFiles.Count / vesselsPerHeat;
                     break;
             }
             rounds = [];
@@ -687,7 +689,7 @@ namespace BDArmory.Competition
                                     selectedFiles.ToList() // Add a copy of the craft files list.
                                 ));
                                 count += vesselsThisHeat;
-                                vesselsThisHeat = heatIndex++ < fullHeatCount ? vesselsPerHeat : vesselsPerHeat - 1; // Take one less for the remaining heats to distribute the deficit of craft files.
+                                vesselsThisHeat = ++heatIndex < fullHeatCount ? vesselsPerHeat : vesselsPerHeat - 1; // Take one less for the remaining heats to distribute the deficit of craft files.
                                 selectedFiles = craftFiles.Skip(count).Take(vesselsThisHeat).ToList();
                             }
                         }
@@ -1689,7 +1691,7 @@ namespace BDArmory.Competition
                 StopCoroutine(runTournamentCoroutine);
             runTournamentCoroutine = StartCoroutine(RunTournamentCoroutine());
             if (BDArmorySettings.AUTO_DISABLE_UI) SetGameUI(false);
-            ScoreWindow.SetMode(ScoreWindow.Mode.Tournament);
+            ScoreWindow.SetMode(ScoreWindow.Mode.Tournament, tournamentState.tournamentType == TournamentType.FFA ? Toggle.Off : Toggle.On);
         }
 
         public void StopTournament()
@@ -1711,6 +1713,23 @@ namespace BDArmory.Competition
             spawnerBase = tournamentState.tournamentStyle == TournamentStyle.TemplateRNG ? CustomTemplateSpawning.Instance : CircularSpawning.Instance;
             while (++roundIndex < tournamentState.rounds.Count) // tournamentState.rounds can change during the loop, so we can't just use an iterator now.
             {
+                if (BDArmorySettings.TOURNAMENT_TIMEWARP_BETWEEN_ROUNDS < 0)
+                {
+                    var spawnConfig = tournamentState.rounds[roundIndex][0];
+                    var body = FlightGlobals.Bodies[spawnConfig.worldIndex];
+                    if (!EarlyBird.IsDayTime(spawnConfig.latitude, spawnConfig.longitude, body, 10))
+                    {
+                        SpawnUtils.ShowSpawnPoint(spawnConfig.worldIndex, spawnConfig.latitude, spawnConfig.longitude, spawnConfig.altitude);
+                        BDACompetitionMode.Instance.competitionStatus.Add($"Warping ahead to morning, then running the next round.");
+                        yield return WarpAhead(EarlyBird.TimeToDaylight(
+                            spawnConfig.latitude,
+                            spawnConfig.longitude,
+                            body,
+                            10
+                        )); // Warp to morning +10mins.
+                    }
+                }
+
                 currentRound = roundIndex;
                 foreach (var heatIndex in tournamentState.rounds[roundIndex].Keys)
                 {
@@ -1973,6 +1992,7 @@ namespace BDArmory.Competition
                 yield return new WaitForSeconds(1);
         }
 
+        #region Warping
         GameObject warpCamera;
         IEnumerator WarpAhead(double warpTimeBetweenHeats)
         {
@@ -2064,6 +2084,79 @@ namespace BDArmory.Competition
 
             warpingInProgress = false;
         }
+
+        private class EarlyBird // Based on, but not the same as the EarlyBird mod.
+        {
+            /// <summary>
+            /// The time until the next sunrise (plus offset in minutes).
+            /// </summary>
+            /// <param name="lat">Latitude</param>
+            /// <param name="lon">Longitude</param>
+            /// <param name="body">The celestial body.</param>
+            /// <param name="offset">An offset in minutes.</param>
+            /// <returns>The time until the next sunrise.</returns>
+            public static double TimeToDaylight(double lat, double lon, CelestialBody body, double offset = 0)
+            {
+                if (body.isStar) return 0;
+                var sun = Planetarium.fetch.Sun;
+                var localTime = GetLocalTime(lon, body, sun);
+                offset *= 60 / body.solarDayLength;
+                double dayLength = GetDayLength(lat, body, sun);
+                double timeOfDawn = 0.5 - dayLength / 2 + offset;
+                return (timeOfDawn - localTime + 1.0) % 1.0 * body.solarDayLength;
+            }
+            /// <summary>
+            /// Check whether it's daytime (within the margin) at the give location.
+            /// </summary>
+            /// <param name="lat">Latitude</param>
+            /// <param name="lon">Longitude</param>
+            /// <param name="body">The celestial body.</param>
+            /// <param name="margin">Margin in minutes.</param>
+            /// <returns>True if it's daytime, otherwise false.</returns>
+            public static bool IsDayTime(double lat, double lon, CelestialBody body, double margin = 0)
+            {
+                if (body.isStar) return true;
+                var sun = Planetarium.fetch.Sun;
+                var localTime = GetLocalTime(lon, body, sun);
+                margin *= 60 / body.solarDayLength;
+                double dayLength = GetDayLength(lat, body, sun);
+                double timeOfDawn = 0.5 - dayLength / 2 + margin;
+                double timeOfDusk = 0.5 + dayLength / 2 - margin;
+                return localTime > timeOfDawn && localTime < timeOfDusk;
+            }
+            /// <summary>
+            /// Gets the day length in the range 0—1.
+            /// </summary>
+            /// <param name="lat"></param>
+            /// <param name="body"></param>
+            /// <param name="sun"></param>
+            /// <returns></returns>
+            public static double GetDayLength(double lat, CelestialBody body, CelestialBody sun)
+            {
+                if (body.isStar) return 1;
+                // cos ω₀ = -tan φ * tan δ
+                // ω₀ = solar hour angle, φ = observer latitude, δ = solar declination
+                var solarDeclination = body.GetLatitude(sun.position - body.position, true);
+                var cosW0 = -Math.Tan(lat * Math.PI / 180) * Math.Tan(solarDeclination * Math.PI / 180);
+                if (cosW0 <= -1) return 1;
+                if (cosW0 >= 1) return 0;
+                var solarHourAngle = Math.Acos(cosW0);
+                return solarHourAngle / Math.PI;
+            }
+            /// <summary>
+            /// Gets the local time in the range 0—1 with 0.5 being noon.
+            /// </summary>
+            /// <param name="lon"></param>
+            /// <param name="body"></param>
+            /// <param name="sun"></param>
+            /// <returns></returns>
+            public static double GetLocalTime(double lon, CelestialBody body, CelestialBody sun)
+            {
+                if (body.isStar) return 0.5;
+                return ((lon - body.GetLongitude(sun.position - body.position, true)) % 360 / 360.0 + 1.5) % 1.0;
+            }
+        }
+        #endregion
 
         void SetGameUI(bool enable)
         { if (isActiveAndEnabled) StartCoroutine(SetGameUIWorker(enable)); }
@@ -2203,6 +2296,8 @@ namespace BDArmory.Competition
             Debug.Log($"[BDArmory.BDATournament]: BDArmory settings loaded, auto-load to KSC: {BDArmorySettings.AUTO_LOAD_TO_KSC}, auto-resume tournaments: {BDArmorySettings.AUTO_RESUME_TOURNAMENT}, auto-resume continuous spawn: {BDArmorySettings.AUTO_RESUME_CONTINUOUS_SPAWN}, auto-resume evolution: {BDArmorySettings.AUTO_RESUME_EVOLUTION}, generate clean save: {BDArmorySettings.GENERATE_CLEAN_SAVE}.");
             if (BDArmorySettings.AUTO_RESUME_TOURNAMENT || BDArmorySettings.AUTO_RESUME_CONTINUOUS_SPAWN || BDArmorySettings.AUTO_RESUME_EVOLUTION || BDArmorySettings.AUTO_LOAD_TO_KSC)
             { yield return StartCoroutine(AutoResumeTournament()); }
+            else if (BDArmorySettings.GENERATE_CLEAN_SAVE && TryLoadCleanSlate())
+            { GenerateCleanGame(false); }
         }
 
         IEnumerator AutoResumeTournament()
@@ -2233,7 +2328,7 @@ namespace BDArmory.Competition
             var tic = Time.time;
             sceneLoaded = false;
             if (!(BDArmorySettings.GENERATE_CLEAN_SAVE ? GenerateCleanGame() : LoadGame())) yield break;
-            yield return new WaitUntil(() => (sceneLoaded || Time.time - tic > 10));
+            yield return new WaitUntil(() => sceneLoaded || Time.time - tic > 10);
             if (!sceneLoaded) { Debug.Log("[BDArmory.BDATournament]: Failed to load scene."); yield break; }
             if (!(resumingEvolution || resumingTournament || resumingContinuousSpawn)) yield break; // Just load to the KSC.
             var lastUsedWorldIndex = BDArmorySettings.VESSEL_SPAWN_WORLDINDEX; // Store the last used world index as it gets reset when entering flight mode.
@@ -2366,7 +2461,7 @@ namespace BDArmory.Competition
             return File.Exists(savegame) || BDArmorySettings.GENERATE_CLEAN_SAVE;
         }
 
-        bool GenerateCleanGame()
+        bool GenerateCleanGame(bool startGame = true)
         {
             // Grab the scenarios from the previous persistent game.
             HighLogic.CurrentGame = GamePersistence.LoadGame("persistent", game, true, false);
@@ -2398,7 +2493,7 @@ namespace BDArmory.Competition
             // Update the game state and save it to the persistent save (since that's what eventually ends up getting loaded when we call Start()).
             HighLogic.CurrentGame.Updated();
             GamePersistence.SaveGame("persistent", game, SaveMode.OVERWRITE);
-            HighLogic.CurrentGame.Start();
+            if (startGame) HighLogic.CurrentGame.Start();
             return true;
         }
 

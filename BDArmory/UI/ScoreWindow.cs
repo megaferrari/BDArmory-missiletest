@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
 
@@ -16,20 +17,28 @@ namespace BDArmory.UI
         #region Fields
         public static ScoreWindow Instance;
         public bool _ready = false;
+        public static string scoreWeightsURL = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "GameData/BDArmory/PluginData/score_weights.cfg"));
 
         int _buttonSize = 24;
         static int _guiCheckIndexScores = -1;
         Vector2 windowSize = new Vector2(200, 100);
         bool resizingWindow = false;
-        bool autoResizingWindow = true;
+        public bool autoResizingWindow = true;
         Vector2 scoreScrollPos = default;
         bool showTeamScores = false;
         public enum Mode { Tournament, ContinuousSpawn }
         static Mode mode = Mode.Tournament;
-        public static void SetMode(Mode scoreMode) => Instance.SetMode_(scoreMode);
-        void SetMode_(Mode scoreMode)
+        public static void SetMode(Mode scoreMode, Toggle teamScores = Toggle.NoChange) => Instance.SetMode_(scoreMode, teamScores);
+        void SetMode_(Mode scoreMode, Toggle teamScores)
         {
             mode = scoreMode;
+            showTeamScores = teamScores switch
+            {
+                Toggle.Toggle => !showTeamScores,
+                Toggle.On => true,
+                Toggle.Off => false,
+                _ => showTeamScores
+            };
             LoadWeights();
             ResetWindowSize(true);
         }
@@ -256,6 +265,7 @@ namespace BDArmory.UI
         Dictionary<string, NumericInputField> scoreWeightFields; // The numeric input fields.
         void LoadWeights()
         {
+            if (scoreWeightFields != null) foreach (var value in scoreWeightFields.Values) Destroy(value); // Get rid of any old NumericInputField components.
             switch (mode)
             {
                 case Mode.Tournament:
@@ -287,6 +297,23 @@ namespace BDArmory.UI
                     break;
             }
             RecomputeScores();
+        }
+        void ResetDefaultWeights()
+        {
+            switch (mode)
+            {
+                case Mode.Tournament:
+                    TournamentScores.weights = new(TournamentScores.defaultWeights);
+                    weights = TournamentScores.weights;
+                    break;
+                case Mode.ContinuousSpawn:
+                    ContinuousSpawning.weights = new(ContinuousSpawning.defaultWeights);
+                    weights = ContinuousSpawning.weights;
+                    break;
+            }
+            if (scoreWeightFields != null) foreach (var value in scoreWeightFields.Values) Destroy(value); // Get rid of any old NumericInputField components.
+            scoreWeightFields = weights.ToDictionary(kvp => kvp.Key, kvp => gameObject.AddComponent<NumericInputField>().Initialise(0, kvp.Value));
+            SaveWeights();
         }
         void RecomputeScores()
         {
@@ -326,7 +353,8 @@ namespace BDArmory.UI
         }
         void WindowWeights(int id)
         {
-            GUI.DragWindow(new Rect(0, 0, weightsWindowRect.width - _buttonSize, _buttonSize));
+            GUI.DragWindow(new Rect(4 * _buttonSize, 0, weightsWindowRect.width - 5 * _buttonSize, _buttonSize));
+            if (GUI.Button(new Rect(0, 0, 4 * _buttonSize, _buttonSize), "Defaults", BDArmorySetup.ButtonStyle)) ResetDefaultWeights();
             if (GUI.Button(new Rect(weightsWindowRect.width - _buttonSize, 0, _buttonSize, _buttonSize), " X", BDArmorySetup.CloseButtonStyle)) SetWeightsVisible(false);
             GUILayout.BeginVertical(GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
             weightsScrollPos = GUILayout.BeginScrollView(weightsScrollPos, GUI.skin.box);

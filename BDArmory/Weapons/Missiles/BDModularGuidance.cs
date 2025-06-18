@@ -114,6 +114,9 @@ namespace BDArmory.Weapons.Missiles
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_MissileCMInterval"), UI_FloatRange(minValue = 0f, maxValue = 5f, stepIncrement = 0.05f, scene = UI_Scene.Editor, affectSymCounterparts = UI_Scene.All)]// Missile Countermeasure Interval
         public float MissileCMInterval = 1f;
 
+        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_MissileIFF"), UI_Toggle(controlEnabled = true, enabledText = "#LOC_BDArmory_MissileIFF_enabledText", disabledText = "#LOC_BDArmory_MissileIFF_disabledText", scene = UI_Scene.Editor, affectSymCounterparts = UI_Scene.All)]//Roll Correction--Roll enabled--Roll disabled
+        public bool HasIFF = true;
+
         private Vector3 initialMissileRollPlane;
         private Vector3 initialMissileForward;
 
@@ -186,7 +189,7 @@ namespace BDArmory.Weapons.Missiles
                     GuidanceMode = GuidanceModes.Orbital;
                     GuidanceLabel = "Orbital";
                     break;
-				case 8:
+                case 8:
                     GuidanceMode = GuidanceModes.AAMLoft;
                     GuidanceLabel = "AAM Loft";
                     break;
@@ -580,16 +583,15 @@ namespace BDArmory.Weapons.Missiles
 
         public static bool EngineIgnitedAndHasFuel(Part p)
         {
-            using (List<PartModule>.Enumerator m = p.Modules.GetEnumerator())
-                while (m.MoveNext())
-                {
-                    PartModule pm = m.Current;
-                    ModuleEngines eng = pm as ModuleEngines;
-                    if (eng != null)
-                    {
-                        return (eng.EngineIgnited && (!eng.getFlameoutState || eng.flameoutBar == 0 || eng.status == "Nominal"));
-                    }
-                }
+            using List<PartModule>.Enumerator m = p.Modules.GetEnumerator();
+            while (m.MoveNext())
+            {
+                PartModule pm = m.Current;
+                ModuleEngines eng = pm as ModuleEngines;
+                if (eng == null) continue;
+                if (eng.EngineIgnited && (!eng.getFlameoutState || eng.flameoutBar == 0 || eng.status == "Nominal"))
+                    return true;
+            }
             return false;
         }
 
@@ -620,6 +622,7 @@ namespace BDArmory.Weapons.Missiles
             chaffEffectivity = ChaffEffectivity;
             missileCMRange = MissileCMRange;
             missileCMInterval = MissileCMInterval;
+            hasIFF = HasIFF;
             //TODO: BDModularGuidance should be configurable?
             heatThreshold = 50;
             lockedSensorFOV = 5;
@@ -845,6 +848,23 @@ namespace BDArmory.Weapons.Missiles
                     aamTarget = MissileGuidance.GetAPNTarget(TargetPosition, TargetVelocity, TargetAcceleration, vessel, 3f, out timeToImpact, out gLimit);
                 else if (GuidanceIndex == 5) // Pro-Nav
                     aamTarget = MissileGuidance.GetPNTarget(TargetPosition, TargetVelocity, vessel, 3f, out timeToImpact, out gLimit);
+                else if (GuidanceIndex == 8) // Loft
+                {
+                    float targetAlt = FlightGlobals.getAltitudeAtPos(TargetPosition);
+
+                    if (TimeToImpact == float.PositiveInfinity)
+                    {
+                        // If the missile is not in a vaccuum, is above LoftMinAltitude and has an angle to target below the climb angle (or 90 - climb angle if climb angle > 45) (in this case, since it's angle from the vertical the check is if it's > 90f - LoftAngle) and is either is at a lower altitude than targetAlt + LoftAltitudeAdvMax or further than LoftRangeOverride, then loft.
+                        if (!vessel.InVacuum() && (vessel.altitude >= LoftMinAltitude) && Vector3.Angle(TargetPosition - vessel.CoM, vessel.upAxis) > Mathf.Min(LoftAngle, 90f - LoftAngle) && ((vessel.altitude - targetAlt <= LoftAltitudeAdvMax) || (TargetPosition - vessel.CoM).sqrMagnitude > (LoftRangeOverride * LoftRangeOverride))) loftState = LoftStates.Boost;
+                        else loftState = LoftStates.Terminal;
+                    }
+                    float currgLimit = -1;
+                    aamTarget = MissileGuidance.GetAirToAirLoftTarget(TargetPosition, TargetVelocity, TargetAcceleration, vessel, targetAlt, LoftMaxAltitude, LoftRangeFac, LoftVertVelComp, LoftVelComp, LoftAngle, LoftTermAngle, terminalHomingRange, ref loftState, out float currTimeToImpact, out currgLimit, out float rangeToTarget, homingModeTerminal, 3);
+
+                    float fac = (1 - (rangeToTarget - terminalHomingRange - 100f) / Mathf.Clamp(terminalHomingRange * 4f, 5000f, 25000f));
+
+                    timeToImpact = currTimeToImpact;
+                }
                 else // AAM Lead
                     aamTarget = MissileGuidance.GetAirToAirTargetModular(TargetPosition, TargetVelocity, TargetAcceleration, vessel, out timeToImpact);
                 TimeToImpact = timeToImpact;
@@ -917,13 +937,13 @@ namespace BDArmory.Weapons.Missiles
                 Vector3 targetAcceleration = TargetAcceleration;
                 Vector3 targetVelocity = TargetVelocity + Time.fixedDeltaTime * targetAcceleration;
                 Vector3 targetPosition = TargetPosition + TimeWarp.fixedDeltaTime * targetVelocity;
-                
+
                 Vector3 targetVector = targetPosition - vessel.CoM;
                 Vector3 relVel = vessel.Velocity() - targetVelocity;
 
                 Vector3 relVelNrm = relVel.normalized;
                 Vector3 interceptVector;
-                float relVelmag = relVel.magnitude;  
+                float relVelmag = relVel.magnitude;
 
                 // Calculate max accel
                 Vector3 propulsionVector = vessel.transform.InverseTransformDirection(-GetFireVector(engines, rcsThrusters, -forwardDir));
@@ -999,7 +1019,7 @@ namespace BDArmory.Weapons.Missiles
             rcsThrusters = VesselModuleRegistry.GetModules<ModuleRCS>(vessel);
 
             // Set up clearance maneuver
-            vacuumClearanceState = (engines.Any() && vessel.InVacuum()) ? VacuumClearanceStates.Clearing : VacuumClearanceStates.Cleared; 
+            vacuumClearanceState = (engines.Any() && vessel.InVacuum()) ? VacuumClearanceStates.Clearing : VacuumClearanceStates.Cleared;
 
             // Get a probe core and align its reference transform with the propulsion vector.
             ModuleCommand commander = VesselModuleRegistry.GetModuleCommand(vessel);
@@ -1180,7 +1200,7 @@ namespace BDArmory.Weapons.Missiles
             {
                 if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.BDModularGuidance]: Missile CheckMiss showed miss for {vessel.vesselName}");
 
-                var pilotAI = VesselModuleRegistry.GetModule<BDModulePilotAI>(vessel); // Get the pilot AI if the  missile has one.
+                var pilotAI = VesselModuleRegistry.GetModule<BDModulePilotAI>(vessel); // Get the pilot AI if the missile has one.
                 if (pilotAI != null)
                 {
                     ResetMissile();
@@ -1255,6 +1275,9 @@ namespace BDArmory.Weapons.Missiles
                     case 7:
                         newTargetPosition = OrbitalGuidance();
                         break;
+                    case 8:
+                        newTargetPosition = AAMGuidance();
+                        break;
                 }
                 CheckMiss(newTargetPosition);
 
@@ -1325,7 +1348,7 @@ namespace BDArmory.Weapons.Missiles
                         }
                         else
                             s.mainThrottle = Throttle;
-                        
+
                         // Update SAS
                         if (attitude == Vector3.zero) return;
 
@@ -1508,17 +1531,17 @@ namespace BDArmory.Weapons.Missiles
                 SourceVessel = vessel;
                 SetTargeting();
                 Jettison();
-                AddTargetInfoToVessel();
-                IncreaseTolerance();
 
                 BDATargetManager.FiredMissiles.Add(this);
 
-                var wpm = VesselModuleRegistry.GetMissileFire(vessel, true);
+                var wpm = VesselModuleRegistry.GetMissileFire(SourceVessel, true);
                 if (wpm != null)
                 {
                     Team = wpm.Team;
                     wpm.UpdateMissilesAway(targetVessel, this);
                 }
+                AddTargetInfoToVessel(); // Wait until we've assigned the team before adding target info.
+                IncreaseTolerance();
 
                 initialMissileRollPlane = -vessel.transform.up;
                 initialMissileForward = vessel.transform.forward;
@@ -1581,7 +1604,7 @@ namespace BDArmory.Weapons.Missiles
         public void SwitchGuidanceMode()
         {
             GuidanceIndex++;
-            if (GuidanceIndex > 7)
+            if (GuidanceIndex > 8)
             {
                 GuidanceIndex = 1;
             }

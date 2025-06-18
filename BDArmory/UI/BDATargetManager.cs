@@ -499,7 +499,7 @@ namespace BDArmory.UI
             return decoyTarget;
         }
 
-        public static TargetSignatureData GetHeatTarget(Vessel sourceVessel, Vessel missileVessel, Ray ray, TargetSignatureData priorHeatTarget, float scanRadius, float highpassThreshold, float frontAspectHeatModifier, bool uncagedLock, bool targetCoM, FloatCurve lockedSensorFOVBias, FloatCurve lockedSensorVelocityBias, MissileFire mf = null, TargetInfo desiredTarget = null)
+        public static TargetSignatureData GetHeatTarget(Vessel sourceVessel, Vessel missileVessel, Ray ray, TargetSignatureData priorHeatTarget, float scanRadius, float highpassThreshold, float frontAspectHeatModifier, bool uncagedLock, bool targetCoM, FloatCurve lockedSensorFOVBias, FloatCurve lockedSensorVelocityBias, MissileFire mf = null, TargetInfo desiredTarget = null, bool IFF = true)
         {
             float minMass = missileVessel.InNearVacuum() ? 0f : 0.05f;  // FIXME, RAMs need min mass of 0.05, but orbital KKVs mass < 0.05
             TargetSignatureData finalData = TargetSignatureData.noTarget;
@@ -543,7 +543,7 @@ namespace BDArmory.UI
                 // Abort if target is friendly.
                 if (mf != null)
                 {
-                    if (mf.Team.IsFriendly(tInfo.Team))
+                    if (IFF && mf.Team.IsFriendly(tInfo.Team))
                         continue;
                 }
                 // Abort if target is a missile that we've shot
@@ -766,7 +766,7 @@ namespace BDArmory.UI
             return new Tuple<float, Part>(noiseScore, NoisePart);
         }
 
-        public static TargetSignatureData GetAcousticTarget(Vessel sourceVessel, Vessel missileVessel, Ray ray, TargetSignatureData priorNoiseTarget, float scanRadius, float highpassThreshold, bool targetCoM, FloatCurve lockedSensorFOVBias, FloatCurve lockedSensorVelocityBias, MissileFire mf = null, TargetInfo desiredTarget = null)
+        public static TargetSignatureData GetAcousticTarget(Vessel sourceVessel, Vessel missileVessel, Ray ray, TargetSignatureData priorNoiseTarget, float scanRadius, float highpassThreshold, bool targetCoM, FloatCurve lockedSensorFOVBias, FloatCurve lockedSensorVelocityBias, MissileFire mf = null, TargetInfo desiredTarget = null, bool IFF = true)
         {
             TargetSignatureData finalData = TargetSignatureData.noTarget;
             float finalScore = 0;
@@ -804,7 +804,7 @@ namespace BDArmory.UI
                 // Abort if target is friendly.
                 if (mf != null)
                 {
-                    if (mf.Team.IsFriendly(tInfo.Team))
+                    if (IFF && mf.Team.IsFriendly(tInfo.Team))
                         continue;
                 }
 
@@ -948,11 +948,11 @@ namespace BDArmory.UI
                 string aspectedText = "";
                 if (BDArmorySettings.ASPECTED_RCS)
                 {
-                    aspectedText += ", For/Aft: " + RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, forward).ToString("0.00") + "/" + RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, aft).ToString("0.00");
-                    aspectedText += ", Side: " + RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, side).ToString("0.00");
-                    aspectedText += ", Top/Bot: " + RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, top).ToString("0.00") + "/" + RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, bottom).ToString("0.00");
+                    aspectedText += ", For/Aft: " + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, forward)) + "/" + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, aft));
+                    aspectedText += ", Side: " + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, side));
+                    aspectedText += ", Top/Bot: " + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, top)) + "/" + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, bottom));
                 }
-                debugString.AppendLine($"Radar Signature: " + radarSig.radarModifiedSignature.ToString("0.00") + aspectedText);
+                debugString.AppendLine($"Radar Signature: " + RadarUtils.RCSString(radarSig.radarModifiedSignature) + aspectedText);
                 debugString.AppendLine($"Chaff multiplier: " + RadarUtils.GetVesselChaffFactor(activeVessel).ToString("0.0"));
 
                 var ecmjInfo = activeVessel.gameObject.GetComponent<VesselECMJInfo>();
@@ -1170,7 +1170,7 @@ namespace BDArmory.UI
                     db.Current.Value.Remove(target);
         }
 
-        public static void ReportVessel(Vessel v, MissileFire reporter, bool radar = false)
+        public static void ReportVessel(Vessel v, MissileFire reporter, bool radar = false, bool initialSetup = false)
         {
             if (!v) return;
             if (!reporter) return;
@@ -1213,7 +1213,7 @@ namespace BDArmory.UI
                         }
                     }
             }
-
+            if (initialSetup) return;
             // add target to database
             if (info && reporter.Team.IsEnemy(info.Team))
             {
@@ -1468,7 +1468,7 @@ namespace BDArmory.UI
                         float targetScore = (target.Current == mf.currentTarget ? mf.targetBias : 1f) * (
                             1f +
                             mf.targetWeightRange * target.Current.TargetPriRange(mf) +
-                            mf.targetWeightAirPreference * target.Current.TargetPriEngagement(target.Current.weaponManager) +
+                            mf.targetWeightAirPreference * target.Current.TargetPriEngagement(target.Current.weaponManager, mf.vessel.radarAltitude) +
                             mf.targetWeightATA * target.Current.TargetPriATA(mf) +
                             mf.targetWeightAccel * target.Current.TargetPriAcceleration() +
                             mf.targetWeightClosureTime * target.Current.TargetPriClosureTime(mf) +
@@ -1493,7 +1493,7 @@ namespace BDArmory.UI
             {
                 finalTarget.debugTargetPriorities = [.. debugTargetScores.OrderByDescending(s => s.Item2)];
                 if (BDArmorySettings.DEBUG_AI)
-                    Debug.Log($"[BDArmory.BDATargetManager]: Selected {(finalTarget != null ? finalTarget.Vessel.GetName() : "null")} with target score of {finalTargetScore:0.00} amongst {string.Join(", ", finalTarget.debugTargetPriorities.Select(s => $"{s.Item1}: {s.Item2:0.00}"))}");
+                    Debug.Log($"[BDArmory.BDATargetManager]: {mf.vessel.vesselName} Selected {(finalTarget != null ? finalTarget.Vessel.GetName() : "null")} with target score of {finalTargetScore:0.00} amongst {string.Join(", ", finalTarget.debugTargetPriorities.Select(s => $"{s.Item1}: {s.Item2:0.00}"))}, {TargetList(mf.Team).Count} total potential targets");
             }
 
             mf.UpdateTargetPriorityUI(finalTarget);
@@ -1596,14 +1596,17 @@ namespace BDArmory.UI
                 {
                     if (target.Current == null) continue;
                     if (mf.PDMslTgts.Contains(target.Current)) continue;
+                    //Debug.Log($"[BDArmory.BDAtargetManager - {(mf.vessel != null ? mf.vessel.GetName() : "null")}] closestMissileThreat, checking {target.Current.Vessel.name}");
                     if (target.Current && target.Current.Vessel && target.Current.isMissile && mf.CanSeeTarget(target.Current))
                     {
+                        //Debug.Log($"[BDArmory.BDAtargetManager - {(mf.vessel != null ? mf.vessel.GetName() : "null")}] closestMissileThreat, {target.Current.Vessel.name} is missile...");
                         if (RadarUtils.MissileIsThreat(target.Current.MissileBaseModule, mf, false))
                         {
                             //if (target.Current.NumFriendliesEngaging(mf.Team) >= 0) continue;
                             if (finalTarget == null || target.Current.IsCloser(finalTarget, mf))
                             {
                                 finalTarget = target.Current;
+                                //Debug.Log($"[BDArmory.BDAtargetManager - {(mf.vessel != null ? mf.vessel.GetName() : "null")}] and is threat.");
                             }
                         }
                     }
