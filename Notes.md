@@ -17,6 +17,11 @@
     /home/user/Games/KSP-copy
     ```
     In Windows, the additional files `pdb2mdb_exe.txt`, `7za_exe.txt` and `dist_dir.txt` may need creating with paths to the appropriate executables and folder.
+- BDArmory should then be able to be built with:
+    ```bash
+    export FrameWorkPathOverride=/usr/lib/mono/4.8-api/  # I recommend putting this into a .envrc file and using direnv.
+    dotnet build --configuration Debug  # Use "--configuration Release" for a release build.
+    ```
 - Install UnityHub and install the `2019.4.18f1` editor. Then copy the playback engine to the KSP folder and create a symlink to it to replace the default playback engine. E.g.,
     ```bash
     cd ~/Games/KSP
@@ -28,6 +33,8 @@
     ```bash
     ln -sf UnityPlayer.so.orig UnityPlayer.so
     ```
+- Logged exceptions and errors should then give a stack trace with line numbers.
+- Profiling can be achieved by creating a project in UnityHub, launching the profiling window and connecting it to a running instance of KSP.
 
 ### Branches
 Current un-merged branches (`git branch --no-merged`) are:
