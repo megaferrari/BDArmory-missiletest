@@ -1,3 +1,34 @@
+### Building / Debugging
+- Based on https://forum.kerbalspaceprogram.com/topic/102909-ksp-plugin-debugging-and-profiling-for-visual-studio-and-monodevelop-on-all-os/
+- Create a folder `_LocalDev` above the cloned repository, e.g., in Linux:
+    ```
+    |— _LocalDev/
+    |  |— ksp_dir.txt
+    |  |— KSPRefs → <KSP folder>/KSP_Data/Managed
+    |— BDArmory/
+    |  |— .git/
+    |  |— BDArmory/
+    |— OtherMods
+    |  |— ...
+    ```
+- Add paths to KSP installations in `ksp_dir.txt`. E.g.,
+    ```
+    /home/user/Games/KSP
+    /home/user/Games/KSP-copy
+    ```
+    In Windows, the additional files `pdb2mdb_exe.txt`, `7za_exe.txt` and `dist_dir.txt` may need creating with paths to the appropriate executables and folder.
+- Install UnityHub and install the `2019.4.18f1` editor. Then copy the playback engine to the KSP folder and create a symlink to it to replace the default playback engine. E.g.,
+    ```bash
+    cd ~/Games/KSP
+    mv UnityPlayer.so UnityPlayer.so.orig
+    cp ~/Unity/Hub/Editors/2019.4.18f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport/Variations/linux64_withgfx_development_mono/UnityPlayer.so UnityPlayer.so.debug
+    ln -sf UnityPlayer.so.debug UnityPlayer.so
+    ```
+    Reverting to the non-development playback engine can be done by switching the symlink:
+    ```bash
+    ln -sf UnityPlayer.so.orig UnityPlayer.so
+    ```
+
 ### Branches
 Current un-merged branches (`git branch --no-merged`) are:
 - AoA — respecting maxAoA and max G-load AI settings
