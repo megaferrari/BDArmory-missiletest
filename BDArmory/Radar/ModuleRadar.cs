@@ -510,7 +510,7 @@ namespace BDArmory.Radar
                 }
                 radarTransform = radarTransformName != string.Empty ? part.FindModelTransform(radarTransformName) : part.transform;
 
-                attemptedLocks = new TargetSignatureData[maxLocks];
+                attemptedLocks = new TargetSignatureData[Math.Max(maxLocks,6)];
                 //lockSuccesses = new bool[maxLocks];
                 TargetSignatureData.ResetTSDArray(ref attemptedLocks);
                 lockedTargets = new List<TargetSignatureData>();
@@ -815,7 +815,7 @@ namespace BDArmory.Radar
 
             for (int i = 0; i < attemptedLocks.Length; i++)
             {
-                if (attemptedLocks[i].exists && (attemptedLocks[i].predictedPosition - position).sqrMagnitude < 40 * 40) //(lockSuccesses[i] && attemptedLocks[i].exists && (attemptedLocks[i].predictedPosition - position).sqrMagnitude < 40 * 40)
+                if (attemptedLocks[i].exists && (attemptedLocks[i].predictedPosition - position).sqrMagnitude < 40.0 * 40.0) //(lockSuccesses[i] && attemptedLocks[i].exists && (attemptedLocks[i].predictedPosition - position).sqrMagnitude < 40 * 40)
                 {
                     // If locked onto a vessel that was not our target, return false
                     if ((attemptedLocks[i].vessel != null) && (targetVessel != null) && (attemptedLocks[i].vessel != targetVessel))

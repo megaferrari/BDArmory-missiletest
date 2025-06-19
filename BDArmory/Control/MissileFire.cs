@@ -7734,8 +7734,8 @@ namespace BDArmory.Control
         { //TODO BDModularGuidance: implement all targetings on base
             bool dumbfire = false;
             bool validTarget = false;
-            if (targetVessel == null)
-                targetVessel = guardTarget;
+            //if (targetVessel == null)
+            //    targetVessel = guardTarget;
             switch (ml.TargetingMode)
             {
                 case MissileBase.TargetingModes.Laser:
@@ -7759,11 +7759,13 @@ namespace BDArmory.Control
                             if ((designatedGPSInfo.worldPos - targetVessel.CoM).sqrMagnitude > 100)
                             {
                                 ml.targetGPSCoords = designatedGPSCoords;
+                                ml.TargetAcquired = true;
                                 validTarget = true;
                             }
                             else if (foundCam && (foundCam.groundTargetPosition - targetVessel.CoM).sqrMagnitude > Mathf.Max(400, 0.013f * (float)targetVessel.srfSpeed * (float)targetVessel.srfSpeed))
                             {
                                 ml.targetGPSCoords = VectorUtils.WorldPositionToGeoCoords(foundCam.groundTargetPosition, vessel.mainBody);
+                                ml.TargetAcquired = true;
                                 validTarget = true;
                             }
                             else if (vesselRadarData && vesselRadarData.locked)
@@ -7774,6 +7776,7 @@ namespace BDArmory.Control
                                     if (possibleTargets[i].vessel == targetVessel)
                                     {
                                         ml.targetGPSCoords = possibleTargets[i].geoPos;
+                                        ml.TargetAcquired = true;
                                         validTarget = true;
                                         break;
                                     }
@@ -7784,19 +7787,26 @@ namespace BDArmory.Control
                         if (!validTarget)
                         {
                             if (targetData != null)
+                            {
                                 ml.targetGPSCoords = targetData.targetGEOPos;
+                                ml.TargetAcquired = true;
+                            }
                             else if (designatedGPSCoords != Vector3d.zero)
+                            {
                                 ml.targetGPSCoords = designatedGPSCoords;
-                            ml.TargetAcquired = true;
+                                ml.TargetAcquired = true;
+                            }
+                            else if (ml.GetWeaponClass() == WeaponClasses.Bomb)
+                            {
+                                dumbfire = true;
+                                validTarget = true;
+                            }
+                            
                             if (laserPointDetected)
                                 ml.lockedCamera = foundCam;
                             if (guardMode && GPSDistanceCheck(VectorUtils.GetWorldSurfacePostion(ml.targetGPSCoords, vessel.mainBody), targetVessel)) validTarget = true;
                         }
-                        else if (ml.GetWeaponClass() == WeaponClasses.Bomb)
-                        {
-                            dumbfire = true;
-                            validTarget = true;
-                        }
+                        
                         if (vesselRadarData)
                         {
                             ml.vrd = vesselRadarData;
@@ -7827,15 +7837,20 @@ namespace BDArmory.Control
                                     if (possibleTargets[i].vessel == targetVessel)
                                     {
                                         ml.radarTarget = possibleTargets[i]; //send correct targetlock if firing multiple SARH missiles
+                                        break;
                                     }
                                 }
                             }
-                            else ml.radarTarget = vesselRadarData.lockedTargetData.targetData;
+                            else
+                                ml.radarTarget = vesselRadarData.lockedTargetData.targetData;
                             ml.vrd = vesselRadarData;
                             vesselRadarData.LastMissile = ml;
 
-                            var radarTgtvessel = vesselRadarData.lockedTargetData.targetData.vessel.gameObject;
-                            if (radarTgtvessel) ml.targetVessel = radarTgtvessel.GetComponent<TargetInfo>();
+                            if (ml.radarTarget.vessel)
+                            {
+                                var radarTgtvessel = ml.radarTarget.vessel.gameObject;
+                                if (radarTgtvessel) ml.targetVessel = radarTgtvessel.GetComponent<TargetInfo>();
+                            }
                         }
                         else
                         {
