@@ -848,7 +848,7 @@ namespace BDArmory.Weapons.Missiles
                 Fields["detonationTime"].guiActive = false;
                 Fields["detonationTime"].guiActiveEditor = false;
             }
-            if (GuidanceMode != GuidanceModes.Cruise)
+            if (GuidanceMode != GuidanceModes.Cruise && (!terminalHoming || homingModeTerminal != GuidanceModes.Cruise))
             {
                 CruiseAltitudeRange();
                 Fields["CruiseAltitude"].guiActive = false;
@@ -861,9 +861,22 @@ namespace BDArmory.Weapons.Missiles
             }
             else
             {
-                maxCruiseSpeed = CruiseSpeed;
+                string maxCruiseSpeedString = ConfigNodeUtils.FindPartModuleConfigNodeValue(part.partInfo.partConfig, "MissileLauncher", "CruiseSpeed");
+                if (!string.IsNullOrEmpty(maxCruiseSpeedString)) // Use the default value from the MM patch.
+                {
+                    try
+                    {
+                        maxCruiseSpeed = float.Parse(maxCruiseSpeedString);
+                        if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileLauncher]: setting maxCruiseSpeed of " + part + " on " + part.vessel.vesselName + " to " + maxCruiseSpeed);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError("[BDArmory.MissileLauncher]: Failed to parse maxCruiseSpeed configNode: " + e.Message);
+                    }
+                }
                 UI_FloatRange CruiseSpeedRange = (UI_FloatRange)Fields["CruiseSpeed"].uiControlEditor;
-                CruiseSpeedRange.maxValue = CruiseSpeed;
+                CruiseSpeedRange.maxValue = maxCruiseSpeed;
+                CruiseSpeedRange.stepIncrement = Mathf.Clamp((maxCruiseSpeed - 100f) * 0.1f, 5f, 50f);
                 CruiseAltitudeRange();
                 Fields["CruiseAltitude"].guiActive = true;
                 Fields["CruiseAltitude"].guiActiveEditor = true;

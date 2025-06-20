@@ -1925,7 +1925,7 @@ namespace BDArmory.Control
                         queuedLaunches.Add(target, [sourceVessel ? 1 : 0, activeSARH ? 1 : 0]);
                     }
                     else
-                        Debug.LogWarning($"[BDArmory.MissileFire] Attempted to remove missile: {missile.shortName} from queuedLaunches for: {target.Vessel.GetName()} but no entry was found!");
+                        Debug.LogWarning($"[BDArmory.MissileFire] {vessel.GetName()} Attempted to remove missile: {missile.shortName} from queuedLaunches for: {target.Vessel.GetName()} but no entry was found! queuedLaunches: {string.Join(", ", queuedLaunches.Select(ql => $"{ql.Key.Vessel.GetName()}:{string.Join(",", ql.Value)}"))}");
                 }
                 if (sourceVessel && target == currentTarget)
                 {
@@ -1935,7 +1935,7 @@ namespace BDArmory.Control
                         firedMissiles--;
                 }
                 if (BDArmorySettings.DEBUG_MISSILES)
-                    Debug.Log($"[BDArmory.MissileFire] Updating queuedLaunches for {((target != null && target.Vessel != null) ? target.Vessel.GetName() : "null")}, activeSARH: {activeSARH}, addition: {addition}.");
+                    Debug.Log($"[BDArmory.MissileFire] {vessel.GetName()} Updating queuedLaunches for {((target != null && target.Vessel != null) ? target.Vessel.GetName() : "null")}, activeSARH: {activeSARH}, addition: {addition}.");
             }
             //else
             //    Debug.LogWarning($"[BDArmory.MissileFire] Attempted to update queuedLaunches with missile: {missile.shortName} but target was null!");
