@@ -745,7 +745,7 @@ namespace BDArmory.Weapons.Missiles
             float timeGap = (60 / rippleRPM) * TimeWarp.CurrentRate;
             int TargetID = 0;
             bool missileRegistry = true;
-            bool removeFromQueue = true;
+            bool removeFromQueue = !isLaunchedClusterMissile;
             List<TargetInfo> firedTargets = [];
             //missileSpawner.MissileName = subMunitionName;
 
@@ -1241,6 +1241,17 @@ namespace BDArmory.Weapons.Missiles
                 if (missileRegistry)
                 {
                     BDATargetManager.FiredMissiles.Add(ml); //so multi-missile salvoes only count as a single missile fired by the WM for maxMissilesPerTarget
+
+                    if (removeFromQueue)
+                    {
+                        if (ml.radarTarget.exists && ml.radarTarget.lockedByRadar && ml.radarTarget.lockedByRadar.vessel != ml.SourceVessel)
+                        {
+                            MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(ml.radarTarget.lockedByRadar.vessel, true);
+                            if (datalinkwpm)
+                                datalinkwpm.UpdateQueuedLaunches(ml.targetVessel, ml, false, false);
+                        }
+                    }
+
                     if (wpm)
                     {
                         if (removeFromQueue)
@@ -1249,17 +1260,6 @@ namespace BDArmory.Weapons.Missiles
                             removeFromQueue = false;
                         }
                         wpm.UpdateMissilesAway(ml.targetVessel, ml);
-
-                        if (ml.radarTarget.exists && ml.radarTarget.lockedByRadar && ml.radarTarget.lockedByRadar.vessel != ml.SourceVessel)
-                        {
-                            MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(ml.radarTarget.lockedByRadar.vessel, true);
-                            if (datalinkwpm)
-                            {
-                                datalinkwpm.UpdateMissilesAway(ml.targetVessel, ml, false);
-                                if (removeFromQueue)
-                                    datalinkwpm.UpdateQueuedLaunches(ml.targetVessel, ml, false, false);
-                            }
-                        }
                     }
                     if (BDArmorySettings.DEBUG_MISSILES)
                         Debug.Log($"[BDArmory.MultiMissileLauncher]: Missile {ml.shortName} with target {(ml.targetVessel != null ? ml.targetVessel.Vessel.GetName() : "null vessel")} added to FiredMissiles.");

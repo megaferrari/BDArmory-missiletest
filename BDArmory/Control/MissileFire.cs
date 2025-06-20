@@ -2022,7 +2022,7 @@ namespace BDArmory.Control
                     sourceVessel = missileBase.SourceVessel == this.vessel;
                     if (!sourceVessel)
                     {
-                        if (!missileBase.ActiveRadar && missileBase.TargetingMode == MissileBase.TargetingModes.Radar && missileBase.vrd && missileBase.radarTarget.exists)
+                        if (!missileBase.ActiveRadar && missileBase.TargetingMode == MissileBase.TargetingModes.Radar && missileBase.radarTarget.exists && missileBase.radarTarget.lockedByRadar)
                         {
                             if (missileBase.radarTarget.lockedByRadar.vessel != this.vessel)
                                 continue;

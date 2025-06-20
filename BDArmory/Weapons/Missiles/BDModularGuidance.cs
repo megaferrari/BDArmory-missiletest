@@ -1608,13 +1608,6 @@ namespace BDArmory.Weapons.Missiles
                     wpm.UpdateMissilesAway(targetVessel, this);
                 }
 
-                if (radarTarget.exists && radarTarget.lockedByRadar && radarTarget.lockedByRadar.vessel != SourceVessel)
-                {
-                    MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(radarTarget.lockedByRadar.vessel, true);
-                    if (datalinkwpm)
-                        datalinkwpm.UpdateMissilesAway(targetVessel, this, false);
-                }
-
                 initialMissileRollPlane = -vessel.transform.up;
                 initialMissileForward = vessel.transform.forward;
                 vessel.vesselName = GetShortName();
