@@ -1308,6 +1308,7 @@ namespace BDArmory.Weapons.Missiles
                     //multiLauncher.rippleRPM = wpm.rippleRPM;               
                     //if (wpm.rippleRPM > 0) multiLauncher.rippleRPM = wpm.rippleRPM;
                     multiLauncher.Team = Team;
+                    launched = true;
                     if (reloadableRail && reloadableRail.ammoCount >= 1 || BDArmorySettings.INFINITE_ORDINANCE)
                     {
                         if (wpm)
@@ -1320,7 +1321,6 @@ namespace BDArmory.Weapons.Missiles
                         }
                         multiLauncher.fireMissile();
                     }
-                    launched = true;
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: firing Multilauncher! {vessel.vesselName}; {multiLauncher.subMunitionName}");
                 }
                 else //isClusterMissile

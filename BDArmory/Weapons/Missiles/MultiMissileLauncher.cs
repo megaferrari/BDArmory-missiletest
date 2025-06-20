@@ -731,7 +731,7 @@ namespace BDArmory.Weapons.Missiles
                                 MissileLauncher launcher = ml as MissileLauncher;
                                 if (launcher != null)
                                 {
-                                    if (launcher.HasFired) continue;
+                                    if (launcher.HasFired || launcher.launched) continue;
                                     launcher.FireMissile();
                                 }
                             }
@@ -1244,11 +1244,11 @@ namespace BDArmory.Weapons.Missiles
 
                     if (removeFromQueue)
                     {
-                        if (ml.radarTarget.exists && ml.radarTarget.lockedByRadar && ml.radarTarget.lockedByRadar.vessel != ml.SourceVessel)
+                        if (missileLauncher.radarTarget.exists && missileLauncher.radarTarget.lockedByRadar && missileLauncher.radarTarget.lockedByRadar.vessel != missileLauncher.SourceVessel)
                         {
                             MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(ml.radarTarget.lockedByRadar.vessel, true);
                             if (datalinkwpm)
-                                datalinkwpm.UpdateQueuedLaunches(ml.targetVessel, ml, false, false);
+                                datalinkwpm.UpdateQueuedLaunches(missileLauncher.targetVessel, missileLauncher, false, false);
                         }
                     }
 
@@ -1256,7 +1256,7 @@ namespace BDArmory.Weapons.Missiles
                     {
                         if (removeFromQueue)
                         {
-                            wpm.UpdateQueuedLaunches(ml.targetVessel, ml, false);
+                            wpm.UpdateQueuedLaunches(missileLauncher.targetVessel, missileLauncher, false);
                             removeFromQueue = false;
                         }
                         wpm.UpdateMissilesAway(ml.targetVessel, ml);
