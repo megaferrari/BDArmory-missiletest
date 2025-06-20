@@ -4414,8 +4414,6 @@ namespace BDArmory.Control
         }
 
         readonly HashSet<uint> baysOpened = [];
-        private readonly bool locksMaxed;
-
         bool SetCargoBays()
         {
             bool openingBays = false;

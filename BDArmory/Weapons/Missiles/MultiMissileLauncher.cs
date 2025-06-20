@@ -976,7 +976,7 @@ namespace BDArmory.Weapons.Missiles
                                         if (wpm.missilesAway[targetsAssigned[t]][0] < wpm.maxMissilesOnTarget)
                                         {
                                             TargetID = t; //so go through and advance the target list start point based on who's already been fully engaged
-                                                          //Debug.Log($"[MML Targeting Debug] advancing targetID to {TargetID}: {targetsAssigned[TargetID].Vessel.GetName()}");
+                                            //Debug.Log($"[MML Targeting Debug] advancing targetID to {TargetID}: {targetsAssigned[TargetID].Vessel.GetName()}");
                                             break;
                                         }
                                     }
@@ -1238,7 +1238,7 @@ namespace BDArmory.Weapons.Missiles
                     }
                     ml.GpsUpdateMax = wpm.GpsUpdateMax;
                 }
-                if (missileRegistry)
+                if (missileRegistry || removeFromQueue)
                 {
                     BDATargetManager.FiredMissiles.Add(ml); //so multi-missile salvoes only count as a single missile fired by the WM for maxMissilesPerTarget
 

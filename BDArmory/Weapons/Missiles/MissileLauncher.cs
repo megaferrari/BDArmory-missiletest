@@ -339,6 +339,7 @@ namespace BDArmory.Weapons.Missiles
 
         private float burnRate = 0;
         private float burnedFuelMass = 0;
+        private float maxCruiseSpeed = 300f;
 
         private int cruiseTerminationFrames = 0;
 
@@ -860,6 +861,9 @@ namespace BDArmory.Weapons.Missiles
             }
             else
             {
+                maxCruiseSpeed = CruiseSpeed;
+                UI_FloatRange CruiseSpeedRange = (UI_FloatRange)Fields["CruiseSpeed"].uiControlEditor;
+                CruiseSpeedRange.maxValue = CruiseSpeed;
                 CruiseAltitudeRange();
                 Fields["CruiseAltitude"].guiActive = true;
                 Fields["CruiseAltitude"].guiActiveEditor = true;
@@ -1624,6 +1628,8 @@ namespace BDArmory.Weapons.Missiles
                 part.explosionPotential = 0; // Minimise the default part explosion FX that sometimes gets offset from the main explosion.
                 vacuumClearanceState = (GuidanceMode == GuidanceModes.Orbital && vacuumSteerable && part.atmDensity <= 0.001f && missileTurret == null) ? // vessel.InVacuum() not updated, will return 0, so use part.atmDensity check
                     VacuumClearanceStates.Clearing : VacuumClearanceStates.Cleared; // Set up clearance check if missile is vacuumSteerable, and is in space, and was not launched from a turret
+
+                CruiseSpeed = Mathf.Min(CruiseSpeed, maxCruiseSpeed);
 
                 StartCoroutine(MissileRoutine());
                 List<BDWarheadBase> tntList = part.FindModulesImplementing<BDWarheadBase>();

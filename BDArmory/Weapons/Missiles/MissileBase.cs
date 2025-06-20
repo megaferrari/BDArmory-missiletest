@@ -650,43 +650,30 @@ namespace BDArmory.Weapons.Missiles
         {
             if (p == null) return;
 
-            var explosive = p.FindModuleImplementing<BDExplosivePart>();
-            if (explosive != null)
+            List<BDWarheadBase> tntList = part.FindModulesImplementing<BDWarheadBase>();
+            foreach (BDWarheadBase tnt in tntList)
             {
-                p.FindModuleImplementing<BDExplosivePart>().Armed = false;
+                if (tnt)
+                    tnt.Armed = false;
             }
 
             var emp = p.FindModuleImplementing<ModuleEMP>();
             if (emp != null) emp.Armed = false;
-
-            var customWarhead = p.FindModuleImplementing<BDCustomWarhead>();
-            if (customWarhead != null) customWarhead.Armed = false;
         }
 
         protected void SetupExplosive(Part p)
         {
             if (p == null) return;
 
-            var explosive = p.FindModuleImplementing<BDExplosivePart>();
-            if (explosive != null)
+            List<BDWarheadBase> tntList = part.FindModulesImplementing<BDWarheadBase>();
+            foreach (BDWarheadBase tnt in tntList)
             {
-                explosive.Armed = true;
-                explosive.detonateAtMinimumDistance = DetonateAtMinimumDistance;
-                //if (GuidanceMode == GuidanceModes.AGM || GuidanceMode == GuidanceModes.AGMBallistic)
-                //{
-                //    explosive.Shaped = true; //Now configed in the part's BDExplosivePart Module Node
-                //}
+                tnt.Armed = true;
+                tnt.detonateAtMinimumDistance = DetonateAtMinimumDistance;
             }
 
             var emp = p.FindModuleImplementing<ModuleEMP>();
             if (emp != null) emp.Armed = true;
-
-            var customWarhead = p.FindModuleImplementing<BDCustomWarhead>();
-            if (customWarhead != null)
-            {
-                customWarhead.Armed = true;
-                customWarhead.detonateAtMinimumDistance = DetonateAtMinimumDistance;
-            }
         }
 
         public abstract void Detonate();
