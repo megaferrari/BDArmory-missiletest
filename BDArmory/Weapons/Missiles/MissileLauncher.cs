@@ -1377,6 +1377,14 @@ namespace BDArmory.Weapons.Missiles
                             GpsUpdateMax = wpm.GpsUpdateMax;
                             wpm.UpdateMissilesAway(targetVessel, this);
                         }
+
+                        if (radarTarget.exists && radarTarget.lockedByRadar && radarTarget.lockedByRadar.vessel != SourceVessel)
+                        {
+                            MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(radarTarget.lockedByRadar.vessel, true);
+                            if (datalinkwpm)
+                                datalinkwpm.UpdateMissilesAway(targetVessel, this, false);
+                        }
+
                         launched = true;
                     }
                 }
@@ -1412,6 +1420,13 @@ namespace BDArmory.Weapons.Missiles
                         wpm.heatTarget = TargetSignatureData.noTarget;
                         GpsUpdateMax = wpm.GpsUpdateMax;
                         wpm.UpdateMissilesAway(targetVessel, this);
+                    }
+
+                    if (radarTarget.exists && radarTarget.lockedByRadar && radarTarget.lockedByRadar.vessel != SourceVessel)
+                    {
+                        MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(radarTarget.lockedByRadar.vessel, true);
+                        if (datalinkwpm)
+                            datalinkwpm.UpdateMissilesAway(targetVessel, this, false);
                     }
 
                     launched = true;
@@ -1571,7 +1586,10 @@ namespace BDArmory.Weapons.Missiles
             {
                 MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(ml.radarTarget.lockedByRadar.vessel, true);
                 if (datalinkwpm)
+                {
                     datalinkwpm.UpdateQueuedLaunches(targetVessel, ml, false, false);
+                    datalinkwpm.UpdateMissilesAway(targetVessel, ml, false);
+                }
             }
 
             ml.TargetPosition = transform.position + (multiLauncher ? vessel.ReferenceTransform.up * 5000 : transform.forward * 5000); //set initial target position so if no target update, missileBase will count a miss if it nears this point or is flying post-thrust
