@@ -1553,7 +1553,7 @@ namespace BDArmory.Weapons
                 }
                 baseDeviation = maxDeviation; //store original MD value
 
-                sourceInfo = new SourceInfo(vessel, weaponManager.team, part, Vector3.zero);
+                sourceInfo = new SourceInfo(vessel, weaponManager ? weaponManager.team : null, part, Vector3.zero);
                 graphicsInfo = new GraphicsInfo(bulletTexturePath, projectileColorC, startColorC,
                                     tracerStartWidth, tracerEndWidth, tracerLength, tracerLuminance, tracerDeltaFactor,
                                     smokeTexturePath, explModelPath, explSoundPath);
@@ -1591,7 +1591,7 @@ namespace BDArmory.Weapons
             if (yawRange == 0 && maxPitch == minPitch)
             {
                 turret = null;
-            }            
+            }
             if (!turret)
             {
                 Fields["onlyFireInRange"].guiActive = false;
@@ -1870,7 +1870,7 @@ namespace BDArmory.Weapons
                 Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideTrue");//"Revert Aim Override"
             else
                 Events["setAimOverride"].guiName = StringUtils.Localize("#LOC_BDArmory_AimOverrideFalse");//"Aim With This Weapon"
-               
+
             GUIUtils.RefreshAssociatedWindows(part);
         }
 
@@ -2228,7 +2228,8 @@ namespace BDArmory.Weapons
                 && WMgrAuthorized())
             {
                 bool effectsShot = false;
-                CheckLoadedAmmo();
+                if (!useRippleFire || barrelIndex == 0)
+                    CheckLoadedAmmo();
                 //Transform[] fireTransforms = part.FindModelTransforms("fireTransform");
                 for (float iTime = Mathf.Min(timeSinceFired - timeGap, TimeWarp.fixedDeltaTime); iTime > 1e-4f; iTime -= timeGap) // Use 1e-4f instead of 0 to avoid jitter.
                 {
@@ -3454,7 +3455,7 @@ namespace BDArmory.Weapons
             if (enabledStates.Contains(weaponState) || (secondaryFiring && weaponState == WeaponStates.EnabledForSecondaryFiring))
                 return;
 
-            StopShutdownStartupRoutines();            
+            StopShutdownStartupRoutines();
             startupRoutine = StartCoroutine(StartupRoutine(secondaryFiring: secondaryFiring));
         }
 
@@ -5137,7 +5138,7 @@ namespace BDArmory.Weapons
                 {
                     visRange = (visualTargetVessel.transform.position - transform.position).sqrMagnitude < weaponManager.guardRange * weaponManager.guardRange;
                 }
-                if (weaponManager.vesselRadarData && weaponManager.vesselRadarData.locked) // && weaponManager.slavedPosition != Vector3.zero)
+               if (weaponManager.vesselRadarData && weaponManager.vesselRadarData.locked) // && weaponManager.slavedPosition != Vector3.zero)
                 {
                     TargetSignatureData targetData = TargetSignatureData.noTarget;
                     if (weaponManager.multiTargetNum > 1 && (turret && (maxPitch != minPitch || yawRange > 0))) //if multi target turrets, get relevant lock
@@ -5149,7 +5150,6 @@ namespace BDArmory.Weapons
                             {
                                 targetData = possibleTargets[i];
                                 break;
-
                             }
                         }
                     }

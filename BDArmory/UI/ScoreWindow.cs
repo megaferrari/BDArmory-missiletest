@@ -265,6 +265,7 @@ namespace BDArmory.UI
         Dictionary<string, NumericInputField> scoreWeightFields; // The numeric input fields.
         void LoadWeights()
         {
+            if (scoreWeightFields != null) foreach (var value in scoreWeightFields.Values) Destroy(value); // Get rid of any old NumericInputField components.
             switch (mode)
             {
                 case Mode.Tournament:
@@ -296,6 +297,23 @@ namespace BDArmory.UI
                     break;
             }
             RecomputeScores();
+        }
+        void ResetDefaultWeights()
+        {
+            switch (mode)
+            {
+                case Mode.Tournament:
+                    TournamentScores.weights = new(TournamentScores.defaultWeights);
+                    weights = TournamentScores.weights;
+                    break;
+                case Mode.ContinuousSpawn:
+                    ContinuousSpawning.weights = new(ContinuousSpawning.defaultWeights);
+                    weights = ContinuousSpawning.weights;
+                    break;
+            }
+            if (scoreWeightFields != null) foreach (var value in scoreWeightFields.Values) Destroy(value); // Get rid of any old NumericInputField components.
+            scoreWeightFields = weights.ToDictionary(kvp => kvp.Key, kvp => gameObject.AddComponent<NumericInputField>().Initialise(0, kvp.Value));
+            SaveWeights();
         }
         void RecomputeScores()
         {
@@ -335,7 +353,8 @@ namespace BDArmory.UI
         }
         void WindowWeights(int id)
         {
-            GUI.DragWindow(new Rect(0, 0, weightsWindowRect.width - _buttonSize, _buttonSize));
+            GUI.DragWindow(new Rect(4 * _buttonSize, 0, weightsWindowRect.width - 5 * _buttonSize, _buttonSize));
+            if (GUI.Button(new Rect(0, 0, 4 * _buttonSize, _buttonSize), "Defaults", BDArmorySetup.ButtonStyle)) ResetDefaultWeights();
             if (GUI.Button(new Rect(weightsWindowRect.width - _buttonSize, 0, _buttonSize, _buttonSize), " X", BDArmorySetup.CloseButtonStyle)) SetWeightsVisible(false);
             GUILayout.BeginVertical(GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
             weightsScrollPos = GUILayout.BeginScrollView(weightsScrollPos, GUI.skin.box);

@@ -185,6 +185,7 @@ namespace BDArmory.Control
         public string autoTuningLossLabel2 = "";
         [KSPField(isPersistant = false, guiActive = false, guiActiveEditor = false, guiName = "\tField", groupName = "pilotAI_PID", groupDisplayName = "#LOC_BDArmory_AI_PID", groupStartCollapsed = true), UI_Label(scene = UI_Scene.All)]
         public string autoTuningLossLabel3 = "";
+        public string autoTuningSummary = "";
 
         //AutoTuning Number Of Samples
         [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = false, guiName = "#LOC_BDArmory_AI_PID_AutoTuning_NumSamples", advancedTweakable = true,
@@ -635,6 +636,9 @@ namespace BDArmory.Control
             { nameof(turnRadiusTwiddleFactorMax), 10f},
             { nameof(controlSurfaceDeploymentTime), 10f },
             { nameof(controlSurfaceLag), 1f},
+            { nameof(steerDampingPitch), 100f},
+            { nameof(steerDampingYaw), 100f},
+            { nameof(steerDampingRoll), 100f},
             { nameof(DynamicDampingMin), 100f },
             { nameof(DynamicDampingMax), 100f },
             { nameof(dynamicSteerDampingFactor), 100f },
@@ -701,6 +705,7 @@ namespace BDArmory.Control
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_AI_Standby"),//Standby Mode
             UI_Toggle(enabledText = "#LOC_BDArmory_On", disabledText = "#LOC_BDArmory_Off")]//On--Off
         public bool standbyMode = false;
+        bool standbyModeEnabled = false;
 
         #region Store/Restore
         private static Dictionary<string, List<System.Tuple<string, object>>> storedSettings; // Stored settings for each vessel.
@@ -1627,6 +1632,7 @@ namespace BDArmory.Control
 
             SetAutoTuneFields();
             MaintainFuelLevels(autoTune); // Prevent fuel drain while auto-tuning.
+            DisableBattleDamage(autoTune); // Disable battle damage while auto-tuning.
             OtherUtils.SetTimeOverride(autoTune);
         }
         void SetAutoTuneFields()
@@ -1925,12 +1931,25 @@ namespace BDArmory.Control
             useVelRollTarget = false;
 
             // landed and still, chill out
-            if (vessel.LandedOrSplashed && standbyMode && weaponManager && (BDATargetManager.GetClosestTarget(this.weaponManager) == null || BDArmorySettings.PEACE_MODE)) //TheDog: replaced querying of targetdatabase with actual check if a target can be detected
+            if (vessel.LandedOrSplashed && standbyMode && weaponManager && (BDATargetManager.GetClosestTarget(this.weaponManager) == null || BDArmorySettings.PEACE_MODE))
             {
+                standbyModeEnabled = true;
                 //s.mainThrottle = 0;
                 //vessel.ActionGroups.SetGroup(KSPActionGroup.Brakes, true);
                 AdjustThrottle(0, true);
                 return;
+            }
+            if (standbyModeEnabled && standbyMode) // Was in standby, but now there's something to engage, disable standby and engage.
+            {
+                CommandTakeOff();
+                if (SpawnUtils.CountActiveEngines(vessel) == 0) // If no engines are active, trigger AG10 and then activate all engines if necessary.
+                {
+                    vessel.ActionGroups.ToggleGroup(BDACompetitionMode.KM_dictAG[10]);
+                    if (SpawnUtils.CountActiveEngines(vessel) == 0)
+                    {
+                        SpawnUtils.ActivateAllEngines(vessel);
+                    }
+                }
             }
 
             upDirection = vessel.up;
@@ -2179,7 +2198,7 @@ namespace BDArmory.Control
         bool PredictCollisionWithVessel(Vessel v, float maxTime, out Vector3 badDirection)
         {
             if (vessel == null || v == null || v == (weaponManager != null ? weaponManager.incomingMissileVessel : null)
-                || v.rootPart.FindModuleImplementing<MissileBase>() != null) //evasive will handle avoiding missiles
+                || (v.rootPart != null && v.rootPart.FindModuleImplementing<MissileBase>() != null)) //evasive will handle avoiding missiles
             {
                 badDirection = Vector3.zero;
                 return false;
@@ -3164,7 +3183,7 @@ namespace BDArmory.Control
 
         private Vector3 WaypointSpline() // FIXME This doesn't work that well yet.
         {
-            // Note: here we're using distance instead of time as the waypoint parameter.
+            // Note: here we're using distance instead of time as the spline interpolation parameter.
             float minDistance = (float)vessel.speed * 2f; // Consider the radius of 2s around the waypoint.
 
             Vector3 point1 = waypointPosition + (vessel.transform.position - waypointPosition).normalized * minDistance; //waypointsRange > minDistance ? vessel.transform.position : waypointPosition + (vessel.transform.position - waypointPosition).normalized * minDistance;
@@ -4546,18 +4565,15 @@ namespace BDArmory.Control
             }
             else if (command == PilotCommands.Attack)
             {
-                if (targetVessel != null)
-                {
-                    ReleaseCommand(false);
-                    return;
-                }
-                else if (weaponManager == null || weaponManager.underAttack || weaponManager.underFire)
+                if (targetVessel != null || weaponManager == null) // Found a target or lost our WM.
                 {
                     ReleaseCommand(false);
                     return;
                 }
                 else
                 {
+                    if (weaponManager.underAttack || weaponManager.underFire) // Switch to Free to allow combat behaviours, but continue flying towards the attack point for now.
+                        ReleaseCommand(false);
                     SetStatus("Attack");
                     FlyOrbit(s, assignedPositionGeo, 2500, maxSpeed, ClockwiseOrbit);
                 }
@@ -4754,31 +4770,38 @@ namespace BDArmory.Control
         class LR
         {
             public float current = 1f; // The current learning rate.
-            float initial = 1f; // For resetting.
             float reductionFactor = BDAMath.Sqrt(0.1f); // Two steps per order of magnitude.
             int patience = 3; // Number of steps without improvement before lowering the learning rate.
             int count = 0; // Count of the number of steps without improvement.
-            float _best = float.MaxValue; // The best result so far for the current learning rate.
-            public float best = float.MaxValue; // The best result so far.
+            float _bestLoss = float.MaxValue; // The best result so far for the current learning rate.
+            public float bestLoss = float.MaxValue; // The best loss result so far.
+            public float lrAtBest = 1f; // The LR at the time the best loss was found (for logging).
+            public float rrAtBest = 1f; // The RR at the time the best loss was found (for logging).
 
             /// <summary>
             /// Update the learning rate based on the current loss.
             /// </summary>
             /// <param name="value">The current loss, or some other metric.</param>
+            /// <param name="rollRelevance">The current roll relevance (for logging).</param>
             /// <returns>True if the learning rate decreases, False otherwise.</returns>
-            public bool Update(float value)
+            public bool Update(float value, float rollRelevance)
             {
-                if (value < _best)
+                if (value < _bestLoss)
                 {
-                    _best = value;
+                    _bestLoss = value;
                     count = 0;
-                    if (_best < best) best = _best;
+                    if (_bestLoss < bestLoss)
+                    {
+                        bestLoss = _bestLoss;
+                        lrAtBest = current;
+                        rrAtBest = rollRelevance;
+                    }
                 }
                 if (++count >= patience)
                 {
                     current *= reductionFactor;
                     count = 0;
-                    _best = value; // Reset the best to avoid unnecessarily reducing the learning rate due to a fluke best score.
+                    _bestLoss = value; // Reset the best loss to avoid unnecessarily reducing the learning rate due to a fluke best score.
                     return true;
                 }
                 return false;
@@ -4789,11 +4812,12 @@ namespace BDArmory.Control
             /// </summary>
             public void Reset(float initial)
             {
-                this.initial = initial;
                 current = initial;
                 count = 0;
-                _best = float.MaxValue;
-                best = _best;
+                _bestLoss = float.MaxValue;
+                bestLoss = _bestLoss;
+                lrAtBest = initial;
+                rrAtBest = 1f;
             }
         }
 
@@ -4803,16 +4827,16 @@ namespace BDArmory.Control
         /// </summary>
         class Optimiser
         {
-            public float rollRelevance = 0.5f;
+            public float rollRelevance = 1f; // Start high so that the loss decreases as this converges to a fixed value.
             float rollRelevanceMomentum = 0.8f;
 
             public void Update()
             {
-                rollRelevance = rollRelevanceMomentum * rollRelevance + (1f - rollRelevanceMomentum) * Mathf.Min(_rollRelevance.Average(), 1f); // Clamp roll relevance to at most 1 in case of freak measurements.
+                rollRelevance = rollRelevanceMomentum * rollRelevance + (1f - rollRelevanceMomentum) * Mathf.Clamp01(_rollRelevance.Average()); // Clamp roll relevance to at most 1 in case of freak measurements.
                 _rollRelevance.Clear();
             }
 
-            public void Reset(float initialRollRelevance = 0.5f)
+            public void Reset(float initialRollRelevance = 1f)
             {
                 rollRelevance = initialRollRelevance;
                 _rollRelevance.Clear();
@@ -5061,32 +5085,37 @@ namespace BDArmory.Control
         void TakeSample()
         {
             // Measure loss at the current sample point.
-            var lossSample = (pointingOscillationAreaSqr / absHeadingChange + optimiser.rollRelevance * 0.01f * rollOscillationAreaSqr) / absHeadingChange; // This normalisation seems to give a roughly flat distribution over the 30°—120° range for the test craft.
-            optimiser.Accumulate(pointingOscillationAreaSqr / rollOscillationAreaSqr);
+            var lossSample = pointingOscillationAreaSqr / absHeadingChange / absHeadingChange + optimiser.rollRelevance * 0.0002f * rollOscillationAreaSqr; // This normalisation seems to give a roughly flat distribution over the 30°—120° range for the test craft.
+            optimiser.Accumulate(pointingOscillationAreaSqr / absHeadingChange / absHeadingChange / (0.0002f * rollOscillationAreaSqr));
             if (currentField == "base")
             {
                 baseLossSamples.Add(lossSample);
                 if (++sampleNumber >= (int)AI.autoTuningOptionNumSamples)
                 {
                     var loss = baseLossSamples.Average();
-                    if (loss < lr.best)
+                    if (loss < lr.bestLoss)
                     {
                         bestValues = baseValues.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
                         Debug.Log($"[BDArmory.BDModulePilotAI.PIDAutoTuning]: Updated best values: " + string.Join(", ", bestValues.Select(kvp => fields[kvp.Key].guiName + ":" + kvp.Value)) + $", LR: {lr.current}, RR: {optimiser.rollRelevance}, Loss: {loss}");
                         bestValues["rollRelevance"] = optimiser.rollRelevance; // Store the roll relevance for the best PID settings too.
+                        AI.autoTuningOptionInitialRollRelevance = optimiser.rollRelevance;
                     }
                     if (BDArmorySettings.DEBUG_AI) Debug.Log($"[BDArmory.BDModulePilotAI.PIDAutoTuning]: Current: " + string.Join(", ", baseValues.Select(kvp => fields[kvp.Key].guiName + ":" + kvp.Value)) + $", LR: {lr.current}, RR: {optimiser.rollRelevance}, Loss: {loss}");
-                    var lrDecreased = lr.Update(loss); // Update learning rate based on the current loss.
-                    if (lrDecreased && bestValues is not null) RevertPIDValues(); // Revert to the best values when lowering the learning rate.
+                    var lrDecreased = lr.Update(loss, optimiser.rollRelevance); // Update learning rate based on the current loss.
+                    optimiser.Update();
+                    if (lrDecreased)
+                    {
+                        if (bestValues is not null) RevertPIDValues(); // Revert to the best values when lowering the learning rate.
+                        optimiser.Reset(lr.rrAtBest); // Also, revert to the roll relevance when the best values were found.
+                    }
                     if (lr.current < 9e-4f) // Tuned about as far as it'll go, time to bail. (9e-4 instead of 1e-3 for some tolerance in the floating point comparison.)
                     {
-                        AI.autoTuningLossLabel = $"{lr.best:G6}, completed.";
+                        AI.autoTuningLossLabel = $"{lr.bestLoss:G6}, completed.";
                         AI.AutoTune = false; // This also reverts to the best settings and stores them.
                         return;
                     }
-                    optimiser.Update();
-                    AI.autoTuningLossLabel = $"{loss:G6}   (best: {lr.best:G6})";
-                    AI.autoTuningLossLabel2 = $"LR: {lr.current:G2}, Roll rel.: {optimiser.rollRelevance:G2}";
+                    AI.autoTuningLossLabel = $"{loss:G6}   (best: {lr.bestLoss:G6})";
+                    AI.autoTuningLossLabel2 = $"LR: {lr.current:G3}, Roll rel.: {optimiser.rollRelevance:G3}";
                     ++currentFieldIndex;
                     UpdatePIDValues(false);
                     sampleNumber = 0;
@@ -5179,6 +5208,10 @@ namespace BDArmory.Control
                             baseValues[fieldName] = bestValues[fieldName];
                     }
                 if (bestValues.ContainsKey("rollRelevance")) AI.autoTuningOptionInitialRollRelevance = bestValues["rollRelevance"]; // Set the latest roll relevance as the AI's starting roll relevance for next time.
+                if (lr.current < 9e-4f)
+                    AI.autoTuningSummary = $"Best Loss {lr.bestLoss:G6}, tuning completed, RR: {lr.rrAtBest:G3}.";
+                else
+                    AI.autoTuningSummary = $"Best Loss {lr.bestLoss:G6}, tuning incomplete, LR: {lr.lrAtBest:G3}, RR: {lr.rrAtBest:G3}.";
             }
             else if (baseValues is not null)
             {
@@ -5186,6 +5219,7 @@ namespace BDArmory.Control
                 foreach (var fieldName in fields.Keys.ToList())
                     if (baseValues.ContainsKey(fieldName))
                         fields[fieldName].SetValue(baseValues[fieldName], AI);
+                AI.autoTuningSummary = "";
             }
         }
 

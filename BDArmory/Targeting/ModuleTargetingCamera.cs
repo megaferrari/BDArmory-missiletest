@@ -730,7 +730,7 @@ namespace BDArmory.Targeting
             windowIsOpen = true;
             var guiMatrix = GUI.matrix;
 
-            GUI.DragWindow(new Rect(0, 0, BDArmorySetup.WindowRectTargetingCam.width - 18, 30));
+            GUI.DragWindow(new Rect(0, 0, BDArmorySetup.WindowRectTargetingCam.width - 18, controlsStartY));
             if (GUI.Button(new Rect(BDArmorySetup.WindowRectTargetingCam.width - 18, 2, 16, 16), "X", GUI.skin.button))
             {
                 DisableCamera();
@@ -1100,7 +1100,7 @@ namespace BDArmory.Targeting
         {
             if (!resetting)
             {
-                StartCoroutine("ResetCamera");
+                resetCamera = StartCoroutine(ResetCamera());
             }
         }
 
@@ -1404,6 +1404,7 @@ namespace BDArmory.Targeting
             groundStabilized = false;
         }
 
+        Coroutine resetCamera;
         IEnumerator ResetCamera()
         {
             resetting = true;
@@ -1481,7 +1482,7 @@ namespace BDArmory.Targeting
                 if (gimbalLimitReached)
                 {
                     ClearTarget();
-                    StartCoroutine("ResetCamera");
+                    resetCamera = StartCoroutine(ResetCamera());
                     slewingToPosition = false;
                     yield break;
                 }
@@ -1499,7 +1500,7 @@ namespace BDArmory.Targeting
         {
             if (resetting)
             {
-                StopCoroutine("ResetCamera");
+                StopCoroutine(resetCamera);
                 resetting = false;
             }
         }
