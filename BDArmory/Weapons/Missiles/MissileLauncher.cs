@@ -57,6 +57,10 @@ namespace BDArmory.Weapons.Missiles
         public float heatTimer = -1;
         private Vector3 origScale = Vector3.one;
 
+        #region Effects
+
+        // Classic FX
+
         [KSPField]
         public string exhaustPrefabPath;
 
@@ -65,6 +69,8 @@ namespace BDArmory.Weapons.Missiles
 
         [KSPField]
         public string boostExhaustTransformName;
+
+        #endregion
 
         #region Aero
 
@@ -236,6 +242,12 @@ namespace BDArmory.Weapons.Missiles
         public float deployTime = 0.2f;
 
         [KSPField]
+        public string cruiseAnimationName = "";
+
+        [KSPField]
+        public float cruiseDeployTime = 0.2f;
+
+        [KSPField]
         public string flightAnimationName = "";
 
         [KSPField]
@@ -264,6 +276,8 @@ namespace BDArmory.Weapons.Missiles
         //public float deployedTime;
 
         AnimationState[] deployStates;
+
+        AnimationState[] cruiseStates;
 
         AnimationState[] animStates;
 
@@ -426,6 +440,7 @@ namespace BDArmory.Weapons.Missiles
                 weaponClass = WeaponClasses.Missile;
             }
         }
+
         public override void OnStart(StartState state)
         {
             //base.OnStart(state);
@@ -479,7 +494,7 @@ namespace BDArmory.Weapons.Missiles
 
             if (shortName == string.Empty)
             {
-                shortName = part.partInfo.title;                
+                shortName = part.partInfo.title;
             }
             gaplessEmitters = new List<BDAGaplessParticleEmitter>();
             pEmitters = new List<KSPParticleEmitter>();
@@ -716,6 +731,10 @@ namespace BDArmory.Weapons.Missiles
             {
                 deployedDrag = simpleDrag;
             }
+            if (cruiseAnimationName != "")
+            {
+                cruiseStates = GUIUtils.SetUpAnimation(cruiseAnimationName, part);
+            }
             if (flightAnimationName != "")
             {
                 animStates = GUIUtils.SetUpAnimation(flightAnimationName, part);
@@ -736,9 +755,9 @@ namespace BDArmory.Weapons.Missiles
                                 warheadType = WarheadTypes.ContinuousRod;
                         else
                             if (warheadType == WarheadTypes.Custom)
-                                warheadType = WarheadTypes.CustomStandard;
-                            else
-                                warheadType = WarheadTypes.Standard;
+                            warheadType = WarheadTypes.CustomStandard;
+                        else
+                            warheadType = WarheadTypes.Standard;
                         continue; //EMPs sometimes have BDExplosivePart modules for FX, so keep going
                     case "BDCustomWarhead":
                         if (warheadType == WarheadTypes.ContinuousRod)
@@ -1317,7 +1336,7 @@ namespace BDArmory.Weapons.Missiles
             }
             var wpm = VesselModuleRegistry.GetMissileFire(SourceVessel, true);
             if (wpm != null) Team = wpm.Team;
-            
+
             if (multiLauncher)
             {
                 if (multiLauncher.isMultiLauncher)
@@ -2059,7 +2078,7 @@ namespace BDArmory.Weapons.Missiles
                 {
                     WarnTarget();
                     if (TimeIndex - dropTime > guidanceDelay)
-                    {    
+                    {
                         //if (targetVessel && targetVessel.loaded)
                         //{
                         //   Vector3 targetCoMPos = targetVessel.CoM;
@@ -2417,13 +2436,14 @@ namespace BDArmory.Weapons.Missiles
 
             if (deployStates != null) StartCoroutine(DeployAnimRoutine());
             yield return new WaitForSecondsFixed(dropTime);
-			if (animStates != null) StartCoroutine(FlightAnimRoutine());
+            if (animStates != null) StartCoroutine(FlightAnimRoutine());
             yield return StartCoroutine(BoostRoutine());
 
             yield return new WaitForSecondsFixed(cruiseDelay);
             if (cruiseRangeTrigger > 0)
                 yield return new WaitUntilFixed(checkCruiseRangeTrigger);
 
+            if (cruiseStates != null) StartCoroutine(CruiseAnimRoutine());
             yield return StartCoroutine(CruiseRoutine());
         }
 
@@ -2462,6 +2482,27 @@ namespace BDArmory.Weapons.Missiles
             {
                 deployed = true;
                 using (var anim = deployStates.AsEnumerable().GetEnumerator())
+                    while (anim.MoveNext())
+                    {
+                        if (anim.Current == null) continue;
+                        anim.Current.enabled = true;
+                        anim.Current.speed = 1;
+                    }
+            }
+        }
+        IEnumerator CruiseAnimRoutine()
+        {
+            yield return new WaitForSecondsFixed(cruiseDeployTime);
+            if (cruiseStates == null)
+            {
+                if (BDArmorySettings.DEBUG_MISSILES) Debug.LogWarning("[BDArmory.MissileLauncher]: deployStates was null, aborting AnimRoutine.");
+                yield break;
+            }
+
+            if (!string.IsNullOrEmpty(cruiseAnimationName))
+            {
+                deployed = true;
+                using (var anim = cruiseStates.AsEnumerable().GetEnumerator())
                     while (anim.MoveNext())
                     {
                         if (anim.Current == null) continue;
@@ -2520,8 +2561,10 @@ namespace BDArmory.Weapons.Missiles
                 burnRate = boostTime > 0 ? boosterFuelMass / boostTime * Time.fixedDeltaTime : 0;
                 burnedFuelMass = 0f;
             }
+
             StartBoost();
             StartCoroutine(updateCrashTolerance());
+
             var wait = new WaitForFixedUpdate();
             float boostStartTime = Time.time;
             while (Time.time - boostStartTime < boostTime || (useFuel && burnedFuelMass < boosterFuelMass))
@@ -2780,8 +2823,10 @@ namespace BDArmory.Weapons.Missiles
                 {
                     currentThrust = Mathf.MoveTowards(currentThrust, cruiseThrust, cruiseThrust / 10);
                 }
+
                 yield return wait;
             }
+
             EndCruise();
         }
 
@@ -3136,7 +3181,7 @@ namespace BDArmory.Weapons.Missiles
             {
                 //DrawDebugLine(transform.position + (part.rb.velocity * Time.fixedDeltaTime), TargetPosition);
                 float timeToImpact;
-                
+
                 SLWTarget = MissileGuidance.GetAirToAirTarget(TargetPosition, TargetVelocity, TargetAcceleration, vessel, out timeToImpact, optimumAirspeed);
                 if (Vector3.Angle(SLWTarget - vessel.CoM, transform.forward) > maxOffBoresight * 0.75f)
                 {
@@ -3859,7 +3904,7 @@ namespace BDArmory.Weapons.Missiles
                     terminalGuidanceShouldActivate = false;
                     TargetingModeTerminal = TargetingModes.None;
                 }
-                    
+
             }
 
             if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: parsing guidance and homing complete on {part.name}");
@@ -4241,6 +4286,7 @@ namespace BDArmory.Weapons.Missiles
             exhaustPrefabs.Clear();
         }
         #endregion
+
         public double GetDeltaV()
         {
             double specificImpulse;

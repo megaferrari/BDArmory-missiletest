@@ -1596,8 +1596,6 @@ namespace BDArmory.Weapons.Missiles
                 SourceVessel = vessel;
                 SetTargeting();
                 Jettison();
-                AddTargetInfoToVessel();
-                IncreaseTolerance();
 
                 BDATargetManager.FiredMissiles.Add(this);
 
@@ -1607,6 +1605,8 @@ namespace BDArmory.Weapons.Missiles
                     Team = wpm.Team;
                     wpm.UpdateMissilesAway(targetVessel, this);
                 }
+                AddTargetInfoToVessel(); // Wait until we've assigned the team before adding target info.
+                IncreaseTolerance();
 
                 if (radarTarget.exists && radarTarget.lockedByRadar && radarTarget.lockedByRadar.vessel != SourceVessel)
                 {
