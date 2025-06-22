@@ -2504,29 +2504,30 @@ namespace BDArmory.Weapons.Missiles
             }
         }
 
-        private void applyDeployedLiftDrag()
+        private void applyDeployedLiftDrag(bool cruise = false)
         {
+            int index = cruise ? 3 : 2;
             // Apply the deltas
-            if (parsedLiftArea[2] > 0f)
+            if (parsedLiftArea[index] > 0f)
             {
                 // If lift area delta
-                currLiftArea += parsedLiftArea[2];
+                currLiftArea += parsedLiftArea[index];
                 // Then check drag area delta
                 // if drag area delta exists, then
                 // apply it, otherwise just apply
                 // lift area delta
-                if (parsedDragArea[2] > 0f)
-                    currDragArea += parsedDragArea[2];
+                if (parsedDragArea[index] > 0f)
+                    currDragArea += parsedDragArea[index];
                 else
-                    currDragArea += parsedLiftArea[2];
+                    currDragArea += parsedLiftArea[index];
             }
-            else if (parsedDragArea[2] > 0f)
+            else if (parsedDragArea[index] > 0f)
                 // If drag area delta, apply it
-                currDragArea += parsedDragArea[2];
+                currDragArea += parsedDragArea[index];
 
             // Apply any maxTorqueAero delta
-            if (parsedMaxTorqueAero[2] > 0f)
-                currMaxTorqueAero += parsedMaxTorqueAero[2];
+            if (parsedMaxTorqueAero[index] > 0f)
+                currMaxTorqueAero += parsedMaxTorqueAero[index];
         }
 
         IEnumerator CruiseAnimRoutine()
@@ -2541,6 +2542,10 @@ namespace BDArmory.Weapons.Missiles
             if (!string.IsNullOrEmpty(cruiseAnimationName))
             {
                 deployed = true;
+
+                applyDeployedLiftDrag(true);
+                MissileGuidance.setupTorqueAoALimit(this, currLiftArea, currDragArea);
+
                 using (var anim = cruiseStates.AsEnumerable().GetEnumerator())
                     while (anim.MoveNext())
                     {
@@ -2777,7 +2782,8 @@ namespace BDArmory.Weapons.Missiles
                     if (currMaxTorqueAero < 0)
                         currMaxTorqueAero = 0f;
 
-                    applyDeployedLiftDrag();
+                    if (deployed)
+                        applyDeployedLiftDrag();
 
                     MissileGuidance.setupTorqueAoALimit(this, currLiftArea, currDragArea);
                 }
@@ -3543,7 +3549,7 @@ namespace BDArmory.Weapons.Missiles
                         float dragCd = dragCurve.Evaluate(AoA);
                         float dragMultiplier = BDArmorySettings.GLOBAL_DRAG_MULTIPLIER;
                         dragTerm = 0.5f * airDensity * currDragArea * dragMultiplier * dragCd;
-                        float dragTermMinSpeed = 0.5f * airDensity * currDragArea * dragMultiplier * dragCurve.Evaluate(Mathf.Min(29f, maxAoA)); // Max AoA or 29 deg (at kink in drag curve)
+                        float dragTermMinSpeed = 0.5f * airDensity * currDragArea * dragMultiplier * dragCurve.Evaluate(Mathf.Min(30f, maxAoA)); // Max AoA or 29 deg (at kink in drag curve)
                         t = part.mass / (minSpeed * dragTermMinSpeed) - part.mass / (speed * dragTerm);
                     }
                     missileKinematicTime += t; // Add time for missile to slow down to min speed
