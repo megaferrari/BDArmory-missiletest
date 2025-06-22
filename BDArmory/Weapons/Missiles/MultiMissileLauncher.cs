@@ -589,7 +589,7 @@ namespace BDArmory.Weapons.Missiles
             missileLauncher.terminalHoming = MLConfig.terminalHoming;
             missileLauncher.terminalHomingActive = false;
             missileLauncher.liftArea = MLConfig.liftArea;
-            missileLauncher.dragArea = MLConfig.dragArea < 0 ? MLConfig.liftArea : MLConfig.dragArea;
+            missileLauncher.dragArea = MLConfig.dragArea;
             missileLauncher.useSimpleDrag = MLConfig.useSimpleDrag;
             missileLauncher.simpleCoD = MLConfig.simpleCoD;
             missileLauncher.maxTorque = MLConfig.maxTorque;
@@ -648,6 +648,7 @@ namespace BDArmory.Weapons.Missiles
             }
             missileLauncher.GetBlastRadius();
             GUIUtils.RefreshAssociatedWindows(missileLauncher.part);
+            missileLauncher.ParseLiftDragSteerTorque();
             missileLauncher.SetFields();
             missileLauncher.Sublabel = $"Guidance: {Enum.GetName(typeof(TargetingModes), missileLauncher.TargetingMode)}; Max Range: {Mathf.Round(missileLauncher.engageRangeMax / 100) / 10} km; Remaining: {missileLauncher.missilecount}";
         }
@@ -1262,15 +1263,22 @@ namespace BDArmory.Weapons.Missiles
                         wpm.UpdateMissilesAway(ml.targetVessel, ml);
                     }
 
+                    // Account for the datalink for the missileLauncher target
+                    if (removeFromQueue)
+                    {
+                        if (missileLauncher.radarTarget.exists && missileLauncher.radarTarget.lockedByRadar && missileLauncher.radarTarget.lockedByRadar.vessel != missileLauncher.SourceVessel)
+                        {
+                            MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(ml.radarTarget.lockedByRadar.vessel, true);
+                            if (datalinkwpm)
+                                datalinkwpm.UpdateQueuedLaunches(missileLauncher.targetVessel, missileLauncher, false, false);
+                        }
+                    }
+
                     if (ml.radarTarget.exists && ml.radarTarget.lockedByRadar && ml.radarTarget.lockedByRadar.vessel != ml.SourceVessel)
                     {
                         MissileFire datalinkwpm = VesselModuleRegistry.GetMissileFire(ml.radarTarget.lockedByRadar.vessel, true);
                         if (datalinkwpm)
-                        {
                             datalinkwpm.UpdateMissilesAway(ml.targetVessel, ml, false);
-                            if (removeFromQueue)
-                                datalinkwpm.UpdateQueuedLaunches(ml.targetVessel, ml, false, false);
-                        }
                     }
 
                     if (BDArmorySettings.DEBUG_MISSILES)

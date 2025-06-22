@@ -78,13 +78,19 @@ namespace BDArmory.Weapons.Missiles
         public bool aero = false;
 
         [KSPField]
-        public float liftArea = 0.015f;
+        public string liftArea = "0.015";
+        private float[] parsedLiftArea;
+        public float currLiftArea = 0.015f;
 
         [KSPField]
-        public float dragArea = -1f; // Optional parameter to specify separate drag reference area, otherwise defaults to liftArea
+        public string dragArea = "-1"; // Optional parameter to specify separate drag reference area, otherwise defaults to liftArea
+        private float[] parsedDragArea;
+        public float currDragArea = -1f;
 
         [KSPField]
-        public float steerMult = 0.5f;
+        public string steerMult = "0.5";
+        private float[] parsedSteerMult;
+        public float currSteerMult = 0.5f;
 
         [KSPField]
         public float torqueRampUp = 30f;
@@ -95,10 +101,17 @@ namespace BDArmory.Weapons.Missiles
         [KSPField]
         public float aeroSteerDamping = 0;
 
+        [KSPField]
+        public string maxTorqueAero = "0";
+        private float[] parsedMaxTorqueAero;
+        public float currMaxTorqueAero = 0f;
+
         #endregion Aero
 
         [KSPField]
-        public float maxTorque = 90;
+        public string maxTorque = "90";
+        private float[] parsedMaxTorque;
+        public float currMaxTorque = 90;
 
         [KSPField]
         public float thrust = 30;
@@ -517,13 +530,9 @@ namespace BDArmory.Weapons.Missiles
             Fields["minStaticLaunchRange"].guiActive = false;
             Fields["minStaticLaunchRange"].guiActiveEditor = false;
 
-            if (dragArea < 0)
-            {
-                if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: OnStart missile {shortName}: setting default dragArea to liftArea {liftArea}:");
-                dragArea = liftArea;
-            }
+            ParseLiftDragSteerTorque();
 
-            MissileGuidance.setupTorqueAoALimit(this, liftArea, dragArea);
+            MissileGuidance.setupTorqueAoALimit(this, currLiftArea, currDragArea);
 
             loftState = LoftStates.Boost;
             TimeToImpact = float.PositiveInfinity;
@@ -2125,7 +2134,7 @@ namespace BDArmory.Weapons.Missiles
                         }
                         debugTurnRate = turnRateDPS;
 
-                        finalMaxTorque = Mathf.Clamp((TimeIndex - dropTime) * torqueRampUp, 0, maxTorque); //ramp up torque
+                        finalMaxTorque = Mathf.Clamp((TimeIndex - dropTime) * torqueRampUp, 0, currMaxTorque); //ramp up torque
 
                         if (terminalHoming && !terminalHomingActive)
                         {
@@ -2183,7 +2192,7 @@ namespace BDArmory.Weapons.Missiles
                     CheckMiss();
                     if (aero)
                     {
-                        aeroTorque = MissileGuidance.DoAeroForces(this, TargetPosition, liftArea, dragArea, .25f, aeroTorque, maxTorque, 0.0f, MissileGuidance.DefaultLiftCurve, MissileGuidance.DefaultDragCurve);
+                        aeroTorque = MissileGuidance.DoAeroForces(this, TargetPosition, currLiftArea, currDragArea, .25f, aeroTorque, currMaxTorque, currMaxTorqueAero, 0.0f, MissileGuidance.DefaultLiftCurve, MissileGuidance.DefaultDragCurve);
                     }
                 }
 
@@ -2481,6 +2490,10 @@ namespace BDArmory.Weapons.Missiles
             if (!string.IsNullOrEmpty(deployAnimationName))
             {
                 deployed = true;
+
+                applyDeployedLiftDrag();
+                MissileGuidance.setupTorqueAoALimit(this, currLiftArea, currDragArea);
+
                 using (var anim = deployStates.AsEnumerable().GetEnumerator())
                     while (anim.MoveNext())
                     {
@@ -2490,6 +2503,32 @@ namespace BDArmory.Weapons.Missiles
                     }
             }
         }
+
+        private void applyDeployedLiftDrag()
+        {
+            // Apply the deltas
+            if (parsedLiftArea[2] > 0f)
+            {
+                // If lift area delta
+                currLiftArea += parsedLiftArea[2];
+                // Then check drag area delta
+                // if drag area delta exists, then
+                // apply it, otherwise just apply
+                // lift area delta
+                if (parsedDragArea[2] > 0f)
+                    currDragArea += parsedDragArea[2];
+                else
+                    currDragArea += parsedLiftArea[2];
+            }
+            else if (parsedDragArea[2] > 0f)
+                // If drag area delta, apply it
+                currDragArea += parsedDragArea[2];
+
+            // Apply any maxTorqueAero delta
+            if (parsedMaxTorqueAero[2] > 0f)
+                currMaxTorqueAero += parsedMaxTorqueAero[2];
+        }
+
         IEnumerator CruiseAnimRoutine()
         {
             yield return new WaitForSecondsFixed(cruiseDeployTime);
@@ -2714,8 +2753,35 @@ namespace BDArmory.Weapons.Missiles
 
             if (useFuel) burnedFuelMass = boosterFuelMass;
 
+            if (parsedMaxTorque[1] > 0)
+                currMaxTorque = parsedMaxTorque[1];
+
+            if (parsedSteerMult[1] > 0)
+                currSteerMult = parsedSteerMult[1];
+
             if (decoupleBoosters)
             {
+                // We only apply any lift/drag area changes if parsedLiftArea[1] changes
+                if (parsedLiftArea[1] > 0)
+                {
+                    currLiftArea = parsedLiftArea[1];
+                    currDragArea = parsedDragArea[1];
+
+                    if (currDragArea < 0)
+                    {
+                        if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: decoupleBoosters missile {shortName}: setting default dragArea to liftArea {currLiftArea}:");
+                        currDragArea = currLiftArea;
+                    }
+
+                    currMaxTorqueAero = parsedMaxTorqueAero[1];
+                    if (currMaxTorqueAero < 0)
+                        currMaxTorqueAero = 0f;
+
+                    applyDeployedLiftDrag();
+
+                    MissileGuidance.setupTorqueAoALimit(this, currLiftArea, currDragArea);
+                }
+
                 boostersDecoupled = true;
                 using (var booster = boosters.GetEnumerator())
                     while (booster.MoveNext())
@@ -2871,6 +2937,10 @@ namespace BDArmory.Weapons.Missiles
             currentThrust = 0f;
 
             if (useFuel) burnedFuelMass = cruiseFuelMass + boosterFuelMass;
+
+            // If we specify a post-thrust maxTorque (I.E. TVC)
+            if (parsedMaxTorque[2] > 0)
+                currMaxTorque = parsedMaxTorque[2];
 
             using (IEnumerator<Light> light = gameObject.GetComponentsInChildren<Light>().AsEnumerable().GetEnumerator())
                 while (light.MoveNext())
@@ -3241,7 +3311,7 @@ namespace BDArmory.Weapons.Missiles
                 //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: maxAoA: {maxAoA}, currAoALimit: {currAoALimit}, currgLimit: {currgLimit}");
             }
 
-            aeroTorque = MissileGuidance.DoAeroForces(this, targetPosition, liftArea, dragArea, controlAuthority * steerMult, aeroTorque, finalMaxTorque, currAoALimit, MissileGuidance.DefaultLiftCurve, MissileGuidance.DefaultDragCurve);
+            aeroTorque = MissileGuidance.DoAeroForces(this, targetPosition, currLiftArea, currDragArea, controlAuthority * currSteerMult, aeroTorque, finalMaxTorque, currMaxTorqueAero, currAoALimit, MissileGuidance.DefaultLiftCurve, MissileGuidance.DefaultDragCurve);
         }
 
         void AGMBallisticGuidance()
@@ -3304,7 +3374,7 @@ namespace BDArmory.Weapons.Missiles
                     Vector3d velocity = vessel.Velocity();
                     Vector3 CoL = new Vector3(0, 0, -1f);
                     float AoA = Mathf.Clamp(Vector3.Angle(part.transform.forward, velocity), 0, 90);
-                    double dragForce = 0.5 * airDensity * airSpeed * airSpeed * dragArea * BDArmorySettings.GLOBAL_DRAG_MULTIPLIER * Mathf.Max(MissileGuidance.DefaultDragCurve.Evaluate(AoA), 0f);
+                    double dragForce = 0.5 * airDensity * airSpeed * airSpeed * currDragArea * BDArmorySettings.GLOBAL_DRAG_MULTIPLIER * Mathf.Max(MissileGuidance.DefaultDragCurve.Evaluate(AoA), 0f);
                     rb.AddForceAtPosition((float)dragForce * -velocity.normalized,
                         part.transform.TransformPoint(part.CoMOffset + CoL));
                 }
@@ -3472,8 +3542,8 @@ namespace BDArmory.Weapons.Missiles
                         FloatCurve dragCurve = MissileGuidance.DefaultDragCurve;
                         float dragCd = dragCurve.Evaluate(AoA);
                         float dragMultiplier = BDArmorySettings.GLOBAL_DRAG_MULTIPLIER;
-                        dragTerm = 0.5f * airDensity * dragArea * dragMultiplier * dragCd;
-                        float dragTermMinSpeed = 0.5f * airDensity * dragArea * dragMultiplier * dragCurve.Evaluate(Mathf.Min(29f, maxAoA)); // Max AoA or 29 deg (at kink in drag curve)
+                        dragTerm = 0.5f * airDensity * currDragArea * dragMultiplier * dragCd;
+                        float dragTermMinSpeed = 0.5f * airDensity * currDragArea * dragMultiplier * dragCurve.Evaluate(Mathf.Min(29f, maxAoA)); // Max AoA or 29 deg (at kink in drag curve)
                         t = part.mass / (minSpeed * dragTermMinSpeed) - part.mass / (speed * dragTerm);
                     }
                     missileKinematicTime += t; // Add time for missile to slow down to min speed
@@ -3493,7 +3563,7 @@ namespace BDArmory.Weapons.Missiles
             FloatCurve liftCurve = MissileGuidance.DefaultLiftCurve;
             float bodyGravity = (float)PhysicsGlobals.GravitationalAcceleration * (float)vessel.orbit.referenceBody.GeeASL;
             float liftMultiplier = BDArmorySettings.GLOBAL_LIFT_MULTIPLIER;
-            float kinematicSpeed = BDAMath.Sqrt((Gs * part.mass * bodyGravity) / (0.5f * (float)vessel.atmDensity * liftArea * liftMultiplier * liftCurve.Evaluate(maxAoA)));
+            float kinematicSpeed = BDAMath.Sqrt((Gs * part.mass * bodyGravity) / (0.5f * (float)vessel.atmDensity * currLiftArea * liftMultiplier * liftCurve.Evaluate(maxAoA)));
 
             return Mathf.Min(kinematicSpeed, 0.5f * (float)vessel.speedOfSound);
         }
@@ -3908,6 +3978,79 @@ namespace BDArmory.Weapons.Missiles
             }
 
             if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: parsing guidance and homing complete on {part.name}");
+        }
+
+        public void ParseLiftDragSteerTorque()
+        {
+            // Parse lift area, we have boost, cruise and deploy and cruiseDeploy
+            // the latter two are deltas, once deployed these are summed to the
+            // boost and cruise value
+            parsedLiftArea = ParsePerfParams(liftArea, 4);
+            // Same thing for drag area
+            parsedDragArea = ParsePerfParams(dragArea, 4);
+
+            // Pre-set the deploy and cruiseDeploy values to 0 if they're < 0 since
+            // these will get summed directly to currLiftArea without checking
+            if (parsedLiftArea[2] < 0f)
+                parsedLiftArea[2] = 0f;
+            if (parsedLiftArea[3] < 0f)
+                parsedLiftArea[3] = 0f;
+            // Same for drag, except we also set the first value equal to liftArea if it
+            // is < 0, for convenience. We only modify the cruiseArea if decoupleBoosters is
+            // true, and we can check the cruise entry of drag area at staging if needed
+            if (parsedDragArea[0] < 0f)
+            {
+                if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: OnStart missile {shortName}: setting default dragArea to liftArea {parsedLiftArea[0]}:");
+                parsedDragArea[0] = parsedLiftArea[0];
+            }
+            if (parsedDragArea[2] < 0f)
+                parsedDragArea[2] = 0f;
+            if (parsedDragArea[3] < 0f)
+                parsedDragArea[3] = 0f;
+
+            // Parse steerMult, only 2 values here needed, boost and cruise
+            parsedSteerMult = ParsePerfParams(steerMult, 2);
+
+            // Parse maxTorque, for which there are 3 values, boost, cruise and post-thrust
+            // to simulate thrust vectoring
+            parsedMaxTorque = ParsePerfParams(maxTorque, 3);
+
+            // Parse maxTorqueAero, for which there are 4 values, boost, cruise and 2 deltas
+            parsedMaxTorqueAero = ParsePerfParams(maxTorqueAero, 4);
+
+            // Set the curr values
+            currLiftArea = parsedLiftArea[0];
+            currDragArea = parsedDragArea[0];
+            currSteerMult = parsedSteerMult[0];
+            currMaxTorque = parsedMaxTorque[0];
+            // We check currMaxTorqueAero against 0f because this gets used directly without
+            // any checks in DoAero for efficiency
+            currMaxTorqueAero = Mathf.Max(parsedMaxTorqueAero[0], 0f);
+        }
+
+        private static float[] ParsePerfParams(string floatString, int length)
+        {
+            string[] floatStrings = floatString.Split(new char[] { ',' });
+            float[] floatArray = new float[length];
+            // Loop either until the end of floatStrings or length, whichever comes first
+            int loopLength = (floatStrings.Length < length) ? floatStrings.Length : length;
+            float temp;
+            for (int i = 0; i < loopLength; i++)
+            {
+                if (float.TryParse(floatStrings[i], out temp))
+                    floatArray[i] = temp;
+                else
+                    floatArray[i] = -1f;
+            }
+            // If floatStrings is shorter than length
+            if (loopLength < length)
+            {
+                // Then fill the rest of the array with -1f
+                for (int i = loopLength; i < length; i++)
+                    floatArray[i] = -1f;
+            }    
+
+            return floatArray;
         }
 
         private string GetBrevityCode()

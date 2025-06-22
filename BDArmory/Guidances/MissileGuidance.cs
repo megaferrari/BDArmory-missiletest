@@ -470,9 +470,9 @@ namespace BDArmory.Guidances
                     float q = (float)(0.5f * ml.vessel.atmDensity * ml.vessel.srfSpeed * ml.vessel.srfSpeed);
 
                     // Needs to be changed if the lift and drag curves are changed
-                    float Lalpha = 2.864788975654117f * q * ml.liftArea * BDArmorySettings.GLOBAL_LIFT_MULTIPLIER; // CLmax/AoA(CLmax) * q * S * Lift Multiplier, I.E. linearized Lift/AoA (not CL/AoA)
-                    float D0 = 0.00215f * q * ml.dragArea * BDArmorySettings.GLOBAL_DRAG_MULTIPLIER; // Drag at 0 AoA
-                    float eta = 0.025f * BDArmorySettings.GLOBAL_DRAG_MULTIPLIER * ml.dragArea / (BDArmorySettings.GLOBAL_LIFT_MULTIPLIER * ml.liftArea); // D = D0 + eta*Lalpha*AoA^2, quadratic approximation of drag.
+                    float Lalpha = 2.864788975654117f * q * ml.currLiftArea * BDArmorySettings.GLOBAL_LIFT_MULTIPLIER; // CLmax/AoA(CLmax) * q * S * Lift Multiplier, I.E. linearized Lift/AoA (not CL/AoA)
+                    float D0 = 0.00215f * q * ml.currDragArea * BDArmorySettings.GLOBAL_DRAG_MULTIPLIER; // Drag at 0 AoA
+                    float eta = 0.025f * BDArmorySettings.GLOBAL_DRAG_MULTIPLIER * ml.currDragArea / (BDArmorySettings.GLOBAL_LIFT_MULTIPLIER * ml.currLiftArea); // D = D0 + eta*Lalpha*AoA^2, quadratic approximation of drag.
                     // eta needs to change if the lift/drag curves are changed. Note this is for small angles
 
                     // Pre-calculation since it's used a lot
@@ -1263,7 +1263,7 @@ namespace BDArmory.Guidances
 
             // Factor by which to multiply the lift coefficient to get lift, it's the dynamic pressure times the lift area times
             // the global lift multiplier
-            float qSk = (float) (0.5 * ml.vessel.atmDensity * ml.vessel.srfSpeed * ml.vessel.srfSpeed) * ml.liftArea * BDArmorySettings.GLOBAL_LIFT_MULTIPLIER;
+            float qSk = (float) (0.5 * ml.vessel.atmDensity * ml.vessel.srfSpeed * ml.vessel.srfSpeed) * ml.currLiftArea * BDArmorySettings.GLOBAL_LIFT_MULTIPLIER;
 
             float currG = 0;
 
@@ -1706,18 +1706,18 @@ namespace BDArmory.Guidances
         }
 
         public static Vector3 DoAeroForces(MissileLauncher ml, Vector3 targetPosition, float liftArea, float dragArea, float steerMult,
-            Vector3 previousTorque, float maxTorque, float maxAoA)
+            Vector3 previousTorque, float maxTorque, float maxTorqueAero, float maxAoA)
         {
 
             FloatCurve liftCurve = DefaultLiftCurve;
             FloatCurve dragCurve = DefaultDragCurve;
 
-            return DoAeroForces(ml, targetPosition, liftArea, dragArea, steerMult, previousTorque, maxTorque, maxAoA, liftCurve,
-                dragCurve);
+            return DoAeroForces(ml, targetPosition, liftArea, dragArea, steerMult, previousTorque, maxTorque, maxAoA, maxTorqueAero,
+                liftCurve, dragCurve);
         }
 
         public static Vector3 DoAeroForces(MissileLauncher ml, Vector3 targetPosition, float liftArea, float dragArea, float steerMult,
-            Vector3 previousTorque, float maxTorque, float maxAoA, FloatCurve liftCurve, FloatCurve dragCurve)
+            Vector3 previousTorque, float maxTorque, float maxTorqueAero, float maxAoA, FloatCurve liftCurve, FloatCurve dragCurve)
         {
             Rigidbody rb = ml.part.rb;
             if (rb == null || rb.mass == 0) return Vector3.zero;
@@ -1731,6 +1731,9 @@ namespace BDArmory.Guidances
             Vector3 CoL = new Vector3(0, 0, -1f);
             float liftMultiplier = BDArmorySettings.GLOBAL_LIFT_MULTIPLIER;
             float dragMultiplier = BDArmorySettings.GLOBAL_DRAG_MULTIPLIER;
+            double dynamicq = 0.5 * airDensity * airSpeed * airSpeed;
+
+            maxTorque += (float)dynamicq * maxTorqueAero;
 
             //lift
             float AoA = Mathf.Clamp(VectorUtils.AnglePreNormalized(forward, velNorm), 0, 90);
@@ -1740,7 +1743,7 @@ namespace BDArmory.Guidances
             ml.smoothedAoA.Update(AoA);
             if (AoA > 0)
             {
-                liftForce = 0.5 * airDensity * airSpeed * airSpeed * liftArea * liftMultiplier * Mathf.Max(liftCurve.Evaluate(AoA), 0f);
+                liftForce = dynamicq * liftArea * liftMultiplier * Mathf.Max(liftCurve.Evaluate(AoA), 0f);
                 rb.AddForceAtPosition((float)liftForce * forceDirection,
                     forcePos);
             }
@@ -1749,7 +1752,7 @@ namespace BDArmory.Guidances
             double dragForce = 0.0;
             if (airSpeed > 0)
             {
-                dragForce = 0.5 * airDensity * airSpeed * airSpeed * dragArea * dragMultiplier * Mathf.Max(dragCurve.Evaluate(AoA), 0f);
+                dragForce = dynamicq * dragArea * dragMultiplier * Mathf.Max(dragCurve.Evaluate(AoA), 0f);
                 rb.AddForceAtPosition((float)dragForce * -velNorm,
                     forcePos);
             }

@@ -9596,8 +9596,8 @@ namespace BDArmory.Control
 
                 if (launcher != null)
                 {
-                    dragArea = launcher.aero ? launcher.dragArea : (simTime > launcher.deployTime ? launcher.deployedDrag : launcher.simpleDrag) * (0.008f * ordnanceMass);
-                    liftArea = launcher.liftArea;
+                    dragArea = launcher.aero ? launcher.currDragArea : (simTime > launcher.deployTime ? launcher.deployedDrag : launcher.simpleDrag) * (0.008f * ordnanceMass);
+                    liftArea = launcher.currLiftArea;
                 }
                 else
                 {
