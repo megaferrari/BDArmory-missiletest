@@ -249,6 +249,9 @@ namespace BDArmory.Weapons.Missiles
         public string deployAnimationName = "";
 
         [KSPField]
+        public bool deployedLiftInCruise = true;
+
+        [KSPField]
         public float deployedDrag = 0.02f;
 
         [KSPField]
@@ -2782,7 +2785,7 @@ namespace BDArmory.Weapons.Missiles
                     if (currMaxTorqueAero < 0)
                         currMaxTorqueAero = 0f;
 
-                    if (deployed)
+                    if (deployed && deployedLiftInCruise)
                         applyDeployedLiftDrag();
 
                     MissileGuidance.setupTorqueAoALimit(this, currLiftArea, currDragArea);
