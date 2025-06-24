@@ -1829,10 +1829,14 @@ namespace BDArmory.Guidances
                     targetDirection = Vector3.Slerp(velNorm, targetDirection, AoALim / targetAngle);
                 float turningAngle = VectorUtils.AnglePreNormalized(forward, targetDirection);
                 Vector3 finalTorque;
-                if (turningAngle > 0f)
+                if (turningAngle * Mathf.Deg2Rad > 0.005f)
                 {
                     Vector3 torqueDirection = Vector3.Cross(forward, targetDirection) / Mathf.Sin(turningAngle * Mathf.Deg2Rad);
                     //Debug.Log($"[BDArmory.MissileGuidance]: torqueDirection = {torqueDirection}, sqrMagnitude = {torqueDirection.sqrMagnitude}.");
+
+                    if (turningAngle < 1f)
+                        turningAngle *= turningAngle;
+
                     float torque = Mathf.Clamp(Mathf.Min(turningAngle, AoALim) * 4f * steerMult, 0f, maxTorque);
 
                     float aeroTorqueSqr = aeroTorque.sqrMagnitude;
@@ -1894,13 +1898,14 @@ namespace BDArmory.Guidances
                             // in which case we'll just apply enough to saturate, but only if LHS is < 2f * torque and maxTorque
                             if (torque < LHS)
                             {
-                                if (LHS < 2f * torque && LHS < maxTorque)
-                                    torque = LHS;
-                                else
-                                {
+                                // This unsaturation method lead to some pretty poor results so I'm just disabling it
+                                //if (LHS < 2f * torque && LHS < maxTorque)
+                                //    torque = LHS;
+                                //else
+                                //{
                                     torque = 0f;
                                     aeroTorque = (maxTorque / aeroTorque.magnitude) * aeroTorque;
-                                }
+                                //}
                             }
                             // The second case is where we've gone over in the opposite direction, in which case we must reduce our torque
                             else if (torque > RHS)
@@ -1928,7 +1933,7 @@ namespace BDArmory.Guidances
                         aeroTorque = (maxTorque / aeroTorque.magnitude) * aeroTorque;
                     }
 
-                    finalTorque = aeroTorque;
+                    finalTorque = 0.95f * aeroTorque;
                 }
                 
                 finalTorque = ml.transform.InverseTransformDirection(finalTorque).ProjectOnPlanePreNormalized(Vector3.forward);
