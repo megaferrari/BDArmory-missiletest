@@ -1065,7 +1065,7 @@ namespace BDArmory.Guidances
         /// <param name="targetPosition"></param>
         /// <param name="targetVelocity"></param>
         /// <returns></returns>
-        public static Vector3 GetAirToAirFireSolution(MissileBase missile, Vector3 targetPosition, Vector3 targetVelocity)
+        public static Vector3 GetAirToAirFireSolution(MissileBase missile, Vector3 targetPosition, Vector3 targetVelocity, bool turretLoft = false)
         {
             MissileLauncher launcher = missile as MissileLauncher;
             BDModularGuidance modLauncher = missile as BDModularGuidance;
@@ -1078,17 +1078,18 @@ namespace BDArmory.Guidances
             float accel = launcher != null ? ((Mathf.Clamp01(launcher.boostTime / maxSimTime)) * launcher.thrust + Mathf.Clamp01((maxSimTime - launcher.cruiseDelay - launcher.boostTime) / maxSimTime) * launcher.cruiseThrust) / missile.part.mass
                 : modLauncher.thrust / modLauncher.mass;
             float leadTimeError = 1f;
+            float missileVelOpt = launcher != null ? launcher.optimumAirspeed : 1500;
                 int count = 0;
                 do
                 {
                     leadDirection = leadPosition - missile.vessel.CoM;
                     float targetDistance = leadDirection.magnitude;
                     leadDirection.Normalize();
-                    velOpt = (inSpace ? BDAMath.Sqrt(2 * accel * targetDistance) * leadDirection + vel : (launcher != null ? launcher.optimumAirspeed : 1500) * leadDirection);
+                    velOpt = (inSpace ? BDAMath.Sqrt(2f * accel * targetDistance) * leadDirection + vel : missileVelOpt * leadDirection);
                     float deltaVel = Vector3.Dot(targetVelocity - vel, leadDirection);
                     float deltaVelOpt = Vector3.Dot(targetVelocity - velOpt, leadDirection);
                     float T = Mathf.Clamp((velOpt - vel).magnitude / accel, 0, maxSimTime); //time to optimal airspeed, clamped to at most 8s
-                    float D = deltaVel * T + 1 / 2 * accel * (T * T); //relative distance covered accelerating to optimum airspeed
+                    float D = deltaVel * T + 0.5f * accel * (T * T); //relative distance covered accelerating to optimum airspeed
                     leadTimeError = -leadTime;
                     if (targetDistance > D) leadTime = (targetDistance - D) / deltaVelOpt + T;
                     else leadTime = (-deltaVel - BDAMath.Sqrt((deltaVel * deltaVel) + 2 * accel * targetDistance)) / accel;
@@ -1096,6 +1097,31 @@ namespace BDArmory.Guidances
                     leadTimeError += leadTime;
                     leadPosition = AIUtils.PredictPosition(targetPosition, targetVelocity - (inSpace ? vel : Vector3.zero), Vector3.zero, leadTime);
                 } while (++count < 5 && Mathf.Abs(leadTimeError) > 1e-3f);  // At most 5 iterations to converge. Also, 1e-2f may be sufficient.
+
+            if (!missile.vessel.InNearVacuum() && turretLoft)
+            {
+                Vector3 relPos = leadPosition - missile.vessel.CoM;
+                float vertDist = Vector3.Dot(relPos, missile.vessel.upAxis);
+                float horzDist = (float)(relPos - vertDist * missile.vessel.upAxis).magnitude;
+                float g = (float)missile.vessel.mainBody.GeeASL;
+                float theta;
+
+                missileVelOpt *= 0.5f;
+
+                float det = missileVelOpt * missileVelOpt * missileVelOpt * missileVelOpt - g * (g * horzDist * horzDist + 2f * vertDist * missileVelOpt * missileVelOpt);
+                if (det > 0f)
+                    // Regular angle based on projectile motion
+                    theta = Mathf.Atan((missileVelOpt * missileVelOpt - BDAMath.Sqrt(det)) / (g * horzDist));
+                else
+                    // Angle to hit the furthest possible target at that elevation
+                    theta = Mathf.Atan(missileVelOpt / (BDAMath.Sqrt(missileVelOpt * missileVelOpt - 2f * g * vertDist)));
+                theta *= Mathf.Rad2Deg;
+
+                float angle = 90f - Vector3.Angle(relPos, missile.vessel.upAxis);
+                if (theta > angle)
+                    leadPosition = missile.vessel.CoM + Vector3.RotateTowards(relPos, missile.vessel.upAxis, (theta - angle) * Mathf.Deg2Rad, vertDist);
+            }
+
             return leadPosition;
         }
 
