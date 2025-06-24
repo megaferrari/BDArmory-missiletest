@@ -1065,7 +1065,7 @@ namespace BDArmory.Guidances
         /// <param name="targetPosition"></param>
         /// <param name="targetVelocity"></param>
         /// <returns></returns>
-        public static Vector3 GetAirToAirFireSolution(MissileBase missile, Vector3 targetPosition, Vector3 targetVelocity, bool turretLoft = false)
+        public static Vector3 GetAirToAirFireSolution(MissileBase missile, Vector3 targetPosition, Vector3 targetVelocity, bool turretLoft = false, float turretLoftFac = 0.5f)
         {
             MissileLauncher launcher = missile as MissileLauncher;
             BDModularGuidance modLauncher = missile as BDModularGuidance;
@@ -1106,7 +1106,7 @@ namespace BDArmory.Guidances
                 float g = (float)missile.vessel.mainBody.GeeASL;
                 float theta;
 
-                missileVelOpt *= 0.5f;
+                missileVelOpt *= turretLoftFac;
 
                 float det = missileVelOpt * missileVelOpt * missileVelOpt * missileVelOpt - g * (g * horzDist * horzDist + 2f * vertDist * missileVelOpt * missileVelOpt);
                 if (det > 0f)
