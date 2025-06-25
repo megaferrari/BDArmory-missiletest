@@ -59,6 +59,10 @@ namespace BDArmory.CounterMeasure
 
         VesselChaffInfo vci;
 
+        private BDStagingAreaGauge gauge;
+        private int cmCount = 0;
+        private int maxCMCount = 0;
+
         [KSPAction("#LOC_BDArmory_FireCountermeasure")]
         public void AGDropCM(KSPActionParam param)
         {
@@ -130,7 +134,14 @@ namespace BDArmory.CounterMeasure
                 {
                     SetupAudio();
                 }
-
+                gauge = (BDStagingAreaGauge)part.AddModule("BDStagingAreaGauge");
+                gauge.AmmoName = countermeasureType;
+                PartResource cmResource = GetCMResource();
+                if (cmResource != null && cmResource.amount >= 1)
+                {
+                    cmCount = (int)cmResource.amount;
+                    maxCMCount = (int)cmResource.maxAmount;
+                }
                 GameEvents.onVesselsUndocking.Add(OnVesselsUndocking);
             }
             else
@@ -167,16 +178,9 @@ namespace BDArmory.CounterMeasure
         public override void OnUpdate()
         {
             if (audioSource)
-            {
-                if (vessel.isActiveVessel)
-                {
-                    audioSource.dopplerLevel = 0;
-                }
-                else
-                {
-                    audioSource.dopplerLevel = 1;
-                }
-            }
+                audioSource.dopplerLevel = vessel.isActiveVessel ? 0 : 1;
+            if (vessel.isActiveVessel && maxCMCount > 0)
+                gauge.UpdateCMMeter((cmCount >= 1 ? cmCount : 0) / (float)maxCMCount);
         }
 
         void FireParticleEffects()
@@ -316,11 +320,12 @@ namespace BDArmory.CounterMeasure
 
         bool DropFlare()
         {
-            if (!BDArmorySettings.INFINITE_ORDINANCE)
+            if (!BDArmorySettings.INFINITE_COUNTERMEASURES)
             {
                 PartResource cmResource = GetCMResource();
                 if (cmResource == null || !(cmResource.amount >= 1)) return false;
                 cmResource.amount--;
+                cmCount--;
             }
             audioSource.pitch = UnityEngine.Random.Range(0.9f, 1.1f);
             audioSource.PlayOneShot(cmSound);
@@ -343,11 +348,12 @@ namespace BDArmory.CounterMeasure
 
         bool DropChaff()
         {
-            if (!BDArmorySettings.INFINITE_ORDINANCE)
+            if (!BDArmorySettings.INFINITE_COUNTERMEASURES)
             {
                 PartResource cmResource = GetCMResource();
                 if (cmResource == null || !(cmResource.amount >= 1)) return false;
                 cmResource.amount--;
+                cmCount--;
             }
             audioSource.pitch = UnityEngine.Random.Range(0.9f, 1.1f);
             audioSource.PlayOneShot(cmSound);
@@ -368,11 +374,12 @@ namespace BDArmory.CounterMeasure
 
         bool PopSmoke()
         {
-            if (!BDArmorySettings.INFINITE_ORDINANCE)
+            if (!BDArmorySettings.INFINITE_COUNTERMEASURES)
             {
                 PartResource smokeResource = GetCMResource();
                 if (smokeResource == null || !(smokeResource.amount >= 1)) return false;
                 smokeResource.amount--;
+                cmCount--;
             }
             audioSource.pitch = UnityEngine.Random.Range(0.9f, 1.1f);
             audioSource.PlayOneShot(cmSound);
@@ -410,11 +417,12 @@ namespace BDArmory.CounterMeasure
 
         bool LaunchDecoy()
         {
-            if (!BDArmorySettings.INFINITE_ORDINANCE)
+            if (!BDArmorySettings.INFINITE_COUNTERMEASURES)
             {
                 PartResource cmResource = GetCMResource();
                 if (cmResource == null || !(cmResource.amount >= 1)) return false;
                 cmResource.amount--;
+                cmCount--;
             }
             audioSource.pitch = UnityEngine.Random.Range(0.9f, 1.1f);
             audioSource.PlayOneShot(cmSound);
@@ -437,11 +445,12 @@ namespace BDArmory.CounterMeasure
 
         bool DropBubbles()
         {
-            if (!BDArmorySettings.INFINITE_ORDINANCE)
+            if (!BDArmorySettings.INFINITE_COUNTERMEASURES)
             {
                 PartResource bubbleResource = GetCMResource();
                 if (bubbleResource == null || !(bubbleResource.amount >= 1)) return false;
                 bubbleResource.amount--;
+                cmCount--;
             }
             audioSource.pitch = UnityEngine.Random.Range(0.9f, 1.1f);
             audioSource.PlayOneShot(cmSound);
