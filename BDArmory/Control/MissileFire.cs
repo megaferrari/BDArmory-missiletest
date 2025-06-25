@@ -6036,7 +6036,7 @@ namespace BDArmory.Control
                                     MissileLauncher mlauncher = item.Current as MissileLauncher;
                                     if (mlauncher != null)
                                     {
-                                        if (mlauncher.reloadableRail != null && (mlauncher.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordnance                                 
+                                        if (mlauncher.reloadableRail != null && (mlauncher.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordnance
                                         candidateDetDist = mlauncher.DetonationDistance;
                                         candidateTurning = mlauncher.maxTurnRateDPS; //for anti-aircraft, prioritize detonation dist and turn capability. Rejigger to use kinematic missile perf. based on missile maxAoA/maxG/optimalAirspeed instead of arbitrary static value?
                                         candidatePriority = Mathf.RoundToInt(mlauncher.priority);
