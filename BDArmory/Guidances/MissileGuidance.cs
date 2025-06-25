@@ -1933,7 +1933,7 @@ namespace BDArmory.Guidances
                         aeroTorque = (maxTorque / aeroTorque.magnitude) * aeroTorque;
                     }
 
-                    finalTorque = 0.95f * aeroTorque;
+                    finalTorque = aeroTorque;
                 }
                 
                 finalTorque = ml.transform.InverseTransformDirection(finalTorque).ProjectOnPlanePreNormalized(Vector3.forward);
