@@ -1537,17 +1537,17 @@ namespace BDArmory.Weapons.Missiles
                 SourceVessel = vessel;
                 SetTargeting();
                 Jettison();
-                AddTargetInfoToVessel();
-                IncreaseTolerance();
 
                 BDATargetManager.FiredMissiles.Add(this);
 
-                var wpm = WeaponManager; // MM's WM
+                var wpm = SourceVessel.ActiveController().WM;
                 if (wpm != null)
                 {
                     Team = wpm.Team;
                     wpm.UpdateMissilesAway(targetVessel, this);
                 }
+                AddTargetInfoToVessel(); // Wait until we've assigned the team before adding target info.
+                IncreaseTolerance();
 
                 initialMissileRollPlane = -vessel.transform.up;
                 initialMissileForward = vessel.transform.forward;

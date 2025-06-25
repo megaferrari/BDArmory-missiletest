@@ -4,7 +4,6 @@
 - Changing the slider resolution sometimes triggers clamping of unclamped values
 - Taking off with the global 'P' button for two VTOL craft on the runway disables their engines!
 - WM without AI or with stationary ground AI sometimes just sits there without attacking valid targets.
-- Fix the various StopCoroutine(newRoutine()) calls.
 
 ### TODO (smaller items and specific requests / higher priority)
 - Fix bugs
@@ -90,7 +89,7 @@
 	- Boss fight tournament mode
 - Record starting conditions for bullets, position every 1000m and time and position of first impact in vessel traces. Also, bullet type. This should be sufficient for approximate curves in blender and colours, etc. can be found from the configs.
 - Add a max morgue capacity and recycle kerbals once it's full. Regen the main 4 and discard the others? Would need special handling for custom kerbals.
-- Profile the infinite ordinance option for spawning missile parts. "I wonder if it's possible to avoid a lot of the spawning cost and memory leakage by detaching the Vessel component from the missile prior to getting destroyed, packing and disabling it, then attaching, unpacking and enabling it on a new missile? Something to look at in the future..."
+- Profile the infinite ordnance option for spawning missile parts. "I wonder if it's possible to avoid a lot of the spawning cost and memory leakage by detaching the Vessel component from the missile prior to getting destroyed, packing and disabling it, then attaching, unpacking and enabling it on a new missile? Something to look at in the future..."
 - Strafing planes are wobbly initially (maybe at low speeds in general?)
 
 

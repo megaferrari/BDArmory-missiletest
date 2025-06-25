@@ -57,6 +57,10 @@ namespace BDArmory.Weapons.Missiles
         public float heatTimer = -1;
         private Vector3 origScale = Vector3.one;
 
+        #region Effects
+
+        // Classic FX
+
         [KSPField]
         public string exhaustPrefabPath;
 
@@ -65,6 +69,8 @@ namespace BDArmory.Weapons.Missiles
 
         [KSPField]
         public string boostExhaustTransformName;
+
+        #endregion
 
         #region Aero
 
@@ -236,6 +242,12 @@ namespace BDArmory.Weapons.Missiles
         public float deployTime = 0.2f;
 
         [KSPField]
+        public string cruiseAnimationName = "";
+
+        [KSPField]
+        public float cruiseDeployTime = 0.2f;
+
+        [KSPField]
         public string flightAnimationName = "";
 
         [KSPField]
@@ -264,6 +276,8 @@ namespace BDArmory.Weapons.Missiles
         //public float deployedTime;
 
         AnimationState[] deployStates;
+
+        AnimationState[] cruiseStates;
 
         AnimationState[] animStates;
 
@@ -409,6 +423,7 @@ namespace BDArmory.Weapons.Missiles
                 weaponClass = WeaponClasses.Missile;
             }
         }
+
         public override void OnStart(StartState state)
         {
             //base.OnStart(state);
@@ -698,6 +713,10 @@ namespace BDArmory.Weapons.Missiles
             {
                 deployedDrag = simpleDrag;
             }
+            if (cruiseAnimationName != "")
+            {
+                cruiseStates = GUIUtils.SetUpAnimation(cruiseAnimationName, part);
+            }
             if (flightAnimationName != "")
             {
                 animStates = GUIUtils.SetUpAnimation(flightAnimationName, part);
@@ -737,7 +756,7 @@ namespace BDArmory.Weapons.Missiles
                         if (!String.IsNullOrEmpty(((MultiMissileLauncher)partModule).subMunitionName))
                         {
                             //shouldn't have both MML and ClusterBomb/BDExplosivepart/ModuleEMP/BDModuleNuke on the same part; explosive would be on the submunition .cfg
-                            //so instead need a check if the MML comes with a default ordinance, and see what it is to inherit stats.
+                            //so instead need a check if the MML comes with a default ordnance, and see what it is to inherit stats.
                             using (var parts = PartLoader.LoadedPartsList.GetEnumerator())
                                 while (parts.MoveNext())
                                 {
@@ -1562,7 +1581,7 @@ namespace BDArmory.Weapons.Missiles
 
         public IEnumerator MissileReload()
         {
-            reloadableRail.loadOrdinance(multiLauncher ? multiLauncher.launchTubes : 1);
+            reloadableRail.loadOrdnance(multiLauncher ? multiLauncher.launchTubes : 1);
             if (reloadableRail.railAmmo > 0 || BDArmorySettings.INFINITE_ORDINANCE)
             {
                 if (vessel.isActiveVessel) gauge.UpdateReloadMeter(reloadTimer);
@@ -2299,6 +2318,7 @@ namespace BDArmory.Weapons.Missiles
             if (cruiseRangeTrigger > 0)
                 yield return new WaitUntilFixed(checkCruiseRangeTrigger);
 
+            if (cruiseStates != null) StartCoroutine(CruiseAnimRoutine());
             yield return StartCoroutine(CruiseRoutine());
         }
 
@@ -2337,6 +2357,27 @@ namespace BDArmory.Weapons.Missiles
             {
                 deployed = true;
                 using (var anim = deployStates.AsEnumerable().GetEnumerator())
+                    while (anim.MoveNext())
+                    {
+                        if (anim.Current == null) continue;
+                        anim.Current.enabled = true;
+                        anim.Current.speed = 1;
+                    }
+            }
+        }
+        IEnumerator CruiseAnimRoutine()
+        {
+            yield return new WaitForSecondsFixed(cruiseDeployTime);
+            if (cruiseStates == null)
+            {
+                if (BDArmorySettings.DEBUG_MISSILES) Debug.LogWarning("[BDArmory.MissileLauncher]: deployStates was null, aborting AnimRoutine.");
+                yield break;
+            }
+
+            if (!string.IsNullOrEmpty(cruiseAnimationName))
+            {
+                deployed = true;
+                using (var anim = cruiseStates.AsEnumerable().GetEnumerator())
                     while (anim.MoveNext())
                     {
                         if (anim.Current == null) continue;
@@ -2395,8 +2436,10 @@ namespace BDArmory.Weapons.Missiles
                 burnRate = boostTime > 0 ? boosterFuelMass / boostTime * Time.fixedDeltaTime : 0;
                 burnedFuelMass = 0f;
             }
+
             StartBoost();
             StartCoroutine(updateCrashTolerance());
+
             var wait = new WaitForFixedUpdate();
             float boostStartTime = Time.time;
             while (Time.time - boostStartTime < boostTime || (useFuel && burnedFuelMass < boosterFuelMass))
@@ -2655,8 +2698,10 @@ namespace BDArmory.Weapons.Missiles
                 {
                     currentThrust = Mathf.MoveTowards(currentThrust, cruiseThrust, cruiseThrust / 10);
                 }
+
                 yield return wait;
             }
+
             EndCruise();
         }
 
@@ -3747,7 +3792,7 @@ namespace BDArmory.Weapons.Missiles
             }
             if (missileType.ToLower() == "launcher")
             {
-                return "Requires Ordinance";
+                return "Requires Ordnance";
             }
             //else: missiles:
 
@@ -4092,6 +4137,7 @@ namespace BDArmory.Weapons.Missiles
             exhaustPrefabs.Clear();
         }
         #endregion
+
         public double GetDeltaV()
         {
             double specificImpulse;

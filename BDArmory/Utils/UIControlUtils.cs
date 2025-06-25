@@ -286,7 +286,7 @@ namespace BDArmory.Utils
 
         public void OnLevelFinishedLoading(Scene scene, LoadSceneMode mode)
         {
-            if (isRunning) StopCoroutine("Register");
+            if (isRunning) StopCoroutine(register);
             if (!(HighLogic.LoadedSceneIsEditor || HighLogic.LoadedSceneIsFlight)) return;
             isRunning = true;
             register = StartCoroutine(Register());
@@ -666,7 +666,7 @@ namespace BDArmory.Utils
 
         public void OnLevelFinishedLoading(Scene scene, LoadSceneMode mode)
         {
-            if (isRunning) StopCoroutine("Register");
+            if (isRunning) StopCoroutine(register);
             if (!(HighLogic.LoadedSceneIsEditor || HighLogic.LoadedSceneIsFlight)) return;
             isRunning = true;
             register = StartCoroutine(Register());
@@ -997,7 +997,7 @@ namespace BDArmory.Utils
 
         public void OnLevelFinishedLoading(Scene scene, LoadSceneMode mode)
         {
-            if (isRunning) StopCoroutine("Register");
+            if (isRunning) StopCoroutine(register);
             if (!(HighLogic.LoadedSceneIsEditor || HighLogic.LoadedSceneIsFlight)) return;
             isRunning = true;
             register = StartCoroutine(Register());

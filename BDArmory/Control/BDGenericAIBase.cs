@@ -695,5 +695,21 @@ namespace BDArmory.Control
                 yield return wait;
             }
         }
+
+        Coroutine disableBattleDamageCoroutine = null;
+        public void DisableBattleDamage(bool active)
+        {
+            if (!active && disableBattleDamageCoroutine != null)
+            {
+                StopCoroutine(disableBattleDamageCoroutine);
+                disableBattleDamageCoroutine = null;
+                BDArmorySettings.BATTLEDAMAGE = true;
+            }
+            if (active && BDArmorySettings.BATTLEDAMAGE)
+            {
+                BDArmorySettings.BATTLEDAMAGE = false;
+                disableBattleDamageCoroutine = StartCoroutine(new WaitWhile(() => true));
+            }
+        }
     }
 }
