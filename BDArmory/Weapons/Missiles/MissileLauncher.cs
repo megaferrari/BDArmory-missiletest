@@ -889,6 +889,8 @@ namespace BDArmory.Weapons.Missiles
                 Events["CruiseAltitudeRange"].guiActive = false;
                 Events["CruiseAltitudeRange"].guiActiveEditor = false;
                 Fields["CruisePredictionTime"].guiActiveEditor = false;
+                Fields["CruisePopup"].guiActive = false;
+                Fields["CruisePopup"].guiActiveEditor = false;
             }
             else
             {
@@ -916,6 +918,7 @@ namespace BDArmory.Weapons.Missiles
                 Events["CruiseAltitudeRange"].guiActive = true;
                 Events["CruiseAltitudeRange"].guiActiveEditor = true;
                 Fields["CruisePredictionTime"].guiActiveEditor = true;
+                Fields["CruisePopup"].guiActive = true;
             }
 
             if (GuidanceMode != GuidanceModes.AGM)
