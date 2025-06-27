@@ -1107,14 +1107,15 @@ namespace BDArmory.Guidances
                 float theta;
 
                 missileVelOpt *= turretLoftFac;
+                float missileVelOptSqr = missileVelOpt * missileVelOpt;
 
-                float det = missileVelOpt * missileVelOpt * missileVelOpt * missileVelOpt - g * (g * horzDist * horzDist + 2f * vertDist * missileVelOpt * missileVelOpt);
+                float det = missileVelOptSqr * missileVelOptSqr - g * (g * horzDist * horzDist + 2f * vertDist * missileVelOptSqr);
                 if (det > 0f)
                     // Regular angle based on projectile motion
-                    theta = Mathf.Atan((missileVelOpt * missileVelOpt - BDAMath.Sqrt(det)) / (g * horzDist));
+                    theta = Mathf.Atan((missileVelOptSqr - BDAMath.Sqrt(det)) / (g * horzDist));
                 else
                     // Angle to hit the furthest possible target at that elevation
-                    theta = Mathf.Atan(missileVelOpt / (BDAMath.Sqrt(missileVelOpt * missileVelOpt - 2f * g * vertDist)));
+                    theta = Mathf.Atan(missileVelOpt / (BDAMath.Sqrt(missileVelOptSqr - 2f * g * vertDist)));
                 theta *= Mathf.Rad2Deg;
 
                 float angle = 90f - Vector3.Angle(relPos, missile.vessel.upAxis);
