@@ -280,9 +280,29 @@ namespace BDArmory.Modules
             {
                 if (fromTo.host != null && fromTo.host.loaded && !GameModes.AsteroidUtils.IsManagedAsteroid(fromTo.host))
                 {
-                    Debug.LogWarning("[BDArmory.KerbalSafety]: " + fromTo.host + " got eaten by the Kraken!");
+                    Debug.LogWarning($"[BDArmory.KerbalSafety]: {fromTo.host.GetName()} got eaten by the Kraken!");
                     fromTo.host.gameObject.SetActive(false);
                     fromTo.host.Die();
+                    StartCoroutine(FeedTheKraken());
+                }
+            }
+        }
+
+        IEnumerator FeedTheKraken()
+        {
+            CheckForDebrisBeyondTheSoI();
+            yield return new WaitForFixedUpdate();
+            CheckForDebrisBeyondTheSoI();
+        }
+
+        void CheckForDebrisBeyondTheSoI()
+        {
+            foreach (var vessel in FlightGlobals.Vessels.ToList()) // Look for and remove any debris that might also have been Kraken'd.
+            {
+                if (vessel.vesselType == VesselType.Debris && vessel.mainBody != FlightGlobals.currentMainBody)
+                {
+                    Debug.Log($"[BDArmory.KerbalSafety]: Feeding {vessel.vesselName} ({vessel.rootPart.partInfo.name}) to the Kraken.");
+                    RecoverVesselNow(vessel);
                 }
             }
         }
