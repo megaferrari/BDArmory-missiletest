@@ -181,7 +181,7 @@ namespace BDArmory.Weapons.Missiles
                 missileSpawner.Fields["railAmmo"].guiActiveEditor = false;
                 missileSpawner.MissileName = subMunitionName;
                 if (!isClusterMissile) //Clustermissiles replace/generate MMR on launch, other missiles should have it in the .cfg
-                    Debug.LogError($"[BDArmory.MultiMissileLauncher] no ModuleMissileRearm on {part.name}. Please fix your .cfg");
+                    Debug.LogError($"[BDArmory.MultiMissileLauncher]: no ModuleMissileRearm on {part.name}. Please fix your .cfg");
             }
             if (BDArmorySettings.LIMITED_ORDINANCE) missileSpawner.railAmmo = isClusterMissile ? 1 : launchTubes;
             missileSpawner.isMultiLauncher = isMultiLauncher;
@@ -273,7 +273,7 @@ namespace BDArmory.Weapons.Missiles
                                             Fields["clusterMissileTriggerDist"].guiActiveEditor = true;
                                         }
                                 }
-                                else Debug.LogError("[BDArmory.MultiMissileLauncher] submunition MissileLauncher module null! Check subMunitionName is correct");
+                                else Debug.LogError("[BDArmory.MultiMissileLauncher]: submunition MissileLauncher module null! Check subMunitionName is correct");
                             }
                             break;
                         }
@@ -527,7 +527,7 @@ namespace BDArmory.Weapons.Missiles
                     dummyScale.y *= scale;
                     dummyScale.z *= scale;
                 }
-                //Debug.Log($"[BDArmory.MultiMissileLauncher] Found model URL of {url} and scale {dummyScale}");
+                //Debug.Log($"[BDArmory.MultiMissileLauncher]: Found model URL of {url} and scale {dummyScale}");
                 return url;
 
             }
@@ -548,7 +548,7 @@ namespace BDArmory.Weapons.Missiles
                 dummyScale.z *= scale;
             }
             url = string.Format("{0}/{1}", cfgdir.parent.parent.url, mesh);
-            //Debug.Log($"[BDArmory.MultiMissileLauncher] Found model URL of {url} and scale {dummyScale}");
+            //Debug.Log($"[BDArmory.MultiMissileLauncher]: Found model URL of {url} and scale {dummyScale}");
             return url;
         }
 
@@ -589,7 +589,7 @@ namespace BDArmory.Weapons.Missiles
             missileLauncher.terminalHoming = MLConfig.terminalHoming;
             missileLauncher.terminalHomingActive = false;
             missileLauncher.liftArea = MLConfig.liftArea;
-            missileLauncher.dragArea = MLConfig.dragArea < 0 ? MLConfig.liftArea : MLConfig.dragArea;
+            missileLauncher.dragArea = MLConfig.dragArea;
             missileLauncher.useSimpleDrag = MLConfig.useSimpleDrag;
             missileLauncher.simpleCoD = MLConfig.simpleCoD;
             missileLauncher.maxTorque = MLConfig.maxTorque;
@@ -648,6 +648,7 @@ namespace BDArmory.Weapons.Missiles
             }
             missileLauncher.GetBlastRadius();
             GUIUtils.RefreshAssociatedWindows(missileLauncher.part);
+            missileLauncher.ParseLiftDragSteerTorque();
             missileLauncher.SetFields();
             missileLauncher.Sublabel = $"Guidance: {Enum.GetName(typeof(TargetingModes), missileLauncher.TargetingMode)}; Max Range: {Mathf.Round(missileLauncher.engageRangeMax / 100) / 10} km; Remaining: {missileLauncher.missilecount}";
         }
@@ -731,7 +732,7 @@ namespace BDArmory.Weapons.Missiles
                                 MissileLauncher launcher = ml as MissileLauncher;
                                 if (launcher != null)
                                 {
-                                    if (launcher.HasFired) continue;
+                                    if (launcher.HasFired || launcher.launched) continue;
                                     launcher.FireMissile();
                                 }
                             }
@@ -745,7 +746,7 @@ namespace BDArmory.Weapons.Missiles
             float timeGap = (60 / rippleRPM) * TimeWarp.CurrentRate;
             int TargetID = 0;
             bool missileRegistry = true;
-            bool removeFromQueue = true;
+            bool removeFromQueue = !isLaunchedClusterMissile;
             List<TargetInfo> firedTargets = [];
             //missileSpawner.MissileName = subMunitionName;
 
@@ -772,18 +773,18 @@ namespace BDArmory.Weapons.Missiles
                     deployState.normalizedTime = 1;
                     deployState.speed = 0;
                     deployState.enabled = false;
-                    if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MultiMissileLauncher] deploy anim complete");
+                    if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MultiMissileLauncher]: deploy anim complete");
                 }
             }
             if (missileSpawner == null) yield break; // Died while waiting.
             for (int m = tubesFired; m < launchTransforms.Length; m++)
             {
-                if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MultiMissileLauncher] starting ripple launch on tube {m}, ripple delay: {timeGap:F3}");
+                if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MultiMissileLauncher]: starting ripple launch on tube {m}, ripple delay: {timeGap:F3}");
                 yield return new WaitForSecondsFixed(timeGap);
                 if (missileSpawner == null) yield break; // Died while waiting.
                 if (launchesThisSalvo >= (int)salvoSize) //catch if launcher is trying to launch more missiles than it has
                 {
-                    //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MultiMissileLauncher] oops! firing more missiles than tubes or ammo");
+                    //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MultiMissileLauncher]: oops! firing more missiles than tubes or ammo");
                     break;
                 }
                 if (!isLaunchedClusterMissile && (missileSpawner.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE))
@@ -882,7 +883,6 @@ namespace BDArmory.Weapons.Missiles
                     ml.pronavGain = missileLauncher.pronavGain;
                     ml.loftState = LoftStates.Boost;
                     ml.TimeToImpact = float.PositiveInfinity;
-                    ml.initMaxAoA = missileLauncher.maxAoA;
                 }
                 /*if (missileLauncher.GuidanceMode == GuidanceModes.AAMHybrid)
                 {
@@ -935,7 +935,6 @@ namespace BDArmory.Weapons.Missiles
                         ml.pronavGain = missileLauncher.pronavGain;
                         ml.loftState = LoftStates.Boost;
                         ml.TimeToImpact = float.PositiveInfinity;
-                        ml.initMaxAoA = missileLauncher.maxAoA;
                     }
                     if (missileLauncher.homingModeTerminal == GuidanceModes.APN || missileLauncher.homingModeTerminal == GuidanceModes.PN)
                         ml.pronavGain = missileLauncher.pronavGain;
@@ -978,7 +977,7 @@ namespace BDArmory.Weapons.Missiles
                                         if (wpm.missilesAway[targetsAssigned[t]][0] < wpm.maxMissilesOnTarget)
                                         {
                                             TargetID = t; //so go through and advance the target list start point based on who's already been fully engaged
-                                                          //Debug.Log($"[MML Targeting Debug] advancing targetID to {TargetID}: {targetsAssigned[TargetID].Vessel.GetName()}");
+                                            //Debug.Log($"[MML Targeting Debug] advancing targetID to {TargetID}: {targetsAssigned[TargetID].Vessel.GetName()}");
                                             break;
                                         }
                                     }
@@ -1009,7 +1008,7 @@ namespace BDArmory.Weapons.Missiles
                                     if (ml.TargetingMode == TargetingModes.Heat) //need to input a heattarget, else this will just return MissileFire.CurrentTarget
                                     {
                                         Vector3 direction = (targetsAssigned[TargetID].position * targetsAssigned[TargetID].velocity.magnitude) - missileLauncher.MissileReferenceTransform.position;
-                                        ml.heatTarget = BDATargetManager.GetHeatTarget(ml.SourceVessel, ml.vessel, new Ray(missileLauncher.MissileReferenceTransform.position + (5 * missileLauncher.GetForwardTransform()), direction), TargetSignatureData.noTarget, ml.lockedSensorFOV * 0.5f, ml.heatThreshold, ml.frontAspectHeatModifier, true, ml.targetCoM, ml.lockedSensorFOVBias, ml.lockedSensorVelocityBias, wpm, targetsAssigned[TargetID], IFF: ml.hasIFF);
+                                        ml.heatTarget = BDATargetManager.GetHeatTarget(ml.SourceVessel, ml.vessel, new Ray(missileLauncher.MissileReferenceTransform.position + (5 * missileLauncher.GetForwardTransform()), direction), TargetSignatureData.noTarget, ml.lockedSensorFOV * 0.5f, ml.heatThreshold, ml.frontAspectHeatModifier, true, ml.targetCoM, ml.lockedSensorFOVBias, ml.lockedSensorVelocityBias, ml.lockedSensorVelocityMagnitudeBias, ml.lockedSensorMinAngularVelocity, wpm, targetsAssigned[TargetID], IFF: ml.hasIFF);
                                     }
                                     if (ml.TargetingMode == TargetingModes.Radar)
                                     {
@@ -1027,7 +1026,7 @@ namespace BDArmory.Weapons.Missiles
                                     ml.TargetAcquired = true;
                                     firedTargets.Add(targetsAssigned[TargetID]);
                                     if (BDArmorySettings.DEBUG_MISSILES)
-                                        Debug.Log($"[BDArmory.MultiMissileLauncher] Assigning target {TargetID}: {targetsAssigned[TargetID].Vessel.GetName()}; total possible targets {targetsAssigned.Count - 1}");
+                                        Debug.Log($"[BDArmory.MultiMissileLauncher]: Assigning target {TargetID}: {targetsAssigned[TargetID].Vessel.GetName()}; total possible targets {targetsAssigned.Count - 1}");
                                 }
                                 else //else try remaining targets on the list. 
                                 {
@@ -1045,7 +1044,7 @@ namespace BDArmory.Weapons.Missiles
                                             if (ml.TargetingMode == TargetingModes.Heat)
                                             {
                                                 Vector3 direction = (targetsAssigned[t].position * targetsAssigned[t].velocity.magnitude) - missileLauncher.MissileReferenceTransform.position;
-                                                ml.heatTarget = BDATargetManager.GetHeatTarget(ml.SourceVessel, ml.vessel, new Ray(missileLauncher.MissileReferenceTransform.position + (5 * missileLauncher.GetForwardTransform()), direction), TargetSignatureData.noTarget, ml.lockedSensorFOV * 0.5f, ml.heatThreshold, ml.frontAspectHeatModifier, true, ml.targetCoM, ml.lockedSensorFOVBias, ml.lockedSensorVelocityBias, wpm, targetsAssigned[t], IFF: ml.hasIFF);
+                                                ml.heatTarget = BDATargetManager.GetHeatTarget(ml.SourceVessel, ml.vessel, new Ray(missileLauncher.MissileReferenceTransform.position + (5 * missileLauncher.GetForwardTransform()), direction), TargetSignatureData.noTarget, ml.lockedSensorFOV * 0.5f, ml.heatThreshold, ml.frontAspectHeatModifier, true, ml.targetCoM, ml.lockedSensorFOVBias, ml.lockedSensorVelocityBias, ml.lockedSensorVelocityMagnitudeBias, ml.lockedSensorMinAngularVelocity, wpm, targetsAssigned[t], IFF: ml.hasIFF);
                                             }
                                             if (ml.TargetingMode == TargetingModes.Radar)
                                             {
@@ -1063,12 +1062,12 @@ namespace BDArmory.Weapons.Missiles
                                             ml.TargetAcquired = true;
                                             firedTargets.Add(targetsAssigned[t]);
                                             if (BDArmorySettings.DEBUG_MISSILES)
-                                                Debug.Log($"[BDArmory.MultiMissileLauncher] Assigning backup target (targetID {TargetID}) {targetsAssigned[t].Vessel.GetName()}");
+                                                Debug.Log($"[BDArmory.MultiMissileLauncher]: Assigning backup target (targetID {TargetID}) {targetsAssigned[t].Vessel.GetName()}");
                                             break;
                                         }
                                     }
                                     if (BDArmorySettings.DEBUG_MISSILES)
-                                        Debug.Log($"[BDArmory.MultiMissileLauncher] Couldn't assign valid target, trying from beginning of target list");
+                                        Debug.Log($"[BDArmory.MultiMissileLauncher]: Couldn't assign valid target, trying from beginning of target list");
                                     if (ml.targetVessel == null) //check targets that were already assigned and passed. using the above iterator to prevent all targets outisde allowed FoV or engagement enveolpe from being assigned the firest possible target by checking later ones first
                                     {
                                         using (List<TargetInfo>.Enumerator item = targetsAssigned.GetEnumerator())
@@ -1086,7 +1085,7 @@ namespace BDArmory.Weapons.Missiles
                                                     if (ml.TargetingMode == TargetingModes.Heat)
                                                     {
                                                         Vector3 direction = (item.Current.position * item.Current.velocity.magnitude) - missileLauncher.MissileReferenceTransform.position;
-                                                        ml.heatTarget = BDATargetManager.GetHeatTarget(ml.SourceVessel, ml.vessel, new Ray(missileLauncher.MissileReferenceTransform.position + (5 * missileLauncher.GetForwardTransform()), direction), TargetSignatureData.noTarget, ml.lockedSensorFOV * 0.5f, ml.heatThreshold, ml.frontAspectHeatModifier, true, ml.targetCoM, ml.lockedSensorFOVBias, ml.lockedSensorVelocityBias, wpm, item.Current, IFF: ml.hasIFF);
+                                                        ml.heatTarget = BDATargetManager.GetHeatTarget(ml.SourceVessel, ml.vessel, new Ray(missileLauncher.MissileReferenceTransform.position + (5 * missileLauncher.GetForwardTransform()), direction), TargetSignatureData.noTarget, ml.lockedSensorFOV * 0.5f, ml.heatThreshold, ml.frontAspectHeatModifier, true, ml.targetCoM, ml.lockedSensorFOVBias, ml.lockedSensorVelocityBias, ml.lockedSensorVelocityMagnitudeBias, ml.lockedSensorMinAngularVelocity, wpm, item.Current, IFF: ml.hasIFF);
                                                     }
                                                     if (ml.TargetingMode == TargetingModes.Radar)
                                                     {
@@ -1104,7 +1103,7 @@ namespace BDArmory.Weapons.Missiles
                                                     ml.TargetAcquired = true;
                                                     firedTargets.Add(item.Current);
                                                     if (BDArmorySettings.DEBUG_MISSILES)
-                                                        Debug.Log($"[BDArmory.MultiMissileLauncher] original target out of sensor range; engaging {item.Current.Vessel.GetName()}");
+                                                        Debug.Log($"[BDArmory.MultiMissileLauncher]: original target out of sensor range; engaging {item.Current.Vessel.GetName()}");
                                                     break;
                                                 }
                                             }
@@ -1231,7 +1230,7 @@ namespace BDArmory.Weapons.Missiles
                             }
                             ml.targetVessel = missileLauncher.targetVessel;
                             ml.TargetAcquired = true;
-                            //Debug.Log("[BDArmory.MultiMissileLauncher] Data transfer complete.");
+                            //Debug.Log("[BDArmory.MultiMissileLauncher]: Data transfer complete.");
                         }
                     }
                     else
@@ -1240,18 +1239,48 @@ namespace BDArmory.Weapons.Missiles
                     }
                     ml.GpsUpdateMax = wpm.GpsUpdateMax;
                 }
-                if (missileRegistry)
+                if (missileRegistry || removeFromQueue)
                 {
                     BDATargetManager.FiredMissiles.Add(ml); //so multi-missile salvoes only count as a single missile fired by the WM for maxMissilesPerTarget
+
+                    if (removeFromQueue)
+                    {
+                        if (missileLauncher.radarTarget.exists && missileLauncher.radarTarget.lockedByRadar && missileLauncher.radarTarget.lockedByRadar.vessel != missileLauncher.SourceVessel)
+                        {
+                            MissileFire datalinkwpm = missileLauncher.radarTarget.lockedByRadar.vessel.ActiveController().WM;
+                            if (datalinkwpm)
+                                datalinkwpm.UpdateQueuedLaunches(missileLauncher.targetVessel, missileLauncher, false, false);
+                        }
+                    }
+
                     if (wpm)
                     {
                         if (removeFromQueue)
                         {
-                            wpm.UpdateQueuedLaunches(ml.targetVessel, ml, false);
+                            wpm.UpdateQueuedLaunches(missileLauncher.targetVessel, missileLauncher, false);
                             removeFromQueue = false;
                         }
                         wpm.UpdateMissilesAway(ml.targetVessel, ml);
                     }
+
+                    // Account for the datalink for the missileLauncher target
+                    if (removeFromQueue)
+                    {
+                        if (missileLauncher.radarTarget.exists && missileLauncher.radarTarget.lockedByRadar && missileLauncher.radarTarget.lockedByRadar.vessel != missileLauncher.SourceVessel)
+                        {
+                            MissileFire datalinkwpm = ml.radarTarget.lockedByRadar.vessel.ActiveController().WM;
+                            if (datalinkwpm)
+                                datalinkwpm.UpdateQueuedLaunches(missileLauncher.targetVessel, missileLauncher, false, false);
+                        }
+                    }
+
+                    if (ml.radarTarget.exists && ml.radarTarget.lockedByRadar && ml.radarTarget.lockedByRadar.vessel != ml.SourceVessel)
+                    {
+                        MissileFire datalinkwpm = ml.radarTarget.lockedByRadar.vessel.ActiveController().WM;
+                        if (datalinkwpm)
+                            datalinkwpm.UpdateMissilesAway(ml.targetVessel, ml, false);
+                    }
+
                     if (BDArmorySettings.DEBUG_MISSILES)
                         Debug.Log($"[BDArmory.MultiMissileLauncher]: Missile {ml.shortName} with target {(ml.targetVessel != null ? ml.targetVessel.Vessel.GetName() : "null vessel")} added to FiredMissiles.");
                 }
@@ -1260,8 +1289,26 @@ namespace BDArmory.Weapons.Missiles
                 ml.MissileLaunch();
                 if (wpm != null) wpm.heatTarget = TargetSignatureData.noTarget;
             }
+
+            if (removeFromQueue)
+            {
+                if (missileLauncher.radarTarget.exists && missileLauncher.radarTarget.lockedByRadar && missileLauncher.radarTarget.lockedByRadar.vessel != missileLauncher.SourceVessel)
+                {
+                    MissileFire datalinkwpm = missileLauncher.radarTarget.lockedByRadar.vessel.ActiveController().WM;
+                    if (datalinkwpm)
+                        datalinkwpm.UpdateQueuedLaunches(missileLauncher.targetVessel, missileLauncher, false, false);
+                }
+            }
+
             if (wpm != null)
             {
+                if (removeFromQueue)
+                {
+                    Debug.LogWarning($"[BDArmory.MultiMissileLauncher]: {part.name} attempted to fire, all missiles failed to launch! Check your vessel design!");
+                    wpm.UpdateQueuedLaunches(missileLauncher.targetVessel, missileLauncher, false);
+                    removeFromQueue = false;
+                }
+
                 using (List<TargetInfo>.Enumerator Tgt = targetsAssigned.GetEnumerator())
                     while (Tgt.MoveNext())
                     {
@@ -1293,7 +1340,7 @@ namespace BDArmory.Weapons.Missiles
                     if (!(missileLauncher.reloadRoutine != null))
                     {
                         missileLauncher.reloadRoutine = StartCoroutine(missileLauncher.MissileReload());
-                        if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MultiMissileLauncher] all submunitions fired. Reloading");
+                        if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MultiMissileLauncher]: all submunitions fired. Reloading");
                     }
             }
             missileLauncher.GetMissileCount();
@@ -1369,7 +1416,7 @@ namespace BDArmory.Weapons.Missiles
                         lockedTarget = possibleTargets[i]; //send correct targetlock if firing multiple SARH missiles
                         foundTarget = true;
                         if (BDArmorySettings.DEBUG_MISSILES)
-                            Debug.Log($"[BDArmory.MultiMissileLauncher] Found locked Radar target {targetV.GetName()}");
+                            Debug.Log($"[BDArmory.MultiMissileLauncher]: Found locked Radar target {targetV.GetName()}");
                         break;
                     }
                 }
@@ -1389,7 +1436,7 @@ namespace BDArmory.Weapons.Missiles
                         {
                             lockedTarget = scannedTargets[i];
                             if (BDArmorySettings.DEBUG_MISSILES)
-                                Debug.Log($"[BDArmory.MultiMissileLauncher] Found Radar target {targetV.GetName()}");
+                                Debug.Log($"[BDArmory.MultiMissileLauncher]: Found Radar target {targetV.GetName()}");
                             break;
                         }
                     }
@@ -1397,7 +1444,7 @@ namespace BDArmory.Weapons.Missiles
                     if (BDArmorySettings.DEBUG_MISSILES)
                     {
                         if (!ml.radarTarget.exists)
-                            Debug.Log($"[BDArmory.MultiMissileLauncher] unable to lock Radar target {targetV.GetName()}, skipping");
+                            Debug.Log($"[BDArmory.MultiMissileLauncher]: unable to lock Radar target {targetV.GetName()}, skipping");
                     }
                 }
                 else
@@ -1409,7 +1456,7 @@ namespace BDArmory.Weapons.Missiles
                     }
                 }
             }
-            //Debug.Log($"[BDArmory.MultiMissileLauncher] {targetV.GetName()}; assigned radar target {(ml.radarTarget.exists ? ml.radarTarget.vessel.GetName() : "null")}");
+            //Debug.Log($"[BDArmory.MultiMissileLauncher]: {targetV.GetName()}; assigned radar target {(ml.radarTarget.exists ? ml.radarTarget.vessel.GetName() : "null")}");
         }
 
         public void SetupMissileDummyPool(string modelpath)
