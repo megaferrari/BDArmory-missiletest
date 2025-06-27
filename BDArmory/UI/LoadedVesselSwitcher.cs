@@ -475,6 +475,7 @@ namespace BDArmory.UI
                 }
                 foreach (var entry in entries)
                 {
+                    if (entry == null) continue;
                     AddVesselSwitcherWindowEntry(teamName, entry, height, vesselButtonWidth);
                     height += _buttonHeight + _buttonGap;
                 }
@@ -804,7 +805,7 @@ namespace BDArmory.UI
                     var teamName = teamManager.Key;
                     if (teamMembers.First().Team.Neutral && teamName != "Neutral") teamName += " (Neutral)";
                     List<VSVesselData> vsEntries = [];
-                    foreach (var weaponManager in teamManager.Value)
+                    foreach (var weaponManager in teamMembers)
                     {
                         try
                         {

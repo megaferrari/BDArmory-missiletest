@@ -53,6 +53,7 @@ namespace BDArmory.Control
         {
             yield return new WaitForEndOfFrame(); _parentWM = wm == this ? null : wm;
         }
+        public string SourceVesselURL { get; set; } = null; // The craft file that this WM originated from. Set by ActiveController and used for tracking fighters.
 
         //weapons
         private List<IBDWeapon> weaponTypes = [];

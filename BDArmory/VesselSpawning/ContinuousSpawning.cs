@@ -54,7 +54,7 @@ namespace BDArmory.VesselSpawning
                 if (vesselsSpawningContinuously)
                 {
                     if (BDACompetitionMode.Instance != null) BDACompetitionMode.Instance.StopCompetition();
-                    continuousSpawningScores = null;
+                    continuousSpawningScores.Clear();
                     LogMessage("Continuous vessel spawning cancelled.");
                 }
             }
@@ -168,12 +168,12 @@ namespace BDArmory.VesselSpawning
                     }
                     // Add any craft that hasn't been spawned or has died to the spawn queue if it isn't already in the queue.
                     foreach (var craftURL in spawnConfig.craftFiles.Where(craftURL =>
-                        (BDArmorySettings.VESSEL_SPAWN_LIVES_PER_VESSEL == 0 || spawnCounts[craftURL] < BDArmorySettings.VESSEL_SPAWN_LIVES_PER_VESSEL) &&
-                        !spawnQueue.Contains(craftURL) && !currentlySpawning.Contains(craftURL) && (
-                            !craftURLToVesselName.ContainsKey(craftURL) ||
+                        (BDArmorySettings.VESSEL_SPAWN_LIVES_PER_VESSEL == 0 || spawnCounts[craftURL] < BDArmorySettings.VESSEL_SPAWN_LIVES_PER_VESSEL) && // Still has lives
+                        !spawnQueue.Contains(craftURL) && !currentlySpawning.Contains(craftURL) && ( // Not already in the queue or currently spawning
+                            !craftURLToVesselName.ContainsKey(craftURL) || // Hasn't spawned yet
                             (
-                                BDACompetitionMode.Instance.Scores.Players.Contains(craftURLToVesselName[craftURL]) &&
-                                BDACompetitionMode.Instance.Scores.ScoreData[craftURLToVesselName[craftURL]].deathTime >= 0
+                                BDACompetitionMode.Instance.Scores.ScoreData.TryGetValue(craftURLToVesselName[craftURL], out var sd) && sd.deathTime >= 0 && // Has died
+                                !LoadedVesselSwitcher.Instance.WeaponManagers.SelectMany(tm => tm.Value).Any(wm => wm != null && wm.vessel != null && wm.SourceVesselURL == craftURL) // Fighters have died
                             )
                         )))
                     {
@@ -185,7 +185,7 @@ namespace BDArmory.VesselSpawning
                         ++spawnCounts[craftURL];
                     }
                     LoadedVesselSwitcher.Instance.UpdateList();
-                    var currentlyActive = LoadedVesselSwitcher.Instance.WeaponManagers.SelectMany(tm => tm.Value).ToList().Count;
+                    var currentlyActive = LoadedVesselSwitcher.Instance.WeaponManagers.Count; // Just count the number of teams.
                     if (spawnQueue.Count + currentlySpawningCount == 0 && currentlyActive < 2)// Nothing left to spawn or being spawned and only 1 vessel surviving. Time to call it quits and let the competition end after the final grace period.
                     {
                         if (Time.time - sufficientCraftTimer > BDArmorySettings.COMPETITION_FINAL_GRACE_PERIOD)
@@ -379,7 +379,7 @@ namespace BDArmory.VesselSpawning
             public int cumulativeDamagedPartsDueToMissiles = 0;
             public int cumulativePartsLostToAsteroids = 0;
         };
-        public Dictionary<string, ContinuousSpawningScores> continuousSpawningScores;
+        public Dictionary<string, ContinuousSpawningScores> continuousSpawningScores = [];
         public void UpdateCompetitionScores(Vessel vessel, bool newSpawn = false)
         {
             var vesselName = vessel.vesselName;
@@ -410,7 +410,7 @@ namespace BDArmory.VesselSpawning
         {
             var logStrings = new List<string>();
 
-            if (continuousSpawningScores == null || continuousSpawningScores.Count == 0) return;
+            if (continuousSpawningScores.Count == 0) return;
             foreach (var vesselName in continuousSpawningScores.Keys)
                 UpdateCompetitionScores(continuousSpawningScores[vesselName].vessel);
             RecomputeScores(); // Update the scores for the score window.

@@ -947,12 +947,12 @@ namespace BDArmory.Utils
 
         public MissileFire WM { get; private set; } // Use this for accessing the primary WM. Use VesselModuleRegistry.GetMissileFires to get all WMs on a craft.
         public IBDAIControl AI { get; private set; } // The active AI (if any are active) or the closest AI to the root.
-        public string SourceVesselURL { get; set; } = null; // The original .craft file this vessel came from, if known. Spawning via BDA's spawners will set this.
         public bool VesselNamingDeconflictionHasBeenApplied { get; set; } = false; // Whether vessel naming deconfliction has been applied to this vessel or not.
         public string VesselName { get; set; } = null; // The vesselName of this vessel. This is to revert KSP's automatic renaming of vessels when we don't want it to.
 
         // FIXMEAI If a fighter has parts of the parent still attached and is getting attacked, then it detaches from that part, the attackers continue attacking the part without a WM.
-        // FIXMEAI Tournaments aren't reusing names properly.
+        // FIXMEAI Tournaments aren't scoring fighter teams properly. - score values are correct, but fighters are missing.
+        // FIXMEAI Cts spawning seems to work properly now.
 
         // Note: If using these below, check that ai.pilotEnabled is true to see if it's the active AI.
         public BDModulePilotAI PilotAI { get; private set; } // The primary or most recently active pilot AI.
@@ -961,6 +961,7 @@ namespace BDArmory.Utils
         public BDModuleOrbitalAI OrbitalAI { get; private set; } // The primary or most recently active orbital AI.
 
         bool updateRequired = true;
+        public bool IsFighter = false; // Whether the vessel is a detached fighter.
 
         // Activate module on valid vessels during flight.
         public override Activation GetActivation() => Vessel.vesselType == VesselType.SpaceObject ? Activation.Never : Activation.FlightScene;
@@ -975,10 +976,10 @@ namespace BDArmory.Utils
             // Set only the closest WM to the root part as the active WM.
             WM = VesselModuleRegistry.GetMissileFire(Vessel);
             foreach (var wm in VesselModuleRegistry.GetMissileFires(Vessel))
-                {
-                    wm.IsPrimaryWM = wm == WM;
-                    if (!wm.IsPrimaryWM) wm.ParentWM = WM;
-                }
+            {
+                wm.IsPrimaryWM = wm == WM;
+                if (!wm.IsPrimaryWM) wm.ParentWM = WM;
+            }
 
             // Update the AIs.
             // Find the primary of each type of AI: the first active one or the first one, sorted by proximity to the root.
@@ -1112,6 +1113,17 @@ namespace BDArmory.Utils
         }
 
         /// <summary>
+        /// Set the craft file that all the WMs on this craft originate from.
+        /// This is set via BDA's spawner. Craft spawned otherwise won't have this set.
+        /// </summary>
+        /// <param name="sourceURL">The URL of the craft file.</param>
+        public void SetSourceURL(string sourceURL)
+        {
+            foreach (var wm in VesselModuleRegistry.GetMissileFires(Vessel))
+                wm.SourceVesselURL = sourceURL;
+        }
+
+        /// <summary>
         /// This is called whenever a new vessel is created (both spawning and undocking / parts falling off / firing missiles / etc.).
         /// </summary>
         public override void OnLoadVessel()
@@ -1140,6 +1152,7 @@ namespace BDArmory.Utils
                     {
                         BDACompetitionMode.Instance.AddToCompetitionWhenReady(WM);
                     }
+                    IsFighter = true; // Detached craft are "fighters".
                     WM.ParentWM = null; // Clear the parent WM at the end of frame in case the WM is not on the root part since losing the root part will trigger OnLoadVessel again.
                 }
             }

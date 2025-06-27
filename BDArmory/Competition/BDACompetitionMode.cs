@@ -345,7 +345,6 @@ namespace BDArmory.Competition
             }
         }
 
-        // FIXMEAI If starting a competition not as part of a tournament, then vessel name deconfliction needs to be reset and happen.
         public void StartCompetitionMode(float distance, bool startDespiteFailures = false, string tag = "", CompetitionType compType = CompetitionType.FFA)
         {
             if (competitionStarting) return;
@@ -2459,7 +2458,7 @@ namespace BDArmory.Competition
                 if (vessel == null) continue;
                 if (VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType)) continue;  // Debris handled by DebrisDelayedCleanUp, others are ignored.
                 if (nonCompetitorsToRemove.Contains(vessel)) continue; // Already scheduled for removal.
-                bool activePilot = false;
+                bool activePilot;
                 if (vessel.GetName().Contains(BDArmorySettings.PINATA_NAME))
                 {
                     activePilot = true;
@@ -2501,7 +2500,7 @@ namespace BDArmory.Competition
                 if (vessel == null) continue;
                 if (vessel.vesselType == VesselType.Debris) // Clean up any old debris.
                     StartCoroutine(DelayedVesselRemovalCoroutine(vessel, 0));
-                if (vessel.vesselType == VesselType.SpaceObject) // Remove comets and asteroids to try to avoid null refs. (Still get null refs from comets, but it seems better with this than without it.)
+                else if (vessel.vesselType == VesselType.SpaceObject) // Remove comets and asteroids to try to avoid null refs. (Still get null refs from comets, but it seems better with this than without it.)
                     RemoveSpaceObject(vessel);
             }
         }
@@ -3333,8 +3332,8 @@ namespace BDArmory.Competition
                 if (otherVesselName == vessel.vesselName) continue;
                 rammingInformation[otherVesselName].targetInformation[vessel.vesselName] = new RammingTargetInformation { vessel = vessel };
             }
-
         }
+
         /// <summary>
         /// Remove a vessel from the rammingInformation datastructure after a competition has started.
         /// </summary>
@@ -3919,10 +3918,8 @@ namespace BDArmory.Competition
             }
 
             // Fix any naming issues.
-            SpawnUtils.DeconflictVesselName(vessel);
+            SpawnUtils.DeconflictVesselName(vessel, reuse: ContinuousSpawning.Instance.vesselsSpawningContinuously);
 
-            // FIXMEAI Detached parts with AI/WM where the parent no longer has them shouldn't count as new. (E.g., detached combat seats that weren't the root part.)
-            // Also, missiles with WMs shouldn't be added.
             // This needs testing to make sure those aren't happening.
             AddToActiveCompetition(vessel, false); // Don't assign a new team to detached fighters.
         }
@@ -3940,7 +3937,7 @@ namespace BDArmory.Competition
             if (weaponManager == null) return; // Not a valid competition craft.
 
             var vesselName = vessel.vesselName;
-            Debug.Log($"DEBUG Adding {vessel.vesselName} to the competition.");
+            Debug.Log($"DEBUG Adding {vessel.vesselName} ({vessel.persistentId}) to the competition.");
 
             // If a competition is active, update the scoring structure.
             bool competitionStartingOrStarted = competitionStarting || competitionIsActive;
@@ -3996,10 +3993,6 @@ namespace BDArmory.Competition
                 if (BDArmorySettings.RUNWAY_PROJECT) SpawnUtils.ApplyRWP(vessel);
                 if (BDArmorySettings.COMP_CONVENIENCE_CHECKS) SpawnUtils.ApplyCompSettingsChecks(vessel);
             }
-
-            // Update the ramming information for the new vessel.
-            if (rammingInformation != null)
-                AddPlayerToRammingInformation(vessel);
         }
         #endregion
 

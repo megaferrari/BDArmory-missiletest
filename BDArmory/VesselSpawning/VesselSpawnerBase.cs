@@ -282,7 +282,6 @@ namespace BDArmory.VesselSpawning
             else if (BDArmorySettings.DEBUG_SPAWNING) LogMessage($"Initial spawn of {vessel.vesselName} succeeded.", false);
             vessel.Landed = false; // Tell KSP that it's not landed so KSP doesn't mess with its position.
             var heightFromTerrain = vessel.GetHeightFromTerrain() - 35f; // The SpawnVesselFromCraftFile routine adds 35m for some reason.
-            vessel.ActiveController().SourceVesselURL = vesselSpawnConfig.craftURL;
 
             // Wait until the vessel's part list gets updated.
             var vesselName = vessel.vesselName;
@@ -313,6 +312,7 @@ namespace BDArmory.VesselSpawning
                 else spawnFailureReason = SpawnFailureReason.VesselFailedToSpawn;
                 yield break;
             }
+            vessel.ActiveController().SetSourceURL(vesselSpawnConfig.craftURL);
             if (vesselSpawnConfig.deconflictVesselName) SpawnUtils.DeconflictVesselName(vessel, vesselSpawnConfig.reuseURLVesselName);
             vesselName = vessel.vesselName;
             latestSpawnedVesselName = vesselName;

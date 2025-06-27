@@ -169,7 +169,7 @@ namespace BDArmory.Competition
         public bool AddPlayer(string player, string fileName, int currentRound = 0, bool npc = false)
         {
             if (playersToFileNames.ContainsKey(player)) return false; // They're already there.
-            if (!File.Exists(fileName)) { Debug.LogWarning($"[BDArmory.BDATournament]: {fileName} does not exist for {player}."); return false; }
+            if (!string.IsNullOrEmpty(fileName) && !File.Exists(fileName)) { Debug.LogWarning($"[BDArmory.BDATournament]: {fileName} does not exist for {player}."); return false; } // FIXMEAI Fighter craft don't have URLs.
             if (currentRound < 0) { Debug.LogWarning($"[BDArmory.BDATournament]: Invalid round {currentRound}, setting to 0."); currentRound = 0; }
             if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log($"[BDArmory.BDATournament]: Adding {player} with file {fileName} in round {currentRound}");
             playersToFileNames.Add(player, fileName);
@@ -1770,6 +1770,7 @@ namespace BDArmory.Competition
                         tournamentState.RestoreDeconflictionData(); // Restore the deconfliction data to the most recently used in the tournament (to avoid outside interference).
                     while (!competitionStarted && attempts++ < 3) // 3 attempts is plenty
                     {
+                        SpawnUtils.ResetVesselNamingDeconfliction(fightersOnly: true);
                         tournamentStatus = TournamentStatus.Running;
                         if (BDArmorySettings.WAYPOINTS_MODE)
                             yield return ExecuteWaypointHeat(roundIndex, heatIndex);

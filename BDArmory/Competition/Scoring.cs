@@ -68,6 +68,7 @@ namespace BDArmory.Competition
             ScoreData[vessel.vesselName].team = vessel.ActiveController().WM.Team.Name;
             ScoreData[vessel.vesselName].lastFiredTime = Planetarium.GetUniversalTime();
             ScoreData[vessel.vesselName].previousPartCount = vessel.parts.Count();
+            // If a tournament is running, update the tournament score data. FIXMEAI
             BDACompetitionMode.Instance.AddPlayerToRammingInformation(vessel);
             return true;
         }

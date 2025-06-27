@@ -287,15 +287,20 @@ namespace BDArmory.VesselSpawning
         #region Name Deconfliction
         public static Dictionary<string, string> SpawnedVesselURLs = []; // Deconflicted vessel name => URL. Vessels not spawned via BDA's spawners will have a null URL.
         public static Dictionary<string, string> DeconflictionSuffixes = []; // Deconflicted vessel name => suffix added to deconflict it. (For applying deconfliction to VESSELNAMING parts when reusing names.)
+        public static HashSet<string> FighterNames = []; // Deconflicted vessel names of fighters.
         // FIXMEAI Remove DEBUG statements below once tested.
         /// <summary>
         /// Reset the vessel name deconfliction dictionaries.
         /// </summary>
-        public static void ResetVesselNamingDeconfliction()
+        public static void ResetVesselNamingDeconfliction(bool fightersOnly = false)
         {
-            SpawnedVesselURLs.Clear();
-            DeconflictionSuffixes.Clear();
-            Debug.Log($"DEBUG Clearing vessel name deconfliction dictionaries");
+            if (!fightersOnly)
+            {
+                SpawnedVesselURLs.Clear();
+                DeconflictionSuffixes.Clear();
+            }
+            FighterNames.Clear();
+            Debug.Log($"DEBUG Clearing{(fightersOnly ? " fighter" : "")} vessel name deconfliction dictionaries");
         }
         /// <summary>
         /// Deconflict vessel names by appending a suffix.
@@ -322,10 +327,11 @@ namespace BDArmory.VesselSpawning
             var ac = vessel.ActiveController();
             if (ac.VesselNamingDeconflictionHasBeenApplied) return;
             ac.VesselNamingDeconflictionHasBeenApplied = true;
+            if (ac.WM == null) return; // Not a valid craft for competitions so don't bother deconflicting its name.
 
             // Start by deconflicting VESSELNAMING within the vessel.
             var vesselNamingParts = DeconflictPartVesselNaming(vessel);
-            if (vesselNamingParts.Count > 0) // FIXMEAI Override the vessel name if there is a part that has a VESSELNAMING since that's what KSP does.
+            if (vesselNamingParts.Count > 0)
             {
                 var vesselNamingName = vesselNamingParts.Select(p => p.vesselNaming.vesselName).First();
                 if (!string.IsNullOrEmpty(vesselNamingName))
@@ -336,9 +342,10 @@ namespace BDArmory.VesselSpawning
             }
 
             // Then make sure all the names are truly unique between vessels.
-            var craftURL = ac.SourceVesselURL;
+            var craftURL = ac.WM.SourceVesselURL;
+            var isFighter = ac.IsFighter;
             if (reuse) Debug.Log($"DEBUG Reuse URL {craftURL}, exists: {SpawnedVesselURLs.ContainsValue(craftURL)}");
-            if (reuse && craftURL != null && SpawnedVesselURLs.ContainsValue(craftURL))
+            if (reuse && !isFighter && craftURL != null && SpawnedVesselURLs.ContainsValue(craftURL))
             { // A unique name has previously been found and we should just reuse it.
                 var potentialName = SpawnedVesselURLs.Where(kvp => kvp.Value == craftURL).Select(kvp => kvp.Key).First();
                 if (BDArmorySettings.DEBUG_SPAWNING && vessel.vesselName != potentialName) Debug.Log($"[BDArmory.SpawnUtils]: Renaming {vessel.vesselName} to {potentialName} due to reusing previously spawned name.");
@@ -361,31 +368,56 @@ namespace BDArmory.VesselSpawning
             }
             else
             {
-                var isDetached = ac.WM != null && ac.WM.ParentWM != null;
-                var suffix = isDetached ? "_F" : "_"; // Detached craft are "fighters".
+                var suffix = isFighter ? "_F" : "_";
                 var count = 1;
-                if (SpawnedVesselURLs.ContainsKey(vessel.vesselName))
+                if (isFighter)
                 {
-                    var potentialName = $"{vessel.vesselName}{suffix}{count}";
-                    while (SpawnedVesselURLs.ContainsKey(potentialName))
-                        potentialName = $"{vessel.vesselName}{suffix}{++count}"; // Note: The computer will have long since run out of memory before we exhaust the integers.
-                    if (BDArmorySettings.DEBUG_SPAWNING && vessel.vesselName != potentialName) Debug.Log($"[BDArmory.SpawnUtils]: Renaming {vessel.vesselName} ({vessel.persistentId}) to {potentialName} due to naming conflict.");
-                    vessel.vesselName = potentialName;
-                    DeconflictionSuffixes.Add(potentialName, $"{suffix}{count}");
-                    if (vesselNamingParts.Count > 0)
+                    bool IsNameUsed(string name) => SpawnedVesselURLs.ContainsKey(name) ||
+                        (reuse ?
+                            FlightGlobals.Vessels.Where(v => v != null && v.loaded && v != vessel && v.ActiveController().WM != null).Select(v => v.vesselName).Contains(name) : // If reusing fighter names, only check active vessels.
+                            FighterNames.Contains(name)
+                        );
+                    if (IsNameUsed(vessel.vesselName))
                     {
-                        vesselNamingParts.First().vesselNaming.vesselName = potentialName; // Override the VESSELNAMING of the primary part that was originally used to set the name.
-                        // Append the same suffix to fighters for consistency
-                        foreach (var part in vesselNamingParts.Skip(1))
+                        var potentialName = $"{vessel.vesselName}{suffix}{count}";
+                        while (IsNameUsed(potentialName))
+                            potentialName = $"{vessel.vesselName}{suffix}{++count}"; // Note: The computer will have long since run out of memory before we exhaust the integers.
+                        if (BDArmorySettings.DEBUG_SPAWNING && vessel.vesselName != potentialName)
                         {
-                            var oldName = part.vesselNaming.vesselName;
-                            part.vesselNaming.vesselName += DeconflictionSuffixes.GetValueOrDefault(potentialName);
-                            if (BDArmorySettings.DEBUG_SPAWNING && oldName != part.vesselNaming.vesselName) Debug.Log($"[BDArmory.SpawnUtils]: Renaming VESSELNAMING {oldName} on {part.partInfo.name} to {part.vesselNaming.vesselName} due to parent being renamed.");
+                            Debug.Log($"[BDArmory.SpawnUtils]: Renaming {vessel.vesselName} ({vessel.persistentId}) to {potentialName} due to naming conflict.");
+                            Debug.Log($"DEBUG SpawnedVesselURLs: {string.Join(", ", SpawnedVesselURLs.Keys)}");
+                            Debug.Log($"DEBUG Active FighterNames: {string.Join(", ", FighterNames.Where(name => FlightGlobals.Vessels.Where(v => v != null && v.loaded && v != vessel && v.ActiveController().WM != null).Select(v => v.vesselName).Contains(name)))}");
+                            Debug.Log($"DEBUG Active Vessels: {string.Join(", ", FlightGlobals.Vessels.Where(v => v != null && v.loaded && v.vesselType != VesselType.Debris).Select(v => $"{v.vesselName} ({(v.ActiveController().WM != null ? v.ActiveController().WM.SourceVesselURL : null)})"))}");
+                            if (potentialName.Contains("_F5")) Time.timeScale = 0;
+                        }
+                        vessel.vesselName = potentialName;
+                    }
+                    FighterNames.Add(vessel.vesselName);
+                }
+                else
+                {
+                    if (SpawnedVesselURLs.ContainsKey(vessel.vesselName) || FighterNames.Contains(vessel.vesselName))
+                    {
+                        var potentialName = $"{vessel.vesselName}{suffix}{count}";
+                        while (SpawnedVesselURLs.ContainsKey(potentialName) || FighterNames.Contains(potentialName))
+                            potentialName = $"{vessel.vesselName}{suffix}{++count}"; // Note: The computer will have long since run out of memory before we exhaust the integers.
+                        if (BDArmorySettings.DEBUG_SPAWNING && vessel.vesselName != potentialName) Debug.Log($"[BDArmory.SpawnUtils]: Renaming {vessel.vesselName} ({vessel.persistentId}) to {potentialName} due to naming conflict.");
+                        vessel.vesselName = potentialName;
+                        DeconflictionSuffixes.Add(potentialName, $"{suffix}{count}");
+                        if (vesselNamingParts.Count > 0)
+                        {
+                            vesselNamingParts.First().vesselNaming.vesselName = potentialName; // Override the VESSELNAMING of the primary part that was originally used to set the name.
+                            foreach (var part in vesselNamingParts.Skip(1)) // Append the same suffix to fighters for consistency.
+                            {
+                                var oldName = part.vesselNaming.vesselName;
+                                part.vesselNaming.vesselName += DeconflictionSuffixes.GetValueOrDefault(potentialName);
+                                if (BDArmorySettings.DEBUG_SPAWNING && oldName != part.vesselNaming.vesselName) Debug.Log($"[BDArmory.SpawnUtils]: Renaming VESSELNAMING {oldName} on {part.partInfo.name} to {part.vesselNaming.vesselName} due to parent being renamed.");
+                            }
                         }
                     }
+                    SpawnedVesselURLs.Add(vessel.vesselName, craftURL); // Only add the URL for the originally spawned craft.
+                    Debug.Log($"DEBUG Adding ({vessel.vesselName}, {craftURL}) to SpawnedVesselURLs.");
                 }
-                SpawnedVesselURLs.Add(vessel.vesselName, isDetached ? null : craftURL); // Only add the URL for the originally spawned craft.
-                Debug.Log($"DEBUG Adding ({vessel.vesselName}, {(isDetached ? null : craftURL)}) to SpawnedVesselURLs.");
             }
 
             // Update the VesselName in the ActiveController to prevent KSP from messing with it.
@@ -706,7 +738,7 @@ namespace BDArmory.VesselSpawning
         /// <param name="recurse">State parameter for when we need to spawn a probe first.</param>
         public void ShowSpawnPoint(int worldIndex, double latitude, double longitude, double altitude = 0, float distance = 0, bool spawning = false, bool recurse = true)
         {
-            if (BDArmorySettings.DEBUG_SPAWNING) Debug.Log($"[BDArmory.SpawnUtils]: Showing spawn point ({latitude:G3}, {longitude:G3}, {altitude:G3}) on {FlightGlobals.Bodies[worldIndex].name}");
+            if (BDArmorySettings.DEBUG_SPAWNING) Debug.Log($"[BDArmory.SpawnUtils]: Showing spawn point ({latitude:G3}, {longitude:G3}, {altitude:G6}) on {FlightGlobals.Bodies[worldIndex].name}");
             if (BDArmorySettings.ASTEROID_RAIN) { AsteroidRain.Instance.Reset(); }
             if (BDArmorySettings.ASTEROID_FIELD) { AsteroidField.Instance.Reset(); }
             if (!spawning && (FlightGlobals.ActiveVessel == null || FlightGlobals.ActiveVessel.state == Vessel.State.DEAD))
