@@ -278,10 +278,10 @@ namespace BDArmory.FX
                                 {
                                     var damaged = ProcessPartEvent(hitPart, SChit.distance, SourceVesselName, explosionEventsPreProcessing, explosionEventsPartsAdded, true, Direction, true);
                                     // If the explosion derives from a missile explosion, count the parts damaged for missile hit scores.
-                                    if (damaged && BDACompetitionMode.Instance)
+                                    if (damaged && hitPart.vessel != null && BDACompetitionMode.Instance)
                                     {
                                         bool registered = false;
-                                        var damagedVesselName = hitPart.vessel != null ? hitPart.vessel.GetName() : null;
+                                        var damagedVesselName = hitPart.vessel.GetName();
                                         switch (ExplosionSource)
                                         {
                                             case ExplosionSourceType.Rocket:
@@ -293,9 +293,12 @@ namespace BDArmory.FX
                                                     registered = true;
                                                 break;
                                         }
-                                        if (registered)
+                                        if (damagedVesselName != null)
+                                        {
+                                            if (registered)
                                                 explosionEventsVesselsHit[damagedVesselName] = explosionEventsVesselsHit.GetValueOrDefault(damagedVesselName) + 1;
-                                        totalPartsHit[damagedVesselName] = totalPartsHit.GetValueOrDefault(damagedVesselName) + 1; // Include non-competition craft (like debris).
+                                            totalPartsHit[damagedVesselName] = totalPartsHit.GetValueOrDefault(damagedVesselName) + 1; // Include non-competition craft (like debris).
+                                        }
                                     }
                                 }
                             }
@@ -340,32 +343,28 @@ namespace BDArmory.FX
                             {
                                 var damaged = ProcessPartEvent(partHit, Vector3.Distance(hitCollidersEnu.Current.ClosestPoint(Position), Position), SourceVesselName, explosionEventsPreProcessing, explosionEventsPartsAdded);
                                 // If the explosion derives from a missile explosion, count the parts damaged for missile hit scores.
-                                if (damaged && BDACompetitionMode.Instance)
+                                if (damaged && partHit.vessel != null && BDACompetitionMode.Instance)
                                 {
                                     bool registered = false;
-
-                                    if (partHit.vessel != null)
+                                    var damagedVesselName = partHit.vessel.GetName();
+                                    switch (ExplosionSource)
                                     {
-                                        var damagedVesselName = partHit.vessel.GetName();
-                                        switch (ExplosionSource)
-                                        {
-                                            case ExplosionSourceType.Rocket:
-                                                if (BDACompetitionMode.Instance.Scores.RegisterRocketHit(SourceVesselName, damagedVesselName, 1))
-                                                    registered = true;
-                                                break;
-                                            case ExplosionSourceType.Missile:
-                                                if (BDACompetitionMode.Instance.Scores.RegisterMissileHit(SourceVesselName, damagedVesselName, 1))
-                                                    registered = true;
-                                                break;
-                                            case ExplosionSourceType.Bullet:
-                                                if (isReportingWeapon)
-                                                    registered = true;
-                                                break;
-                                        }
-                                        if (registered)
-                                            explosionEventsVesselsHit[damagedVesselName] = explosionEventsVesselsHit.GetValueOrDefault(damagedVesselName) + 1;
-                                        totalPartsHit[damagedVesselName] = totalPartsHit.GetValueOrDefault(damagedVesselName) + 1; // Include non-competition craft (like debris).
+                                        case ExplosionSourceType.Rocket:
+                                            if (BDACompetitionMode.Instance.Scores.RegisterRocketHit(SourceVesselName, damagedVesselName, 1))
+                                                registered = true;
+                                            break;
+                                        case ExplosionSourceType.Missile:
+                                            if (BDACompetitionMode.Instance.Scores.RegisterMissileHit(SourceVesselName, damagedVesselName, 1))
+                                                registered = true;
+                                            break;
+                                        case ExplosionSourceType.Bullet:
+                                            if (isReportingWeapon)
+                                                registered = true;
+                                            break;
                                     }
+                                    if (registered)
+                                        explosionEventsVesselsHit[damagedVesselName] = explosionEventsVesselsHit.GetValueOrDefault(damagedVesselName) + 1;
+                                    totalPartsHit[damagedVesselName] = totalPartsHit.GetValueOrDefault(damagedVesselName) + 1; // Include non-competition craft (like debris).
                                 }
                             }
                         }
