@@ -11,6 +11,7 @@
 	- Add an option to disable the behaviour of disabling guard mode when vessels are spawned.
 	- Fix pilot AI's standby mode to automatically trigger AG10 and enable engines if necessary when a threat is detected.
 	- Fix behavior of Guard Mode with regards to datalinked radars, Guard Mode should no longer unlock targets when these locks are being used by a datalinked vessel to guide a missile.
+	- Slightly improved Guard Mode radar lock management, locks are only dropped as needed on radars that can lock on to the target.
 	- Tweaks to the auto-tuning loss function to give a more stable roll-relevance. Show an auto-tuning summary to reduce confusion in the SPH about the auto-tuning results.
 	- Disable Battle Damage while auto-tuning to avoid wooden parts catching fire.
 - Countermeasures:
