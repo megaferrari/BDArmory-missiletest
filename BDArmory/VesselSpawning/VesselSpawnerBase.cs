@@ -693,7 +693,7 @@ namespace BDArmory.VesselSpawning
                 yield return PlaceSpawnedVessel(vessel);
                 if (SpawnUtils.PartCount(vessel) != partCount)
                 {
-                    LogMessage($"Part-count of {vesselName} changed after spawning: {partCount - SpawnUtils.PartCount(vessel)}");
+                    LogMessage($"Part-count of {vesselName} changed while lowering craft to terrain: {partCount - SpawnUtils.PartCount(vessel)}");
                     spawnFailureReason = SpawnFailureReason.VesselLostParts;
                     if (vessel != null) RemoveVessel(vessel);
                     yield break;
@@ -752,27 +752,47 @@ namespace BDArmory.VesselSpawning
             var startTime = Time.time;
             var weaponManager = vessel.ActiveController().WM;
             var vesselName = vessel.vesselName; // In case it disappears.
+            var sourceURL = weaponManager.SourceVesselURL;
             var assigned = weaponManager != null && LoadedVesselSwitcher.Instance.WeaponManagers.SelectMany(tm => tm.Value).Contains(weaponManager);
+            if (vessel.PatchedConicsAttached) vessel.DetachPatchedConicsSolver(); // Detach the patched conic solver to avoid it calculating NaN orbits.
             while (!assigned && Time.time - startTime < 10 && vessel != null)
             {
                 yield return waitForFixedUpdate;
-                if (vessel == null || SpawnUtils.PartCount(vessel) != spawnedVesselPartCounts[vesselName])
+                int partCount = SpawnUtils.PartCount(vessel);
+                if (vessel == null || partCount != spawnedVesselPartCounts[vesselName])
                 {
-                    LogMessage($"Part-count of {vesselName} changed after spawning: {(vessel == null ? spawnedVesselPartCounts[vesselName] : spawnedVesselPartCounts[vesselName] - SpawnUtils.PartCount(vessel))}");
+                    if (vessel == null) LogMessage($"{vesselName} disappeared while waiting for the weapon manager to appear in the Vessel Switcher.");
+                    else LogMessage($"Part-count of {vesselName} changed after spawning: {spawnedVesselPartCounts[vesselName] - partCount}");
+                    spawnedVesselPartCounts[vesselName] = partCount; // Reset the part count to avoid spamming.
+                    // This can happen if a vessel with fighters spawns, but the parent vessel gets removed for some reason, leaving the fighters in a weird state that breaks KSP.
+                    foreach (var otherVessel in FlightGlobals.Vessels.ToList())
+                    {
+                        if (otherVessel == null || otherVessel == vessel) continue;
+                        var wm = otherVessel.ActiveController().WM;
+                        if (wm != null && wm.SourceVesselURL == sourceURL)
+                        {
+                            LogMessage($"Removing fighter craft '{otherVessel.GetName()}' due to spawn failure of parent craft '{vesselName}'.");
+                            RemoveVessel(otherVessel);
+                        }
+                    }
                     if (!BDArmorySettings.COMPETITION_START_DESPITE_FAILURES)
                     {
                         spawnFailureReason = SpawnFailureReason.VesselLostParts;
                         yield break;
                     }
                 }
-                if (weaponManager == null) weaponManager = vessel.ActiveController().WM;
-                assigned = weaponManager != null && LoadedVesselSwitcher.Instance.WeaponManagers.SelectMany(tm => tm.Value).Contains(weaponManager);
-                vessel.SetPosition(VectorUtils.GetWorldSurfacePostion(finalSpawnPositions[vessel.vesselName], FlightGlobals.currentMainBody)); // Prevent the vessel from falling.
+                if (vessel != null)
+                {
+                    if (weaponManager == null) weaponManager = vessel.ActiveController().WM;
+                    assigned = weaponManager != null && LoadedVesselSwitcher.Instance.WeaponManagers.SelectMany(tm => tm.Value).Contains(weaponManager);
+                    vessel.SetPosition(VectorUtils.GetWorldSurfacePostion(finalSpawnPositions[vessel.vesselName], FlightGlobals.currentMainBody)); // Prevent the vessel from falling.
+                }
             }
             if (!assigned)
             {
-                LogMessage("Timed out waiting for weapon managers to appear in the Vessel Switcher.", true, false);
+                LogMessage($"Timed out waiting for {vesselName}'s weapon manager to appear in the Vessel Switcher.");
                 spawnFailureReason = SpawnFailureReason.TimedOut;
+                if (vessel != null) RemoveVessel(vessel);
             }
         }
 
