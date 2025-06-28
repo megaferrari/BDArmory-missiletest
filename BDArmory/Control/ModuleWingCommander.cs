@@ -164,7 +164,7 @@ namespace BDArmory.Control
                 return;
             }
             var wm = WeaponManager;
-            wingmen.RemoveAll(wingman => wingman == null || (wingman.WeaponManager && wingman.WeaponManager.Team != wm.Team));
+            if (wm != null) wingmen.RemoveAll(wingman => wingman == null || (wingman.WeaponManager && wingman.WeaponManager.Team != wm.Team));
 
             List<int> uniqueIndexes = new List<int>();
             List<int>.Enumerator fIndexes = focusIndexes.GetEnumerator();

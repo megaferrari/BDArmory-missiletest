@@ -950,9 +950,7 @@ namespace BDArmory.Utils
         public bool VesselNamingDeconflictionHasBeenApplied { get; set; } = false; // Whether vessel naming deconfliction has been applied to this vessel or not.
         public string VesselName { get; set; } = null; // The vesselName of this vessel. This is to revert KSP's automatic renaming of vessels when we don't want it to.
 
-        // FIXMEAI If a fighter has parts of the parent still attached and is getting attacked, then it detaches from that part, the attackers continue attacking the part without a WM.
         // FIXMEAI Tournaments aren't scoring fighter teams properly. - score values are correct, but fighters are missing.
-        // FIXMEAI Cts spawning seems to work properly now.
 
         // Note: If using these below, check that ai.pilotEnabled is true to see if it's the active AI.
         public BDModulePilotAI PilotAI { get; private set; } // The primary or most recently active pilot AI.
@@ -1028,7 +1026,7 @@ namespace BDArmory.Utils
                 {
                     if (ai == null || ai == AI || !ai.pilotEnabled) continue;
                     ScreenMessages.PostScreenMessage($"Deactivating non-primary {ai.aiType} on {vesselName}", 3);
-                    Debug.Log($"DEBUG Deactivating non-primary {ai.aiType} ({ai.part.persistentId}) on {vesselName}");
+                    Debug.Log($"[BDArmory.ActiveController]: Deactivating non-primary {ai.aiType} ({ai.part.persistentId}) on {vesselName}");
                     ai.DeactivatePilot();
                 }
                 if (reactivate && AI.pilotEnabled)
@@ -1168,7 +1166,7 @@ namespace BDArmory.Utils
             updateRequired = true;
             if (WM != null && !string.IsNullOrEmpty(VesselName) && vessel.vesselName != VesselName)
             {
-                Debug.Log($"DEBUG Reverting name change of {VesselName} ({vessel.persistentId}) from {vessel.vesselName}");
+                Debug.Log($"[BDArmory.ActiveController]: Reverting name change of {VesselName} ({vessel.persistentId}) from {vessel.vesselName}");
                 vessel.vesselName = VesselName;
             }
         }

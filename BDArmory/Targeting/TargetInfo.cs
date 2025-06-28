@@ -20,7 +20,7 @@ namespace BDArmory.Targeting
         public BDTeam Team;
         public bool isMissile;
         public MissileBase MissileBaseModule;
-        public MissileFire WeaponManager
+        public MissileFire WeaponManager // Using a non-static target WM avoids continuing to target debris that has separated from the WM.
         {
             get
             {

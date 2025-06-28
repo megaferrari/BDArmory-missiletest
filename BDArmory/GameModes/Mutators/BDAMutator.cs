@@ -135,7 +135,7 @@ namespace BDArmory.GameModes
                                     weapon.Current.projectileColor = color;
 
                                 }
-                                Debug.Log($"[MUTATOR BEAM DEBUG] Beam color for {part} on {vessel.GetName()} set to {weapon.Current.projectileColor}");
+                                if (BDArmorySettings.DEBUG_OTHER) Debug.Log($"[BDArmory.BDAMutator]: Beam color for {part} on {vessel.GetName()} set to {weapon.Current.projectileColor}");
                                 weapon.Current.laserTexList = BDAcTools.ParseNames(weapon.Current.laserTexturePath);
                                 weapon.Current.SetupLaserSpecifics();
                                 weapon.Current.pulseLaser = true;
@@ -146,7 +146,7 @@ namespace BDArmory.GameModes
                                 weapon.Current.externalAmmo = true;
                             }
                             weapon.Current.resourceSteal = mutatorInfo.resourceSteal;
-                            //Debug.Log("[MUTATOR] current weapon status: " + weapon.Current.WeaponStatusdebug());
+                            //if (BDArmorySettings.DEBUG_OTHER) Debug.Log($"[BDArmory.BDAMutator]: current weapon status: " + weapon.Current.WeaponStatusdebug());
                         }
                 }
                 if (mutatorInfo.EngineMult > 0)

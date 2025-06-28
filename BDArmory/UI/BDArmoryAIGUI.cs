@@ -810,7 +810,6 @@ namespace BDArmory.UI
                         if (!NumFieldsEnabled)
                         {
                             var (min, max, rounding, _, _, _) = GetFieldLimits(fieldName);
-                            if (fieldName == "firingSpeed") Debug.Log($"DEBUG min: {min}, max: {max}, rounding: {rounding}");
                             if (value != (value = GUI.HorizontalSlider(SettingSliderRect(line, width), value, min, max)) && rounding > 0)
                                 value = BDAMath.RoundToUnit(value, rounding);
                         }
@@ -936,7 +935,6 @@ namespace BDArmory.UI
                 if (AISelectionComboBox == null) UpdateAISelectionComboBox(new Rect(contentMargin, _windowMargin, columnIndent, _buttonSize));
                 if (AISelectionComboBox != null && AISelectionIndex != (AISelectionIndex = AISelectionComboBox.Show()))
                 {
-                    Debug.Log($"DEBUG AISelectionIndex {AISelectionIndex}");
                     ActiveAI = (
                         HighLogic.LoadedSceneIsEditor ? AIs[AISelectionIndex]
                         : VesselModuleRegistry.GetIBDAIControls(FlightGlobals.ActiveVessel).Skip(AISelectionIndex).First()
