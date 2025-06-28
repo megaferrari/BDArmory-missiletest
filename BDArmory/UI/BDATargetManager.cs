@@ -931,7 +931,7 @@ namespace BDArmory.UI
                     {
                         if (targetInfo)
                         {
-                            if (!targetInfo.isMissile && targetInfo.weaponManager == null) continue;
+                            if (!targetInfo.isMissile && targetInfo.WeaponManager == null) continue;
                             if (!targetInfo.Vessel)
                             {
                                 debugString.AppendLine($"- A target with no vessel reference.");
@@ -1299,7 +1299,7 @@ namespace BDArmory.UI
                 {
                     if (target.Current == null) continue;
                     if (target.Current.NumFriendliesEngaging(mf.Team) >= 2) continue;
-                    if (target.Current.weaponManager == null) continue;
+                    if (target.Current.WeaponManager == null) continue;
                     if ((mf.multiTargetNum > 1 || mf.multiMissileTgtNum > 1) && mf.targetsAssigned.Contains(target.Current)) continue;
                     //if (mf.vessel.GetName().Contains(BDArmorySettings.REMOTE_ORCHESTRATION_NPC_SWAPPER) && target.Current.Vessel.GetName().Contains(BDArmorySettings.REMOTE_ORCHESTRATION_NPC_SWAPPER)) continue;
                     if (target.Current && target.Current.Vessel && target.Current.isFlying && !target.Current.isMissile && target.Current.isThreat)
@@ -1330,7 +1330,7 @@ namespace BDArmory.UI
                 while (target.MoveNext())
                 {
                     if (target.Current == null || !target.Current.Vessel || target.Current.isLandedOrSurfaceSplashed || target.Current.isMissile || !target.Current.isThreat) continue;
-                    if (target.Current.weaponManager == null) continue;
+                    if (target.Current.WeaponManager == null) continue;
                     Vector3 targetRelPos = target.Current.Vessel.vesselTransform.position - mf.vessel.vesselTransform.position;
 
                     float distance, dot;
@@ -1359,9 +1359,10 @@ namespace BDArmory.UI
             using (List<TargetInfo>.Enumerator target = TargetList(mf.Team).GetEnumerator())
                 while (target.MoveNext())
                 {
-                    if (target.Current == null || !target.Current.Vessel || target.Current.weaponManager == mf) continue;
-                    if (target.Current.weaponManager == null) continue;
-                    if (finalTarget == null || (target.Current.IsCloser(finalTarget, mf)))
+                    if (target.Current == null || !target.Current.Vessel) continue;
+                    var targetMf = target.Current.WeaponManager;
+                    if (targetMf == null || targetMf == mf) continue;
+                    if (finalTarget == null || target.Current.IsCloser(finalTarget, mf))
                     {
                         finalTarget = target.Current;
                     }
@@ -1376,8 +1377,9 @@ namespace BDArmory.UI
                 while (target.MoveNext())
                 {
                     if (target.Current == null) continue;
-                    if (target.Current.weaponManager == null) continue;
-                    if (target.Current.Vessel && target.Current.weaponManager == mf)
+                    var targetMf = target.Current.WeaponManager;
+                    if (targetMf == null) continue;
+                    if (target.Current.Vessel && targetMf == mf)
                     {
                         return target.Current;
                     }
@@ -1393,7 +1395,7 @@ namespace BDArmory.UI
                 while (target.MoveNext())
                 {
                     if (target.Current == null) continue;
-                    if (target.Current.weaponManager == null) continue;
+                    if (target.Current.WeaponManager == null) continue;
                     if ((mf.multiTargetNum > 1 || mf.multiMissileTgtNum > 1) && mf.targetsAssigned.Contains(target.Current)) continue;
                     if (target.Current && target.Current.Vessel && mf.CanSeeTarget(target.Current) && !target.Current.isMissile && target.Current.SafeOrbitalIntercept(mf))
                     {
@@ -1414,7 +1416,7 @@ namespace BDArmory.UI
                 while (target.MoveNext())
                 {
                     if (target.Current == null) continue;
-                    if (target.Current.weaponManager == null) continue;
+                    if (target.Current.WeaponManager == null) continue;
                     //if ((mf.multiTargetNum > 1 || mf.multiMissileTgtNum > 1) && mf.targetsAssigned.Contains(target.Current)) continue;
                     if (target.Current && target.Current.Vessel && mf.CanSeeTarget(target.Current) && !excluding.Contains(target.Current) && target.Current.SafeOrbitalIntercept(mf))
                     {
@@ -1432,7 +1434,7 @@ namespace BDArmory.UI
                 while (target.MoveNext())
                 {
                     if (target.Current == null || target.Current.Vessel == null) continue;
-                    if (target.Current.weaponManager == null) continue;
+                    if (target.Current.WeaponManager == null) continue;
                     if ((mf.multiTargetNum > 1 || mf.multiMissileTgtNum > 1) && mf.targetsAssigned.Contains(target.Current)) continue;
                     if (mf.CanSeeTarget(target.Current) && !target.Current.isMissile && target.Current.isThreat && target.Current.SafeOrbitalIntercept(mf))
                     {
@@ -1456,7 +1458,7 @@ namespace BDArmory.UI
                 while (target.MoveNext())
                 {
                     if (target.Current == null || target.Current.Vessel == null) continue;
-                    if (target.Current.weaponManager == null) continue;
+                    if (target.Current.WeaponManager == null) continue;
                     if ((mf.multiTargetNum > 1 || mf.multiMissileTgtNum > 1) && mf.targetsAssigned.Contains(target.Current)) continue;
                     if (mf.CanSeeTarget(target.Current) && !target.Current.isMissile && target.Current.isThreat && target.Current.SafeOrbitalIntercept(mf))
                     {
@@ -1485,7 +1487,8 @@ namespace BDArmory.UI
                 while (target.MoveNext())
                 {
                     if (target.Current == null) continue;
-                    if (target.Current.weaponManager == null) continue;
+                    var targetMf = target.Current.WeaponManager;
+                    if (targetMf == null) continue;
                     //Debug.Log("[BDArmory.BDATargetmanager]: evaluating " + target.Current.Vessel.GetName());
                     if ((mf.multiTargetNum > 1 || mf.multiMissileTgtNum > 1) && mf.targetsAssigned.Contains(target.Current)) continue;
                     if (target.Current != null && target.Current.Vessel && mf.CanSeeTarget(target.Current) && !target.Current.isMissile && target.Current.isThreat && target.Current.SafeOrbitalIntercept(mf))
@@ -1493,19 +1496,19 @@ namespace BDArmory.UI
                         float targetScore = (target.Current == mf.currentTarget ? mf.targetBias : 1f) * (
                             1f +
                             mf.targetWeightRange * target.Current.TargetPriRange(mf) +
-                            mf.targetWeightAirPreference * target.Current.TargetPriEngagement(target.Current.weaponManager, mf.vessel.radarAltitude) +
+                            mf.targetWeightAirPreference * target.Current.TargetPriEngagement(targetMf, mf.vessel.radarAltitude) +
                             mf.targetWeightATA * target.Current.TargetPriATA(mf) +
                             mf.targetWeightAccel * target.Current.TargetPriAcceleration() +
                             mf.targetWeightClosureTime * target.Current.TargetPriClosureTime(mf) +
-                            mf.targetWeightWeaponNumber * target.Current.TargetPriWeapons(target.Current.weaponManager, mf) +
-                            mf.targetWeightMass * target.Current.TargetPriMass(target.Current.weaponManager, mf) +
-                            mf.targetWeightDamage * target.Current.TargetPriDmg(target.Current.weaponManager) +
+                            mf.targetWeightWeaponNumber * target.Current.TargetPriWeapons(targetMf, mf) +
+                            mf.targetWeightMass * target.Current.TargetPriMass(targetMf, mf) +
+                            mf.targetWeightDamage * target.Current.TargetPriDmg(targetMf) +
                             mf.targetWeightFriendliesEngaging * target.Current.TargetPriFriendliesEngaging(mf) +
-                            mf.targetWeightThreat * target.Current.TargetPriThreat(target.Current.weaponManager, mf) +
+                            mf.targetWeightThreat * target.Current.TargetPriThreat(targetMf, mf) +
                             mf.targetWeightAoD * target.Current.TargetPriAoD(mf) +
-                            mf.targetWeightProtectTeammate * target.Current.TargetPriProtectTeammate(target.Current.weaponManager, mf) +
-                            mf.targetWeightProtectVIP * target.Current.TargetPriProtectVIP(target.Current.weaponManager, mf) +
-                            mf.targetWeightAttackVIP * target.Current.TargetPriAttackVIP(target.Current.weaponManager));
+                            mf.targetWeightProtectTeammate * target.Current.TargetPriProtectTeammate(targetMf, mf) +
+                            mf.targetWeightProtectVIP * target.Current.TargetPriProtectVIP(targetMf, mf) +
+                            mf.targetWeightAttackVIP * target.Current.TargetPriAttackVIP(targetMf));
                         if (BDArmorySettings.DEBUG_AI || BDArmorySettings.DEBUG_TELEMETRY) debugTargetScores.Add((target.Current.Vessel.GetName(), targetScore));
                         if (finalTarget == null || targetScore > finalTargetScore)
                         {

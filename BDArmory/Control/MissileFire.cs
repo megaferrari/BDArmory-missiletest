@@ -5341,7 +5341,7 @@ namespace BDArmory.Control
                             while (target.MoveNext())
                             {
                                 if (target.Current == null) continue;
-                                if (target.Current.weaponManager == null) continue;
+                                if (target.Current.WeaponManager == null) continue;
                                 if (target.Current && target.Current.Vessel && CanSeeTarget(target.Current) && !targetsTried.Contains(target.Current))
                                 {
                                     targetsAssigned.Add(target.Current);
@@ -5392,21 +5392,22 @@ namespace BDArmory.Control
             var TargetAttackVIPFields = Fields["targetWeightAttackVIP"];
 
             // Calculate score values
+            var targetWM = target.WeaponManager;
             float targetBiasValue = targetBias;
             float targetRangeValue = target.TargetPriRange(this);
-            float targetPreferencevalue = target.TargetPriEngagement(target.weaponManager, this.vessel.radarAltitude);
+            float targetPreferencevalue = target.TargetPriEngagement(targetWM, this.vessel.radarAltitude);
             float targetATAValue = target.TargetPriATA(this);
             float targetAoDValue = target.TargetPriAoD(this);
             float targetAccelValue = target.TargetPriAcceleration();
             float targetClosureTimeValue = target.TargetPriClosureTime(this);
-            float targetWeaponNumberValue = target.TargetPriWeapons(target.weaponManager, this);
-            float targetMassValue = target.TargetPriMass(target.weaponManager, this);
-            float targetDamageValue = target.TargetPriDmg(target.weaponManager);
+            float targetWeaponNumberValue = target.TargetPriWeapons(targetWM, this);
+            float targetMassValue = target.TargetPriMass(targetWM, this);
+            float targetDamageValue = target.TargetPriDmg(targetWM);
             float targetFriendliesEngagingValue = target.TargetPriFriendliesEngaging(this);
-            float targetThreatValue = target.TargetPriThreat(target.weaponManager, this);
-            float targetProtectTeammateValue = target.TargetPriProtectTeammate(target.weaponManager, this);
-            float targetProtectVIPValue = target.TargetPriProtectVIP(target.weaponManager, this);
-            float targetAttackVIPValue = target.TargetPriAttackVIP(target.weaponManager);
+            float targetThreatValue = target.TargetPriThreat(targetWM, this);
+            float targetProtectTeammateValue = target.TargetPriProtectTeammate(targetWM, this);
+            float targetProtectVIPValue = target.TargetPriProtectVIP(targetWM, this);
+            float targetAttackVIPValue = target.TargetPriAttackVIP(targetWM);
 
             // Calculate total target score
             float targetScore = targetBiasValue * (
@@ -7799,12 +7800,12 @@ namespace BDArmory.Control
                                 dumbfire = true;
                                 validTarget = true;
                             }
-                            
+
                             if (laserPointDetected)
                                 ml.lockedCamera = foundCam;
                             if (guardMode && GPSDistanceCheck(VectorUtils.GetWorldSurfacePostion(ml.targetGPSCoords, vessel.mainBody), targetVessel)) validTarget = true;
                         }
-                        
+
                         if (vesselRadarData)
                         {
                             ml.vrd = vesselRadarData;
@@ -8414,16 +8415,19 @@ namespace BDArmory.Control
                     incomingMissDistance = results.missDistance + results.missDeviation;
                     TargetInfo nearbyFriendly = BDATargetManager.GetClosestFriendly(this);
                     TargetInfo nearbyThreat = BDATargetManager.GetTargetFromWeaponManager(results.threatWeaponManager);
+                    var nearbyFriendlyWM = nearbyFriendly != null ? nearbyFriendly.WeaponManager : null;
+                    var nearbyThreatWM = nearbyThreat != null ? nearbyThreat.WeaponManager : null;
 
-                    if (nearbyThreat != null && nearbyThreat.weaponManager != null && nearbyFriendly != null && nearbyFriendly.weaponManager != null)
-                        if (Team.IsEnemy(nearbyThreat.weaponManager.Team) && nearbyFriendly.weaponManager.Team == Team)
+                    if (nearbyThreat != null && nearbyThreatWM != null && nearbyFriendly != null && nearbyFriendlyWM != null)
+                    {
+                        if (Team.IsEnemy(nearbyThreatWM.Team) && nearbyFriendlyWM.Team == Team)
                         //turns out that there's no check for AI on the same team going after each other due to this.  Who knew?
                         {
-                            if (nearbyThreat == currentTarget && nearbyFriendly.weaponManager.currentTarget != null)
+                            if (nearbyThreat == currentTarget && nearbyFriendlyWM.currentTarget != null)
                             //if being attacked by the current target, switch to the target that the nearby friendly was engaging instead
                             {
-                                SetOverrideTarget(nearbyFriendly.weaponManager.currentTarget);
-                                nearbyFriendly.weaponManager.SetOverrideTarget(nearbyThreat);
+                                SetOverrideTarget(nearbyFriendlyWM.currentTarget);
+                                nearbyFriendlyWM.SetOverrideTarget(nearbyThreat);
                                 if (BDArmorySettings.DEBUG_AI)
                                     Debug.Log($"[BDArmory.MissileFire]: {vessel.vesselName} called for help from {nearbyFriendly.Vessel.vesselName} and took its target in return");
                                 //basically, swap targets to cover each other
@@ -8431,11 +8435,12 @@ namespace BDArmory.Control
                             else
                             {
                                 //otherwise, continue engaging the current target for now
-                                nearbyFriendly.weaponManager.SetOverrideTarget(nearbyThreat);
+                                nearbyFriendlyWM.SetOverrideTarget(nearbyThreat);
                                 if (BDArmorySettings.DEBUG_AI)
                                     Debug.Log($"[BDArmory.MissileFire]: {vessel.vesselName} called for help from {nearbyFriendly.Vessel.vesselName}");
                             }
                         }
+                    }
                 }
                 StartCoroutine(UnderAttackRoutine()); //this seems to be firing all the time, not just when bullets are flying towards craft...?
                 StartCoroutine(UnderFireRoutine());

@@ -20,7 +20,18 @@ namespace BDArmory.Targeting
         public BDTeam Team;
         public bool isMissile;
         public MissileBase MissileBaseModule;
-        public MissileFire weaponManager;
+        public MissileFire WeaponManager
+        {
+            get
+            {
+                if (_weaponManager == null || !_weaponManager.IsPrimaryWM || _weaponManager.vessel != vessel)
+                    _weaponManager = (vessel != null && vessel.loaded) ? vessel.ActiveController().WM : null;
+                if (_weaponManager != null && _weaponManager.vessel != vessel) _weaponManager = null;
+                return _weaponManager;
+            }
+        }
+        public MissileFire _weaponManager;
+
         Dictionary<BDTeam, List<MissileFire>> friendliesEngaging = [];
         public Dictionary<BDTeam, bool> detected = [];
         public Dictionary<BDTeam, float> detectedTime = [];
@@ -146,9 +157,9 @@ namespace BDArmory.Targeting
                 {
                     return true;
                 }
-                else if (weaponManager)
+                else if (WeaponManager)
                 {
-                    return weaponManager.vessel.isCommandable; //isn't debris / has command part
+                    return WeaponManager.vessel.isCommandable; //isn't debris / has command part
                     //return weaponManager.vessel.IsControllable; //vessel has probecore & EC/pilot && pilot is conscious
                     //enable this if you want exceedingly honorable pilots who hold fire if their target has GLOC'ed themselves
                     // GLOC'ed craft now go neutral stick, so they no longer get locked in a perma-stun deathloop                    
@@ -169,7 +180,7 @@ namespace BDArmory.Targeting
                 {
                     return false;
                 }
-                else if (weaponManager && weaponManager.debilitated)
+                else if (WeaponManager && WeaponManager.debilitated)
                 {
                     return true;
                 }
@@ -207,8 +218,7 @@ namespace BDArmory.Targeting
             var mf = vessel.ActiveController().WM;
             if (mf != null)
             {
-                Team = mf.Team;
-                weaponManager = mf;
+                Team = mf.Team; // While the primary WM may change, the Team shouldn't.
             }
             else
             {
@@ -257,7 +267,8 @@ namespace BDArmory.Targeting
             if (radarMassAtUpdate > 0)
             {
                 float massPercentageDifference = (radarMassAtUpdate - vessel.GetTotalMass()) / radarMassAtUpdate;
-                if ((massPercentageDifference > 0.025f) && (weaponManager) && (weaponManager.missilesAway.Count == 0) && !weaponManager.guardFiringMissile)
+                var weaponManager = WeaponManager;
+                if (massPercentageDifference > 0.025f && weaponManager && weaponManager.missilesAway.Count == 0 && !weaponManager.guardFiringMissile)
                 {
                     alreadyScheduledRCSUpdate = true;
                     yield return new WaitForSeconds(1.0f);    // Wait for any explosions to finish
@@ -276,7 +287,7 @@ namespace BDArmory.Targeting
             }
             else
             {
-                if ((vessel.vesselType == VesselType.Debris) && (weaponManager == null))
+                if (vessel.vesselType == VesselType.Debris && WeaponManager == null)
                 {
                     BDATargetManager.RemoveTarget(this);
                     Team = null;
@@ -524,22 +535,18 @@ namespace BDArmory.Targeting
         public float TargetPriProtectTeammate(MissileFire mf, MissileFire myMf) // If target is attacking one of our teammates. 1 if true, 0 if false.
         {
             if (myMf == null) return 0;
-            if (mf == null || mf.currentTarget == null || mf.currentTarget.weaponManager == null) return 0;
-            return (mf.currentTarget.weaponManager != myMf && mf.currentTarget.weaponManager.Team == myMf.Team) ? 1 : 0; // Not us, but on the same team.
+            var targetMf = mf != null && mf.currentTarget != null ? mf.currentTarget.WeaponManager : null;
+            if (targetMf == null) return 0;
+            return (targetMf != myMf && targetMf.Team == myMf.Team) ? 1 : 0; // Not us, but on the same team.
         }
 
         public float TargetPriProtectVIP(MissileFire mf, MissileFire myMf) // If target is attacking our VIP(s)
         {
             if (mf == null || myMf == null) return 0;
-            if ((mf.vessel != null) && (mf.currentTarget != null) && (mf.currentTarget.weaponManager != null))
-            {
-                bool attackingOurVIPs = mf.currentTarget.weaponManager.isVIP && (myMf.Team == mf.currentTarget.weaponManager.Team);
-                return ((attackingOurVIPs == true) ? 1 : 0); // Ranges 0 to 1, 1 if target is attacking our VIP(s), 0 if it is not
-            }
-            else
-            {
-                return 0;
-            }
+            var targetMf = mf != null && mf.currentTarget != null ? mf.currentTarget.WeaponManager : null;
+            if (mf.vessel == null || targetMf == null) return 0;
+            bool attackingOurVIPs = targetMf.isVIP && myMf.Team == targetMf.Team;
+            return attackingOurVIPs ? 1 : 0; // Ranges 0 to 1, 1 if target is attacking our VIP(s), 0 if it is not
         }
 
         public float TargetPriAttackVIP(MissileFire mf) // If target is enemy VIP
