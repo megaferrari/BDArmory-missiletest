@@ -3937,7 +3937,7 @@ namespace BDArmory.Competition
             if (weaponManager == null) return; // Not a valid competition craft.
 
             var vesselName = vessel.vesselName;
-            Debug.Log($"DEBUG Adding {vessel.vesselName} ({vessel.persistentId}) to the competition.");
+            if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log($"[BDArmory.BDACompetitionMode]: Adding {vessel.vesselName} ({vessel.persistentId}) to the competition.");
 
             // If a competition is active, update the scoring structure.
             bool competitionStartingOrStarted = competitionStarting || competitionIsActive;

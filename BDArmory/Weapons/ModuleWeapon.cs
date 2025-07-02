@@ -3665,8 +3665,8 @@ namespace BDArmory.Weapons
                             // Lasers have no timeToCPA correction.
                     }
 
+                    // if (FlightGlobals.ActiveVessel == vessel) Debug.Log($"DEBUG t: {Time.time}, tgt acq: {targetAcquired}, stale: {wm.staleTarget}, Stale aimer: aim at {finalAimTarget:G3} ({finalAimTarget.magnitude:G3}m), last: {staleFinalAimTarget:G3}, Δt: {timeSinceGood:F2}s ({timeSinceGood / (1f + timeSinceGood / 30f):F2}s)");
                     fixedLeadOffset = targetPosition - finalAimTarget; //for aiming fixed guns to moving target
-                                                                       // if (FlightGlobals.ActiveVessel == vessel) Debug.Log($"DEBUG t: {Time.time}, tgt acq: {targetAcquired}, stale: {wm.staleTarget}, Stale aimer: aim at {finalAimTarget:G3} ({finalAimTarget.magnitude:G3}m), last: {staleFinalAimTarget:G3}, Δt: {timeSinceGood:F2}s ({timeSinceGood / (1f + timeSinceGood / 30f):F2}s)");
 
                     if (BDArmorySettings.DEBUG_LINES && BDArmorySettings.DEBUG_WEAPONS)
                     {
@@ -5248,7 +5248,7 @@ namespace BDArmory.Weapons
                         else //no lock for our secondary target? slave turret to a lock we do have
                         {
                             bool isVessel = weaponManager.slavedTarget.vessel != null;
-                            if (!isVessel || !(visRange && RadarUtils.GetVesselChaffFactor(weaponManager.slavedTarget.vessel) < 1f)) 
+                            if (!isVessel || !(visRange && RadarUtils.GetVesselChaffFactor(weaponManager.slavedTarget.vessel) < 1f))
                             {
                                 slaved = true;
                                 targetRadius = isVessel ? weaponManager.slavedTarget.vessel.GetRadius() : 35f;

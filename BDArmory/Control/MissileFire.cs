@@ -4909,12 +4909,12 @@ namespace BDArmory.Control
             return true;
         }
 
-        void RefreshModules(string tag = null)
+        void RefreshModules()
         {
             modulesNeedRefreshing = false;
             cmPrioritiesNeedRefreshing = true;
             VesselModuleRegistry.OnVesselModified(vessel); // Make sure the registry is up-to-date.
-            // Debug.Log($"DEBUG Refreshing modules on {vessel} with AI {AI} ({AI.part.persistentId}) and WM {this} ({part.persistentId}, primary: {IsPrimaryWM}){(tag != null ? $" from {tag}" : null)}");
+            // Debug.Log($"DEBUG Refreshing modules on {vessel} with AI {AI} ({AI.part.persistentId}) and WM {this} ({part.persistentId}, primary: {IsPrimaryWM})");
             _radars = VesselModuleRegistry.GetModules<ModuleRadar>(vessel);
             if (_radars != null)
             {

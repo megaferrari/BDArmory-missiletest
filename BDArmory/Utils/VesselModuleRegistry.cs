@@ -950,8 +950,6 @@ namespace BDArmory.Utils
         public bool VesselNamingDeconflictionHasBeenApplied { get; set; } = false; // Whether vessel naming deconfliction has been applied to this vessel or not.
         public string VesselName { get; set; } = null; // The vesselName of this vessel. This is to revert KSP's automatic renaming of vessels when we don't want it to.
 
-        // FIXMEAI Tournaments aren't scoring fighter teams properly. - score values are correct, but fighters are missing.
-
         // Note: If using these below, check that ai.pilotEnabled is true to see if it's the active AI.
         public BDModulePilotAI PilotAI { get; private set; } // The primary or most recently active pilot AI.
         public BDModuleSurfaceAI SurfaceAI { get; private set; } // The primary or most recently active surface AI.
