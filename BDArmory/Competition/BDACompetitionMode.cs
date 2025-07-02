@@ -3950,6 +3950,8 @@ namespace BDArmory.Competition
                 ContinuousSpawning.Instance.continuousSpawningScores[vesselName].vessel = vessel; // Update some values in the scoring structure.
                 ContinuousSpawning.Instance.continuousSpawningScores[vesselName].outOfAmmoTime = 0;
             }
+            if (BDATournament.Instance.tournamentStatus == TournamentStatus.Running)
+                BDATournament.Instance.AddPlayer(vessel);
 
             // Set the vessel on the appropriate team.
             if (BDArmorySettings.TAG_MODE && !string.IsNullOrEmpty(Scores.currentlyIT))

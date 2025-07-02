@@ -9,6 +9,7 @@ using UnityEngine;
 
 using BDArmory.Competition.OrchestrationStrategies;
 using BDArmory.Evolution;
+using BDArmory.Extensions;
 using BDArmory.GameModes.Waypoints;
 using BDArmory.Settings;
 using BDArmory.UI;
@@ -101,6 +102,7 @@ namespace BDArmory.Competition
     {
         public Dictionary<string, string> playersToFileNames = []; // Match players with craft filenames for extending ranks rounds.
         public Dictionary<string, string> playersToTeamNames = []; // Match the players with team names (for teams competitions).
+        public Dictionary<string, bool> playerIsFighter = []; // Track which players are fighters (spawned from other craft).
         public Dictionary<string, float> scores = []; // The current scores for the tournament.
         public float lastUpdated = 0;
         HashSet<string> npcs = [];
@@ -165,15 +167,18 @@ namespace BDArmory.Competition
         /// <param name="player">The player (vesselName).</param>
         /// <param name="fileName">The craft file belonging to the player (required for generating ranked rounds).</param>
         /// <param name="currentRound">The current round (fills previous rounds with empty score data).</param>
-        /// <returns></returns>
-        public bool AddPlayer(string player, string fileName, int currentRound = 0, bool npc = false)
+        /// <param name="npc">Whether the player is an NPC or not.</param>
+        /// <param name="fighter">Whether the player is a fighter (detached from parent vessel) or not.</param>
+        /// <returns>true if successfully added, false otherwise.</returns>
+        public bool AddPlayer(string player, string fileName, int currentRound = -1, bool npc = false, bool fighter = false)
         {
             if (playersToFileNames.ContainsKey(player)) return false; // They're already there.
-            if (!string.IsNullOrEmpty(fileName) && !File.Exists(fileName)) { Debug.LogWarning($"[BDArmory.BDATournament]: {fileName} does not exist for {player}."); return false; } // FIXMEAI Fighter craft don't have URLs.
-            if (currentRound < 0) { Debug.LogWarning($"[BDArmory.BDATournament]: Invalid round {currentRound}, setting to 0."); currentRound = 0; }
+            if (string.IsNullOrEmpty(fileName) || !File.Exists(fileName)) { Debug.LogWarning($"[BDArmory.BDATournament]: {fileName} does not exist for {player}."); return false; }
+            if (currentRound < 0) currentRound = BDATournament.Instance.currentRound;
             if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log($"[BDArmory.BDATournament]: Adding {player} with file {fileName} in round {currentRound}");
             playersToFileNames.Add(player, fileName);
-            scoreDetails.Add(player, Enumerable.Range(0, currentRound).Select(i => new ScoringData()).ToList());
+            playerIsFighter.Add(player, fighter);
+            scoreDetails.Add(player, []);
             if (npc) npcs.Add(player);
             return true;
         }
@@ -298,16 +303,24 @@ namespace BDArmory.Competition
         }
 
         /// <summary>
-        /// Get the craft files in ascending order of the currently computed scores.
-        /// Note: this ignores NPCs since they're not included in the overall scoring.
+        /// Get the craft files in ascending order of the currently computed scores (summing over those deriving from the same craft file, i.e., fighters).
+        /// Notes:
+        /// - This ignores NPCs since they're not included in the overall scoring.
+        /// - Having multiple craft from the same file (other than fighters) in the ranked tournament will mess with this.
         /// </summary>
-        public List<string> GetRankedCraftFiles() => scores.OrderBy(kvp => kvp.Value).Select(kvp => playersToFileNames[kvp.Key]).ToList();
+        public List<string> GetRankedCraftFiles()
+        {
+            List<string> nonFighters = [.. playerIsFighter.Where(kvp => !kvp.Value).Select(kvp => kvp.Key)];
+            var combinedScores = nonFighters.ToDictionary(player => player, player => playersToFileNames.Where(kvp => !string.IsNullOrEmpty(kvp.Value) && kvp.Value == playersToFileNames[player]).Sum(kvp => scores[kvp.Key]));
+            List<string> ranking = [.. combinedScores.OrderBy(kvp => kvp.Value).Select(kvp => playersToFileNames[kvp.Key])];
+            return ranking;
+        }
         public List<int> GetRankedTeams(List<List<string>> teamFiles)
         {
             // While the reverse of playersToFileNames is not necessarily 1-to-1 (due to the full teams option), duplicates of the same craft file should be on the same team.
             // The following accumulates the scores for all players with those vessels in each team, which is then used to rank the teams.
-            var teamScores = teamFiles.Select(tm => scores.Where(kvp => tm.Contains(playersToFileNames[kvp.Key])).Sum(kvp => kvp.Value)).ToList();
-            return Enumerable.Range(0, teamFiles.Count).OrderBy(i => teamScores[i]).ToList();
+            List<float> teamScores = [.. teamFiles.Select(tm => scores.Where(kvp => tm.Contains(playersToFileNames[kvp.Key])).Sum(kvp => kvp.Value))];
+            return [.. Enumerable.Range(0, teamFiles.Count).OrderBy(i => teamScores[i])];
         }
 
         #region Serialization
@@ -315,26 +328,31 @@ namespace BDArmory.Competition
         [SerializeField] List<float> _weightValues;
         [SerializeField] List<string> _players;
         [SerializeField] List<string> _npcs;
+        [SerializeField] List<string> _fighters;
         [SerializeField] List<string> _scores;
         [SerializeField] List<string> _files;
         [SerializeField] List<string> _results;
         public TournamentScores PrepareSerialization()
         {
-            _weightKeys = weights.Keys.ToList();
-            _weightValues = _weightKeys.Select(k => weights[k]).ToList();
-            _players = scoreDetails.Keys.ToList();
-            _npcs = npcs.ToList();
-            _scores = _players.Where(p => scoreDetails.ContainsKey(p)).Select(p => JsonUtility.ToJson(new SerializedScoreDataList().Serialize(p, scoreDetails[p], _players))).ToList();
-            _files = _players.Where(p => playersToFileNames.ContainsKey(p)).Select(p => playersToFileNames[p]).ToList(); // If the craft file has been removed, try to cope without it.
-            _results = competitionOutcomes.Select(r => JsonUtility.ToJson(r.PreSerialize())).ToList();
+            _weightKeys = [.. weights.Keys];
+            _weightValues = [.. _weightKeys.Select(k => weights[k])];
+            _players = [.. scoreDetails.Keys];
+            _npcs = [.. npcs];
+            _fighters = [.. playerIsFighter.Where(p => p.Value).Select(p => p.Key)];
+            _scores = [.. _players.Where(scoreDetails.ContainsKey).Select(p => JsonUtility.ToJson(new SerializedScoreDataList().Serialize(p, scoreDetails[p], _players)))];
+            _files = [.. _players.Where(playersToFileNames.ContainsKey).Select(p => playersToFileNames[p])]; // If the craft file has been removed, try to cope without it.
+            _results = [.. competitionOutcomes.Select(r => JsonUtility.ToJson(r.PreSerialize()))];
             return this;
         }
         public void PostDeserialization()
         {
             Reset();
             ConfigureScoreWeights(Enumerable.Range(0, _weightKeys.Count).ToDictionary(i => _weightKeys[i], i => _weightValues[i]));
-            npcs = _npcs != null ? _npcs.ToHashSet() : new HashSet<string>();
-            for (int i = 0; i < _players.Count; ++i) AddPlayer(_players[i], _files[i], 0, npcs.Contains(_files[i]));
+            for (int i = 0; i < _players.Count; ++i)
+            {
+                var player = _players[i];
+                AddPlayer(player: player, fileName: _files[i], 0, npc: _npcs.Contains(player), fighter: _fighters.Contains(player));
+            }
             try
             {
                 scoreDetails = Enumerable.Range(0, _players.Count).ToDictionary(i => _players[i], i => JsonUtility.FromJson<SerializedScoreDataList>(_scores[i])).ToDictionary(kvp => kvp.Key, kvp =>
@@ -342,7 +360,7 @@ namespace BDArmory.Competition
                     if (kvp.Value == null)
                     {
                         Debug.LogError($"[BDArmory.BDATournament]: Failed to deserialize List<ScoreData>.");
-                        return new List<ScoringData>();
+                        return [];
                     }
                     return kvp.Value.Deserialize(_players);
                 });
@@ -350,7 +368,7 @@ namespace BDArmory.Competition
             catch (Exception e) { Debug.LogError($"[BDArmory.BDATournament]: Failed to deserialize tournament scores: {e.Message}\n{e.StackTrace}"); }
             try
             {
-                competitionOutcomes = _results.Select(r => JsonUtility.FromJson<CompetitionOutcome>(r).PostDeserialize()).ToList();
+                competitionOutcomes = [.. _results.Select(r => JsonUtility.FromJson<CompetitionOutcome>(r).PostDeserialize())];
             }
             catch (Exception e) { Debug.LogError($"[BDArmory.BDATournament]: Failed to deserialize competition outcomes: {e.Message}\n{e.StackTrace}"); }
         }
@@ -362,12 +380,12 @@ namespace BDArmory.Competition
 
             public SerializedScoreDataList Serialize(string player, List<ScoringData> scoreDetails, List<string> players)
             {
-                serializedScoreData = scoreDetails.Select(sd => JsonUtility.ToJson(new SerializedScoreData().Serialize(sd, players))).ToList();
+                serializedScoreData = [.. scoreDetails.Select(sd => JsonUtility.ToJson(new SerializedScoreData().Serialize(sd, players)))];
                 return this;
             }
             public List<ScoringData> Deserialize(List<string> players)
             {
-                var ssdl = serializedScoreData.Select(JsonUtility.FromJson<SerializedScoreData>).ToList();
+                List<SerializedScoreData> ssdl = [.. serializedScoreData.Select(JsonUtility.FromJson<SerializedScoreData>)];
                 List<ScoringData> sdl = [];
                 foreach (var ssd in ssdl)
                 {
@@ -2256,6 +2274,20 @@ namespace BDArmory.Competition
         }
 
         public void RecomputeScores() => tournamentState.scores.ComputeScores();
+
+        /// <summary>
+        /// Add a player to the tournament scoring while a tournament is running.
+        /// </summary>
+        /// <param name="player">The craft's name.</param>
+        /// <param name="filename">The file the craft originated from.</param>
+        /// <param name="fighter">Whether or not the vessel is a fighter.</param>
+        public void AddPlayer(Vessel vessel)
+        {
+            if (vessel == null) return;
+            var ac = vessel.ActiveController();
+            if (ac.WM == null) return; // Not a valid vessel for combat.
+            tournamentState.scores.AddPlayer(vessel.GetName(), ac.WM.SourceVesselURL, fighter: ac.IsFighter);
+        }
     }
 
     /// <summary>
