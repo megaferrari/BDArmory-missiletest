@@ -1633,7 +1633,7 @@ namespace BDArmory.VesselSpawning
             {
                 var message = $"The base folder for the {facility} doesn't exist! Your KSP install is broken!";
                 Debug.LogError($"[BDArmory.VesselMover]: {message}");
-                Competition.BDACompetitionMode.Instance.competitionStatus.Add(message);
+                BDACompetitionMode.Instance.competitionStatus.Add(message);
                 return;
             }
             if (!relative || string.IsNullOrEmpty(currentFolder)) currentFolder = baseFolder;
