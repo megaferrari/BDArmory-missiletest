@@ -1164,7 +1164,7 @@ namespace BDArmory.Utils
             updateRequired = true;
             if (WM != null && !string.IsNullOrEmpty(VesselName) && vessel.vesselName != VesselName)
             {
-                Debug.Log($"[BDArmory.ActiveController]: Reverting name change of {VesselName} ({vessel.persistentId}) from {vessel.vesselName}");
+                if (BDArmorySettings.DEBUG_OTHER) Debug.Log($"[BDArmory.ActiveController]: Reverting name change of {VesselName} ({vessel.persistentId}) from {vessel.vesselName}");
                 vessel.vesselName = VesselName;
             }
         }
