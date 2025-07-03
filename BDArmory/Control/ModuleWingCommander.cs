@@ -451,6 +451,14 @@ namespace BDArmory.Control
                     i++;
                 }
         }
+        public int GetFreeWingIndex()
+        {
+            RefreshFriendlies();
+            int freeIndex = 0;
+            while (friendlies.Select(f => f.commandFollowIndex).Contains(freeIndex))
+                ++freeIndex;
+            return freeIndex;
+        }
 
         void CommandAG(IBDAIControl wingman, int index, object ag)
         {

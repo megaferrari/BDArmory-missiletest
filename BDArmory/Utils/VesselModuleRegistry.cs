@@ -1136,18 +1136,37 @@ namespace BDArmory.Utils
                 // If the vessel detached from a craft that had an active WM/AI, then we should activate the current WM/AI (if it has one).
                 if (WM.ParentWM != null && WM.ParentWM.IsPrimaryWM)
                 {
-                    // Copy the parent vessel's WM and AI state.
+                    // Set the vessels AI and WM state based on what the parent was doing.
                     // Note: we don't need to assign the team as doing so for the parent applies it to all WM on the vessel.
-                    WM.guardMode = WM.ParentWM.guardMode;
+                    if (WM.guardMode) WM.ToggleGuardMode();
+                    if (WM.ParentWM.guardMode) WM.ToggleGuardMode();
                     if (AI != null && WM.ParentWM.AI != null)
                     {
-                        if (WM.ParentWM.AI.pilotEnabled) AI.ActivatePilot();
+                        if (WM.ParentWM.AI.pilotEnabled)
+                        {
+                            AI.ActivatePilot();
+                            switch (WM.ParentWM.AI.currentCommand)
+                            {
+                                case PilotCommands.Free:
+                                    AI.ReleaseCommand(true, false);
+                                    break;
+                                case PilotCommands.Attack:
+                                    AI.CommandAttack(WM.ParentWM.AI.commandGPS);
+                                    break;
+                                case PilotCommands.FlyTo: // Not planning on attacking something, so just follow the leader.
+                                case PilotCommands.Waypoints: // If the parent was running waypoints, then just follow them.
+                                case PilotCommands.Follow: // Parent was following someone, we'll follow the parent as a sub-formation.
+                                    AI.CommandFollow(WM.ParentWM.wingCommander, WM.ParentWM.wingCommander.GetFreeWingIndex());
+                                    break;
+                                default:
+                                    Debug.LogError($"[BDArmory.VesselModuleRegistry]: Invalid PilotCommand!");
+                                    break;
+                            }
+                        }
                         else AI.DeactivatePilot();
                     }
                     if (BDACompetitionMode.Instance.competitionIsActive)
-                    {
-                        BDACompetitionMode.Instance.AddToCompetitionWhenReady(WM);
-                    }
+                        BDACompetitionMode.Instance.AddToCompetitionWhenReady(WM, false); // We've already set the AI/WM state, so don't go weapons-free when adding them to the competition.
                     IsFighter = true; // Detached craft are "fighters".
                     WM.ParentWM = null; // Clear the parent WM at the end of frame in case the WM is not on the root part since losing the root part will trigger OnLoadVessel again.
                 }

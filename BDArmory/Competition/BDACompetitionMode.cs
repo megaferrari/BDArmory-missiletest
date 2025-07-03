@@ -3903,8 +3903,8 @@ namespace BDArmory.Competition
         /// Note: this is only called for "fighters" that are detached from other vessels and times out after 10s.
         /// </summary>
         /// <param name="weaponManager"></param>
-        public void AddToCompetitionWhenReady(MissileFire weaponManager) => StartCoroutine(AddToCompetitionWhenReadyCoroutine(weaponManager));
-        IEnumerator AddToCompetitionWhenReadyCoroutine(MissileFire weaponManager)
+        public void AddToCompetitionWhenReady(MissileFire weaponManager, bool weaponsFree) => StartCoroutine(AddToCompetitionWhenReadyCoroutine(weaponManager, weaponsFree));
+        IEnumerator AddToCompetitionWhenReadyCoroutine(MissileFire weaponManager, bool weaponsFree)
         {
             Vessel vessel = weaponManager.vessel;
             var start = Time.time;
@@ -3920,8 +3920,7 @@ namespace BDArmory.Competition
             // Fix any naming issues.
             SpawnUtils.DeconflictVesselName(vessel, reuse: ContinuousSpawning.Instance.vesselsSpawningContinuously);
 
-            // This needs testing to make sure those aren't happening.
-            AddToActiveCompetition(vessel, false); // Don't assign a new team to detached fighters.
+            AddToActiveCompetition(vessel, false, weaponsFree); // Don't assign a new team to detached fighters.
         }
 
         /// <summary>
@@ -3929,9 +3928,10 @@ namespace BDArmory.Competition
         /// 
         /// Note: this can be called before a competition actually starts, e.g., during the initial spawn of continuous spawn.
         /// </summary>
-        /// <param name="vessel"></param>
-        /// <param name="airborne"></param>
-        public void AddToActiveCompetition(Vessel vessel, bool assignTeam = true)
+        /// <param name="vessel">The vessel to add.</param>
+        /// <param name="assignTeam">Assign a new team to the vessel.</param>
+        /// <param name="weaponsFree">Enable guard mode and free the AI to attack.</param>
+        public void AddToActiveCompetition(Vessel vessel, bool assignTeam = true, bool weaponsFree = true)
         {
             var weaponManager = vessel.ActiveController().WM;
             if (weaponManager == null) return; // Not a valid competition craft.
@@ -3967,19 +3967,22 @@ namespace BDArmory.Competition
                 weaponManager.SetTeam(BDTeam.Get(team.ToString()));
             }
 
-            // Update the WM's internal lists (weapons, radars, etc.).
-            weaponManager.UpdateList();
-
-            // Enable guard mode if a competition is active, otherwise deactivate it.
-            if (weaponManager.guardMode) weaponManager.ToggleGuardMode(); // First, disable guard mode to reset weapon stuff.
-            if (competitionIsActive) weaponManager.ToggleGuardMode(); // Then, if the competition has actually started, enable guard mode.
-            var ai = weaponManager.AI;
-            if (ai != null)
+            if (weaponsFree)
             {
-                ai.ActivatePilot(); // Make sure the AI is active.
-                ai.ReleaseCommand(); // Make sure it's free to attack.
+                // Update the WM's internal lists (weapons, radars, etc.).
+                weaponManager.UpdateList();
+
+                // Enable guard mode if a competition is active, otherwise deactivate it.
+                if (weaponManager.guardMode) weaponManager.ToggleGuardMode(); // First, disable guard mode to reset weapon stuff.
+                if (competitionIsActive) weaponManager.ToggleGuardMode(); // Then, if the competition has actually started, enable guard mode.
+                var ai = weaponManager.AI;
+                if (ai != null)
+                {
+                    ai.ActivatePilot(); // Make sure the AI is active.
+                    ai.ReleaseCommand(); // Make sure it's free to attack.
+                }
+                weaponManager.ForceScan();
             }
-            weaponManager.ForceScan();
 
             if (ContinuousSpawning.Instance.vesselsSpawningContinuously)
             {

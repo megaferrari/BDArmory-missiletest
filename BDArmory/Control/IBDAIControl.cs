@@ -66,6 +66,7 @@ namespace BDArmory.Control
         Vector3d commandGPS { get; }
         PilotCommands currentCommand { get; }
         ModuleWingCommander commandLeader { get; }
+        int commandFollowIndex { get; }
 
         #endregion WingCommander
     }

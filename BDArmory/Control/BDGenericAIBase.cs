@@ -85,7 +85,7 @@ namespace BDArmory.Control
         protected PilotCommands command;
         PilotCommands previousCommand;
         public string currentStatus { get; protected set; } = "Free";
-        protected int commandFollowIndex;
+        public int commandFollowIndex { get; protected set; } = -1;
 
         public PilotCommands currentCommand => command;
         public virtual Vector3d commandGPS => assignedPositionGeo;
@@ -192,7 +192,7 @@ namespace BDArmory.Control
             GameEvents.onVesselDestroy.Remove(RemoveAutopilot);
             GameEvents.onVesselDestroy.Add(RemoveAutopilot);
 
-            assignedPositionWorld = vessel.ReferenceTransform.position;
+            if (command == PilotCommands.Free) assignedPositionWorld = vessel.ReferenceTransform.position;
             try // Sometimes the FSM breaks trying to set the gear action group
             {
                 // Make sure the FSM is started for deployable wheels. (This should hopefully fix the FSM errors.)
@@ -420,7 +420,8 @@ namespace BDArmory.Control
 
             if (!storeCommand) // Clear the previous command.
             {
-                if (previousCommand == PilotCommands.Follow) commandLeader = null;
+                commandLeader = null;
+                commandFollowIndex = -1;
                 previousCommand = PilotCommands.Free;
             }
             if (resetAssignedPosition) // Clear the assigned position.
