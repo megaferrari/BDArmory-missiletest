@@ -164,7 +164,7 @@ namespace BDArmory.UI
 
             try
             {
-                Gatepath = Path.GetFullPath(Path.GetDirectoryName(Path.Combine(KSPUtil.ApplicationRootPath, "GameData", WaypointFollowingStrategy.ModelPath)));
+                Gatepath = Path.GetDirectoryName(Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "GameData", WaypointFollowingStrategy.ModelPath)));
                 gateFiles = Directory.GetFiles(Gatepath, "*.mu").Select(f => Path.GetFileName(f)).ToArray();
                 Array.Sort(gateFiles, StringComparer.Ordinal); // Sort them alphabetically, uppercase first.
                 WaygateCount = gateFiles.Count() - 1;
@@ -894,7 +894,7 @@ namespace BDArmory.UI
                         }
                         else
                         {
-                            var craftFiles = Directory.GetFiles(Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn", BDArmorySettings.VESSEL_SPAWN_FILES_LOCATION), "*.craft").ToList();
+                            var craftFiles = Directory.GetFiles(Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn", BDArmorySettings.VESSEL_SPAWN_FILES_LOCATION)), "*.craft").ToList();
                             var strategies = craftFiles.Select(craftFile => new SpawnConfigStrategy(
                                 new CircularSpawnConfig(
                                     new SpawnConfig(

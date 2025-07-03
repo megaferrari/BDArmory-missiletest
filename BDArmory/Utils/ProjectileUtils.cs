@@ -15,7 +15,7 @@ namespace BDArmory.Utils
 {
     class ProjectileUtils
     {
-        public static string settingsConfigURL = Path.Combine(KSPUtil.ApplicationRootPath, "GameData/BDArmory/PluginData/PartsBlacklists.cfg");
+        public static string settingsConfigURL = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "GameData/BDArmory/PluginData/PartsBlacklists.cfg"));
         public static void SetUpPartsHashSets()
         {
             var fileNode = ConfigNode.Load(settingsConfigURL);

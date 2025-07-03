@@ -116,10 +116,10 @@ namespace BDArmory.VesselSpawning
             #region Initialisation and sanity checks
             // Tally up the craft to spawn.
             if (spawnConfig.craftFiles == null) // Prioritise the list of craftFiles if we're given them.
-                spawnConfig.craftFiles = Directory.GetFiles(Path.Combine(AutoSpawnPath, spawnConfig.folder), "*.craft").ToList();
+                spawnConfig.craftFiles = Directory.GetFiles(Path.GetFullPath(Path.Combine(AutoSpawnPath, spawnConfig.folder)), "*.craft").ToList();
             if (spawnConfig.craftFiles.Count == 0)
             {
-                LogMessage("Vessel spawning: found no craft files in " + Path.Combine(AutoSpawnPath, spawnConfig.folder));
+                LogMessage("Vessel spawning: found no craft files in " + Path.GetFullPath(Path.Combine(AutoSpawnPath, spawnConfig.folder)));
                 vesselsSpawningContinuously = false;
                 spawnFailureReason = SpawnFailureReason.NoCraft;
                 yield break;
@@ -481,7 +481,7 @@ namespace BDArmory.VesselSpawning
             // Dump the log results to a file.
             if (BDACompetitionMode.Instance.CompetitionID > 0)
             {
-                var folder = Path.Combine(KSPUtil.ApplicationRootPath, "GameData", "BDArmory", "Logs");
+                var folder = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "GameData", "BDArmory", "Logs"));
                 if (!Directory.Exists(folder))
                     Directory.CreateDirectory(folder);
                 File.WriteAllLines(Path.Combine(folder, "cts-" + BDACompetitionMode.Instance.CompetitionID.ToString() + (tag != "" ? "-" + tag : "") + ".log"), logStrings);

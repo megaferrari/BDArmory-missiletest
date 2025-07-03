@@ -485,11 +485,13 @@ namespace BDArmory.UI
             AppleSilicon = CultureInfo.InvariantCulture.CompareInfo.IndexOf(SystemInfo.processorType, "Apple", CompareOptions.IgnoreCase) >= 0;
 
             // Ensure AutoSpawn folder exists.
-            if (!Directory.Exists(Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn")))
-            { Directory.CreateDirectory(Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn")); }
+            var autoSpawnFolder = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn"));
+            if (!Directory.Exists(autoSpawnFolder))
+            { Directory.CreateDirectory(autoSpawnFolder); }
             // Ensure GameData/Custom/Flags folder exists.
-            if (!Directory.Exists(Path.Combine(KSPUtil.ApplicationRootPath, "GameData", "Custom", "Flags")))
-            { Directory.CreateDirectory(Path.Combine(KSPUtil.ApplicationRootPath, "GameData", "Custom", "Flags")); }
+            var customFlagsFolder = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "GameData", "Custom", "Flags"));
+            if (!Directory.Exists(customFlagsFolder))
+            { Directory.CreateDirectory(customFlagsFolder); }
         }
 
         void Start()
@@ -4157,11 +4159,8 @@ namespace BDArmory.UI
                     {
                         if (GUI.Button(SLineRect(++line), StringUtils.Localize("#LOC_BDArmory_Settings_RemoteSync"))) // Run Via Remote Orchestration
                         {
-                            string vesselPath = Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn");
-                            if (!System.IO.Directory.Exists(vesselPath))
-                            {
-                                System.IO.Directory.CreateDirectory(vesselPath);
-                            }
+                            string vesselPath = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn"));
+                            if (!Directory.Exists(vesselPath)) Directory.CreateDirectory(vesselPath);
                             BDAScoreService.Instance.Configure(vesselPath, BDArmorySettings.COMPETITION_HASH);
                             if (BDArmorySettings.COMPETITION_CLOSE_SETTINGS_ON_COMPETITION_START) CloseSettingsWindow();
                         }

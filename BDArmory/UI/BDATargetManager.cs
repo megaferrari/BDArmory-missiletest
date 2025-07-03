@@ -42,7 +42,7 @@ namespace BDArmory.UI
 
         void Awake()
         {
-            gpsTargetsCfg = Path.Combine(KSPUtil.ApplicationRootPath, "GameData/BDArmory/PluginData/gpsTargets.cfg");
+            gpsTargetsCfg = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "GameData/BDArmory/PluginData/gpsTargets.cfg"));
             GameEvents.onGameStateLoad.Add(LoadGPSTargets);
             GameEvents.onGameStateSave.Add(SaveGPSTargets);
             LoadedBuildings = new List<DestructibleBuilding>();

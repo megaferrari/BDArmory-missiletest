@@ -631,7 +631,7 @@ namespace BDArmory.Competition
             numberOfRounds = tournamentRoundType == TournamentRoundType.Ranked ? 1 : numberOfRounds; // Ranked tournaments generate a single Shuffled round, then just go until the current number of rounds slider +1 is satisfied.
             this.numberOfRounds = numberOfRounds;
             this.vesselsPerHeat = vesselsPerHeat;
-            var abs_folder = Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn", folder);
+            var abs_folder = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn", folder));
             if (!Directory.Exists(abs_folder))
             {
                 message = "Tournament folder (" + folder + ") containing craft files does not exist.";
@@ -788,7 +788,7 @@ namespace BDArmory.Competition
             }
             this.tournamentRoundType = tournamentRoundType;
             numberOfRounds = tournamentRoundType == TournamentRoundType.Ranked ? 1 : numberOfRounds; // Ranked tournaments generate a single Shuffled round, then just go until the current number of rounds slider +1 is satisfied.
-            var absFolder = Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn", folder);
+            var absFolder = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn", folder));
             if (!Directory.Exists(absFolder))
             {
                 message = "Tournament folder (" + folder + ") containing craft files or team folders does not exist.";
@@ -1007,7 +1007,7 @@ namespace BDArmory.Competition
                         // Gauntlet is like N-choose-2K except that it's selecting K teams from the main folder and K teams from the opponents (e.g., 2v2, 3v3, 2v3, (2v2)v(2v2), (2v3)v(3v2), etc.)
                         #region Opponent config
                         var opponentFolder = Path.Combine("AutoSpawn", BDArmorySettings.VESSEL_SPAWN_GAUNTLET_OPPONENTS_FILES_LOCATION);
-                        var opponentAbsFolder = Path.Combine(KSPUtil.ApplicationRootPath, opponentFolder);
+                        var opponentAbsFolder = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, opponentFolder));
                         if (!Directory.Exists(opponentAbsFolder))
                         {
                             message = "Opponents folder (" + opponentFolder + ") containing craft files or team folders does not exist.";
@@ -2329,7 +2329,7 @@ namespace BDArmory.Competition
             Instance = this;
             DontDestroyOnLoad(this);
             GameEvents.onLevelWasLoadedGUIReady.Add(onLevelWasLoaded);
-            savesDir = Path.Combine(KSPUtil.ApplicationRootPath, "saves");
+            savesDir = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "saves"));
         }
 
         void OnDestroy()

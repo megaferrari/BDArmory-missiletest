@@ -29,7 +29,7 @@ namespace BDArmory.VesselSpawning
         {
             if (spawnConfig.craftFiles == null || spawnConfig.craftFiles.Count == 0)
             {
-                var spawnFolder = Path.Combine(AutoSpawnPath, spawnConfig.folder);
+                var spawnFolder = Path.GetFullPath(Path.Combine(AutoSpawnPath, spawnConfig.folder));
                 spawnConfig.craftFiles = Directory.GetFiles(spawnFolder, "*.craft").ToList();
                 if (spawnConfig.craftFiles.Count == 0)
                 {

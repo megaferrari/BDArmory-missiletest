@@ -143,7 +143,7 @@ namespace BDArmory.Evolution
 
         public static void ConfigurePaths()
         {
-            configDirectory = Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn", "evolutions");
+            configDirectory = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn", "evolutions"));
             workingDirectory = Path.Combine(configDirectory, "working");
             seedDirectory = Path.Combine(configDirectory, "seeds");
             adversaryDirectory = Path.Combine(configDirectory, "adversaries");

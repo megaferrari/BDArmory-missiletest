@@ -7,7 +7,7 @@ namespace BDArmory.Settings
 {
     public class BDArmorySettings
     {
-        public static string oldSettingsConfigURL = Path.Combine(KSPUtil.ApplicationRootPath, "GameData/BDArmory/settings.cfg"); // Migrate from the old settings file to the new one in PluginData so that we don't invalidate the ModuleManager cache.
+        public static string oldSettingsConfigURL = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "GameData/BDArmory/settings.cfg")); // Migrate from the old settings file to the new one in PluginData so that we don't invalidate the ModuleManager cache.
         public static string settingsConfigURL = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "GameData/BDArmory/PluginData/settings.cfg"));
         public static bool ready = false;
 

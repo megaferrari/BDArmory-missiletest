@@ -145,7 +145,7 @@ namespace BDArmory.VesselSpawning
                     if (teamDirs.Length < 2) // Make teams from each vessel in the spawn folder. Allow for a single subfolder for putting bad craft or other tmp things in.
                     {
                         spawnConfig.numberOfTeams = -1; // Flag for treating craft files as folder names.
-                        spawnConfig.craftFiles = Directory.GetFiles(spawnFolder).Where(f => f.EndsWith(".craft")).ToList();
+                        spawnConfig.craftFiles = Directory.GetFiles(Path.GetFullPath(spawnFolder)).Where(f => f.EndsWith(".craft")).ToList();
                         spawnConfig.teamsSpecific = spawnConfig.craftFiles.Select(f => new List<string> { f }).ToList();
                     }
                     else
@@ -153,7 +153,7 @@ namespace BDArmory.VesselSpawning
                         LogMessage("Spawning teams from folders " + string.Join(", ", teamDirs.Select(d => d.Substring(AutoSpawnPath.Length))), false);
                         foreach (var teamDir in teamDirs)
                         {
-                            spawnConfig.teamsSpecific.Add(Directory.GetFiles(teamDir, "*.craft").ToList());
+                            spawnConfig.teamsSpecific.Add(Directory.GetFiles(Path.GetFullPath(teamDir), "*.craft").ToList());
                         }
                         spawnConfig.craftFiles = spawnConfig.teamsSpecific.SelectMany(v => v.ToList()).ToList();
                     }
@@ -161,7 +161,7 @@ namespace BDArmory.VesselSpawning
                 else // Just the specified folder.
                 {
                     if (spawnConfig.craftFiles == null) // Prioritise the list of craftFiles if we're given them.
-                        spawnConfig.craftFiles = Directory.GetFiles(spawnFolder).Where(f => f.EndsWith(".craft")).ToList();
+                        spawnConfig.craftFiles = Directory.GetFiles(Path.GetFullPath(spawnFolder)).Where(f => f.EndsWith(".craft")).ToList();
                 }
             }
             else // Spawn the specific vessels.
