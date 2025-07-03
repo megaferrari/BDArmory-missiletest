@@ -14,6 +14,28 @@
 	- Slightly improved Guard Mode radar lock management, locks are only dropped as needed on radars that can lock on to the target.
 	- Tweaks to the auto-tuning loss function to give a more stable roll-relevance. Show an auto-tuning summary to reduce confusion in the SPH about the auto-tuning results.
 	- Disable Battle Damage while auto-tuning to avoid wooden parts catching fire.
+	- Overhaul of logic for which AI / WM is in control of a vessel and proper support for motherships / detachable fighters:
+		- The "primary" WM is the WM closest to the root part of the vessel (an "Is Primary" label is added to the top of the WM's PAW to allow checking this).
+		- Only a single AI is allowed to be active on a craft at any given time.  Activating one will deactivate the others.
+		- Whenever a vessel detaches from or docks with another vessel or loses parts, the primary WM and AI automatically updates to reflect the new vessel configurations.
+			- The primary AI is chosen as the first active AI sorted by hierarchical distance from the root part with the precedence: pilot, surface, VTOL, orbital.
+				- E.g., if an active pilot AI is further from the root part than an active surface AI at the time that the vessels dock, the pilot AI will be chosen as the primary and the surface AI will get deactivated.
+			- If no AI are active prior to docking (or on spawn), then the primary AI is chosen as the AI closest to the root part regardless of type.
+			- Vessel type is also updated to reflect the AI in control of the vessel:
+				- Plane
+				- Ship (spaceship, boat, submarine)
+				- Rover (tank/buggy, amphibious)
+				- Lander (stationary)
+				- Base (WM with no AI)
+		- If a competition is active, then:
+			- Duplicately named vessels spawned via BDA's spawning routines get a "_1"-style suffix.
+			- Duplicately named fighters (vessels that detach from a parent vessel that has a WM) get a "_F1"-style suffix.
+			- Vessel name deconfliction respects custom VESSELNAMING tags, only applying suffixes as necessary for deconfliction.
+			- Suffixes applied to spawned vessels are persistent throughout tournaments and continuous spawn, but suffixes applied to fighters are dependent on the order that they detach from the parent.
+		- Detached fighters are automatically added to active competitions / tournaments on the same team as the parent vessel and behave independently from the parent vessel.
+		- If the parent craft is free or commanded to attack a location, then the fighters get the same command, otherwise they are commanded to follow the parent.
+		- Ranked tournaments use the combined score of a parent vessel and its fighters when determining the ranking.
+		- Access patterns for the AI / WM are optimised to be even faster than the previously used VesselModuleRegistry.
 - Countermeasures:
 	- Add 'Ammo' gauges for Countermeasure dispensers for how many CMs they have remaining.
 - Sensors:
