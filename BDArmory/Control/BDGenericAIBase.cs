@@ -120,7 +120,7 @@ namespace BDArmory.Control
             {
                 DeactivatePilot();
                 debugString.AppendLine($"Vessel: No Command parts!");
-                if (BDArmorySettings.DEBUG_AI && vessel.Autopilot.Enabled) Debug.Log("[BDArmory.BDGenericAIBase]: " + vessel.vesselName + " is not commandable, disabling autopilot.");
+                if (vessel.Autopilot.Enabled) Debug.Log("[BDArmory.BDGenericAIBase]: " + vessel.vesselName + " is not commandable, disabling autopilot.");
                 s.NeutralizeStick();
                 vessel.Autopilot.Disable();
                 return;
@@ -129,7 +129,7 @@ namespace BDArmory.Control
             if (!vessel.IsControllable) //false when probes out of EC/cockpits don't have pilots
             {
                 debugString.AppendLine($"Vessel: No Control!");
-                if (BDArmorySettings.DEBUG_AI && vessel.Autopilot.Enabled) Debug.Log("[BDArmory.BDGenericAIBase]: " + vessel.vesselName + " is not controllable, disabling autopilot.");
+                if (vessel.Autopilot.Enabled) Debug.Log("[BDArmory.BDGenericAIBase]: " + vessel.vesselName + " is not controllable, disabling autopilot.");
                 s.NeutralizeStick();
                 vessel.Autopilot.Disable();
                 return;
