@@ -420,6 +420,8 @@ namespace BDArmory.VesselSpawning
         /// <returns></returns>
         protected IEnumerator PostSpawnMainSequence(SpawnConfig spawnConfig, bool spawnAirborne, bool withInitialVelocity, bool ignoreValidity = false)
         {
+            var decouplers = spawnedVessels.SelectMany(kvp => kvp.Value.Parts).Select(p => p.GetComponent<ModuleAnchoredDecoupler>()).Where(d => d != null).Select(d => (d, d.isEnabled)).ToList();
+            foreach (var (decoupler, _) in decouplers) decoupler.isEnabled = false; // Temporarily disable decouplers to prevent them from randomly decoupling.
             if (BDArmorySettings.DEBUG_SPAWNING) LogMessage("Checking vessel validity", false);
             yield return CheckVesselValidity(spawnedVessels, ignoreValidity);
             if (spawnFailureReason != SpawnFailureReason.None) yield break;
@@ -457,6 +459,7 @@ namespace BDArmory.VesselSpawning
                     SpawnUtils.AirborneActivation(vessel, withInitialVelocity);
             }
             if (spawnFailureReason != SpawnFailureReason.None) yield break;
+            foreach (var (decoupler, isEnabled) in decouplers) if (decoupler != null) decoupler.isEnabled = isEnabled; // Re-enable decouplers.
 
             // One last check for renamed vessels (since we're not entirely sure when this occurs).
             if (BDArmorySettings.DEBUG_SPAWNING) LogMessage("Checking for renamed vessels", false);
@@ -764,7 +767,7 @@ namespace BDArmory.VesselSpawning
                     if (vessel == null) LogMessage($"{vesselName} disappeared while waiting for the weapon manager to appear in the Vessel Switcher.");
                     else LogMessage($"Part-count of {vesselName} changed after spawning: {spawnedVesselPartCounts[vesselName] - partCount}");
                     spawnedVesselPartCounts[vesselName] = partCount; // Reset the part count to avoid spamming.
-                    // This can happen if a vessel with fighters spawns, but the parent vessel gets removed for some reason, leaving the fighters in a weird state that breaks KSP.
+                    // This can happen if a vessel with fighters spawns, but the parent vessel gets detached for some reason, leaving the fighters in a weird state that breaks KSP.
                     foreach (var otherVessel in FlightGlobals.Vessels.ToList())
                     {
                         if (otherVessel == null || otherVessel == vessel) continue;

@@ -655,7 +655,10 @@ namespace BDArmory.VesselSpawning
             messageState = Messages.None;
             if (spawnFailureReason != SpawnFailureReason.None) { state = State.None; yield break; }
             if (BDArmorySettings.DEBUG_SPAWNING) Debug.Log($"[BDArmory.VesselMover]: Spawned {spawnedVessel.vesselName} at {geoCoords:G6}");
+            var decouplers = spawnedVessel.Parts.Select(p => p.GetComponent<ModuleAnchoredDecoupler>()).Where(d => d != null).Select(d => (d, d.isEnabled)).ToList();
+            foreach (var (decoupler, _) in decouplers) decoupler.isEnabled = false; // Temporarily disable decouplers to prevent them from randomly decoupling.
             while (spawnedVessel != null && (!spawnedVessel.loaded || spawnedVessel.packed)) yield return wait;
+            foreach (var (decoupler, isEnabled) in decouplers) if (decoupler != null) decoupler.isEnabled = isEnabled; // Re-enable decouplers.
             if (spawnedVessel != null)
             {
                 var up = (spawnedVessel.transform.position - FlightGlobals.currentMainBody.transform.position).normalized;
@@ -857,6 +860,7 @@ namespace BDArmory.VesselSpawning
                 deconflictVesselName: BDACompetitionMode.Instance.competitionIsActive || BDACompetitionMode.Instance.competitionStarting, // Deconflict name only if spawning into an active competition.
                 crew: crew
             );
+            ResetInternals(); // Reset spawner internals.
 
             // Spawn vessel.
             yield return SpawnSingleVessel(vesselSpawnConfig);
