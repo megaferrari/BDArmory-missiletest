@@ -420,8 +420,6 @@ namespace BDArmory.VesselSpawning
         /// <returns></returns>
         protected IEnumerator PostSpawnMainSequence(SpawnConfig spawnConfig, bool spawnAirborne, bool withInitialVelocity, bool ignoreValidity = false)
         {
-            var decouplers = spawnedVessels.SelectMany(kvp => kvp.Value.Parts).Select(p => p.GetComponent<ModuleAnchoredDecoupler>()).Where(d => d != null).Select(d => (d, d.isEnabled)).ToList();
-            foreach (var (decoupler, _) in decouplers) decoupler.isEnabled = false; // Temporarily disable decouplers to prevent them from randomly decoupling.
             if (BDArmorySettings.DEBUG_SPAWNING) LogMessage("Checking vessel validity", false);
             yield return CheckVesselValidity(spawnedVessels, ignoreValidity);
             if (spawnFailureReason != SpawnFailureReason.None) yield break;
@@ -459,7 +457,6 @@ namespace BDArmory.VesselSpawning
                     SpawnUtils.AirborneActivation(vessel, withInitialVelocity);
             }
             if (spawnFailureReason != SpawnFailureReason.None) yield break;
-            foreach (var (decoupler, isEnabled) in decouplers) if (decoupler != null) decoupler.isEnabled = isEnabled; // Re-enable decouplers.
 
             // One last check for renamed vessels (since we're not entirely sure when this occurs).
             if (BDArmorySettings.DEBUG_SPAWNING) LogMessage("Checking for renamed vessels", false);

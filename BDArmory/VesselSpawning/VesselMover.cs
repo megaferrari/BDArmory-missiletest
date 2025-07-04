@@ -655,10 +655,12 @@ namespace BDArmory.VesselSpawning
             messageState = Messages.None;
             if (spawnFailureReason != SpawnFailureReason.None) { state = State.None; yield break; }
             if (BDArmorySettings.DEBUG_SPAWNING) Debug.Log($"[BDArmory.VesselMover]: Spawned {spawnedVessel.vesselName} at {geoCoords:G6}");
-            var decouplers = spawnedVessel.Parts.Select(p => p.GetComponent<ModuleAnchoredDecoupler>()).Where(d => d != null).Select(d => (d, d.isEnabled)).ToList();
-            foreach (var (decoupler, _) in decouplers) decoupler.isEnabled = false; // Temporarily disable decouplers to prevent them from randomly decoupling.
+
+            // Wait for the vessel to be usable.
+            // Note: Smart parts that are pre-enabled can trigger events that break craft while they spawn (particularly altitude and speed based ones). Those should be set active on AG10 instead.
             while (spawnedVessel != null && (!spawnedVessel.loaded || spawnedVessel.packed)) yield return wait;
-            foreach (var (decoupler, isEnabled) in decouplers) if (decoupler != null) decoupler.isEnabled = isEnabled; // Re-enable decouplers.
+
+            // Reposition the vessel to where it should be.
             if (spawnedVessel != null)
             {
                 var up = (spawnedVessel.transform.position - FlightGlobals.currentMainBody.transform.position).normalized;
