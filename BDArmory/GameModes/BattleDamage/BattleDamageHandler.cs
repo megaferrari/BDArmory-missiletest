@@ -15,7 +15,6 @@ using BDArmory.Settings;
 using BDArmory.Targeting;
 using BDArmory.Utils;
 using BDArmory.WeaponMounts;
-using static KSP.UI.Screens.MessageSystem;
 
 namespace BDArmory.GameModes
 {

@@ -13,6 +13,7 @@ using BDArmory.Weapons;
 using BDArmory.Weapons.Missiles;
 using BDArmory.GameModes;
 using BDArmory.Guidances;
+using static UnityEngine.GraphicsBuffer;
 
 namespace BDArmory.Control
 {
@@ -380,7 +381,7 @@ namespace BDArmory.Control
             else if (status.StartsWith("Extending")) currentStatusMode = StatusMode.Extending;
             else if (status.StartsWith("Avoiding Collision")) currentStatusMode = StatusMode.CollisionAvoidance;
             else if (status.StartsWith("Ramming")) currentStatusMode = StatusMode.RammingSpeed;
-            else if (status.StartsWith("Airtime!") || status.StartsWith("Stranded") || status.StartsWith("Floating") || status.StartsWith("Sunk")) currentStatusMode = StatusMode.Panic;
+            else if (status.StartsWith("Airtime!") || status.StartsWith("Stranded") || status.StartsWith("Floating") || status.StartsWith("Sunk") || status.StartsWith("Disabled")) currentStatusMode = StatusMode.Panic;
             else currentStatusMode = StatusMode.Custom;
         }
         #endregion
@@ -910,6 +911,17 @@ namespace BDArmory.Control
             {
                 targetVelocity = 0;
                 SetStatus("Stranded");
+                return true;
+            }
+            else if ((SurfaceType & AIUtils.VehicleMovementType.Land) != 0 && vessel.Landed //land Vee on land
+                && (weaponManager.guardMode && targetVessel != null) //and under AI control 
+                && (currentStatusMode == StatusMode.RammingSpeed || !weaponManager.HasWeaponsAndAmmo() //and have been told to ram or doesn't have weapons
+                 || ((weaponManager.currentGun.yawRange / 2) < Vector3.Angle(targetVessel.CoM - vessel.CoM, vesselTransform.up) || (weaponManager.currentGun.engageRangeMax * weaponManager.currentGun.engageRangeMax < (targetVessel.CoM - vessel.CoM).sqrMagnitude)) //or have no guns, or only fixed guns/turrets with traverse less than angle to target or is out of range
+                && (Mathf.Abs(targetVelocity) > 0 && vessel.horizontalSrfSpeed < 1) //and engaging but immobilized
+                ))
+            {
+                //not setting targetVel to 0, since a craft at rest will take a few moments to accel to > 1m/s
+                SetStatus("Disabled");
                 return true;
             }
             else if (vessel.Splashed && !vessel.Landed && (SurfaceType & AIUtils.VehicleMovementType.Water) == 0)

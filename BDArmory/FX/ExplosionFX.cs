@@ -360,7 +360,7 @@ namespace BDArmory.FX
                                                 registered = true;
                                             break;
                                         case ExplosionSourceType.BattleDamage:
-                                            if (BDACompetitionMode.Instance && BDACompetitionMode.Instance.competitionIsActive)
+                                            if (BDACompetitionMode.Instance.competitionIsActive)
                                                 registered = true;
                                             break;
                                     }

@@ -16,7 +16,6 @@ using BDArmory.UI;
 using BDArmory.Utils;
 using BDArmory.VesselSpawning;
 using BDArmory.Weapons.Missiles;
-using BDArmory.GameModes.Waypoints;
 
 namespace BDArmory.Competition
 {
@@ -2746,9 +2745,10 @@ namespace BDArmory.Competition
                             var surfaceAI = VesselModuleRegistry.GetModule<BDModuleSurfaceAI>(vessel);
                             if (surfaceAI != null)
                             {
-                                if ((surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Land && vessel.Splashed || (vessel.horizontalSrfSpeed < surfaceAI.MaxSpeed / 10 && surfaceAI.currentStatusMode != BDModuleSurfaceAI.StatusMode.CollisionAvoidance)) //rover has gotten flipped/lost wheels and become immobilized/multiclassed to submarine
+                                if (
+                                    (surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Land && (vessel.Splashed || surfaceAI.currentStatusMode == BDModuleSurfaceAI.StatusMode.Panic)) //rover has gotten flipped/lost wheels and become immobilized/multiclassed to submarine
                                     || ((surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Water || surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Submarine) && vessel.Landed) //vessel beached
-                                    || (surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Water && vessel.IsUnderwater())) //boat sunk
+                                    || (surfaceAI.SurfaceType != AIUtils.VehicleMovementType.Submarine && vessel.IsUnderwater())) //boat sunk
                                 {
                                     if (!vData.landedState)
                                     {
