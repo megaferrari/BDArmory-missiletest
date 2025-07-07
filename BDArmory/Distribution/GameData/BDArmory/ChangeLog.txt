@@ -52,6 +52,11 @@
 			- "maxTorqueAero" follows the same format as above.
 			- "maxTorque" has the format: [boost], [cruise], [post-thrust], allowing for simulation of thrust-vectoring missiles
 			- "steerMult" has the format: [boost], [cruise], allowing reduced "steerMult"s in cruise if desired.
+		- New "IRCCMType" field(Default: None) for missiles, provides the ability to configure new IRCCM(Infrared Counter-Countermeasures), Available options are "Seeker", "FoV", or "FS" (both combined).
+			- New "seekerShutdownTime" field(default: 0.5) for Seeker-type IRCCMs, Defines the duration (in seconds) that the seeker suspends tracking after detecting a flare, use predictions based on the target last know information to keep tracking.
+			- New "gateWidth" field(default: 2.4) for FoV-type IRCCMs, define the missile FoV after it has acquired a target, making it harder to flare due to smaller FoV.
+		- New "HasGimbal" field(Default: False) for missiles, it enables missiles to have a larger maxoffboresight targeting limit after launch, similar to manpads and earlier missiles like AIM-9A that had to be pointed at the target before launch and could move its sensor to track the target after the launch.
+			- New "maxSeekerGimbal" field(Default: 360) defines the gimbal of the sensor after launch.
 - GameModes:
 	- Don't spawn new asteroids in asteroid rain mode while in high time-warp.
 - Competition:

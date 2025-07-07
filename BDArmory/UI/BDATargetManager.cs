@@ -616,6 +616,7 @@ namespace BDArmory.UI
                 flareData.signalStrength *= flareEft;
                 flareSuccess = ((!flareData.Equals(TargetSignatureData.noTarget)) && (flareData.signalStrength > highpassThreshold));
             }
+            flareData.isFlare = true;
             // No targets above highpassThreshold
             if (finalScore < highpassThreshold)
             {

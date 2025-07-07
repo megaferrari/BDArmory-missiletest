@@ -572,6 +572,27 @@ namespace BDArmory.Weapons.Missiles
         Collider[] proximityHitColliders = new Collider[100];
         int layerMask = (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.Unknown19 | LayerMasks.Wheels);
 
+        // IRCCM Stuff
+        public enum IRCCMModes { Seeker, gateWidth, SG, none}; //Flare filtering is already implemented as flareEffectivity.
+        [KSPField]
+        public string IRCCMType = "None"; // Definition of IRCCM
+        protected IRCCMModes IRCCM { get; set; }
+
+        [KSPField]
+        public float gateWidth = 2.4f; // Missile FoV tracking the target
+        protected float DefaultFOV = 2.5f;
+        
+        [KSPField]
+        public float seekerShutdownTime = 0.5f; // Time that the seeker shuts off to avoid flares and detuct where the target will be.
+        private float TimeofShutdown;
+        private bool inTrackingSuspension = false;
+
+        //Gimbal stuff
+
+        [KSPField]
+        public bool hasGimbal = false; //For missiles like MANPADS that have limited offboresight angles before launch.
+        public float maxSeekerGimbal = 360;
+
         /// <summary>
         /// Make corrections for floating origin and Krakensbane adjustments.
         /// This can't simply be in OnFixedUpdate as it needs to be called differently for MissileLauncher (which uses OnFixedUpdate) and BDModularGuidance (which uses FlyByWire which triggers before OnFixedUpdate).
@@ -797,7 +818,7 @@ namespace BDArmory.Weapons.Missiles
         protected void UpdateHeatTarget()
         {
 
-            if (lockFailTimer > 1)
+            if (lockFailTimer > 2)
             {
                 targetVessel = null;
                 TargetAcquired = false;
@@ -810,6 +831,7 @@ namespace BDArmory.Weapons.Missiles
             {
                 lockFailTimer = 0;
                 predictedHeatTarget = heatTarget;
+                if (IRCCM == IRCCMModes.gateWidth || IRCCM == IRCCMModes.SG) lockedSensorFOV = gateWidth;
             }
             if (lockFailTimer >= 0)
             {
@@ -833,7 +855,20 @@ namespace BDArmory.Weapons.Missiles
                 if (offBoresightAngle > maxOffBoresight)
                     lookRay = new Ray(lookRay.origin, Vector3.RotateTowards(lookRay.direction, GetForwardTransform(), (offBoresightAngle - maxOffBoresight) * Mathf.Deg2Rad, 0));
 
-                DrawDebugLine(lookRay.origin, lookRay.origin + lookRay.direction * 10000, predictedHeatTarget.exists ? Color.magenta : heatTarget.exists ? Color.yellow : Color.blue);
+                DrawDebugLine(lookRay.origin, lookRay.origin + lookRay.direction * 10000, inTrackingSuspension ? Color.green : predictedHeatTarget.exists ? Color.magenta : heatTarget.exists ? Color.yellow : Color.blue);
+                if (inTrackingSuspension && seekerShutdownTime < TimeIndex - TimeofShutdown)
+                {
+                    float currentFactor = (1400 * 1400) / Mathf.Clamp((predictedHeatTarget.position - transform.position).sqrMagnitude, 90000, 36000000);
+                    Vector3 currVel = vessel.Velocity();
+                    predictedHeatTarget.position = predictedHeatTarget.position + predictedHeatTarget.velocity * Time.fixedDeltaTime;
+                    predictedHeatTarget.velocity = predictedHeatTarget.velocity + predictedHeatTarget.acceleration * Time.fixedDeltaTime;
+                    float futureFactor = (1400 * 1400) / Mathf.Clamp((predictedHeatTarget.position - (transform.position + (currVel * Time.fixedDeltaTime))).sqrMagnitude, 90000, 36000000);
+                    predictedHeatTarget.signalStrength *= futureFactor / currentFactor;
+                    return;
+                }
+                else if (inTrackingSuspension) inTrackingSuspension = false;
+
+                    
                 //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[MissileBase] offboresightAngle {offBoresightAngle > maxOffBoresight}; lockFailtimer: {lockFailTimer}; heatTarget? {heatTarget.exists}; predictedheattaret? {predictedHeatTarget.exists}; heatTarget vessel {(heatTarget.exists && heatTarget.vessel != null ? heatTarget.vessel.name : "null")}");
                 // Update heat target
                 if (activeRadarRange < 0)
@@ -841,7 +876,27 @@ namespace BDArmory.Weapons.Missiles
                         (SourceVessel == null ? null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>()), targetVessel, IFF: hasIFF);
                 else
                     heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, lookRay, predictedHeatTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity, (SourceVessel == null ? null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>()), targetVessel, IFF: hasIFF);
-
+                
+                if ((IRCCM == IRCCMModes.Seeker || IRCCM == IRCCMModes.SG) && heatTarget.isFlare)
+                {
+                    TimeofShutdown = TimeIndex;
+                    inTrackingSuspension = true;
+                    if (predictedHeatTarget.exists)
+                    {
+                        float currentFactor = (1400 * 1400) / Mathf.Clamp((predictedHeatTarget.position - transform.position).sqrMagnitude, 90000, 36000000);
+                        Vector3 currVel = vessel.Velocity();
+                        predictedHeatTarget.position = predictedHeatTarget.position + predictedHeatTarget.velocity * Time.fixedDeltaTime;
+                        predictedHeatTarget.velocity = predictedHeatTarget.velocity + predictedHeatTarget.acceleration * Time.fixedDeltaTime;
+                        float futureFactor = (1400 * 1400) / Mathf.Clamp((predictedHeatTarget.position - (transform.position + (currVel * Time.fixedDeltaTime))).sqrMagnitude, 90000, 36000000);
+                        predictedHeatTarget.signalStrength *= futureFactor / currentFactor;
+                    }
+                    if(IRCCM == IRCCMModes.SG)
+                    {
+                        hasLostLock = true;
+                        lockedSensorFOV = DefaultFOV;
+                    }
+                    return;
+                }
                 if (heatTarget.exists)
                 {
                     TargetAcquired = true;
@@ -850,7 +905,11 @@ namespace BDArmory.Weapons.Missiles
                     TargetAcceleration = heatTarget.acceleration;
                     //targetVessel = heatTarget.targetInfo;
                     lockFailTimer = 0;
-
+                    if (hasLostLock)
+                    {
+                        hasLostLock = false;
+                        lockedSensorFOV = gateWidth;
+                    }
                     // Update target information
                     // if (heatTarget.vessel != predictedHeatTarget.vessel) Debug.LogError($"[IR DEBUG] Switching targets from {predictedHeatTarget.vessel.vesselName} to {heatTarget.vessel.vesselName}");
                     predictedHeatTarget = heatTarget;
@@ -858,6 +917,11 @@ namespace BDArmory.Weapons.Missiles
                 else
                 {
                     lockFailTimer += Time.fixedDeltaTime;
+                    if (IRCCM == IRCCMModes.gateWidth || IRCCM == IRCCMModes.SG)
+                    {
+                        hasLostLock = true;
+                        lockedSensorFOV = DefaultFOV;
+                    }
                 }
 
                 // Update predicted values based on target information

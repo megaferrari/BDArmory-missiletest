@@ -508,6 +508,12 @@ namespace BDArmory.Weapons.Missiles
                 }
             }
 
+            if (hasGimbal && maxSeekerGimbal < maxOffBoresight)
+            {
+                Debug.LogWarning($"[BDArmory.MissileLauncher]: Error in configuration of {part.name}, maxSeekerGimbal:{maxSeekerGimbal} can't be smaller than maxOffBoresight:{maxOffBoresight}, clamping to maxOffBoresight.");
+                maxSeekerGimbal = maxOffBoresight;
+            }
+
             if (shortName == string.Empty)
             {
                 shortName = part.partInfo.title;
@@ -857,6 +863,17 @@ namespace BDArmory.Weapons.Missiles
             SetFields();
             smoothedAoA = new SmoothingF(Mathf.Exp(Mathf.Log(0.5f) * Time.fixedDeltaTime * 10f)); // Half-life of 0.1s.
             StartSetupComplete = true;
+
+            //IRCCM sanity check
+            if (IRCCM == IRCCMModes.gateWidth || IRCCM == IRCCMModes.SG)
+            {
+                DefaultFOV = lockedSensorFOV;
+                if (gateWidth > lockedSensorFOV)
+                {
+                    Debug.LogWarning($"[BDArmory.MissileLauncher]: Error in configuration of {part.name}, gateWidth:{gateWidth} can't be larger than lockedSensorFOV:{lockedSensorFOV}, clamping to LockedsensorFOV - 0.1° {lockedSensorFOV - 0.1f}");
+                    gateWidth = lockedSensorFOV - 0.1f;
+                }
+            }
             if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileLauncher] Start() setup complete");
         }
 
@@ -2005,6 +2022,11 @@ namespace BDArmory.Weapons.Missiles
 
             if (guidanceActive)
             {
+                if (hasGimbal)
+                {
+                    hasGimbal = false;
+                    maxOffBoresight = maxSeekerGimbal;
+                }
                 switch (TargetingMode)
                 {
                     case TargetingModes.Heat:
@@ -2263,7 +2285,7 @@ namespace BDArmory.Weapons.Missiles
                 {
                     case TargetingModes.Heat:
                         // gets ground heat targets and after locking one, disallows the lock to break to another target
-
+                        
                         if (activeRadarRange < 0 && torpedo)
                             heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, new Ray(vessel.CoM, tempTargetPos - vessel.CoM), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity,
                                 (SourceVessel == null ? null : SourceVessel.gameObject == null ? null : SourceVessel.gameObject.GetComponent<MissileFire>()), targetVessel, IFF: hasIFF);
@@ -3988,6 +4010,25 @@ namespace BDArmory.Weapons.Missiles
                 }
 
             }
+            if(TargetingMode == TargetingModes.Heat || TargetingModeTerminal == TargetingModes.Heat)
+            {
+                IRCCMType = IRCCMType.ToLower();
+                switch (IRCCMType)
+                {
+                    case "seeker":
+                        IRCCM = IRCCMModes.Seeker;
+                        break;
+                    case "fov":
+                        IRCCM = IRCCMModes.gateWidth;
+                        break;
+                    case "fs":
+                        IRCCM = IRCCMModes.SG;
+                        break;
+                    default:
+                        IRCCM = IRCCMModes.none;
+                        break;
+                }
+            }
 
             if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: parsing guidance and homing complete on {part.name}");
         }
@@ -4140,7 +4181,7 @@ namespace BDArmory.Weapons.Missiles
         public override string GetInfo()
         {
             ParseModes();
-
+            bool hasIRCCM = IRCCM == IRCCMModes.Seeker || IRCCM == IRCCMModes.gateWidth || IRCCM == IRCCMModes.SG;
             StringBuilder output = new StringBuilder();
             output.AppendLine($"{missileType.ToUpper()} - {GetBrevityCode()}");
             if (missileType.ToLower() == "launcher") return output.ToString(); //Launcher is empty rail, doesn't have relevant missile stats to display
@@ -4187,6 +4228,7 @@ namespace BDArmory.Weapons.Missiles
                 output.AppendLine($"Min Heat threshold: {heatThreshold}");
                 output.AppendLine($"Max Offboresight: {maxOffBoresight}");
                 output.AppendLine($"Locked FOV: {lockedSensorFOV}");
+                output.AppendLine($"IRCCM: {hasIRCCM}");
             }
 
             if (TargetingMode == TargetingModes.Gps || TargetingMode == TargetingModes.None || TargetingMode == TargetingModes.Inertial)

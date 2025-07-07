@@ -29,6 +29,7 @@ namespace BDArmory.Targeting
         public Part IRSource;
         bool orbital;
         Orbit orbit;
+        public bool isFlare = false;
 
         public bool Equals(TargetSignatureData other)
         {
