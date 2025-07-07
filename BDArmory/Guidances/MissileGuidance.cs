@@ -1350,7 +1350,7 @@ namespace BDArmory.Guidances
                 if (TRatio < TRatioInflec2)
                 {
                     // If we're below TRatioInflec2 then we know there's a local max
-                    currG = gMaxCurve.Evaluate(TRatio);
+                    currG = qSk * gMaxCurve.Evaluate(TRatio);
 
                     if (TRatio > TRatioInflec1)
                     {
@@ -1440,7 +1440,7 @@ namespace BDArmory.Guidances
                         float AoAMax = AoACurve.Evaluate(TRatio);
 
                         // Determine the right hand bound for calculation
-                        if (currG < gLim)
+                        if (gLim < currG)
                         {
                             if (AoAMax > linAoA[3])
                             {
@@ -1473,6 +1473,9 @@ namespace BDArmory.Guidances
                         return maxAoA;
                 }
 
+                currG = linCL[RHS] * qSk + thrust * linSin[RHS];
+                if (currG < gLim)
+                    return maxAoA;
 
                 // Bisection search
                 while ( (RHS - LHS) > 1)
@@ -1590,7 +1593,7 @@ namespace BDArmory.Guidances
         // Slope of sin * CD at the intervals
         public static float[] linDragTorqueSlope = { 0.000166666666667f, 0.000166666666667f, 0.000166666666667f, 0.00691309375f, 0.0107346842105f, 0.009046f, 0.00653472f };
         // y-Intercept of line at those intervals
-        public static float[] linDragTorqueIntc = { 0f, 0f, 0f, 0.005f, -0.347613f, -0.251358f, -0.0881248f };
+        public static float[] linDragTorqueIntc = { 0f, 0f, 0f, -0.2023928125f, -0.347613f, -0.251358f, -0.0881248f };
 
         const float DLRatioInflec1 = 2.63636363636363624f;
         const float DLRatioInflec2 = 3.92610837438423754f;
