@@ -10,12 +10,6 @@
 	- Sometimes the field toggles in ModuleWeapon (and elsewhere) throw InvalidCast exceptions on startup. Suspect a race condition.
 - Finish Gauntlet tournament heats if only opponent craft are left as only relative ranking of variants is relevant.
 - Resource stealing of integer amounts should consider integer amounts per container, not overall.
-- Vessel naming in tournaments to support teams of the form A=XYZ, B=XYZ.
-	- Rename only conflicting vessels as "<vesselname>_N (<teamname>)" where "_N" only applies within the team.
-	- Will require preprocessing all vessels in the tournament to identify which ones need renaming and using this during spawns.
-- Fix ramming ground targets
-- Vessel naming for multi-craft needs a rework to respect VESSELNAMING on parts.
-	- Move vessel renaming out of spawning and manage vessel names from within the tournament class
 
 - Wiki entries
 	- Auto-Tuning
