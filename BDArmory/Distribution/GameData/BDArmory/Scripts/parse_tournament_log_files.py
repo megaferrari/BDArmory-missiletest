@@ -52,7 +52,7 @@ if args.current_dir and len(args.tournament) == 0:
 else:
     if len(args.tournament) == 0:
         tournamentDirs = None
-        logsDir = Path(__file__).parent / "Logs"
+        logsDir = Path(__file__).parent.parent / "Logs"
         if logsDir.exists():
             tournamentFolders = list(logsDir.resolve().glob("Tournament*"))
             if len(tournamentFolders) > 0:
@@ -69,7 +69,7 @@ score_fields = ('wins', 'survivedCount', 'miaCount', 'deathCount', 'deathOrder',
                 'missileHits', 'missileHitsTaken', 'missilePartsHit', 'missilePartsHitTaken', 'missileDamage', 'missileDamageTaken', 'ramScore', 'ramScoreTaken', 'battleDamage', 'partsLostToAsteroids', 'HPremaining', 'accuracy', 'rocket_accuracy', 'waypointCount', 'waypointTime', 'waypointDeviation')
 try:
     if args.weights == 'cfg':
-        with open(Path(__file__).parent / 'PluginData' / 'score_weights.cfg', 'r') as f:
+        with open(Path(__file__).parent.parent / 'PluginData' / 'score_weights.cfg', 'r') as f:
             lines = f.readlines()
         field_names = {
             "Wins": "wins",
