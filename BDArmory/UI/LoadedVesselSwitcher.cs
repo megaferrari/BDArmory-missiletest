@@ -1420,7 +1420,7 @@ namespace BDArmory.UI
                                     {
                                         if (PAI == null || (BDArmorySettings.WAYPOINT_GUARD_INDEX < 0 && !PAI.IsRunningWaypoints)) continue;
                                         vesselScore *= 2f - Mathf.Clamp01((float)wm.Current.vessel.speed / PAI.maxSpeed); // For waypoints races, craft going near their max speed are more interesting.
-                                        vesselScore *= Mathf.Max(0.5f, 1f - 15.8f / BDAMath.Sqrt(PAI.waypointRange)); // Favour craft the are approaching a gate (capped at 1km).
+                                        vesselScore *= Mathf.Max(0.5f, 1f - 15.8f / BDAMath.Sqrt(PAI.waypointRange)); // Favour craft that are approaching a gate (capped at 1km).
                                     }
 
                                     HP = wm.Current.currentHP / wm.Current.totalHP;
