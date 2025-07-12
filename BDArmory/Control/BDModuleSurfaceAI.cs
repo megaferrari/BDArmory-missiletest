@@ -13,7 +13,6 @@ using BDArmory.Weapons;
 using BDArmory.Weapons.Missiles;
 using BDArmory.GameModes;
 using BDArmory.Guidances;
-using static UnityEngine.GraphicsBuffer;
 
 namespace BDArmory.Control
 {
@@ -913,12 +912,16 @@ namespace BDArmory.Control
                 SetStatus("Stranded");
                 return true;
             }
-            else if ((SurfaceType & AIUtils.VehicleMovementType.Land) != 0 && vessel.Landed //land Vee on land
+            else if (
+                (SurfaceType & AIUtils.VehicleMovementType.Land) != 0 && vessel.Landed //land Vee on land
                 && (weaponManager.guardMode && targetVessel != null) //and under AI control 
-                && (currentStatusMode == StatusMode.RammingSpeed || !weaponManager.HasWeaponsAndAmmo() //and have been told to ram or doesn't have weapons
-                 || ((weaponManager.currentGun.yawRange / 2) < Vector3.Angle(targetVessel.CoM - vessel.CoM, vesselTransform.up) || (weaponManager.currentGun.engageRangeMax * weaponManager.currentGun.engageRangeMax < (targetVessel.CoM - vessel.CoM).sqrMagnitude)) //or have no guns, or only fixed guns/turrets with traverse less than angle to target or is out of range
-                && (Mathf.Abs(targetVelocity) > 0 && vessel.horizontalSrfSpeed < 1) //and engaging but immobilized
-                ))
+                && (
+                    currentStatusMode == StatusMode.RammingSpeed || !weaponManager.HasWeaponsAndAmmo() //and have been told to ram or doesn't have weapons
+                    || weaponManager.currentGun == null // no gun selected
+                    || weaponCanEngage(weaponManager.currentGun.engageRangeMax) //or have no guns, or only fixed guns/turrets unable to traverse to target, or out of range
+                )
+                && (Mathf.Abs(targetVelocity) > 0 && vessel.horizontalSrfSpeed < 1 && vessel.angularVelocity.sqrMagnitude < 4) //and engaging but immobilized and can't rotate to bring guns to bear. TODO: angularVel threshold value? Or is 2 ?deg/s? sufficient cutoff?
+            )
             {
                 //not setting targetVel to 0, since a craft at rest will take a few moments to accel to > 1m/s
                 SetStatus("Disabled");
@@ -939,8 +942,21 @@ namespace BDArmory.Control
                 SetStatus("Sunk");
                 return true;
             }
-            return false;
+            return false;         
         }
+
+        bool weaponCanEngage(float maxRange)
+        {
+            //using this instead of Turret.TargetInRange so we can check for weapon aim of fixed guns as well as turreted ones.
+            if (!weaponManager.currentGun) return false;
+            Transform weaponTransform = weaponManager.currentGun.fireTransforms[0];
+            Vector3 vectorToTarget = (targetVessel.CoM - weaponManager.currentGun.GetLeadOffset()) - weaponTransform.position;
+
+            bool withinView = Vector3.Angle(vectorToTarget, weaponTransform.forward) < 5; //5 deg tolerance seems sufficient for basic aim check
+            bool withinDistance = vectorToTarget.sqrMagnitude < maxRange * maxRange;
+            return (withinView && withinDistance);
+        }
+
 
         void AdjustThrottle(float targetSpeed)
         {

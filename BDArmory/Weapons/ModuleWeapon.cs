@@ -5138,7 +5138,7 @@ namespace BDArmory.Weapons
                 {
                     visRange = (visualTargetVessel.transform.position - transform.position).sqrMagnitude < weaponManager.guardRange * weaponManager.guardRange;
                 }
-               if (weaponManager.vesselRadarData && weaponManager.vesselRadarData.locked) // && weaponManager.slavedPosition != Vector3.zero)
+                if (weaponManager.vesselRadarData && weaponManager.vesselRadarData.locked) // && weaponManager.slavedPosition != Vector3.zero)
                 {
                     TargetSignatureData targetData = TargetSignatureData.noTarget;
                     if (weaponManager.multiTargetNum > 1 && (turret && (maxPitch != minPitch || yawRange > 0))) //if multi target turrets, get relevant lock
@@ -5175,7 +5175,7 @@ namespace BDArmory.Weapons
                     }
                     else //no lock for our secondary target/fixed gun/no multitargeting? slave weapon to primary lock
                     {
-                        bool isVessel = weaponManager.slavedTarget.vessel != null; //how do we want to handle the edge case of locked Tgtcam, but non-slaving radar lock?
+                        bool isVessel = weaponManager.slavedTarget.vessel != null; 
                         if (!isVessel || !(visRange && RadarUtils.GetVesselChaffFactor(weaponManager.slavedTarget.vessel) < 1f))
                         {
                             if (weaponManager.slavingTurrets) slaved = true;

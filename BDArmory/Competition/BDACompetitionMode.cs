@@ -2745,10 +2745,7 @@ namespace BDArmory.Competition
                             var surfaceAI = VesselModuleRegistry.GetModule<BDModuleSurfaceAI>(vessel);
                             if (surfaceAI != null)
                             {
-                                if (
-                                    (surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Land && (vessel.Splashed || surfaceAI.currentStatusMode == BDModuleSurfaceAI.StatusMode.Panic)) //rover has gotten flipped/lost wheels and become immobilized/multiclassed to submarine
-                                    || ((surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Water || surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Submarine) && vessel.Landed) //vessel beached
-                                    || (surfaceAI.SurfaceType != AIUtils.VehicleMovementType.Submarine && vessel.IsUnderwater())) //boat sunk
+                                if (surfaceAI.currentStatusMode == BDModuleSurfaceAI.StatusMode.Panic) 
                                 {
                                     if (!vData.landedState)
                                     {
