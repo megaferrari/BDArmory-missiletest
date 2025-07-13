@@ -52,6 +52,13 @@
 			- "maxTorqueAero" follows the same format as above.
 			- "maxTorque" has the format: [boost], [cruise], [post-thrust], allowing for simulation of thrust-vectoring missiles
 			- "steerMult" has the format: [boost], [cruise], allowing reduced "steerMult"s in cruise if desired.
+		- Implement various command-to-line of sight guidance types, these all use the "beamCorrectionFactor" field and the "pronavGain" fields (with support for pronav gain scheduling).
+			- "CLOS" performs basic command-to-line of sight guidance with no beam-velocity compensation
+			- "CLOSThree" performs command-to-line of sight guidance with beam-velocity compensation
+			- "CLOSLead" performs command-to-line of sight guidance with selectable lead (using the "beamLeadFactor" field, 1.0 representing full lead and 0.0 representing three point guidance. Defaults to 0.5 or half-rectification guidance.)
+			- "beamCorrectionFactor" is multiplied with the lateral error from the specified line of sight to provide a lateral velocity command, higher values result in a faster snap to the line of sight line, but also more oscillation
+			- "pronavGain" is used, in a similar manner as it use used in pronav guidance, to multiply the velocity error and provide an acceleration command. Higher values result in a faster snap to the commanded velocity vector, but also more oscillation.
+		- Add the gLimit, maxAoA and chaff/flare effectivity fields to the info box.
 - GameModes:
 	- Don't spawn new asteroids in asteroid rain mode while in high time-warp.
 - Competition:
