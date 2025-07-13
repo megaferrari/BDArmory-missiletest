@@ -163,8 +163,9 @@ namespace BDArmory.Guidances
 
             // Once below the max leadTime, the LoS vector moves towards the target at half of angVel due to the nature of half-rectification
             // guidance, hence when we get the CLOS accel we use half of angVel
+            // Now that half-rectification has been generalized, this is beamLeadFactor rather than 0.5.
             if (leadTime < 8)
-                angVel *= 0.5f;
+                angVel *= (1f - beamLeadFactor);
 
             Vector3 accel = GetCLOSAccel(sensorPos, currentPos, currentVelocity, sensorPos + corrRelRange, targetVel, angVel, correctionFactor, N);
 
