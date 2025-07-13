@@ -140,8 +140,8 @@ namespace BDArmory.Guidances
             return currentPos + 4f * currentVelocity + 16f * accel;
         }
 
-        public static Vector3 GetHalfRectificationTarget(Vector3 sensorPos, Vector3 sensorVel, Vector3 currentPos, Vector3 currentVelocity, Vector3 targetPos, Vector3 targetVel,
-            float correctionFactor, float N, out float gLimit)
+        public static Vector3 GetCLOSLeadTarget(Vector3 sensorPos, Vector3 sensorVel, Vector3 currentPos, Vector3 currentVelocity, Vector3 targetPos, Vector3 targetVel,
+            float correctionFactor, float N, float beamLeadFactor, out float gLimit)
         {
             Vector3 relVelocity = targetVel - sensorVel;
             Vector3 relRange = targetPos - sensorPos;
@@ -155,7 +155,7 @@ namespace BDArmory.Guidances
             (float rangeT, Vector3 dirT) = (targetPos - sensorPos).MagNorm();
             float leadTime = Mathf.Clamp((rangeT - rangeM) / (Mathf.Max(currVel, 200f) - Vector3.Dot(targetVel, dirT)), 0f, 8f);
 
-            Vector3 deltaLOS = (0.5f * leadTime / RSqr) * Vector3.Cross(relRange, relVelocity);
+            Vector3 deltaLOS = (Mathf.Clamp01(beamLeadFactor) * leadTime / RSqr) * Vector3.Cross(relRange, relVelocity);
             Quaternion rotation = Quaternion.AngleAxis(deltaLOS.magnitude * Mathf.Rad2Deg, deltaLOS);
             Vector3 corrRelRange = rotation * relRange;
 

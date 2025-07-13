@@ -2173,8 +2173,8 @@ namespace BDArmory.Weapons.Missiles
                                 BeamRideGuidance();
                                 break;
                             case GuidanceModes.CLOS:
-                            case GuidanceModes.ThreePoint:
-                            case GuidanceModes.HalfRect:
+                            case GuidanceModes.CLOSThreePoint:
+                            case GuidanceModes.CLOSLead:
                                 CLOSGuidance();
                                 break;
                             case GuidanceModes.Orbital: //nee GuidanceModes.RCS
@@ -3030,6 +3030,9 @@ namespace BDArmory.Weapons.Missiles
         [KSPField]
         public float beamCorrectionDamping;
 
+        [KSPField]
+        public float beamLeadFactor = 0.5f;
+
         Ray previousBeam;
 
         void BeamRideGuidance()
@@ -3122,11 +3125,11 @@ namespace BDArmory.Weapons.Missiles
                     case GuidanceModes.CLOS:
                         target = MissileGuidance.GetCLOSTarget(sensorPos, vessel.CoM, vessel.Velocity(), targetPos, targetVel, beamCorrectionFactor, tempPronavGain, out currgLimit);
                         break;
-                    case GuidanceModes.ThreePoint:
+                    case GuidanceModes.CLOSThreePoint:
                         target = MissileGuidance.GetThreePointTarget(sensorPos, sensorVel, vessel.CoM, vessel.Velocity(), targetPos, targetVel, beamCorrectionFactor, tempPronavGain, out currgLimit);
                         break;
-                    case GuidanceModes.HalfRect:
-                        target = MissileGuidance.GetHalfRectificationTarget(sensorPos, sensorVel, vessel.CoM, vessel.Velocity(), targetPos, targetVel, beamCorrectionFactor, tempPronavGain, out currgLimit);
+                    case GuidanceModes.CLOSLead:
+                        target = MissileGuidance.GetCLOSLeadTarget(sensorPos, sensorVel, vessel.CoM, vessel.Velocity(), targetPos, targetVel, beamCorrectionFactor, tempPronavGain, beamLeadFactor, out currgLimit);
                         break;
 
                     default:
@@ -3928,12 +3931,12 @@ namespace BDArmory.Weapons.Missiles
                     GuidanceMode = GuidanceModes.CLOS;
                     break;
 
-                case "three":
-                    GuidanceMode = GuidanceModes.ThreePoint;
+                case "closthree":
+                    GuidanceMode = GuidanceModes.CLOSThreePoint;
                     break;
 
-                case "half":
-                    GuidanceMode = GuidanceModes.HalfRect;
+                case "closlead":
+                    GuidanceMode = GuidanceModes.CLOSLead;
                     break;
 
                 default:
