@@ -3859,127 +3859,44 @@ namespace BDArmory.Weapons.Missiles
 
         GuidanceModes ParseHomingType(in string homingType)
         {
-            GuidanceModes GuidanceMode;
-            switch (homingType)
+            return homingType switch
             {
-                case "aam":
-                    GuidanceMode = GuidanceModes.AAMLead;
-                    break;
-
-                case "aamlead":
-                    GuidanceMode = GuidanceModes.AAMLead;
-                    break;
-
-                case "aampure":
-                    GuidanceMode = GuidanceModes.AAMPure;
-                    break;
-                case "aamloft":
-                    GuidanceMode = GuidanceModes.AAMLoft;
-                    break;
-                /*case "aamhybrid":
-                    GuidanceMode = GuidanceModes.AAMHybrid;
-                    break;*/
-                case "agm":
-                    GuidanceMode = GuidanceModes.AGM;
-                    break;
-
-                case "agmballistic":
-                    GuidanceMode = GuidanceModes.AGMBallistic;
-                    break;
-
-                case "cruise":
-                    GuidanceMode = GuidanceModes.Cruise;
-                    break;
-
-                case "weave":
-                    GuidanceMode = GuidanceModes.Weave;
-                    break;
-
-                case "sts":
-                    GuidanceMode = GuidanceModes.STS;
-                    break;
-
-                case "rcs":
-                    GuidanceMode = GuidanceModes.Orbital;
-                    break;
-
-                case "orbital":
-                    GuidanceMode = GuidanceModes.Orbital;
-                    break;
-
-                case "beamriding":
-                    GuidanceMode = GuidanceModes.BeamRiding;
-                    break;
-
-                case "slw":
-                    GuidanceMode = GuidanceModes.SLW;
-                    break;
-
-                case "pronav":
-                    GuidanceMode = GuidanceModes.PN;
-                    break;
-
-                case "augpronav":
-                    GuidanceMode = GuidanceModes.APN;
-                    break;
-
-                case "kappa":
-                    GuidanceMode = GuidanceModes.Kappa;
-                    break;
-
-                case "clos":
-                    GuidanceMode = GuidanceModes.CLOS;
-                    break;
-
-                case "closthree":
-                    GuidanceMode = GuidanceModes.CLOSThreePoint;
-                    break;
-
-                case "closlead":
-                    GuidanceMode = GuidanceModes.CLOSLead;
-                    break;
-
-                default:
-                    GuidanceMode = GuidanceModes.None;
-                    break;
-            }
-            return GuidanceMode;
+                "aam" => GuidanceModes.AAMLead,
+                "aamlead" => GuidanceModes.AAMLead,
+                "aampure" => GuidanceModes.AAMPure,
+                "aamloft" => GuidanceModes.AAMLoft,
+                //"aamhybrid" => GuidanceModes.AAMHybrid, // keeping this in case we want to bring it back, it technically is a bit better at handling the handoff than the current method
+                "agm" => GuidanceModes.AGM,
+                "agmballistic" => GuidanceModes.AGMBallistic,
+                "cruise" => GuidanceModes.Cruise,
+                "weave" => GuidanceModes.Weave,
+                "sts" => GuidanceModes.STS, // What was this for? it seems to be unused
+                "rcs" => GuidanceModes.Orbital,
+                "orbital" => GuidanceModes.Orbital,
+                "beamriding" => GuidanceModes.BeamRiding,
+                "slw" => GuidanceModes.SLW,
+                "pronav" => GuidanceModes.PN,
+                "augpronav" => GuidanceModes.APN,
+                "kappa" => GuidanceModes.Kappa,
+                "clos" => GuidanceModes.CLOS,
+                "closthree" => GuidanceModes.CLOSThreePoint,
+                "closlead" => GuidanceModes.CLOSLead,
+                _ => GuidanceModes.None
+            };
         }
 
         TargetingModes ParseTargetingType(in string targetingType)
         {
-            TargetingModes TargetingMode;
-            switch (targetingType)
+            return targetingType switch
             {
-                case "radar":
-                    TargetingMode = TargetingModes.Radar;
-                    break;
-
-                case "heat":
-                    TargetingMode = TargetingModes.Heat;
-                    break;
-
-                case "laser":
-                    TargetingMode = TargetingModes.Laser;
-                    break;
-
-                case "gps":
-                    TargetingMode = TargetingModes.Gps;
-                    break;
-
-                case "antirad":
-                    TargetingMode = TargetingModes.AntiRad;
-                    break;
-
-                case "inertial":
-                    TargetingMode = TargetingModes.Inertial;
-                    break;
-
-                default:
-                    TargetingMode = TargetingModes.None;
-                    break;
-            }
-            return TargetingMode;
+                "radar" => TargetingModes.Radar,
+                "heat" => TargetingModes.Heat,
+                "laser" => TargetingModes.Laser,
+                "gps" => TargetingModes.Gps,
+                "antirad" => TargetingModes.AntiRad,
+                "inertial" => TargetingModes.Inertial,
+                _ => TargetingModes.None
+            };
         }
 
         void ParseModes()
