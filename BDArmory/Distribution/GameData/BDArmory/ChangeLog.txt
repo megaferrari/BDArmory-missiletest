@@ -26,7 +26,7 @@
 - Weapons:
 	- Add a "Yaw Standby Angle" slider to gun turrets.
 	- Multi-barreled guns now no longer swap to the next ammo type in the belt until after all barrels have fired.
-	- Multi-barreled guns now fire tracers every at tracerInterval rounds of each barrel, and will fire tracers simultaneously from all barrels
+	- Multi-barreled guns now fire tracers every tracerInterval rounds of each barrel, and will fire tracers simultaneously from all barrels.
 	- Remove maxEngagementRange (default 5000m) check from bombs when AI is selecting what weapon to use.
 	- Fix aim lead offset for weapons with deploy animations.
 	- Missiles:
