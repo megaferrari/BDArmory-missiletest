@@ -2264,10 +2264,12 @@ namespace BDArmory.Weapons
                                 sourceInfo.position = fireTransform.position;
                                 graphicsInfo.projectileColor = projectileColorC;
                                 graphicsInfo.startColor = startColorC;
-                                tracerIntervalCounter++;
+                                if (i == 0)
+                                    tracerIntervalCounter++;
                                 if (tracerIntervalCounter > tracerInterval)
                                 {
-                                    tracerIntervalCounter = 0;
+                                    if (i == fireTransforms.Length - 1)
+                                        tracerIntervalCounter = 0;
                                     graphicsInfo.tracerStartWidth = tracerStartWidth;
                                     graphicsInfo.tracerEndWidth = tracerEndWidth;
                                     graphicsInfo.tracerLength = tracerLength;
