@@ -917,8 +917,7 @@ namespace BDArmory.Control
                 && (weaponManager.guardMode && targetVessel != null) //and under AI control 
                 && (
                     currentStatusMode == StatusMode.RammingSpeed || !weaponManager.HasWeaponsAndAmmo() //and have been told to ram or doesn't have weapons
-                    || weaponManager.currentGun == null // no gun selected
-                    || weaponCanEngage(weaponManager.currentGun.engageRangeMax) //or have no guns, or only fixed guns/turrets unable to traverse to target, or out of range
+                    || !weaponCanEngage(weaponManager.currentGun) //or have no guns, or only fixed guns/turrets unable to traverse to target, or out of range
                 )
                 && (Mathf.Abs(targetVelocity) > 0 && vessel.horizontalSrfSpeed < 1 && vessel.angularVelocity.sqrMagnitude < 4) //and engaging but immobilized and can't rotate to bring guns to bear. TODO: angularVel threshold value? Or is 2 ?deg/s? sufficient cutoff?
             )
@@ -945,16 +944,22 @@ namespace BDArmory.Control
             return false;         
         }
 
-        bool weaponCanEngage(float maxRange)
+        bool weaponCanEngage(ModuleWeapon weapon)
         {
             //using this instead of Turret.TargetInRange so we can check for weapon aim of fixed guns as well as turreted ones.
-            if (!weaponManager.currentGun) return false;
-            Transform weaponTransform = weaponManager.currentGun.fireTransforms[0];
-            Vector3 vectorToTarget = (targetVessel.CoM - weaponManager.currentGun.GetLeadOffset()) - weaponTransform.position;
-
-            bool withinView = Vector3.Angle(vectorToTarget, weaponTransform.forward) < 5; //5 deg tolerance seems sufficient for basic aim check
-            bool withinDistance = vectorToTarget.sqrMagnitude < maxRange * maxRange;
-            return (withinView && withinDistance);
+            if (!weapon) return false;
+            if (weapon.turret)
+            {
+                return weapon.turret.TargetInRange(targetVessel.CoM - weapon.GetLeadOffset(), weapon.engageRangeMax);
+            }
+            else
+            {
+                Transform weaponTransform = weapon.fireTransforms[0];
+                Vector3 vectorToTarget = (targetVessel.CoM - weapon.GetLeadOffset()) - weaponTransform.position;
+                bool withinView = Vector3.Dot(weaponTransform.forward, vectorToTarget) >= weapon.targetAdjustedMaxCosAngle; // Fixed weapon within firing angle
+                bool withinDistance = vectorToTarget.sqrMagnitude < weapon.engageRangeMax * weapon.engageRangeMax;
+                return withinView && withinDistance;
+            }
         }
 
 

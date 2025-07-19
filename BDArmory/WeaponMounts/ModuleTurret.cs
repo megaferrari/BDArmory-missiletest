@@ -293,13 +293,8 @@ namespace BDArmory.WeaponMounts
             return false;
         }
 
-        public bool TargetInRange(Vector3 targetPosition, float thresholdDegrees, float maxDistance)
+        public bool TargetInRange(Vector3 targetPosition, float maxDistance, float thresholdDegrees = 0)
         {
-            //if (!referenceTransform) return false;
-            //bool withinView = Vector3.Angle(targetPosition - pitchTransform.position, pitchTransform.forward) < thresholdDegrees;
-            //bool withinDistance = (targetPosition - pitchTransform.position).sqrMagnitude < maxDistance * maxDistance;
-            //return (withinView && withinDistance);
-
             if (!referenceTransform) return false;
             Vector3 vectorToTarget = targetPosition - referenceTransform.position;
             if (vectorToTarget.sqrMagnitude < maxDistance * maxDistance) return false;
