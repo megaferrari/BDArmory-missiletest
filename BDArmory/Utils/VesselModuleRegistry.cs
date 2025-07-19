@@ -456,12 +456,15 @@ namespace BDArmory.Utils
 
         /// <summary>
         /// Sort a list of part modules by their proximity to the root part.
+        /// Note: we use OrderBy here to get a stable sort.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="modules"></param>
-        public static List<T> SortByProximityToRoot<T>(ref List<T> modules) where T : PartModule
+        public static List<T> SortByProximityToRoot<T>(ref List<T> modules, Part root = null) where T : PartModule
         {
-            modules.Sort((m1, m2) => ProximityToRoot(m1.part).CompareTo(ProximityToRoot(m2.part)));
+            if (modules.Count == 0) return modules;
+            if (root == null) root = modules.First().vessel.rootPart;
+            modules = [.. modules.OrderBy(m => ProximityToRoot(m.part, root))];
             return modules;
         }
 
@@ -471,9 +474,11 @@ namespace BDArmory.Utils
         /// <typeparam name="T"></typeparam>
         /// <param name="modules"></param>
         /// <returns></returns>
-        public static List<T> SortByProximityToRootIBDAI<T>(ref List<T> modules) where T : IBDAIControl
+        public static List<T> SortByProximityToRootIBDAI<T>(ref List<T> modules, Part root = null) where T : IBDAIControl
         {
-            modules.Sort((m1, m2) => ProximityToRoot(m1.part).CompareTo(ProximityToRoot(m2.part)));
+            if (modules.Count == 0) return modules;
+            if (root == null) root = modules.First().vessel.rootPart;
+            modules = [.. modules.OrderBy(m => ProximityToRoot(m.part, root))];
             return modules;
         }
 
@@ -482,11 +487,11 @@ namespace BDArmory.Utils
         /// </summary>
         /// <param name="part"></param>
         /// <returns>Proximity to the root part or int.MaxValue if no root part was found.</returns>
-        public static int ProximityToRoot(Part part)
+        public static int ProximityToRoot(Part part, Part root)
         {
             int proximity = 0;
             Part currentPart = part;
-            while (currentPart is not null && currentPart != currentPart.vessel.rootPart)
+            while (currentPart is not null && currentPart != root)
             {
                 currentPart = currentPart.parent;
                 ++proximity;

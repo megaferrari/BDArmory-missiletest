@@ -276,7 +276,7 @@ namespace BDArmory.UI
                 if (AIs.Count > 0)
                 {
                     var rootPart = ship.Parts.First(); while (rootPart.parent != null) rootPart = rootPart.parent;
-                    AIs.Sort((m1, m2) => ProximityToRoot(m1.part, rootPart).CompareTo(ProximityToRoot(m2.part, rootPart))); // Same sorting as ActiveController with no active AIs.
+                    VesselModuleRegistry.SortByProximityToRootIBDAI(ref AIs, rootPart);
                     if (ActiveAI == AIs.First() as BDGenericAIBase) yield break; // It's the same AI, do nothing.
                     ActiveAI = AIs.First() as BDGenericAIBase; // Switch back to the primary AI.
                     activeAIType = ActiveAI.aiType;
