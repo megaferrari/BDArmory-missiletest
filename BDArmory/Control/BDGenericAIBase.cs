@@ -610,8 +610,8 @@ namespace BDArmory.Control
                             surfaceAI.MaxSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed;
                             break;
                         case AIType.VTOLAI:
-                            // var vtolAI = ai as BDModuleVTOLAI;
-                            // vtolAI.MaxSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed; //VTOL AI really needs expanding to actually include behavior beyond stationary hovering; could do WPs, but only if it has a fixed horizontal thrusters under IndependantThrottle...
+                            var vtolAI = ai as BDModuleVTOLAI;
+                            vtolAI.MaxSpeed = mSpeed > 0 ? mSpeed : originalMaxSpeed;
                             break;
                         case AIType.OrbitalAI:
                             // var orbitalAI = ai as BDModuleOrbitalAI;
