@@ -941,12 +941,11 @@ namespace BDArmory.Control
                 SetStatus("Sunk");
                 return true;
             }
-            return false;         
+            return false;
         }
 
-        bool weaponCanEngage(ModuleWeapon weapon)
+        bool WeaponCanEngage(ModuleWeapon weapon)
         {
-            //using this instead of Turret.TargetInRange so we can check for weapon aim of fixed guns as well as turreted ones.
             if (!weapon) return false;
             if (weapon.turret)
             {
