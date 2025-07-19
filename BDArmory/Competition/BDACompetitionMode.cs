@@ -2747,14 +2747,49 @@ namespace BDArmory.Competition
 
                         if (vessel.LandedOrSplashed)
                         {
-                            if (!vData.landedState)
+                            var surfaceAI = VesselModuleRegistry.GetModule<BDModuleSurfaceAI>(vessel);
+                            if (surfaceAI != null)
                             {
-                                // was flying, is now landed
-                                vData.lastLandedTime = now;
-                                vData.landedState = true;
-                                if (vData.landedKillTimer == 0)
+                                if (surfaceAI.currentStatusMode == BDModuleSurfaceAI.StatusMode.Panic) 
                                 {
-                                    vData.landedKillTimer = now;
+                                    if (!vData.landedState)
+                                    {
+                                        vData.lastLandedTime = now;
+                                        vData.landedState = true;
+                                        if (vData.landedKillTimer == 0)
+                                        {
+                                            vData.landedKillTimer = now;
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    if (vData.landedState)
+                                    {
+                                        vData.lastLandedTime = now;
+                                        vData.landedState = false;
+                                    }
+                                    if (vData.landedKillTimer != 0)
+                                    {
+                                        // safely mobile for 15 seconds
+                                        if (now - vData.landedKillTimer > 15)
+                                        {
+                                            vData.landedKillTimer = 0;
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if (!vData.landedState)
+                                {
+                                    // was flying, is now landed
+                                    vData.lastLandedTime = now;
+                                    vData.landedState = true;
+                                    if (vData.landedKillTimer == 0)
+                                    {
+                                        vData.landedKillTimer = now;
+                                    }
                                 }
                             }
                         }
@@ -2830,25 +2865,10 @@ namespace BDArmory.Competition
                         vData.averageCount++;
                         if (vData.landedState && BDArmorySettings.COMPETITION_KILL_TIMER > 0)
                         {
-                            var surfaceAI = vessel.ActiveController().SurfaceAI;
-                            if (surfaceAI == null || !surfaceAI.pilotEnabled) // Ignore active surface AI vessels for the kill timer.
+                            KillTimer[vesselName] = (int)(now - vData.landedKillTimer);
+                            if (now - vData.landedKillTimer > BDArmorySettings.COMPETITION_KILL_TIMER)
                             {
-                                KillTimer[vesselName] = (int)(now - vData.landedKillTimer);
-                                if (now - vData.landedKillTimer > BDArmorySettings.COMPETITION_KILL_TIMER)
-                                {
-                                    vesselsToKill.Add(mf.vessel);
-                                }
-                            }
-                            else
-                            {
-                                if ((surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Land && vessel.Splashed) || ((surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Water || surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Submarine) && vessel.Landed) || (surfaceAI.SurfaceType == AIUtils.VehicleMovementType.Water && vessel.IsUnderwater()))
-                                {
-                                    KillTimer[vesselName] = (int)(now - vData.landedKillTimer);
-                                    if (now - vData.landedKillTimer > BDArmorySettings.COMPETITION_KILL_TIMER)
-                                    {
-                                        vesselsToKill.Add(mf.vessel);
-                                    }
-                                }
+                                vesselsToKill.Add(mf.vessel);
                             }
                         }
                         if (vData.AltitudeKillTimer > 0 && BDArmorySettings.COMPETITION_KILL_TIMER > 0)
