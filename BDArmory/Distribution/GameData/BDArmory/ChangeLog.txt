@@ -3,11 +3,13 @@
 	- Fix the g-limit overrides from needing to save the persistent savegame, which was leaving spawned craft in play when reverting to the SPH.
 - UI:
 	-	Fix spelling of "ordnance" in localisation files (settings and modules retain the misspelling).
+  - Add competition marquee messages for fuel/ammo detonations from battle damage.
 - AI / WM:
 	- Add missing unclamped limits for 3-axis static damping.
 	- Adjust the release of the "Attack" command so that craft don't go dead-stick when under attack but not threatened enough to trigger evasion.
 	- Fix AttackVIP targeting priority impacting target priority weighting if no enemy VIP is present.
 	- When assigning turret targets, AI now checks if target is within max range of the turret.
+  - Pilot AI using divebombing will now break off the dive when bombs have been released.
 	- Add an option to disable the behaviour of disabling guard mode when vessels are spawned.
 	- Fix pilot AI's standby mode to automatically trigger AG10 and enable engines if necessary when a threat is detected.
 	- Fix behavior of Guard Mode with regards to datalinked radars, Guard Mode should no longer unlock targets when these locks are being used by a datalinked vessel to guide a missile.
