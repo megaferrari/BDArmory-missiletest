@@ -1605,11 +1605,10 @@ namespace BDArmory.Weapons.Missiles
 
                 BDATargetManager.FiredMissiles.Add(this);
 
-                var wpm = SourceVessel.ActiveController().WM;
-                if (wpm != null)
+                if (weaponManager != null)
                 {
-                    Team = wpm.Team;
-                    wpm.UpdateMissilesAway(targetVessel, this);
+                    Team = weaponManager.Team;
+                    weaponManager.UpdateMissilesAway(targetVessel, this);
                 }
                 AddTargetInfoToVessel(); // Wait until we've assigned the team before adding target info.
                 IncreaseTolerance();
