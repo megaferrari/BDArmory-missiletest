@@ -405,6 +405,7 @@ namespace BDArmory.Weapons.Missiles
 
         public WarheadTypes warheadType = WarheadTypes.Kinetic;
         public bool HasFired { get; set; } = false;
+        protected MissileFire FiredByWM { get; set; } // The WM that fired this missile.
 
         public bool launched = false;
 
@@ -754,8 +755,7 @@ namespace BDArmory.Weapons.Missiles
                         float jamDistance = RadarUtils.GetVesselECMJammingDistance(targetVessel.Vessel); //does the target have a jammer, and is the missile within the jammed AoE
                         if (jamDistance * jamDistance < distanceToTargetSqr) //outside/no area of interference, can receive GPS signal
                         {
-                            //var weaponManager = SourceVessel.ActiveController().WM;
-                            //if (weaponManager != null && weaponManager.CanSeeTarget(targetVessel, false))
+                            //if (FiredByWM != null && FiredByWM.CanSeeTarget(targetVessel, false))
 
                             if (gpsUpdates == 0) // Constant updates
                             {
@@ -839,9 +839,9 @@ namespace BDArmory.Weapons.Missiles
                 // Update heat target
                 if (activeRadarRange < 0)
                     heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, lookRay, predictedHeatTarget, lockedSensorFOV / 2, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity,
-                        SourceVessel ? SourceVessel.ActiveController().WM : null, targetVessel, IFF: hasIFF);
+                        FiredByWM, targetVessel, IFF: hasIFF);
                 else
-                    heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, lookRay, predictedHeatTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity, SourceVessel ? SourceVessel.ActiveController().WM : null, targetVessel, IFF: hasIFF);
+                    heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, lookRay, predictedHeatTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity, FiredByWM, targetVessel, IFF: hasIFF);
 
                 if (heatTarget.exists)
                 {
@@ -1406,16 +1406,15 @@ namespace BDArmory.Weapons.Missiles
             {
                 if (gpsUpdates >= 0f)
                 {
-                    var weaponManager = SourceVessel.ActiveController().WM;
                     TargetSignatureData INStarget = TargetSignatureData.noTarget;
                     bool radarLocked = false;
-                    if (weaponManager != null && weaponManager.vesselRadarData)
+                    if (FiredByWM != null && FiredByWM.vesselRadarData)
                     {
-                        INStarget = weaponManager._radarsEnabled || weaponClass == WeaponClasses.SLW && weaponManager._sonarsEnabled ? weaponManager.vesselRadarData.detectedRadarTarget(targetVessel.Vessel, weaponManager) : TargetSignatureData.noTarget; //is the target tracked by radar or ISRT?
+                        INStarget = FiredByWM._radarsEnabled || weaponClass == WeaponClasses.SLW && FiredByWM._sonarsEnabled ? FiredByWM.vesselRadarData.detectedRadarTarget(targetVessel.Vessel, FiredByWM) : TargetSignatureData.noTarget; //is the target tracked by radar or ISRT?
                         if (INStarget.exists)
                         {
                             detectedByRadar = true;
-                            List<TargetSignatureData> possibleTargets = weaponManager.vesselRadarData.GetLockedTargets();
+                            List<TargetSignatureData> possibleTargets = FiredByWM.vesselRadarData.GetLockedTargets();
                             for (int i = 0; i < possibleTargets.Count; i++)
                             {
                                 if (possibleTargets[i].vessel == targetVessel.Vessel)
@@ -1426,7 +1425,7 @@ namespace BDArmory.Weapons.Missiles
                             }
                         }
                         else
-                            if (weaponManager._irstsEnabled) INStarget = weaponManager.vesselRadarData.activeIRTarget(targetVessel.Vessel, weaponManager);
+                            if (FiredByWM._irstsEnabled) INStarget = FiredByWM.vesselRadarData.activeIRTarget(targetVessel.Vessel, FiredByWM);
                     }
                     if (INStarget.exists)
                     {

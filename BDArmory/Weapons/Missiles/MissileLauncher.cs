@@ -414,8 +414,8 @@ namespace BDArmory.Weapons.Missiles
         {
             if (missileTurret) return;
             if (multiLauncher && !multiLauncher.permitJettison) return;
-            part.decouple(0);
             var weaponManager = vessel.ActiveController().WM;
+            part.decouple(0);
             if (weaponManager != null) weaponManager.UpdateList();
         }
 
@@ -1334,21 +1334,21 @@ namespace BDArmory.Weapons.Missiles
             {
                 SourceVessel = vessel;
             }
-            var wpm = SourceVessel.ActiveController().WM;
-            if (wpm != null) Team = wpm.Team;
+            FiredByWM = SourceVessel.ActiveController().WM;
+            if (FiredByWM != null) Team = FiredByWM.Team;
 
             if (multiLauncher)
             {
                 if (multiLauncher.isMultiLauncher)
                 {
-                    //multiLauncher.rippleRPM = wpm.rippleRPM;               
-                    //if (wpm.rippleRPM > 0) multiLauncher.rippleRPM = wpm.rippleRPM;
+                    //multiLauncher.rippleRPM = FiredWM.rippleRPM;               
+                    //if (FiredWM.rippleRPM > 0) multiLauncher.rippleRPM = FiredWM.rippleRPM;
                     multiLauncher.Team = Team;
                     launched = true;
                     if (reloadableRail && reloadableRail.ammoCount >= 1 || BDArmorySettings.INFINITE_ORDINANCE)
                     {
-                        if (wpm)
-                            wpm.UpdateQueuedLaunches(targetVessel, this, true);
+                        if (FiredByWM)
+                            FiredByWM.UpdateQueuedLaunches(targetVessel, this, true);
                         if (radarTarget.exists && radarTarget.lockedByRadar && radarTarget.lockedByRadar.vessel != SourceVessel)
                         {
                             MissileFire datalinkwpm = radarTarget.lockedByRadar.vessel.ActiveController().WM;
@@ -1365,8 +1365,8 @@ namespace BDArmory.Weapons.Missiles
                     {
                         if (reloadableMissile == null)
                         {
-                            if (wpm)
-                                wpm.UpdateQueuedLaunches(targetVessel, this, true);
+                            if (FiredByWM)
+                                FiredByWM.UpdateQueuedLaunches(targetVessel, this, true);
                             if (radarTarget.exists && radarTarget.lockedByRadar && radarTarget.lockedByRadar.vessel != SourceVessel)
                             {
                                 MissileFire datalinkwpm = radarTarget.lockedByRadar.vessel.ActiveController().WM;
@@ -1390,11 +1390,11 @@ namespace BDArmory.Weapons.Missiles
                         TargetPosition = vessel.ReferenceTransform.position + vessel.ReferenceTransform.up * 5000; //set initial target position so if no target update, missileBase will count a miss if it nears this point or is flying post-thrust
                         MissileLaunch();
                         BDATargetManager.FiredMissiles.Add(this);
-                        if (wpm != null)
+                        if (FiredByWM != null)
                         {
-                            wpm.heatTarget = TargetSignatureData.noTarget;
-                            GpsUpdateMax = wpm.GpsUpdateMax;
-                            wpm.UpdateMissilesAway(targetVessel, this);
+                            FiredByWM.heatTarget = TargetSignatureData.noTarget;
+                            GpsUpdateMax = FiredByWM.GpsUpdateMax;
+                            FiredByWM.UpdateMissilesAway(targetVessel, this);
                         }
 
                         if (radarTarget.exists && radarTarget.lockedByRadar && radarTarget.lockedByRadar.vessel != SourceVessel)
@@ -1414,8 +1414,8 @@ namespace BDArmory.Weapons.Missiles
                 {
                     if (reloadableMissile == null)
                     {
-                        if (wpm)
-                            wpm.UpdateQueuedLaunches(targetVessel, this, true);
+                        if (FiredByWM)
+                            FiredByWM.UpdateQueuedLaunches(targetVessel, this, true);
                         if (radarTarget.exists && radarTarget.lockedByRadar && radarTarget.lockedByRadar.vessel != SourceVessel)
                         {
                             MissileFire datalinkwpm = radarTarget.lockedByRadar.vessel.ActiveController().WM;
@@ -1434,11 +1434,11 @@ namespace BDArmory.Weapons.Missiles
                     TargetPosition = transform.position + transform.forward * 5000; //set initial target position so if no target update, missileBase will count a miss if it nears this point or is flying post-thrust
                     MissileLaunch();
                     BDATargetManager.FiredMissiles.Add(this);
-                    if (wpm != null)
+                    if (FiredByWM != null)
                     {
-                        wpm.heatTarget = TargetSignatureData.noTarget;
-                        GpsUpdateMax = wpm.GpsUpdateMax;
-                        wpm.UpdateMissilesAway(targetVessel, this);
+                        FiredByWM.heatTarget = TargetSignatureData.noTarget;
+                        GpsUpdateMax = FiredByWM.GpsUpdateMax;
+                        FiredByWM.UpdateMissilesAway(targetVessel, this);
                     }
 
                     if (radarTarget.exists && radarTarget.lockedByRadar && radarTarget.lockedByRadar.vessel != SourceVessel)
@@ -1454,6 +1454,7 @@ namespace BDArmory.Weapons.Missiles
         }
         IEnumerator FireReloadableMissile()
         {
+            var firedByWM = SourceVessel.ActiveController().WM;
             part.partTransform.localScale = Vector3.zero;
             part.ShieldedFromAirstream = true;
             part.crashTolerance = 100;
@@ -1471,12 +1472,18 @@ namespace BDArmory.Weapons.Missiles
                 Debug.LogWarning($"[BDArmory.MissileLauncher]: Error while spawning missile with {part.name}, MissileLauncher was null!");
                 yield break;
             }
+            if (firedByWM != SourceVessel.ActiveController().WM)
+            {
+                if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: Primary WM changed while spawning reloadable missile, abort firing it!");
+                if (ml is not null) Destroy(ml.gameObject); // De-spawn the missile. FIXME SI Is this sufficient?
+                yield break;
+            }
 
+            FiredByWM = firedByWM;
             ml.launched = true;
-            var wpm = SourceVessel.ActiveController().WM;
             ml.SourceVessel = SourceVessel;
             ml.GuidanceMode = GuidanceMode;
-            //wpm.SendTargetDataToMissile(ml);
+            //FiredByWM.SendTargetDataToMissile(ml);
             ml.TimeFired = Time.time;
             ml.DetonationDistance = DetonationDistance;
             ml.DetonateAtMinimumDistance = DetonateAtMinimumDistance;
@@ -1591,19 +1598,19 @@ namespace BDArmory.Weapons.Missiles
             ml.guidanceActive = true;
 
             BDATargetManager.FiredMissiles.Add(ml);
-            if (wpm != null)
+            if (FiredByWM != null)
             {
-                ml.Team = wpm.Team;
-                wpm.SendTargetDataToMissile(ml, targetVessel != null ? targetVessel.Vessel : null, true, new MissileFire.TargetData(targetGPSCoords, TimeOfLastINS, INStimetogo), true);
-                wpm.heatTarget = TargetSignatureData.noTarget;
-                ml.GpsUpdateMax = wpm.GpsUpdateMax;
-                wpm.UpdateQueuedLaunches(targetVessel, ml, false);
-                wpm.UpdateMissilesAway(targetVessel, ml);
+                ml.Team = FiredByWM.Team;
+                FiredByWM.SendTargetDataToMissile(ml, targetVessel != null ? targetVessel.Vessel : null, true, new MissileFire.TargetData(targetGPSCoords, TimeOfLastINS, INStimetogo), true);
+                FiredByWM.heatTarget = TargetSignatureData.noTarget;
+                ml.GpsUpdateMax = FiredByWM.GpsUpdateMax;
+                FiredByWM.UpdateQueuedLaunches(targetVessel, ml, false);
+                FiredByWM.UpdateMissilesAway(targetVessel, ml);
             }
 
             if (ml.radarTarget.exists && ml.radarTarget.lockedByRadar && ml.radarTarget.lockedByRadar.vessel != ml.SourceVessel)
             {
-                MissileFire datalinkwpm = ml.radarTarget.lockedByRadar.vessel.ActiveController().WM;
+                MissileFire datalinkwpm = ml.radarTarget.lockedByRadar.vessel.ActiveController().WM; // FIXME SI Does this matter if the primary WM on the datalink changes?
                 if (datalinkwpm)
                 {
                     datalinkwpm.UpdateQueuedLaunches(targetVessel, ml, false, false);
@@ -2256,9 +2263,9 @@ namespace BDArmory.Weapons.Missiles
 
                         if (activeRadarRange < 0 && torpedo)
                             heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, new Ray(vessel.CoM, tempTargetPos - vessel.CoM), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity,
-                                SourceVessel ? SourceVessel.ActiveController().WM : null, targetVessel, IFF: hasIFF);
+                                FiredByWM, targetVessel, IFF: hasIFF);
                         else
-                            heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, new Ray(vessel.CoM, tempTargetPos - vessel.CoM), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity, SourceVessel ? SourceVessel.ActiveController().WM : null, targetVessel, IFF: hasIFF);
+                            heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, new Ray(vessel.CoM, tempTargetPos - vessel.CoM), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity, FiredByWM, targetVessel, IFF: hasIFF);
                         if (heatTarget.exists && CheckTargetEngagementEnvelope(heatTarget.targetInfo))
                         {
                             if (BDArmorySettings.DEBUG_MISSILES)

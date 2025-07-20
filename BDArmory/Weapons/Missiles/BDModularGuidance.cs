@@ -31,7 +31,7 @@ namespace BDArmory.Weapons.Missiles
 
         public Vessel LegacyTargetVessel;
 
-        MissileFire WeaponManager
+        MissileFire WeaponManager // WM on the modular missile once it's detached, otherwise the WM on the parent vessel.
         {
             get
             {
@@ -1264,7 +1264,7 @@ namespace BDArmory.Weapons.Missiles
             BDATargetManager.FiredMissiles.Remove(this);
             MissileState = MissileStates.Idle;
             var weaponManager = WeaponManager;
-            if (weaponManager != null && weaponManager.guardFiringMissile)
+            if (weaponManager != null && weaponManager.guardFiringMissile) // FIXME SI Should this be FiredByWM?
             {
                 if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.BDModularGuidance]: disabling target lock for {vessel.vesselName}");
                 weaponManager.guardFiringMissile = false; // Disable target lock.
@@ -1592,60 +1592,59 @@ namespace BDArmory.Weapons.Missiles
         [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "#LOC_BDArmory_FireMissile", active = true)]//Fire Missile
         public override void FireMissile()
         {
-            var weaponManager = WeaponManager; // Parent plane's WM
-            if (weaponManager != null && targetVessel == null)
-                weaponManager.SendTargetDataToMissile(this, null);
+            if (HasFired) return;
 
-            if (!HasFired)
+            FiredByWM = WeaponManager; // Generally, the parent plane's WM, but may also be the WM on the modular missile if the missile has reset. FIXME SI If the missile has reset, should FiredByWM also get updated? What happens if a modular missile has it's own WM? Should that automatically take over when a missile is fired anyway or only on a reset? The latter seems more reasonable.
+            if (FiredByWM != null && targetVessel == null)
+                FiredByWM.SendTargetDataToMissile(this, null);
+
+            GameEvents.onPartDie.Add(PartDie);
+            SourceVessel = vessel;
+            SetTargeting();
+            Jettison();
+
+            BDATargetManager.FiredMissiles.Add(this);
+
+            if (FiredByWM != null)
             {
-                GameEvents.onPartDie.Add(PartDie);
-                SourceVessel = vessel;
-                SetTargeting();
-                Jettison();
-
-                BDATargetManager.FiredMissiles.Add(this);
-
-                if (weaponManager != null)
-                {
-                    Team = weaponManager.Team;
-                    weaponManager.UpdateMissilesAway(targetVessel, this);
-                }
-                AddTargetInfoToVessel(); // Wait until we've assigned the team before adding target info.
-                IncreaseTolerance();
-
-                if (radarTarget.exists && radarTarget.lockedByRadar && radarTarget.lockedByRadar.vessel != SourceVessel)
-                {
-                    MissileFire datalinkwpm = radarTarget.lockedByRadar.vessel.ActiveController().WM;
-                    if (datalinkwpm)
-                        datalinkwpm.UpdateMissilesAway(targetVessel, this, false);
-                }
-
-                initialMissileRollPlane = -vessel.transform.up;
-                initialMissileForward = vessel.transform.forward;
-                vessel.vesselName = GetShortName();
-                vessel.vesselType = VesselType.Plane;
-
-                if (!vessel.ActionGroups[KSPActionGroup.SAS])
-                {
-                    vessel.ActionGroups.ToggleGroup(KSPActionGroup.SAS);
-                }
-
-                TimeFired = Time.time;
-                guidanceActive = true;
-                MissileState = MissileStates.Drop;
-
-                GUIUtils.RefreshAssociatedWindows(part);
-
-                HasFired = true;
-                DetonationDistanceState = DetonationDistanceStates.NotSafe;
-                if (vessel.InNearVacuum())
-                {
-                    vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, true);
-                }
-                if (BDArmorySettings.CAMERA_SWITCH_INCLUDE_MISSILES && SourceVessel.isActiveVessel) LoadedVesselSwitcher.Instance.ForceSwitchVessel(vessel);
+                Team = FiredByWM.Team;
+                FiredByWM.UpdateMissilesAway(targetVessel, this);
             }
-            if (weaponManager != null)
-                weaponManager.UpdateList();
+            AddTargetInfoToVessel(); // Wait until we've assigned the team before adding target info.
+            IncreaseTolerance();
+
+            if (radarTarget.exists && radarTarget.lockedByRadar && radarTarget.lockedByRadar.vessel != SourceVessel)
+            {
+                MissileFire datalinkwpm = radarTarget.lockedByRadar.vessel.ActiveController().WM;
+                if (datalinkwpm)
+                    datalinkwpm.UpdateMissilesAway(targetVessel, this, false);
+            }
+
+            initialMissileRollPlane = -vessel.transform.up;
+            initialMissileForward = vessel.transform.forward;
+            vessel.vesselName = GetShortName();
+            vessel.vesselType = VesselType.Plane;
+
+            if (!vessel.ActionGroups[KSPActionGroup.SAS])
+            {
+                vessel.ActionGroups.ToggleGroup(KSPActionGroup.SAS);
+            }
+
+            TimeFired = Time.time;
+            guidanceActive = true;
+            MissileState = MissileStates.Drop;
+
+            GUIUtils.RefreshAssociatedWindows(part);
+
+            HasFired = true;
+            DetonationDistanceState = DetonationDistanceStates.NotSafe;
+            if (vessel.InNearVacuum())
+            {
+                vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, true);
+            }
+            if (BDArmorySettings.CAMERA_SWITCH_INCLUDE_MISSILES && SourceVessel.isActiveVessel) LoadedVesselSwitcher.Instance.ForceSwitchVessel(vessel);
+            if (FiredByWM != null)
+                FiredByWM.UpdateList();
         }
 
         private void IncreaseTolerance()
