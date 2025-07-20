@@ -405,7 +405,7 @@ namespace BDArmory.Weapons.Missiles
 
         public WarheadTypes warheadType = WarheadTypes.Kinetic;
         public bool HasFired { get; set; } = false;
-        protected MissileFire FiredByWM { get; set; } // The WM that fired this missile.
+        public MissileFire FiredByWM { get; set; } // The WM that fired this missile.
 
         public bool launched = false;
 
