@@ -2,8 +2,9 @@
 - General:
 	- Fix the g-limit overrides from needing to save the persistent savegame, which was leaving spawned craft in play when reverting to the SPH.
 - UI:
-	-	Fix spelling of "ordnance" in localisation files (settings and modules retain the misspelling).
-  - Add competition marquee messages for fuel/ammo detonations from battle damage.
+	- Fix spelling of "ordnance" in localisation files (settings and modules retain the misspelling).
+	- Add competition marquee messages for fuel/ammo detonations from battle damage.
+	- Fix 'Disable Radar vs ARMs' WM GUI toggle being inverted.
 - AI / WM:
 	- Add missing unclamped limits for 3-axis static damping.
 	- Adjust the release of the "Attack" command so that craft don't go dead-stick when under attack but not threatened enough to trigger evasion.
