@@ -1533,7 +1533,7 @@ namespace BDArmory.UI
                                     // if we're the active vessel add a penalty over time to force it to switch away eventually (unless we're currently taking damage)
                                     if (wm.Current.vessel.isActiveVessel)
                                     {
-                                        if (!recentlyDamaged) vesselScore *= (float)(timeSinceChange / 8.0);
+                                        vesselScore *= (float)(recentlyDamaged ? Math.Min(timeSinceChange / 8.0, 1.0) : (timeSinceChange / 8.0));
                                         foundActiveVessel = true;
                                     }
                                     if ((BDArmorySettings.TAG_MODE) && (wm.Current.Team.Name == "IT"))
