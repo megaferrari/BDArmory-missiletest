@@ -63,7 +63,7 @@ namespace BDArmory.UI
                     }
                     if (emptyGauge == null)
                     {
-                        emptyGauge = InitEmptyGauge(StringUtils.Localize("#LOC_BDArmory_ProtoStageIconInfo_AmmoOut"));
+                        emptyGauge = InitEmptyGauge();
                         emptyGauge?.SetValue(1, 0, 1);
                     }
                 }
@@ -74,9 +74,9 @@ namespace BDArmory.UI
             }
         }
 
-        public void UpdateCMMeter(float cmLevel)
+        public void UpdateCMMeter(float cmLevel, CounterMeasure.CMDropper.CountermeasureTypes type)
         {
-            if (BDArmorySettings.SHOW_AMMO_GAUGES && !BDArmorySettings.INFINITE_COUNTERMEASURES)
+            if (BDArmorySettings.SHOW_AMMO_GAUGES && !BDArmorySettings.INFINITE_ORDINANCE)
             {
                 if (cmLevel > 0)
                 {
@@ -86,7 +86,7 @@ namespace BDArmory.UI
                     }
                     if (cmGauge == null)
                     {
-                        cmGauge = InitCMGauge(AmmoName);
+                        cmGauge = InitCMGauge(AmmoName, type);
                     }
                     cmGauge?.SetValue(cmLevel, 0, 1);
                 }
@@ -98,7 +98,7 @@ namespace BDArmory.UI
                     }
                     if (emptyGauge == null)
                     {
-                        emptyGauge = InitEmptyGauge(StringUtils.Localize("#LOC_BDArmory_ProtoStageIconInfo_CMsOut"));
+                        emptyGauge = InitEmptyGauge();
                         emptyGauge?.SetValue(1, 0, 1);
                     }
                 }
@@ -149,10 +149,10 @@ namespace BDArmory.UI
             part.stackIcon.ClearInfoBoxes();
             //null everything so other gauges will properly re-initialize post ClearinfoBoxes()
             ammoGauge = null;
-            cmGauge = null;
             heatGauge = null;
             reloadBar = null;
             emptyGauge = null;
+            cmGauge = null;
         }
 
         private void EnsureStagingIcon()
@@ -200,7 +200,7 @@ namespace BDArmory.UI
             return v;
         }
 
-        private ProtoStageIconInfo InitCMGauge(string ammoName) //thanks DYJ
+        private ProtoStageIconInfo InitCMGauge(string ammoName, CounterMeasure.CMDropper.CountermeasureTypes type)
         {
             EnsureStagingIcon();
             ProtoStageIconInfo a = part.stackIcon.DisplayInfo();
@@ -208,11 +208,32 @@ namespace BDArmory.UI
             if (a != null)
             {
                 a.SetMsgBgColor(XKCDColors.Silver);
-                a.SetMsgTextColor(XKCDColors.Brick);
-                //a.SetMessage("Ammunition");
                 a.SetMessage($"{ammoName}");
                 a.SetProgressBarBgColor(XKCDColors.DarkGrey);
-                a.SetProgressBarColor(XKCDColors.Brick);
+                switch (type)
+                {
+                    case CounterMeasure.CMDropper.CountermeasureTypes.Flare:
+                        a.SetProgressBarColor(XKCDColors.Brick);
+                        a.SetMsgTextColor(XKCDColors.Brick);
+                        break;
+                    case CounterMeasure.CMDropper.CountermeasureTypes.Chaff:
+                        a.SetProgressBarColor(XKCDColors.Grey);
+                        a.SetMsgTextColor(XKCDColors.Grey);
+                        break;
+                    case CounterMeasure.CMDropper.CountermeasureTypes.Smoke:
+                        a.SetProgressBarColor(XKCDColors.Brown);
+                        a.SetMsgTextColor(XKCDColors.Brown);
+                        break;
+                    case CounterMeasure.CMDropper.CountermeasureTypes.Bubbles:
+                        a.SetProgressBarColor(XKCDColors.TealGreen);
+                        a.SetMsgTextColor(XKCDColors.TealGreen);
+                        break;
+                    case CounterMeasure.CMDropper.CountermeasureTypes.Decoy:
+                        a.SetProgressBarColor(XKCDColors.DarkBlue);
+                        a.SetMsgTextColor(XKCDColors.DarkBlue);
+                        break;
+
+                }
             }
             return a;
         }
@@ -232,7 +253,7 @@ namespace BDArmory.UI
             }
             return a;
         }
-        private ProtoStageIconInfo InitEmptyGauge(string message) //could remove emptygauge, mainly a QoL thing, removal might increase performance slightly
+        private ProtoStageIconInfo InitEmptyGauge() //could remove emptygauge, mainly a QoL thing, removal might increase performance slightly
         {
             EnsureStagingIcon();
             ProtoStageIconInfo g = part.stackIcon.DisplayInfo();
@@ -241,7 +262,7 @@ namespace BDArmory.UI
             {
                 g.SetMsgBgColor(XKCDColors.AlmostBlack);
                 g.SetMsgTextColor(XKCDColors.Yellow);
-                g.SetMessage(message);
+                g.SetMessage(StringUtils.Localize("#LOC_BDArmory_ProtoStageIconInfo_AmmoOut"));//"Ammo Depleted"
                 g.SetProgressBarBgColor(XKCDColors.Yellow);
                 g.SetProgressBarColor(XKCDColors.Black);
             }
