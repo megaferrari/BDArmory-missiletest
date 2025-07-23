@@ -119,7 +119,7 @@ namespace BDArmory.Guidances
             float correctionFactor, float N, out float gLimit)
         {
             targetPos += targetVel * Time.fixedDeltaTime;
-            Vector3 accel = GetCLOSAccel(sensorPos, currentPos, currentVelocity, targetPos, targetVel, Vector3.zero, correctionFactor, N);
+            Vector3 accel = GetCLOSAccel(sensorPos, Vector3.zero, currentPos, currentVelocity, targetPos, targetVel, Vector3.zero, correctionFactor, N);
             gLimit = accel.magnitude;
 
             return currentPos + 4f * currentVelocity + 16f * accel;
@@ -132,7 +132,7 @@ namespace BDArmory.Guidances
             Vector3 relRange = targetPos - sensorPos;
             Vector3 angVel = Vector3.Cross(relRange, relVelocity) / relRange.sqrMagnitude;
 
-            Vector3 accel = GetCLOSAccel(sensorPos, currentPos, currentVelocity, targetPos, targetVel, angVel, correctionFactor, N);
+            Vector3 accel = GetCLOSAccel(sensorPos, sensorVel, currentPos, currentVelocity, targetPos, targetVel, angVel, correctionFactor, N);
 
             accel -= 2f * Vector3.Cross(currentVelocity, angVel);
             gLimit = accel.magnitude / 9.80665f;
@@ -167,7 +167,7 @@ namespace BDArmory.Guidances
             if (leadTime < 8)
                 angVel *= (1f - beamLeadFactor);
 
-            Vector3 accel = GetCLOSAccel(sensorPos, currentPos, currentVelocity, sensorPos + corrRelRange, targetVel, angVel, correctionFactor, N);
+            Vector3 accel = GetCLOSAccel(sensorPos, sensorVel, currentPos, currentVelocity, sensorPos + corrRelRange, targetVel, angVel, correctionFactor, N);
 
             //accel -= 2f * Vector3.Cross(currentVelocity, angVel);
             gLimit = accel.magnitude / 9.80665f;
@@ -196,7 +196,7 @@ namespace BDArmory.Guidances
             return accel;
         }*/
 
-        public static Vector3 GetCLOSAccel(Vector3 sensorPos, Vector3 currentPos, Vector3 currentVelocity, Vector3 targetPos, Vector3 targetVel, Vector3 beamAngVel,
+        public static Vector3 GetCLOSAccel(Vector3 sensorPos, Vector3 sensorVel, Vector3 currentPos, Vector3 currentVelocity, Vector3 targetPos, Vector3 targetVel, Vector3 beamAngVel,
             float correctionFactor, float N)
         {
             Vector3 beamDir = (targetPos - sensorPos).normalized;
@@ -212,7 +212,7 @@ namespace BDArmory.Guidances
             currentSpeed = Mathf.Max(currentSpeed, 200f);
 
             // This gives the velocity command normal to the beam
-            Vector3 velCommand = -correctionFactor * beamError * beamErrorV + beamVelocity;
+            Vector3 velCommand = -correctionFactor * beamError * beamErrorV + beamVelocity + sensorVel;
             
             // We calculate how much remains of currentVelocity once we subtract away the velocity command
             float temp = 1f - velCommand.sqrMagnitude / (currentSpeed * currentSpeed);

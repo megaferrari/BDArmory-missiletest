@@ -374,7 +374,7 @@ namespace BDArmory.Weapons.Missiles
         private int cruiseTerminationFrames = 0;
 
         public bool SetupComplete => StartSetupComplete;
-        public int[] torqueBounds = [-1,7];
+        public int[] torqueBounds = [-1, 7];
         public float[] torqueAoABounds = [-1f, -1f, -1f];
         public SmoothingF smoothedAoA;
         #endregion Variable Declarations
@@ -520,13 +520,6 @@ namespace BDArmory.Weapons.Missiles
 
             Fields["maxOffBoresight"].guiActive = false;
             Fields["maxOffBoresight"].guiActiveEditor = false;
-            if (missileFireAngle < 0 && maxOffBoresight < 360 && missileType.ToLower() == "missile" || missileType.ToLower() == "torpedo")
-            {
-                UI_FloatRange mFA = (UI_FloatRange)Fields["missileFireAngle"].uiControlEditor;
-                mFA.maxValue = maxOffBoresight * 0.75f;
-                //mFA.stepIncrement = mFA.maxValue / 100;
-                missileFireAngle = maxOffBoresight * 0.75f;
-            }
 
             Fields["maxStaticLaunchRange"].guiActive = false;
             Fields["maxStaticLaunchRange"].guiActiveEditor = false;
@@ -958,6 +951,17 @@ namespace BDArmory.Weapons.Missiles
                 Fields["dropTime"].guiActiveEditor = true;
             }
 
+            if (maxOffBoresight < 360 && missileType.ToLower() == "missile" || missileType.ToLower() == "torpedo")
+            {
+                UI_FloatRange mFA = (UI_FloatRange)Fields["missileFireAngle"].uiControlEditor;
+                mFA.maxValue = maxOffBoresight * 0.75f;
+                //mFA.stepIncrement = mFA.maxValue / 100;
+                if (missileFireAngle < 0)
+                    missileFireAngle = maxOffBoresight * 0.75f;
+                else
+                    missileFireAngle = Mathf.Min(missileFireAngle, maxOffBoresight * 0.75f);
+            }
+
             if (TargetingModeTerminal != TargetingModes.None)
             {
                 Fields["terminalGuidanceShouldActivate"].guiName += terminalGuidanceType;
@@ -986,7 +990,7 @@ namespace BDArmory.Weapons.Missiles
             }
             else
             {
-                
+
                 Fields["LoftMaxAltitude"].guiActiveEditor = true;
                 Fields["LoftRangeOverride"].guiActiveEditor = true;
 
@@ -3060,7 +3064,7 @@ namespace BDArmory.Weapons.Missiles
             Vector3 target;
             float currgLimit = -1f;
 
-            if (TargetAcquired)
+            if (TargetAcquired || TargetingMode == TargetingModes.Laser)
             {
                 Vector3 sensorPos;
                 Vector3 sensorVel;
@@ -3107,16 +3111,16 @@ namespace BDArmory.Weapons.Missiles
                     return;
                 }
 
-                //proxy detonation
+                /*//proxy detonation
                 var distThreshold = 0.5f * GetBlastRadius();
-                if (proxyDetonate && !DetonateAtMinimumDistance && ((TargetPosition + (TargetVelocity * Time.fixedDeltaTime)) - (vessel.CoM)).sqrMagnitude < distThreshold * distThreshold)
+                if (proxyDetonate && !DetonateAtMinimumDistance && (!heatTarget.exists || heatTarget.vessel) && ((TargetPosition + (TargetVelocity * Time.fixedDeltaTime)) - (vessel.CoM)).sqrMagnitude < distThreshold * distThreshold)
                 {
                     //part.Destroy(); //^look into how this interacts with MissileBase.DetonationState
                     // - if the missile is still within the notSafe status, the missile will delete itself, else, the checkProximity state of DetonationState would trigger before the missile reaches the 1/2 blastradius.
                     // would only trigger if someone set the detonation distance override to something smallerthan 1/2 blst radius, for some reason
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher] ProxiDetonate triggered");
                     Detonate();
-                }
+                }*/
 
                 float tempPronavGain = pronavGain > 0 ? pronavGain : pronavGainCurve.Evaluate(Vector3.Distance(TargetPosition, vessel.CoM));
 
@@ -3235,7 +3239,7 @@ namespace BDArmory.Weapons.Missiles
                             if (TimeToImpact == float.PositiveInfinity)
                             {
                                 // If the missile is not in a vaccuum, is above LoftMinAltitude and has an angle to target below the climb angle (or 90 - climb angle if climb angle > 45) (in this case, since it's angle from the vertical the check is if it's > 90f - LoftAngle) and is either is at a lower altitude than targetAlt + LoftAltitudeAdvMax or further than LoftRangeOverride, then loft.
-                                if (!vessel.InVacuum() && (vessel.altitude >= LoftMinAltitude) && Vector3.Angle(TargetPosition - vessel.CoM, vessel.upAxis) > Mathf.Min(LoftAngle, 90f - LoftAngle) && ((vessel.altitude - targetAlt <= LoftAltitudeAdvMax) || (TargetPosition - vessel.CoM).sqrMagnitude > (LoftRangeOverride * LoftRangeOverride))) loftState = LoftStates.Boost;
+                                if (!vessel.InVacuum() && (SourceVessel.Landed || vessel.altitude >= LoftMinAltitude) && Vector3.Angle(TargetPosition - vessel.CoM, vessel.upAxis) > Mathf.Min(LoftAngle, 90f - LoftAngle) && ((vessel.altitude - targetAlt <= LoftAltitudeAdvMax) || (TargetPosition - vessel.CoM).sqrMagnitude > (LoftRangeOverride * LoftRangeOverride))) loftState = LoftStates.Boost;
                                 else loftState = LoftStates.Terminal;
                             }
 
@@ -3296,16 +3300,16 @@ namespace BDArmory.Weapons.Missiles
                     aamTarget = TargetPosition;
                 }
 
-                //proxy detonation
+                /*//proxy detonation
                 var distThreshold = 0.5f * GetBlastRadius();
-                if (proxyDetonate && !DetonateAtMinimumDistance && ((TargetPosition + (TargetVelocity * Time.fixedDeltaTime)) - (vessel.CoM)).sqrMagnitude < distThreshold * distThreshold)
+                if (proxyDetonate && !DetonateAtMinimumDistance && (!heatTarget.exists || heatTarget.vessel) && ((TargetPosition + (TargetVelocity * Time.fixedDeltaTime)) - (vessel.CoM)).sqrMagnitude < distThreshold * distThreshold)
                 {
                     //part.Destroy(); //^look into how this interacts with MissileBase.DetonationState
                     // - if the missile is still within the notSafe status, the missile will delete itself, else, the checkProximity state of DetonationState would trigger before the missile reaches the 1/2 blastradius.
                     // would only trigger if someone set the detonation distance override to something smallerthan 1/2 blst radius, for some reason
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher] ProxiDetonate triggered");
                     Detonate();
-                }
+                }*/
             }
             else
             {
@@ -3377,12 +3381,12 @@ namespace BDArmory.Weapons.Missiles
                 SLWTarget = (SLWTarget - ((float)FlightGlobals.getAltitudeAtPos(SLWTarget) * upDir)) + upDir * runningDepth;
                 TimeToImpact = timeToImpact;
 
-                //proxy detonation
+                /*//proxy detonation
                 var distThreshold = 0.5f * GetBlastRadius();
-                if (proxyDetonate && !DetonateAtMinimumDistance && ((TargetPosition + (TargetVelocity * Time.fixedDeltaTime)) - (vessel.CoM)).sqrMagnitude < distThreshold * distThreshold)
+                if (proxyDetonate && !DetonateAtMinimumDistance && (!heatTarget.exists || heatTarget.vessel) && ((TargetPosition + (TargetVelocity * Time.fixedDeltaTime)) - (vessel.CoM)).sqrMagnitude < distThreshold * distThreshold)
                 {
                     Detonate(); //ends up the same as part.Destroy, except it doesn't trip the hasDied flag for clustermissiles
-                }
+                }*/
             }
             else
             {
