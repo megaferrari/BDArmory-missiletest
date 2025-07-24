@@ -181,7 +181,11 @@ namespace BDArmory.Settings
 			}},
 			{74,new(){
 			}},
-		};
+            {77,new(){
+                {"VESSEL_SPAWN_ALTITUDE", 5},
+				{"GUARD_MODE_TRIGGER_ALT", 2000},
+            }},
+        };
 		public static Dictionary<int, int> RWPRoundToIndex = new() { { 0, 0 } }, RWPIndexToRound = new() { { 0, 0 } }; // Helpers for the UI slider.
 		static readonly HashSet<string> currentFilter = [];
 
