@@ -16,6 +16,8 @@ namespace BDArmory.CounterMeasure
         bool hasBubbleGauge = false;
         public Dictionary<CMDropper.CountermeasureTypes, int> cmCounts;
         public Dictionary<CMDropper.CountermeasureTypes, int> cmMaxCounts;
+		bool cleaningRequired = false;
+		
         void Start()
         {
             if (!Setup())
@@ -24,11 +26,14 @@ namespace BDArmory.CounterMeasure
                 return;
             }
             vessel.OnJustAboutToBeDestroyed += AboutToBeDestroyed;
-            GameEvents.onVesselCreate.Add(OnVesselCreate);
-            GameEvents.onPartJointBreak.Add(OnPartJointBreak);
-            GameEvents.onPartDie.Add(OnPartDie);
+            //GameEvents.onVesselCreate.Add(OnVesselCreate);
+            //GameEvents.onPartJointBreak.Add(OnPartJointBreak);
+            //GameEvents.onPartDie.Add(OnPartDie);
             GameEvents.onVesselPartCountChanged.Add(OnVesselPartCountChanged);
-            StartCoroutine(DelayedCleanListRoutine());
+            GameEvents.onVesselChange.Add(OnVesselSwitched);
+            if (vessel.isActiveVessel)
+                 StartCoroutine(DelayedCleanListRoutine());
+            else cleaningRequired = true;
         }
 
 
@@ -60,10 +65,11 @@ namespace BDArmory.CounterMeasure
         void OnDestroy()
         {
             if (vessel) vessel.OnJustAboutToBeDestroyed -= AboutToBeDestroyed;
-            GameEvents.onVesselCreate.Remove(OnVesselCreate);
-            GameEvents.onPartJointBreak.Remove(OnPartJointBreak);
-            GameEvents.onPartDie.Remove(OnPartDie);
+            //GameEvents.onVesselCreate.Remove(OnVesselCreate);
+            //GameEvents.onPartJointBreak.Remove(OnPartJointBreak);
+            //GameEvents.onPartDie.Remove(OnPartDie);
             GameEvents.onVesselPartCountChanged.Remove(OnVesselPartCountChanged);
+			GameEvents.onVesselChange.Remove(OnVesselSwitched);
         }
 
         void AboutToBeDestroyed()
@@ -71,21 +77,17 @@ namespace BDArmory.CounterMeasure
             Destroy(this);
         }
 
-        void OnPartDie() => OnPartDie(null);
-        void OnPartDie(Part p)
-        {
-            StartCoroutine(DelayedCleanListRoutine());
-        }
-        void OnVesselCreate(Vessel v) => StartCoroutine(DelayedCleanListRoutine());
         void OnVesselPartCountChanged(Vessel v)
         {
-            StartCoroutine(DelayedCleanListRoutine());
+            if (gameObject.activeInHierarchy && v == vessel && vessel.isActiveVessel)
+                StartCoroutine(DelayedCleanListRoutine());
+            else cleaningRequired = true;
         }
-        void OnPartJointBreak(PartJoint j, float breakForce)
-        {
-            StartCoroutine(DelayedCleanListRoutine());
-        }
-
+		void OnVesselSwitched(Vessel v)
+		{
+			if (gameObject.activeInHierarchy && v == vessel && cleaningRequired)
+                CleanList();
+		}
         public void AddCMDropper(CMDropper CM)
         {
             if (droppers is null && !Setup())
@@ -117,10 +119,6 @@ namespace BDArmory.CounterMeasure
         public void DelayedCleanList()
         {
             StartCoroutine(DelayedCleanListRoutine());
-        }
-        void OnFixedUpdate()
-        {
-            if (UI.BDArmorySetup.GameIsPaused) return;
         }
         IEnumerator DelayedCleanListRoutine()
         {
@@ -230,6 +228,7 @@ namespace BDArmory.CounterMeasure
             hasSmokegauce = false;
             hasDecoyGauge = false;
             hasBubbleGauge = false;
+			cleaningRequired = false;
         }
     }
 }

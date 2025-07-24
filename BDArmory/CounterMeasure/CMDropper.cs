@@ -167,7 +167,7 @@ namespace BDArmory.CounterMeasure
         {
             BDArmorySetup.OnVolumeChange -= UpdateVolume;
             GameEvents.onVesselsUndocking.Remove(OnVesselsUndocking);
-            vesselCMs.RemoveCMDropper(this);
+            if (vesselCMs != null) vesselCMs.RemoveCMDropper(this);
         }
 
         void OnVesselsUndocking(Vessel v1, Vessel v2)
