@@ -427,7 +427,7 @@ namespace BDArmory.Radar
             if (force || ti.radarBaseSignature == -1 || ti.radarBaseSignatureNeedsUpdate || (BDArmorySettings.ASPECTED_RCS && ti.radarSignatureMatrixNeedsUpdate))
             {
                 // is it just some debris? then dont bother doing a real rcs rendering and just fake it with the parts mass
-                if (VesselModuleRegistry.ignoredVesselTypes.Contains(v.vesselType) || !v.IsControllable)
+                if (VesselModuleRegistry.ignoredVesselTypes.Contains(v.vesselType) || !v.IsControllable || v.transform == null)
                 {
                     ti.radarBaseSignature = v.GetTotalMass();
                 }
