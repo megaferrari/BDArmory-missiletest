@@ -434,7 +434,15 @@ namespace BDArmory.Radar
                 else
                 {
                     // perform radar rendering to obtain base cross section
-                    ti = RenderVesselRadarSnapshot(v, v.transform, ti);
+                    try
+                    {
+                        ti = RenderVesselRadarSnapshot(v, v.transform, ti);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning($"[BDArmory.RadarUtils]: Failed to get a radar snapshot of {v.GetName()}, using mass instead: {e.Message}");
+                        ti.radarBaseSignature = v.GetTotalMass();
+                    }
                 }
 
                 ti.radarSignatureMatrixNeedsUpdate = BDArmorySettings.ASPECTED_RCS ? false : ti.radarSignatureMatrixNeedsUpdate;
