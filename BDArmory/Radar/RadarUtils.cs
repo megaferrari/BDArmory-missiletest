@@ -438,7 +438,7 @@ namespace BDArmory.Radar
                     {
                         ti = RenderVesselRadarSnapshot(v, v.transform, ti);
                     }
-                    catch (Exception e)
+                    catch (Exception e) // Unity physics sometimes breaks (MMGs sometimes cause this).
                     {
                         Debug.LogWarning($"[BDArmory.RadarUtils]: Failed to get a radar snapshot of {v.GetName()}, using mass instead: {e.Message}");
                         ti.radarBaseSignature = v.GetTotalMass();
