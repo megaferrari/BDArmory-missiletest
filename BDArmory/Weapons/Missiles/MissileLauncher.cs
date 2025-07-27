@@ -1610,7 +1610,7 @@ namespace BDArmory.Weapons.Missiles
 
             if (ml.radarTarget.exists && ml.radarTarget.lockedByRadar && ml.radarTarget.lockedByRadar.vessel != ml.SourceVessel)
             {
-                MissileFire datalinkwpm = ml.radarTarget.lockedByRadar.vessel.ActiveController().WM; // FIXME SI Does this matter if the primary WM on the datalink changes?
+                MissileFire datalinkwpm = ml.radarTarget.lockedByRadar.vessel.ActiveController().WM;
                 if (datalinkwpm)
                 {
                     datalinkwpm.UpdateQueuedLaunches(targetVessel, ml, false, false);
