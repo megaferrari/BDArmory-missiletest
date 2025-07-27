@@ -1455,6 +1455,7 @@ namespace BDArmory.Weapons.Missiles
         IEnumerator FireReloadableMissile()
         {
             var firedByWM = SourceVessel.ActiveController().WM;
+            var sourceVessel = SourceVessel;
             part.partTransform.localScale = Vector3.zero;
             part.ShieldedFromAirstream = true;
             part.crashTolerance = 100;
@@ -1472,16 +1473,10 @@ namespace BDArmory.Weapons.Missiles
                 Debug.LogWarning($"[BDArmory.MissileLauncher]: Error while spawning missile with {part.name}, MissileLauncher was null!");
                 yield break;
             }
-            if (firedByWM != SourceVessel.ActiveController().WM)
-            {
-                if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: Primary WM changed while spawning reloadable missile, abort firing it!");
-                if (ml is not null) Destroy(ml.gameObject); // De-spawn the missile. FIXME SI Is this sufficient?
-                yield break;
-            }
 
             FiredByWM = firedByWM;
             ml.launched = true;
-            ml.SourceVessel = SourceVessel;
+            ml.SourceVessel = sourceVessel;
             ml.GuidanceMode = GuidanceMode;
             //FiredByWM.SendTargetDataToMissile(ml);
             ml.TimeFired = Time.time;
