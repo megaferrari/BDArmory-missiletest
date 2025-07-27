@@ -407,10 +407,15 @@ namespace BDArmory.Targeting
                 Vector3 camUp = cameraParentTransform.up;
                 if (eyeHolderTransform) camUp = Vector3.Cross(cameraParentTransform.forward, eyeHolderTransform.right);
                 cameraParentTransform.rotation = Quaternion.LookRotation(lookVector, camUp);
-                if (vessel.isActiveVessel && activeCam == this && TargetingCamera.cameraTransform)
-                {
-                    TargetingCamera.cameraTransform.rotation = Quaternion.LookRotation(cameraParentTransform.forward, worldUp);
-                }
+            }
+        }
+
+        void UpdateCameralDirection()
+        {
+            Vector3 worldUp = VectorUtils.GetUpDirection(cameraParentTransform.position);
+            if (vessel.isActiveVessel && activeCam == this && TargetingCamera.cameraTransform)
+            {
+                TargetingCamera.cameraTransform.rotation = Quaternion.LookRotation(cameraParentTransform.forward, worldUp);
             }
         }
 
@@ -433,49 +438,8 @@ namespace BDArmory.Targeting
                         {
                             TargetingCamera.Instance.SetFOV(fov);
                         }
-                    }
 
-                    if (radarLock)
-                    {
-                        UpdateRadarLock();
-                    }
-
-                    if (groundStabilized)
-                    {
-                        if (lockedVessel != null)
-                            groundTargetPosition = lockedVessel.CoM;
-                        else
-                            groundTargetPosition = VectorUtils.GetWorldSurfacePostion(bodyRelativeGTP, vessel.mainBody);//vessel.mainBody.GetWorldSurfacePosition(bodyRelativeGTP.x, bodyRelativeGTP.y, bodyRelativeGTP.z);
-
-                        Vector3 lookVector = groundTargetPosition - cameraParentTransform.position;
-                        //cameraParentTransform.rotation = Quaternion.LookRotation(lookVector);
-                        PointCameraModel(lookVector);
-                    }
-
-                    Vector3 lookDirection = cameraParentTransform.forward;
-                    if (Vector3.Angle(lookDirection, cameraParentTransform.parent.forward) > gimbalLimit)
-                    {
-                        lookDirection = Vector3.RotateTowards(cameraParentTransform.transform.parent.forward, lookDirection, gimbalLimit * Mathf.Deg2Rad, 0);
-                        gimbalLimitReached = true;
-                        lockedVessel = null;
-                    }
-                    else
-                    {
-                        gimbalLimitReached = false;
-                    }
-
-                    if (!groundStabilized || gimbalLimitReached)
-                    {
-                        PointCameraModel(lookDirection);
-                    }
-
-                    if (eyeHolderTransform)
-                    {
-                        Vector3 projectedForward = cameraParentTransform.forward.ProjectOnPlanePreNormalized(eyeHolderTransform.parent.up);
-                        if (projectedForward != Vector3.zero)
-                        {
-                            eyeHolderTransform.rotation = Quaternion.LookRotation(projectedForward, eyeHolderTransform.parent.up);
-                        }
+                        UpdateCameralDirection();
                     }
 
                     UpdateControls();
@@ -507,8 +471,51 @@ namespace BDArmory.Targeting
                     }
                     if (delayedEnabling) return;
 
-                    if (cameraEnabled)
+                    if (cameraEnabled && TargetingCamera.ReadyForUse && vessel.IsControllable)
                     {
+                        if (radarLock)
+                        {
+                            UpdateRadarLock();
+                        }
+
+                        if (groundStabilized)
+                        {
+                            if (lockedVessel != null)
+                                groundTargetPosition = lockedVessel.CoM;
+                            else
+                                groundTargetPosition = VectorUtils.GetWorldSurfacePostion(bodyRelativeGTP, vessel.mainBody);//vessel.mainBody.GetWorldSurfacePosition(bodyRelativeGTP.x, bodyRelativeGTP.y, bodyRelativeGTP.z);
+
+                            Vector3 lookVector = groundTargetPosition - cameraParentTransform.position;
+                            //cameraParentTransform.rotation = Quaternion.LookRotation(lookVector);
+                            PointCameraModel(lookVector);
+                        }
+
+                        Vector3 lookDirection = cameraParentTransform.forward;
+                        if (Vector3.Angle(lookDirection, cameraParentTransform.parent.forward) > gimbalLimit)
+                        {
+                            lookDirection = Vector3.RotateTowards(cameraParentTransform.transform.parent.forward, lookDirection, gimbalLimit * Mathf.Deg2Rad, 0);
+                            gimbalLimitReached = true;
+                            lockedVessel = null;
+                        }
+                        else
+                        {
+                            gimbalLimitReached = false;
+                        }
+
+                        if (!groundStabilized || gimbalLimitReached)
+                        {
+                            PointCameraModel(lookDirection);
+                        }
+
+                        if (eyeHolderTransform)
+                        {
+                            Vector3 projectedForward = cameraParentTransform.forward.ProjectOnPlanePreNormalized(eyeHolderTransform.parent.up);
+                            if (projectedForward != Vector3.zero)
+                            {
+                                eyeHolderTransform.rotation = Quaternion.LookRotation(projectedForward, eyeHolderTransform.parent.up);
+                            }
+                        }
+
                         GetHitPoint();
                     }
                 }
@@ -661,7 +668,7 @@ namespace BDArmory.Targeting
                         ClearTarget();
                     }
                     //lookRotation = Quaternion.RotateTowards(cameraParentTransform.rotation, lookRotation, 120*Time.fixedDeltaTime);
-                    Vector3 rotateTwdDirection = Vector3.RotateTowards(cameraParentTransform.forward, targetDirection, 1200 * Time.fixedDeltaTime * Mathf.Deg2Rad, 0);
+                    Vector3 rotateTwdDirection = Vector3.RotateTowards(cameraParentTransform.forward, targetDirection, traverseRate * Time.fixedDeltaTime * Mathf.Deg2Rad, 0);
                     PointCameraModel(rotateTwdDirection);
                 }
             }
