@@ -1263,11 +1263,10 @@ namespace BDArmory.Weapons.Missiles
             DetonationDistanceState = DetonationDistanceStates.Cruising;
             BDATargetManager.FiredMissiles.Remove(this);
             MissileState = MissileStates.Idle;
-            var weaponManager = WeaponManager;
-            if (weaponManager != null && weaponManager.guardFiringMissile) // FIXME SI Should this be FiredByWM?
+            if (FiredByWM != null && FiredByWM.guardFiringMissile)
             {
                 if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.BDModularGuidance]: disabling target lock for {vessel.vesselName}");
-                weaponManager.guardFiringMissile = false; // Disable target lock.
+                FiredByWM.guardFiringMissile = false; // Disable target lock.
             }
         }
 
