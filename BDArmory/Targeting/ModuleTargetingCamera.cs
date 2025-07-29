@@ -42,6 +42,9 @@ namespace BDArmory.Targeting
         [KSPField(isPersistant = true)]
         public bool cameraEnabled;
 
+        [KSPField]
+        public bool colorCamera = false;
+
         float fov
         {
             get
@@ -202,6 +205,7 @@ namespace BDArmory.Targeting
                 activeCam = this;
                 windowIsOpen = true;
                 TargetingCamera.Instance.EnableCamera(cameraParentTransform);
+                TargetingCamera.Instance.color = colorCamera;
                 TargetingCamera.Instance.nvMode = nvMode;
                 TargetingCamera.Instance.SetFOV(fov);
                 ResizeTargetWindow();
