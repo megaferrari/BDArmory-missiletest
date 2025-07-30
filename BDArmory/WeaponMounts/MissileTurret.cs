@@ -9,6 +9,8 @@ using BDArmory.Radar;
 using BDArmory.Settings;
 using BDArmory.Utils;
 using BDArmory.Weapons.Missiles;
+using BDArmory.Targeting;
+using BDArmory.Extensions;
 
 namespace BDArmory.WeaponMounts
 {
@@ -37,7 +39,7 @@ namespace BDArmory.WeaponMounts
 
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_TurretLoft"),
          UI_Toggle(scene = UI_Scene.All)]
-        public bool turretLoft = true; // Turret fires at a lofted trajectory
+        public bool turretLoft = false; // Turret fires at a lofted trajectory
 
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_TurretLoftFac"),
             UI_FloatRange(minValue = 0, maxValue = 1, stepIncrement = 0.05f, scene = UI_Scene.Editor, affectSymCounterparts = UI_Scene.Editor)]
@@ -71,6 +73,8 @@ namespace BDArmory.WeaponMounts
         [KSPField] public bool disableRadarPitch = false;
 
         [KSPField] public bool mouseControllable = true;
+
+        [KSPField] public bool deployBlocksRotation = false;
 
         //animation
         [KSPField] public string deployAnimationName;
@@ -183,7 +187,7 @@ namespace BDArmory.WeaponMounts
                 returnRoutine = StartCoroutine(ReturnRoutine());
             }
 
-            if (hasAttachedRadar)
+            if (hasAttachedRadar && !(deployBlocksRotation && hasDeployAnimation))
             {
                 attachedRadar.lockingYaw = true;
                 attachedRadar.lockingPitch = true;
@@ -194,7 +198,7 @@ namespace BDArmory.WeaponMounts
                 Events["ReturnTurret"].guiActive = true;
             }
 
-            if (hasDeployAnimation)
+            if (hasDeployAnimation && !deployBlocksRotation)
             {
                 if (deployAnimRoutine != null)
                 {
@@ -248,6 +252,16 @@ namespace BDArmory.WeaponMounts
                 UpdateMissilePositions();
                 yield return new WaitForFixedUpdate();
             }
+
+            if (hasDeployAnimation && deployBlocksRotation)
+            {
+                if (deployAnimRoutine != null)
+                {
+                    StopCoroutine(deployAnimRoutine);
+                }
+
+                deployAnimRoutine = StartCoroutine(DeployAnimation(false));
+            }
         }
 
         public override void OnStart(StartState state)
@@ -288,6 +302,12 @@ namespace BDArmory.WeaponMounts
                 mml.Dispose();
                 attachedRadar = part.FindModuleImplementing<ModuleRadar>();
                 if (attachedRadar) hasAttachedRadar = true;
+
+                if (hasAttachedRadar && deployBlocksRotation && hasDeployAnimation)
+                {
+                    attachedRadar.lockingYaw = !disableRadarYaw;
+                    attachedRadar.lockingPitch = !disableRadarPitch;
+                }
 
                 finalTransform = part.FindModelTransform(finalTransformName);
 
@@ -361,17 +381,27 @@ namespace BDArmory.WeaponMounts
         {
             slaved = false;
 
-            if (weaponManager && wm.slavingTurrets && wm.CurrentMissile)
+            if (weaponManager && wm.CurrentMissile)
             {
-                slaved = true;
-                //slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(wm.CurrentMissile, wm.slavedPosition, wm.slavedVelocity);
-                slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(activeMissile, wm.slavedPosition, wm.slavedVelocity, turretLoft, turretLoftFac);
+                if (wm.slavingTurrets)
+                {
+                    slaved = true;
+                    //slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(wm.CurrentMissile, wm.slavedPosition, wm.slavedVelocity);
+                    slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(activeMissile, wm.slavedPosition, wm.slavedVelocity, turretLoft, turretLoftFac);
+                }
+                else if (weaponManager.mainTGP != null && ModuleTargetingCamera.windowIsOpen && weaponManager.mainTGP.slaveTurrets)
+                {
+                    slaved = true;
+                    //slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(wm.CurrentMissile, wm.slavedPosition, wm.slavedVelocity);
+                    slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(activeMissile, wm.mainTGP.targetPointPosition, wm.mainTGP.lockedVessel ? wm.mainTGP.lockedVessel.Velocity() : Vector3.zero, turretLoft, turretLoftFac);
+                }
             }
         }
 
         public void SlavedAim()
         {
             if (pausingAfterShot) return;
+            if (hasDeployAnimation && (!deployBlocksRotation || deployAnimState.normalizedTime < 1)) return;
 
             turret.AimToTarget(slavedTargetPosition);
         }
@@ -380,6 +410,7 @@ namespace BDArmory.WeaponMounts
         void MouseAim()
         {
             if (pausingAfterShot) return;
+            if (hasDeployAnimation && (!deployBlocksRotation || deployAnimState.normalizedTime < 1)) return;
 
             Vector3 targetPosition;
             float maxTargetingRange = 5000;
