@@ -458,12 +458,6 @@ namespace BDArmory.Targeting
                     {
                         DisableCamera();
                     }
-                    if (delayedEnabling) return;
-
-                    if (cameraEnabled)
-                    {
-                        GetHitPoint();
-                    }
                 }             
             }
         }
@@ -483,10 +477,10 @@ namespace BDArmory.Targeting
                     UpdateRadarLock();
                 }
 
-                if (groundStabilized && !slewingToPosition)
+                if (groundStabilized)
                 {
                     if (lockedVessel != null)
-                        groundTargetPosition = lockedVessel.CoM + (lockedVessel.Velocity() * Time.fixedDeltaTime);
+                        groundTargetPosition = lockedVessel.CoM;
                     else
                         groundTargetPosition = VectorUtils.GetWorldSurfacePostion(bodyRelativeGTP, vessel.mainBody);//vessel.mainBody.GetWorldSurfacePosition(bodyRelativeGTP.x, bodyRelativeGTP.y, bodyRelativeGTP.z);
 
@@ -521,6 +515,7 @@ namespace BDArmory.Targeting
                     }
                 }
                 UpdateSlaveData();
+                GetHitPoint();
             }
         }
 
@@ -713,8 +708,8 @@ namespace BDArmory.Targeting
 
                 if (BDArmorySettings.DEBUG_RADAR)
                 {
-                    GUI.Label(new Rect(600, 1000, 500, 30), $"Slew rate: {finalSlewSpeed}; Slewing: {slewingToPosition}; lookError: {lookError}; stopPTPR: {stopPTPR}");
-                    GUI.Label(new Rect(600, 950, 500, 30), $"ComLock: {(CoMLock ? lockedVessel != null ? lockedVessel.GetName() : "null" : "false")}; surfDet: {surfaceDetected}; gStab: {groundStabilized};");
+                    GUI.Label(new Rect(600, 1000, 100, 30), $"Slew rate: {finalSlewSpeed}; surfaceDetected: {surfaceDetected}; groundStabilized: {groundStabilized}");
+                    GUI.Label(new Rect(600, 950, 200, 30), "ComLock: " + (CoMLock ? lockedVessel != null ? lockedVessel.GetName() : "null" : "false"));
                 }
 
                 if (BDArmorySettings.DEBUG_LINES && cameraEnabled && cameraParentTransform is not null)
@@ -1317,8 +1312,7 @@ namespace BDArmory.Targeting
                             groundTargetPosition = p.vessel.CoM + (p.vessel.Velocity() * Time.fixedDeltaTime);
                             StartCoroutine(StabilizeNextFrame());
                             lockedVessel = p.vessel;
-                            //if (!slewingToPosition)
-                                //StartCoroutine(PointToPositionRoutine(p.vessel.CoM, p.vessel, false));
+                            //StartCoroutine(PointToPositionRoutine(p.vessel.CoM, p.vessel, false));
                         }
                     }
                     Vector3d newGTP = VectorUtils.WorldPositionToGeoCoords(groundTargetPosition, vessel.mainBody);
@@ -1409,7 +1403,7 @@ namespace BDArmory.Targeting
             else
             {
                 targetPointPosition = cameraParentTransform.position + (maxRayDistance * cameraParentTransform.forward);
-                surfaceDetected = false;
+                surfaceDetected = groundStabilized ? true : false;
             }
         }
 
@@ -1462,7 +1456,7 @@ namespace BDArmory.Targeting
 
         bool stopPTPR;
         bool slewingToPosition;
-        double lookError;
+
         public IEnumerator PointToPositionRoutine(Vector3 position, Vessel tgtVessel = null, bool clearTgt = true)
         {
             yield return StopPTPRRoutine();
@@ -1476,21 +1470,19 @@ namespace BDArmory.Targeting
                 slewingToPosition = false;
                 yield break;
             }
-
-            while (!stopPTPR && Vector3d.Angle(cameraParentTransform.transform.forward, (tgtVessel != null ? tgtVessel.CoM : position) - (cameraParentTransform.transform.position)) > 0.01f)
+            float lookError = Vector3.Angle(cameraParentTransform.transform.forward, (tgtVessel != null ? tgtVessel.CoM : position) - (cameraParentTransform.transform.position));
+            while (!stopPTPR && lookError > 0.1f)
             {
-                lookError = Vector3d.Angle(cameraParentTransform.transform.forward, (tgtVessel != null ? tgtVessel.CoM : position) - (cameraParentTransform.transform.position));
                 if (tgtVessel != null)
                 {
-                    position = tgtVessel.CoM + (tgtVessel.Velocity() * Time.fixedDeltaTime); //+ tgtVessel.Velocity() * Time.fixedDeltaTime;
+                    position = tgtVessel.CoM; //+ tgtVessel.Velocity() * Time.fixedDeltaTime;
                     lockedVessel = tgtVessel;
                 }
                 else lockedVessel = null;
                 float slewRate = traverseRate * Mathf.Deg2Rad * Time.fixedDeltaTime;
-                if (lookError < 0.5f && lockedVessel != null)
+                if (lookError < 0.2f && lockedVessel != null)
                 {
-                    //slewRate = gimbalLimit * Mathf.Deg2Rad; //if we're almost ontarget and tracking, uncap traverse speed to facilitate smooth tracking and correction for incidental parent movement
-                    if (surfaceDetected && !stopPTPR) GroundStabilize();
+                    slewRate = gimbalLimit * Mathf.Deg2Rad; //if we're almost ontarget and tracking, uncap traverse speed to facilitate smooth tracking and correction for incidental parent movement
                 }
                 Vector3 newForward = Vector3.RotateTowards(cameraParentTransform.transform.forward, position - cameraParentTransform.transform.position, slewRate, 0);
                 //cameraParentTransform.rotation = Quaternion.LookRotation(newForward, VectorUtils.GetUpDirection(transform.position));
@@ -1508,6 +1500,12 @@ namespace BDArmory.Targeting
                     slewingToPosition = false;
                     yield break;
                 }
+            }
+            if (surfaceDetected && !stopPTPR)
+            {
+                //cameraParentTransform.transform.rotation = Quaternion.LookRotation(position - cameraParentTransform.position, VectorUtils.GetUpDirection(transform.position));
+                //PointCameraModel(position - cameraParentTransform.position);
+                GroundStabilize();
             }
             slewingToPosition = false;
         }
