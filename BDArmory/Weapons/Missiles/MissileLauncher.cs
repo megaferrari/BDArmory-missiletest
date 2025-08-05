@@ -535,6 +535,13 @@ namespace BDArmory.Weapons.Missiles
             WeaveOffset = -1f;
             terminalHomingActive = false;
 
+            if (radarTimeout > 0)
+            {
+                Debug.LogWarning($"[BDArmory.MissileLauncher]: Error in configuration of {part.name}, radarTimeout is deprecated, please use seekerTimeout instead.");
+                seekerTimeout = radarTimeout;
+                radarTimeout = -1;
+            }
+
             if (LoftTermRange > 0)
             {
                 Debug.LogWarning($"[BDArmory.MissileLauncher]: Error in configuration of {part.name}, LoftTermRange is deprecated, please use terminalHomingRange instead.");
@@ -4135,7 +4142,7 @@ namespace BDArmory.Weapons.Missiles
                     else
                         output.AppendLine($"- Lock/Track: {RadarUtils.MISSILE_DEFAULT_LOCKABLE_RCS} m^2 @ {activeRadarRange / 1000} km");
                     output.AppendLine($"- LOAL: {radarLOAL}");
-                    if (radarLOAL) output.AppendLine($"  - Max Radar Search Time: {radarTimeout}");
+                    if (radarLOAL) output.AppendLine($"  - Max Radar Search Time: {seekerTimeout} s");
                 }
                 output.AppendLine($"Max Offboresight: {maxOffBoresight}");
                 output.AppendLine($"Locked FOV: {lockedSensorFOV}");
@@ -4149,7 +4156,17 @@ namespace BDArmory.Weapons.Missiles
                 output.AppendLine($"Max Offboresight: {maxOffBoresight}");
                 output.AppendLine($"Locked FOV: {lockedSensorFOV}");
                 output.AppendLine($"Flare Sensitivity: {flareEffectivity}");
+                output.AppendLine($"Seeker Search Time: {seekerTimeout} s");
             }
+
+            if (TargetingMode == TargetingModes.Inertial)
+            {
+                output.AppendLine($"Inertial Drift: {inertialDrift} m/s");
+                output.AppendLine($"Guidance Time: {seekerTimeout} s");
+            }
+
+            if (TargetingMode == TargetingModes.AntiRad)
+                output.AppendLine($"Seeker Search Time: {seekerTimeout} s");
 
             if (TargetingMode == TargetingModes.Gps || TargetingMode == TargetingModes.None || TargetingMode == TargetingModes.Inertial)
             {
@@ -4166,7 +4183,7 @@ namespace BDArmory.Weapons.Missiles
                         else
                             output.AppendLine($"- Lock/Track: {RadarUtils.MISSILE_DEFAULT_LOCKABLE_RCS} m^2 @ {activeRadarRange / 1000} km");
                         output.AppendLine($"- LOAL: {radarLOAL}");
-                        if (radarLOAL) output.AppendLine($"  - Radar Search Time: {radarTimeout}");
+                        if (radarLOAL) output.AppendLine($"  - Radar Search Time: {seekerTimeout} s");
                         output.AppendLine($"Max Offboresight: {maxOffBoresight}");
                         output.AppendLine($"Locked FOV: {lockedSensorFOV}");
                     }
@@ -4177,7 +4194,17 @@ namespace BDArmory.Weapons.Missiles
                         output.AppendLine($"Min Heat threshold: {heatThreshold}");
                         output.AppendLine($"Max Offboresight: {maxOffBoresight}");
                         output.AppendLine($"Locked FOV: {lockedSensorFOV}");
+                        output.AppendLine($"Seeker Search Time: {seekerTimeout} s");
                     }
+
+                    if (TargetingModeTerminal == TargetingModes.Inertial)
+                    {
+                        output.AppendLine($"Inertial Drift: {inertialDrift} m/s");
+                        output.AppendLine($"Guidance Time: {seekerTimeout} s");
+                    }
+
+                    if (TargetingModeTerminal == TargetingModes.AntiRad)
+                        output.AppendLine($"Seeker Search Time: {seekerTimeout} s");
                 }
             }
 

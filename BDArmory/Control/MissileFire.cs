@@ -6067,7 +6067,7 @@ namespace BDArmory.Control
                                                 if (!mlauncher.radarLOAL) candidateTDPS *= 0.001f; //no radar lock, skip to something else unless nothing else available
                                                 else
                                                 {
-                                                    if (mlauncher.radarTimeout < ((distance - mlauncher.activeRadarRange) / mlauncher.optimumAirspeed)) candidateTDPS *= 0.5f; //outside missile self-lock zone 
+                                                    if (mlauncher.seekerTimeout < ((distance - mlauncher.activeRadarRange) / mlauncher.optimumAirspeed)) candidateTDPS *= 0.5f; //outside missile self-lock zone 
                                                 }
                                             }
                                         }
@@ -6765,7 +6765,7 @@ namespace BDArmory.Control
                                             if (!SLW.radarLOAL) candidateTDPS *= 0.001f; //no radar/sonar lock, skip to something else unless nothing else available
                                             else
                                             {
-                                                if (SLW.radarTimeout < ((distance - SLW.activeRadarRange) / SLW.optimumAirspeed)) candidateTDPS *= 0.5f; //outside missile self-lock zone 
+                                                if (SLW.seekerTimeout < ((distance - SLW.activeRadarRange) / SLW.optimumAirspeed)) candidateTDPS *= 0.5f; //outside missile self-lock zone 
                                             }
                                         }
                                     }
@@ -9092,7 +9092,7 @@ namespace BDArmory.Control
                 ml.TargetingMode switch
                 {
                     MissileBase.TargetingModes.Laser => BDATargetManager.ActiveLasers.Count <= 0,
-                    MissileBase.TargetingModes.Radar => !(torpedo ? _sonarsEnabled : _radarsEnabled) && (!ml.radarLOAL || (mlauncher != null && ml.radarTimeout < ((distanceToTarget - ml.activeRadarRange) / mlauncher.optimumAirspeed))),
+                    MissileBase.TargetingModes.Radar => !(torpedo ? _sonarsEnabled : _radarsEnabled) && (!ml.radarLOAL || (mlauncher != null && ml.seekerTimeout < ((distanceToTarget - ml.activeRadarRange) / mlauncher.optimumAirspeed))),
                     MissileBase.TargetingModes.Inertial => !((torpedo ? _sonarsEnabled : _radarsEnabled) || _irstsEnabled),
                     MissileBase.TargetingModes.Gps => BDATargetManager.ActiveLasers.Count <= 0 && !_radarsEnabled,
                     _ => false
