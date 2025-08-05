@@ -189,7 +189,6 @@ namespace BDArmory.WeaponMounts
 
             if (autoReturn)
             {
-                hasReturned = true;
                 if (returnRoutine != null)
                 {
                     StopCoroutine(returnRoutine);
@@ -207,25 +206,14 @@ namespace BDArmory.WeaponMounts
             {
                 Events["ReturnTurret"].guiActive = true;
             }
-
-            if (hasDeployAnimation && !deployBlocksRotation)
-            {
-                if (deployAnimRoutine != null)
-                {
-                    StopCoroutine(deployAnimRoutine);
-                }
-
-                deployAnimRoutine = StartCoroutine(DeployAnimation(false));
-            }
         }
 
         [KSPEvent(guiActive = false, guiActiveEditor = false, guiName = "#LOC_BDArmory_ReturnTurret")]//Return Turret
         public void ReturnTurret()
         {
-            if (!turretEnabled)
+            if (!turretEnabled || isReloading)
             {
                 returnRoutine = StartCoroutine(ReturnRoutine());
-                hasReturned = true;
             }
         }
 
@@ -244,10 +232,22 @@ namespace BDArmory.WeaponMounts
 
         IEnumerator ReturnRoutine()
         {
-            if (turretEnabled)
+            if (turretEnabled && !isReloading)
             {
                 hasReturned = false;
                 yield break;
+            }
+
+            hasReturned = true;
+
+            if (hasDeployAnimation && !deployBlocksRotation)
+            {
+                if (deployAnimRoutine != null)
+                {
+                    StopCoroutine(deployAnimRoutine);
+                }
+
+                deployAnimRoutine = StartCoroutine(DeployAnimation(false));
             }
 
             yield return new WaitForSecondsFixed(0.25f);
@@ -333,8 +333,19 @@ namespace BDArmory.WeaponMounts
         public override void OnFixedUpdate()
         {
             base.OnFixedUpdate();
-            if (turretEnabled)
+            if (turretEnabled && !isReloading)
             {
+                if (hasDeployAnimation && !(deployAnimState.normalizedTime > 0))
+                {
+                    if (deployAnimRoutine != null)
+                    {
+                        StopCoroutine(deployAnimRoutine);
+                    }
+
+                    deployAnimRoutine = StartCoroutine(DeployAnimation(true));
+                }
+
+
                 hasReturned = false;
                 if ((missilepod == null && missileCount == 0) || (missilepod != null && missilepod.multiLauncher.missileSpawner.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE) || isReloading)
                 {
@@ -352,14 +363,17 @@ namespace BDArmory.WeaponMounts
             }
             else
             {
-                if (Quaternion.FromToRotation(finalTransform.forward, turret.yawTransform.parent.parent.forward) !=
-                    Quaternion.identity)
+                if (!isReloading)
                 {
-                    UpdateMissilePositions();
-                }
-                if (autoReturn && !hasReturned)
-                {
-                    DisableTurret();
+                    if (Quaternion.FromToRotation(finalTransform.forward, turret.yawTransform.parent.parent.forward) != 
+                        Quaternion.identity)
+                    {
+                        UpdateMissilePositions();
+                    }
+                    if (autoReturn && !hasReturned)
+                    {
+                        DisableTurret();
+                    }
                 }
             }
             pausingAfterShot = (Time.time - timeFired < firePauseTime);
