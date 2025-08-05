@@ -354,6 +354,21 @@ namespace BDArmory.Weapons.Missiles
             UpdateLengthAndScale(Scale, Length, attachOffset);
         }
 
+        public void updateMaxOffBoresight(float maxOffBoresight)
+        {
+            if (isClusterMissile)
+                return;
+
+            StartCoroutine(UpdateMaxOffBoresightRoutine(maxOffBoresight));
+        }
+
+        public IEnumerator UpdateMaxOffBoresightRoutine(float maxOffBoresight)
+        {
+            yield return new WaitUntil(() => missileLauncher != null);
+
+            missileLauncher.maxOffBoresight = maxOffBoresight;
+        }
+
         public void updateScale(BaseField field, object obj)
         {
             ScaleTransform.localScale = new Vector3(Scale, Scale, Scale);

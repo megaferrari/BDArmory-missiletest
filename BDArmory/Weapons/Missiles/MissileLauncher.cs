@@ -854,6 +854,21 @@ namespace BDArmory.Weapons.Missiles
                 break; // Break if a valid module is found.
             }
             if (warheadType == WarheadTypes.Kinetic && blastPower > 0) warheadType = WarheadTypes.Legacy;
+
+            string maxOffboresightString = ConfigNodeUtils.FindPartModuleConfigNodeValue(part.partInfo.partConfig, "MissileLauncher", "maxOffBoresight");
+            if (!string.IsNullOrEmpty(maxOffboresightString)) // Use the default value from the MM patch.
+            {
+                try
+                {
+                    maxOffBoresight = float.Parse(maxOffboresightString);
+                    if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileLauncher]: setting maxOffBoresight of " + part + " on " + part.vessel.vesselName + " to " + maxOffBoresight);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError("[BDArmory.MissileLauncher]: Failed to parse maxOffBoresight configNode: " + e.Message);
+                }
+            }
+
             SetFields();
             smoothedAoA = new SmoothingF(Mathf.Exp(Mathf.Log(0.5f) * Time.fixedDeltaTime * 10f)); // Half-life of 0.1s.
             StartSetupComplete = true;
