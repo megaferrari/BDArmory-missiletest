@@ -75,11 +75,18 @@ namespace BDArmory.WeaponMounts
         [KSPField] public bool mouseControllable = true;
 
         [KSPField] public bool deployBlocksRotation = false;
+        [KSPField] public bool deployBlocksReload = false;
+        public bool isReloading = false;
 
         //animation
         [KSPField] public string deployAnimationName;
         AnimationState deployAnimState;
-        bool hasDeployAnimation;
+        public bool hasDeployAnimation;
+
+        public bool isDeployed()
+        {
+            return deployAnimState.normalizedTime > 0;
+        }
         [KSPField] public float deployAnimationSpeed = 1;
         bool editorDeployed;
         Coroutine deployAnimRoutine;
@@ -138,6 +145,9 @@ namespace BDArmory.WeaponMounts
             {
                 return;
             }
+            if (deployBlocksReload && isReloading)
+                return;
+
             activeMissile = currMissile;
             if (returnRoutine != null)
             {
@@ -326,7 +336,7 @@ namespace BDArmory.WeaponMounts
             if (turretEnabled)
             {
                 hasReturned = false;
-                if ((missilepod == null && missileCount == 0) || (missilepod != null && missilepod.multiLauncher.missileSpawner.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE))
+                if ((missilepod == null && missileCount == 0) || (missilepod != null && missilepod.multiLauncher.missileSpawner.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE) || isReloading)
                 {
                     DisableTurret();
                     return;

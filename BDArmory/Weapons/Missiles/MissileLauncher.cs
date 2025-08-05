@@ -1732,6 +1732,18 @@ namespace BDArmory.Weapons.Missiles
 
         public IEnumerator MissileReload()
         {
+            bool redployTurret = false;
+            bool manuallyControlledTurret = false;
+            MissileTurret turret = multiLauncher ? multiLauncher.turret : missileTurret;
+            if ((turret != null) && turret.deployBlocksReload && turret.hasDeployAnimation)
+            {
+                manuallyControlledTurret = turret.manuallyControlled;
+                turret.isReloading = true;
+                turret.DisableTurret();
+                redployTurret = true;
+                yield return new WaitUntilFixed(() => !turret.isDeployed());
+            }
+
             reloadableRail.loadOrdnance(multiLauncher ? multiLauncher.launchTubes : 1);
             if (reloadableRail.railAmmo > 0 || BDArmorySettings.INFINITE_ORDINANCE)
             {
@@ -1749,6 +1761,14 @@ namespace BDArmory.Weapons.Missiles
                 if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher] reload complete on {part.name}");
             }
             reloadRoutine = null;
+
+            if (redployTurret && turret)
+            {
+                turret.isReloading = false;
+                // NOTE: THIS NEEDS TO BE CHANGED TO USE THE NEW FUNCTION WHEN MOTHERSHIPS GETS MERGED
+                if (GetPartName() == VesselModuleRegistry.GetMissileFire(SourceVessel, true).CurrentMissile.GetPartName() || engageMissile)
+                    turret.EnableTurret(this, manuallyControlledTurret);
+            }
         }
 
         IEnumerator DecoupleRoutine()
