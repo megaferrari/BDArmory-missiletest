@@ -251,7 +251,7 @@ namespace BDArmory.WeaponMounts
         public float Pitch => -pitchTransform.localEulerAngles.x.ToAngle();
         public float Yaw => yawTransform.localEulerAngles.y.ToAngle();
 
-        public bool ReturnTurret()
+        public bool ReturnTurret(bool pitch = true, bool yaw = true)
         {
             if (!yawTransform)
             {
@@ -283,10 +283,12 @@ namespace BDArmory.WeaponMounts
             yawSpeed *= linYawMult;
             pitchSpeed *= linPitchMult;
 
-            yawTransform.localRotation = Quaternion.RotateTowards(yawTransform.localRotation, standbyLocalRotation, yawSpeed);
-            pitchTransform.localRotation = Quaternion.RotateTowards(pitchTransform.localRotation, Quaternion.identity, pitchSpeed);
+            if (yaw)
+                yawTransform.localRotation = Quaternion.RotateTowards(yawTransform.localRotation, standbyLocalRotation, yawSpeed);
+            if (pitch)
+                pitchTransform.localRotation = Quaternion.RotateTowards(pitchTransform.localRotation, Quaternion.identity, pitchSpeed);
 
-            if (yawTransform.localRotation == standbyLocalRotation && pitchTransform.localRotation == Quaternion.identity)
+            if ((yawTransform.localRotation == standbyLocalRotation || !yaw) && (pitchTransform.localRotation == Quaternion.identity || !pitch))
             {
                 return true;
             }

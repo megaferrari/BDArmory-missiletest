@@ -76,6 +76,8 @@ namespace BDArmory.WeaponMounts
 
         [KSPField] public bool deployBlocksRotation = false;
         [KSPField] public bool deployBlocksReload = false;
+        [KSPField] public bool reloadBlocksYaw = false;
+        [KSPField] public bool reloadBlocksPitch = false;
         public bool isReloading = false;
 
         //animation
@@ -240,7 +242,9 @@ namespace BDArmory.WeaponMounts
 
             hasReturned = true;
 
-            if (hasDeployAnimation && !deployBlocksRotation)
+            bool retract = !isReloading || deployBlocksReload;
+
+            if (hasDeployAnimation && retract && !deployBlocksRotation)
             {
                 if (deployAnimRoutine != null)
                 {
@@ -257,13 +261,16 @@ namespace BDArmory.WeaponMounts
                 yield return new WaitForFixedUpdate();
             }
 
-            while (turret != null && !turret.ReturnTurret())
+            bool pitch = !isReloading || reloadBlocksPitch;
+            bool yaw = !isReloading || reloadBlocksYaw;
+
+            while (turret != null && !turret.ReturnTurret(pitch, yaw))
             {
                 UpdateMissilePositions();
                 yield return new WaitForFixedUpdate();
             }
 
-            if (hasDeployAnimation && deployBlocksRotation)
+            if (hasDeployAnimation && retract && deployBlocksRotation)
             {
                 if (deployAnimRoutine != null)
                 {
@@ -333,21 +340,23 @@ namespace BDArmory.WeaponMounts
         public override void OnFixedUpdate()
         {
             base.OnFixedUpdate();
-            if (turretEnabled && !isReloading)
+            if (turretEnabled)
             {
-                if (hasDeployAnimation && !(deployAnimState.normalizedTime > 0))
+                if (!isReloading)
                 {
-                    if (deployAnimRoutine != null)
+                    if (hasDeployAnimation && deployBlocksReload && !(deployAnimState.normalizedTime > 0))
                     {
-                        StopCoroutine(deployAnimRoutine);
-                    }
+                        if (deployAnimRoutine != null)
+                        {
+                            StopCoroutine(deployAnimRoutine);
+                        }
 
-                    deployAnimRoutine = StartCoroutine(DeployAnimation(true));
+                        deployAnimRoutine = StartCoroutine(DeployAnimation(true));
+                    }
+                    hasReturned = false;
                 }
 
-
-                hasReturned = false;
-                if ((missilepod == null && missileCount == 0) || (missilepod != null && missilepod.multiLauncher.missileSpawner.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE) || isReloading)
+                if ((missilepod == null && missileCount == 0) || (missilepod != null && missilepod.multiLauncher.missileSpawner.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE))
                 {
                     DisableTurret();
                     return;
@@ -363,17 +372,14 @@ namespace BDArmory.WeaponMounts
             }
             else
             {
-                if (!isReloading)
+                if (Quaternion.FromToRotation(finalTransform.forward, turret.yawTransform.parent.parent.forward) != 
+                    Quaternion.identity)
                 {
-                    if (Quaternion.FromToRotation(finalTransform.forward, turret.yawTransform.parent.parent.forward) != 
-                        Quaternion.identity)
-                    {
-                        UpdateMissilePositions();
-                    }
-                    if (autoReturn && !hasReturned)
-                    {
-                        DisableTurret();
-                    }
+                    UpdateMissilePositions();
+                }
+                if (autoReturn && !hasReturned)
+                {
+                    DisableTurret();
                 }
             }
             pausingAfterShot = (Time.time - timeFired < firePauseTime);
@@ -427,7 +433,7 @@ namespace BDArmory.WeaponMounts
             if (pausingAfterShot) return;
             if (hasDeployAnimation && (!deployBlocksRotation || deployAnimState.normalizedTime < 1)) return;
 
-            turret.AimToTarget(slavedTargetPosition);
+            turret.AimToTarget(slavedTargetPosition, !(isReloading && reloadBlocksPitch), !(isReloading && reloadBlocksYaw));
         }
 
         const int mouseAimLayerMask = (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.EVA | LayerMasks.Unknown19 | LayerMasks.Unknown23 | LayerMasks.Wheels);
@@ -473,7 +479,7 @@ namespace BDArmory.WeaponMounts
                                  FlightCamera.fetch.mainCamera.transform.position;
             }
 
-            turret.AimToTarget(targetPosition);
+            turret.AimToTarget(targetPosition, !(isReloading && reloadBlocksPitch), !(isReloading && reloadBlocksYaw));
         }
 
         public void UpdateMissileChildren()

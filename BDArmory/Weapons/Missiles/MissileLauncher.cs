@@ -1749,7 +1749,7 @@ namespace BDArmory.Weapons.Missiles
         {
             bool redployTurret = false;
             MissileTurret turret = multiLauncher ? multiLauncher.turret : missileTurret;
-            if ((turret != null) && turret.deployBlocksReload && turret.hasDeployAnimation)
+            if ((turret != null) && (turret.deployBlocksReload && turret.hasDeployAnimation) || turret.reloadBlocksPitch || turret.reloadBlocksYaw)
             {
                 turret.isReloading = true;
                 redployTurret = true;
