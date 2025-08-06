@@ -280,8 +280,10 @@ namespace BDArmory.WeaponMounts
             float linPitchMult = yawOffset > 0 ? Mathf.Clamp01((pitchOffset / yawOffset) * (yawSpeedDPS / pitchSpeedDPS)) : 1;
             float linYawMult = pitchOffset > 0 ? Mathf.Clamp01((yawOffset / pitchOffset) * (pitchSpeedDPS / yawSpeedDPS)) : 1;
 
-            yawSpeed *= linYawMult;
-            pitchSpeed *= linPitchMult;
+            if (pitch)
+                yawSpeed *= linYawMult;
+            if (yaw)
+                pitchSpeed *= linPitchMult;
 
             if (yaw)
                 yawTransform.localRotation = Quaternion.RotateTowards(yawTransform.localRotation, standbyLocalRotation, yawSpeed);

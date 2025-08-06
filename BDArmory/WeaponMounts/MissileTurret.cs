@@ -74,10 +74,9 @@ namespace BDArmory.WeaponMounts
 
         [KSPField] public bool mouseControllable = true;
 
-        [KSPField] public bool deployBlocksRotation = false;
         [KSPField] public bool deployBlocksReload = false;
-        [KSPField] public bool reloadBlocksYaw = false;
-        [KSPField] public bool reloadBlocksPitch = false;
+        [KSPField] public bool deployBlocksYaw = false;
+        [KSPField] public bool deployBlocksPitch = false;
         public bool isReloading = false;
 
         //animation
@@ -147,8 +146,6 @@ namespace BDArmory.WeaponMounts
             {
                 return;
             }
-            if (deployBlocksReload && isReloading)
-                return;
 
             activeMissile = currMissile;
             if (returnRoutine != null)
@@ -172,7 +169,7 @@ namespace BDArmory.WeaponMounts
                 Events["ReturnTurret"].guiActive = false;
             }
 
-            if (hasDeployAnimation)
+            if (hasDeployAnimation && !isReloading)
             {
                 if (deployAnimRoutine != null)
                 {
@@ -198,10 +195,10 @@ namespace BDArmory.WeaponMounts
                 returnRoutine = StartCoroutine(ReturnRoutine());
             }
 
-            if (hasAttachedRadar && !(deployBlocksRotation && hasDeployAnimation))
+            if (hasAttachedRadar)
             {
-                attachedRadar.lockingYaw = true;
-                attachedRadar.lockingPitch = true;
+                attachedRadar.lockingYaw = !(hasDeployAnimation && deployBlocksYaw && disableRadarYaw);
+                attachedRadar.lockingPitch = !(hasDeployAnimation && deployBlocksPitch && disableRadarPitch);
             }
 
             if (!autoReturn)
@@ -242,9 +239,9 @@ namespace BDArmory.WeaponMounts
 
             hasReturned = true;
 
-            bool retract = !isReloading || deployBlocksReload;
+            bool retract = !turretEnabled || !isReloading || deployBlocksReload;
 
-            if (hasDeployAnimation && retract && !deployBlocksRotation)
+            if (hasDeployAnimation && retract && !(deployBlocksYaw || deployBlocksPitch))
             {
                 if (deployAnimRoutine != null)
                 {
@@ -261,8 +258,8 @@ namespace BDArmory.WeaponMounts
                 yield return new WaitForFixedUpdate();
             }
 
-            bool pitch = !isReloading || reloadBlocksPitch;
-            bool yaw = !isReloading || reloadBlocksYaw;
+            bool pitch = !turretEnabled || !isReloading || (deployBlocksPitch && deployBlocksReload);
+            bool yaw = !turretEnabled || !isReloading || (deployBlocksYaw && deployBlocksReload);
 
             while (turret != null && !turret.ReturnTurret(pitch, yaw))
             {
@@ -270,7 +267,7 @@ namespace BDArmory.WeaponMounts
                 yield return new WaitForFixedUpdate();
             }
 
-            if (hasDeployAnimation && retract && deployBlocksRotation)
+            if (hasDeployAnimation && retract && (deployBlocksYaw || deployBlocksPitch))
             {
                 if (deployAnimRoutine != null)
                 {
@@ -320,10 +317,10 @@ namespace BDArmory.WeaponMounts
                 attachedRadar = part.FindModuleImplementing<ModuleRadar>();
                 if (attachedRadar) hasAttachedRadar = true;
 
-                if (hasAttachedRadar && deployBlocksRotation && hasDeployAnimation)
+                if (hasAttachedRadar && hasDeployAnimation)
                 {
-                    attachedRadar.lockingYaw = !disableRadarYaw;
-                    attachedRadar.lockingPitch = !disableRadarPitch;
+                    attachedRadar.lockingYaw = !deployBlocksYaw;
+                    attachedRadar.lockingPitch = !deployBlocksPitch;
                 }
 
                 finalTransform = part.FindModelTransform(finalTransformName);
@@ -431,17 +428,16 @@ namespace BDArmory.WeaponMounts
         public void SlavedAim()
         {
             if (pausingAfterShot) return;
-            if (hasDeployAnimation && (!deployBlocksRotation || deployAnimState.normalizedTime < 1)) return;
+            bool deployCond = deployAnimState.normalizedTime < 1;
 
-            turret.AimToTarget(slavedTargetPosition, !(isReloading && reloadBlocksPitch), !(isReloading && reloadBlocksYaw));
+            turret.AimToTarget(slavedTargetPosition, !(hasDeployAnimation && (deployCond || isReloading) && deployBlocksPitch), !(hasDeployAnimation && (deployCond || isReloading) && deployBlocksYaw));
         }
 
         const int mouseAimLayerMask = (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.EVA | LayerMasks.Unknown19 | LayerMasks.Unknown23 | LayerMasks.Wheels);
         void MouseAim()
         {
             if (pausingAfterShot) return;
-            if (hasDeployAnimation && (!deployBlocksRotation || deployAnimState.normalizedTime < 1)) return;
-
+            
             Vector3 targetPosition;
             float maxTargetingRange = 5000;
 
@@ -479,7 +475,8 @@ namespace BDArmory.WeaponMounts
                                  FlightCamera.fetch.mainCamera.transform.position;
             }
 
-            turret.AimToTarget(targetPosition, !(isReloading && reloadBlocksPitch), !(isReloading && reloadBlocksYaw));
+            bool deployCond = deployAnimState.normalizedTime < 1;
+            turret.AimToTarget(targetPosition, !(hasDeployAnimation && (deployCond || isReloading) && deployBlocksPitch), !(hasDeployAnimation && (deployCond || isReloading) && deployBlocksYaw));
         }
 
         public void UpdateMissileChildren()
