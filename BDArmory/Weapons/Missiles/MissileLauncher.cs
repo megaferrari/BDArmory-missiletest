@@ -24,6 +24,7 @@ namespace BDArmory.Weapons.Missiles
     public class MissileLauncher : MissileBase, IPartMassModifier
     {
         public Coroutine reloadRoutine;
+        bool reloadInProgress = false;
         Coroutine reloadableMissile;
         #region Variable Declarations
 
@@ -1761,7 +1762,9 @@ namespace BDArmory.Weapons.Missiles
             if (reloadableRail.railAmmo > 0 || BDArmorySettings.INFINITE_ORDINANCE)
             {
                 if (vessel.isActiveVessel) gauge.UpdateReloadMeter(reloadTimer);
+                reloadInProgress = true;
                 yield return new WaitForSecondsFixed(reloadableRail.reloadTime);
+                reloadInProgress = false;
                 launched = false;
                 part.partTransform.localScale = origScale;
                 reloadTimer = 0;
@@ -1831,7 +1834,7 @@ namespace BDArmory.Weapons.Missiles
             if (!vessel.isActiveVessel) return;
             if (reloadableRail)
             {
-                if (launched && reloadRoutine != null)
+                if (launched && reloadInProgress)
                 {
                     reloadTimer += TimeWarp.deltaTime;
                     gauge.UpdateReloadMeter(Mathf.Clamp01(reloadTimer / reloadableRail.reloadTime));
