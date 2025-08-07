@@ -980,8 +980,9 @@ namespace BDArmory.Targeting
                     if (weaponManager.selectedWeapon.GetWeaponClass() == WeaponClasses.Missile)
                     {
                         MissileBase currMissile = weaponManager.CurrentMissile;
-                        if (currMissile.TargetingMode == MissileBase.TargetingModes.Gps ||
-                            currMissile.TargetingMode == MissileBase.TargetingModes.Laser)
+                        if (currMissile && 
+                            (currMissile.TargetingMode == MissileBase.TargetingModes.Gps ||
+                            currMissile.TargetingMode == MissileBase.TargetingModes.Laser))
                         {
                             MissileLaunchParams dlz =
                                 MissileLaunchParams.GetDynamicLaunchParams(currMissile, Vector3.zero, groundTargetPosition);

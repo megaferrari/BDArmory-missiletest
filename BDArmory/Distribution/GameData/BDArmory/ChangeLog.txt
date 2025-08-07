@@ -35,6 +35,7 @@
 			- Heat seeking missiles now more realistically use angular velocity rather than vector velocity for flare rejection.
 				- Added a new FloatCurve "lockedSensorVelocityMagnitudeBias", weights target score based on the normalized angular velocity magnitude difference, where 1 is when the target's angular velocity magnitude matches the expected angular velocity magnitude and 0 is when the angular velocity magnitude is off by the expected angular velocity magnitude (either 0, or twice the expected). FloatCurve defaults to all 1s when lockedSensorVelocityBias is not specified and linear when specified.
 				- Added lockedSensorMinAngularVelocity field which sets the minimum detectable angular velocity magnitude for angular velocity magnitude differencing.
+			- Ensure laser-guided weapons have "TargetAcquired" properly set prior to firing.
 		- Guidance:
 			- Add improved missile controller.
 				- Missiles will now better respect gLimit as well as guidance-commanded acceleration, note this means some parameters may need to be tweaked to retain previous performance, specifically pronavGain and weave guidance accelerations.

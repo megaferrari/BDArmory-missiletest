@@ -428,9 +428,9 @@ namespace BDArmory.WeaponMounts
         public void SlavedAim()
         {
             if (pausingAfterShot) return;
-            bool deployCond = deployAnimState.normalizedTime < 1;
+            bool deployCond = hasDeployAnimation && (deployAnimState.normalizedTime < 1 || isReloading);
 
-            turret.AimToTarget(slavedTargetPosition, !(hasDeployAnimation && (deployCond || isReloading) && deployBlocksPitch), !(hasDeployAnimation && (deployCond || isReloading) && deployBlocksYaw));
+            turret.AimToTarget(slavedTargetPosition, !(deployCond && deployBlocksPitch), !(deployCond && deployBlocksYaw));
         }
 
         const int mouseAimLayerMask = (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.EVA | LayerMasks.Unknown19 | LayerMasks.Unknown23 | LayerMasks.Wheels);
@@ -475,8 +475,8 @@ namespace BDArmory.WeaponMounts
                                  FlightCamera.fetch.mainCamera.transform.position;
             }
 
-            bool deployCond = deployAnimState.normalizedTime < 1;
-            turret.AimToTarget(targetPosition, !(hasDeployAnimation && (deployCond || isReloading) && deployBlocksPitch), !(hasDeployAnimation && (deployCond || isReloading) && deployBlocksYaw));
+            bool deployCond = hasDeployAnimation && (deployAnimState.normalizedTime < 1 || isReloading);
+            turret.AimToTarget(targetPosition, !(deployCond && deployBlocksPitch), !(deployCond && deployBlocksYaw));
         }
 
         public void UpdateMissileChildren()
