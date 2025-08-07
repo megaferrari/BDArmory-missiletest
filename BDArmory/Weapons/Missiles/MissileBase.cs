@@ -1287,7 +1287,7 @@ namespace BDArmory.Weapons.Missiles
                     else
                     {
                         _radarFailTimer += Time.fixedDeltaTime;
-                        if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileBase]: No assigned radar target. Awaiting timeout({radarTimeout - _radarFailTimer}).... ");
+                        if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileBase]: No assigned radar target. Awaiting timeout({seekerTimeout - _radarFailTimer}).... ");
                     }
                 }
                 else

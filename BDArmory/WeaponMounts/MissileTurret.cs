@@ -86,7 +86,7 @@ namespace BDArmory.WeaponMounts
 
         public bool isDeployed()
         {
-            return deployAnimState.normalizedTime > 0;
+            return hasDeployAnimation && deployAnimState.normalizedTime > 0;
         }
         [KSPField] public float deployAnimationSpeed = 1;
         bool editorDeployed;
@@ -169,7 +169,7 @@ namespace BDArmory.WeaponMounts
                 Events["ReturnTurret"].guiActive = false;
             }
 
-            if (hasDeployAnimation && !isReloading)
+            if (hasDeployAnimation && !(isReloading && deployBlocksReload))
             {
                 if (deployAnimRoutine != null)
                 {
@@ -212,6 +212,7 @@ namespace BDArmory.WeaponMounts
         {
             if (!turretEnabled || isReloading)
             {
+                if (returnRoutine != null) StopCoroutine(returnRoutine);
                 returnRoutine = StartCoroutine(ReturnRoutine());
             }
         }
@@ -239,9 +240,9 @@ namespace BDArmory.WeaponMounts
 
             hasReturned = true;
 
-            bool retract = !turretEnabled || !isReloading || deployBlocksReload;
+            bool retract = isDeployed() && (!turretEnabled || deployBlocksReload);
 
-            if (hasDeployAnimation && retract && !(deployBlocksYaw || deployBlocksPitch))
+            if (retract && !(deployBlocksYaw || deployBlocksPitch))
             {
                 if (deployAnimRoutine != null)
                 {
@@ -258,8 +259,8 @@ namespace BDArmory.WeaponMounts
                 yield return new WaitForFixedUpdate();
             }
 
-            bool pitch = !turretEnabled || !isReloading || (deployBlocksPitch && deployBlocksReload);
-            bool yaw = !turretEnabled || !isReloading || (deployBlocksYaw && deployBlocksReload);
+            bool pitch = !turretEnabled || (deployBlocksPitch && deployBlocksReload);
+            bool yaw = !turretEnabled || (deployBlocksYaw && deployBlocksReload);
 
             while (turret != null && !turret.ReturnTurret(pitch, yaw))
             {
@@ -267,7 +268,7 @@ namespace BDArmory.WeaponMounts
                 yield return new WaitForFixedUpdate();
             }
 
-            if (hasDeployAnimation && retract && (deployBlocksYaw || deployBlocksPitch))
+            if (retract && (deployBlocksYaw || deployBlocksPitch))
             {
                 if (deployAnimRoutine != null)
                 {

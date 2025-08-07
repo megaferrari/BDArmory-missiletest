@@ -411,7 +411,7 @@ namespace BDArmory.Targeting
             }
         }
 
-        void UpdateCameralDirection()
+        void UpdateCameraDirection()
         {
             Vector3 worldUp = VectorUtils.GetUpDirection(cameraParentTransform.position);
             if (vessel.isActiveVessel && activeCam == this && TargetingCamera.cameraTransform)
@@ -440,7 +440,7 @@ namespace BDArmory.Targeting
                             TargetingCamera.Instance.SetFOV(fov);
                         }
 
-                        UpdateCameralDirection();
+                        UpdateCameraDirection();
                     }
 
                     UpdateControls();
