@@ -18,7 +18,7 @@
 	- Add 'Ammo' gauges for Countermeasure dispensers for how many CMs they have remaining.
 - Sensors:
 	- Add support for slaving turrets via targeting cameras.
-	- Fix Guard Mode targeting camera issues with moving targets.
+	- Fix targeting camera issues with moving targets.
 	- Fix 'Slave Turret' button occasionally locking the turret to the vessel's origin point or non-target point in space.
 	- Locking a target will no longer automatically slave active turrets to the target when manually controlling a craft. To slave turrets to a locked radar/camera, use the 'Slave Turret' button.
 	- Fix bug that allowed radars to lock on below the radar horizon when the appropriate settings are toggled.
