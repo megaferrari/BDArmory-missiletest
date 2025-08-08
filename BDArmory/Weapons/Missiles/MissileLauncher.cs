@@ -2464,6 +2464,8 @@ namespace BDArmory.Weapons.Missiles
                 if (dumbTerminalGuidance || terminalGuidanceActive)
                 {
                     TargetingMode = TargetingModeTerminal;
+                    if (terminalSeekerTimeout > 0)
+                        seekerTimeout = terminalSeekerTimeout;
                     terminalGuidanceActive = true;
                     terminalGuidanceShouldActivate = false;
                 }

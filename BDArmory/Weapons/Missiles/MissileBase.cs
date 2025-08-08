@@ -558,6 +558,7 @@ namespace BDArmory.Weapons.Missiles
 
         [KSPField] public float radarTimeout = -1;
         [KSPField] public float seekerTimeout = 5;
+        [KSPField] public float terminalSeekerTimeout = -1;
         private float lastRWRPing = 0;
         public RadarWarningReceiver.RWRThreatTypes[] antiradTargets;
         private bool radarLOALSearching = false;
