@@ -148,7 +148,7 @@ namespace BDArmory.WeaponMounts
             }
 
             activeMissile = currMissile;
-            if (returnRoutine != null)
+            if (!(isReloading && deployBlocksReload && hasDeployAnimation) && returnRoutine != null)
             {
                 StopCoroutine(returnRoutine);
                 returnRoutine = null;
