@@ -74,9 +74,9 @@ namespace BDArmory.WeaponMounts
 
         [KSPField] public bool mouseControllable = true;
 
-        [KSPField] public bool deployBlocksReload = false;
-        [KSPField] public bool deployBlocksYaw = false;
-        [KSPField] public bool deployBlocksPitch = false;
+        [KSPField] public bool deployBlocksReload = false; // Turret must stow/"undeploy" itself before reloading
+        [KSPField] public bool deployBlocksYaw = false; // Turret must deploy before yawing, turret must return to yaw standby position to stow/"undeploy".
+        [KSPField] public bool deployBlocksPitch = false; // Turret must deploy before pitching, turret must return to pitch standby position to stow/"undeploy".
         public bool isReloading = false;
 
         //animation
@@ -259,6 +259,7 @@ namespace BDArmory.WeaponMounts
                 yield return new WaitForFixedUpdate();
             }
 
+            // If the turret is enabled, then we're here because we're reloading, so we only need to return the turret's yaw/pitch if it's blocking the reload.
             bool pitch = !turretEnabled || (deployBlocksPitch && deployBlocksReload);
             bool yaw = !turretEnabled || (deployBlocksYaw && deployBlocksReload);
 
