@@ -63,7 +63,7 @@ namespace BDArmory.UI
                     }
                     if (emptyGauge == null)
                     {
-                        emptyGauge = InitEmptyGauge();
+                        emptyGauge = InitEmptyGauge(StringUtils.Localize("#LOC_BDArmory_ProtoStageIconInfo_AmmoOut"));
                         emptyGauge?.SetValue(1, 0, 1);
                     }
                 }
@@ -76,7 +76,7 @@ namespace BDArmory.UI
 
         public void UpdateCMMeter(float cmLevel, CounterMeasure.CMDropper.CountermeasureTypes type)
         {
-            if (BDArmorySettings.SHOW_AMMO_GAUGES && !BDArmorySettings.INFINITE_ORDINANCE)
+            if (BDArmorySettings.SHOW_AMMO_GAUGES && !BDArmorySettings.INFINITE_COUNTERMEASURES)
             {
                 if (cmLevel > 0)
                 {
@@ -98,7 +98,7 @@ namespace BDArmory.UI
                     }
                     if (emptyGauge == null)
                     {
-                        emptyGauge = InitEmptyGauge();
+                        emptyGauge = InitEmptyGauge(StringUtils.Localize("#LOC_BDArmory_ProtoStageIconInfo_CMsOut"));
                         emptyGauge?.SetValue(1, 0, 1);
                     }
                 }
@@ -207,7 +207,7 @@ namespace BDArmory.UI
             // fix nullref if no stackicon exists
             if (a != null)
             {
-                a.SetMsgBgColor(XKCDColors.Silver);
+                a.SetMsgBgColor(XKCDColors.OffWhite);
                 a.SetMessage($"{ammoName}");
                 a.SetProgressBarBgColor(XKCDColors.DarkGrey);
                 switch (type)
@@ -217,8 +217,8 @@ namespace BDArmory.UI
                         a.SetMsgTextColor(XKCDColors.Brick);
                         break;
                     case CounterMeasure.CMDropper.CountermeasureTypes.Chaff:
-                        a.SetProgressBarColor(XKCDColors.Grey);
-                        a.SetMsgTextColor(XKCDColors.Grey);
+                        a.SetProgressBarColor(XKCDColors.Silver);
+                        a.SetMsgTextColor(XKCDColors.Silver);
                         break;
                     case CounterMeasure.CMDropper.CountermeasureTypes.Smoke:
                         a.SetProgressBarColor(XKCDColors.Brown);
@@ -253,7 +253,7 @@ namespace BDArmory.UI
             }
             return a;
         }
-        private ProtoStageIconInfo InitEmptyGauge() //could remove emptygauge, mainly a QoL thing, removal might increase performance slightly
+        private ProtoStageIconInfo InitEmptyGauge(string message) //could remove emptygauge, mainly a QoL thing, removal might increase performance slightly
         {
             EnsureStagingIcon();
             ProtoStageIconInfo g = part.stackIcon.DisplayInfo();
@@ -262,7 +262,7 @@ namespace BDArmory.UI
             {
                 g.SetMsgBgColor(XKCDColors.AlmostBlack);
                 g.SetMsgTextColor(XKCDColors.Yellow);
-                g.SetMessage(StringUtils.Localize("#LOC_BDArmory_ProtoStageIconInfo_AmmoOut"));//"Ammo Depleted"
+                g.SetMessage(message);
                 g.SetProgressBarBgColor(XKCDColors.Yellow);
                 g.SetProgressBarColor(XKCDColors.Black);
             }
