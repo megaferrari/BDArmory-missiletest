@@ -317,7 +317,7 @@ namespace BDArmory.Targeting
                     Debug.Log("[BDArmory.ModuleTargetingCamera]: saved gtp: " + bodyRelativeGTP);
                     DelayedEnable();
                 }
-                TimingManager.FixedUpdateAdd(TimingManager.TimingStage.FashionablyLate, CameraTracking);
+                TimingManager.FixedUpdateAdd(TimingManager.TimingStage.BetterLateThanNever, CameraTracking);
             }
         }
 
@@ -443,7 +443,7 @@ namespace BDArmory.Targeting
                         UpdateCameraDirection();
                     }
 
-                    UpdateControls();
+                    CameraTracking();
                 }
             }
         }
@@ -524,6 +524,7 @@ namespace BDArmory.Targeting
                     }
                 }
 
+                UpdateControls();
                 UpdateSlaveData();
                 GetHitPoint();
             }

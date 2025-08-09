@@ -46,7 +46,7 @@
 		- Modular Missiles:
 			- Fix check for multi-mode engines being ignited and having fuel.
 		- MissileLauncher/Standard Missiles:
-			- Cruise missiles are now limited to the top speed specified in the configuration file.
+			- Sanity checks for maxOffboresight and cruiseSpeed, maxOffboresight and max cruiseSpeed are loaded from the configuration file to ensure consistency with intended values.
 			- Fix buggy behavior caused by partial failure of missile warheads to detonate when a custom warhead and a standard warhead were used in conjunction with non-zero fuze failure settings.
 			- New "maxTorqueAero" field for missiles, provides a dynamic pressure (density times velocity squared) based component to maxTorque. This is intended to simulate aerodynamic control surfaces (as opposed to maxTorque, which now represents things like thrust-vectoring).
 			- Several missile parameters can now be specified for different phases of flight with comma-separated values
@@ -61,6 +61,7 @@
 				- "CLOSLead" performs command-to-line of sight guidance with selectable lead (using the "beamLeadFactor" field, 1.0 representing full lead and 0.0 representing three point guidance. Defaults to 0.5 or half-rectification guidance.)
 				- "beamCorrectionFactor" is multiplied with the lateral error from the specified line of sight to provide a lateral velocity command, higher values result in a faster snap to the line of sight line, but also more oscillation
 				- "pronavGain" is used, in a similar manner as it use used in pronav guidance, to multiply the velocity error and provide an acceleration command. Higher values result in a faster snap to the commanded velocity vector, but also more oscillation.
+			- Replaced "radarTimeout" field with general "seekerTimeout", which is now used for heat-seeking, active radar homing, inertial and anti-radiation homing. Added "terminalSeekerTimeout" field so this can be specified separately for the initial and terminal targeting types.
 		- Launchers:
 			- Fix multi-missile launcher issues when railAmmo > launcher rails on the mode
 			- Fix multi-missile launchers not properly calculating "FiringAngle" parameter
