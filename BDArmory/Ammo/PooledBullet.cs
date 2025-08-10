@@ -89,6 +89,8 @@ namespace BDArmory.Bullets
 
         //public PooledBulletTypes bulletType;
         public BulletFuzeTypes fuzeType;
+        public float fuzeDelay = -1f;
+        public float fuzeSensitivity = -1f;
         public PooledBulletTypes HEType;
         public BulletDragTypes dragType;
 
@@ -1680,9 +1682,9 @@ namespace BDArmory.Bullets
                     }
                     else if (fuzeType == BulletFuzeTypes.Penetrating) //should look into having this be a set depth. For now, assume fancy inertial/electrical mechanism for detecting armor thickness based on time spent passing through
                     {
-                        if (penetrationFactor < 1.5f)
+                        if (!fuzeTriggered)
                         {
-                            if (!fuzeTriggered)
+                            if (fuzeSensitivity > 0 ? (thickness > fuzeSensitivity) : penetrationFactor < 1.5f)
                             {
                                 if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log("[BDArmory.PooledBullet]: Penetrating Fuze Tripped at t: " + Time.time);
                                 fuzeTriggered = true;
@@ -1736,9 +1738,14 @@ namespace BDArmory.Bullets
         Coroutine delayedDetonationRoutine = null;
         IEnumerator DelayedDetonationRoutine()
         {
-            var wait = new WaitForEndOfFrame();
-            yield return wait;
-            yield return wait;
+            if (fuzeDelay > 0)
+                yield return new WaitForSecondsFixed(fuzeDelay);
+            else
+            {
+                var wait = new WaitForEndOfFrame();
+                yield return wait;
+                yield return wait;
+            }
             fuzeTriggered = false;
             if (!hasDetonated)
             {
@@ -1894,6 +1901,8 @@ namespace BDArmory.Bullets
                 pBullet.incendiary = bulletType.incendiary;
                 pBullet.apBulletMod = bulletType.apBulletMod;
                 pBullet.bulletDmgMult = bulletDmgMult;
+                pBullet.fuzeDelay = bulletType.fuzeDelay;
+                pBullet.fuzeSensitivity = bulletType.fuzeSensitivity;
 
                 pBullet.ballisticCoefficient = bulletType.bulletBallisticCoefficient;
 
