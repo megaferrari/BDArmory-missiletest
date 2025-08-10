@@ -370,7 +370,7 @@ namespace BDArmory.Weapons.Missiles
 
         private float burnRate = 0;
         private float burnedFuelMass = 0;
-        private float maxCruiseSpeed = 300f;
+        public float maxCruiseSpeed = 300f;
 
         private int cruiseTerminationFrames = 0;
 
@@ -1540,42 +1540,37 @@ namespace BDArmory.Weapons.Missiles
                 ml.CruiseSpeed = CruiseSpeed;
                 ml.CruisePredictionTime = CruisePredictionTime;
             }
-            if (GuidanceMode == GuidanceModes.AAMLoft)
-            {
-                ml.LoftMaxAltitude = LoftMaxAltitude;
-                ml.LoftRangeOverride = LoftRangeOverride;
-                ml.LoftAltitudeAdvMax = LoftAltitudeAdvMax;
-                ml.LoftMinAltitude = LoftMinAltitude;
-                ml.LoftAngle = LoftAngle;
-                ml.LoftTermAngle = LoftTermAngle;
-                ml.LoftRangeFac = LoftRangeFac;
-                ml.LoftVelComp = LoftVelComp;
-                ml.LoftVertVelComp = LoftVertVelComp;
-                //ml.LoftAltComp = LoftAltComp;
-                ml.terminalHomingRange = terminalHomingRange;
-                ml.homingModeTerminal = homingModeTerminal;
-                ml.pronavGain = pronavGain;
-                ml.loftState = LoftStates.Boost;
-                ml.TimeToImpact = float.PositiveInfinity;
-            }
-            /*            if (GuidanceMode == GuidanceModes.AAMHybrid)
-                            ml.pronavGain = pronavGain;*/
-            if (GuidanceMode == GuidanceModes.APN || GuidanceMode == GuidanceModes.PN)
-                ml.pronavGain = pronavGain;
 
-            if (GuidanceMode == GuidanceModes.Kappa)
+            if (BDArmorySettings.DEBUG_MISSILES)
             {
-                ml.kappaAngle = kappaAngle;
-                ml.LoftAngle = LoftAngle;
-                ml.loftState = LoftStates.Boost;
-                ml.LoftTermAngle = LoftTermAngle;
-                ml.LoftMaxAltitude = LoftMaxAltitude;
-                ml.LoftRangeFac = LoftRangeFac;
-                ml.LoftVertVelComp = LoftVertVelComp;
-                ml.LoftRangeOverride = LoftRangeOverride;
-            }
+                if (GuidanceMode == GuidanceModes.AAMLoft)
+                {
+                    ml.LoftMaxAltitude = LoftMaxAltitude;
+                    ml.LoftRangeOverride = LoftRangeOverride;
+                    ml.LoftAltitudeAdvMax = LoftAltitudeAdvMax;
+                    ml.LoftMinAltitude = LoftMinAltitude;
+                    ml.LoftAngle = LoftAngle;
+                    ml.LoftTermAngle = LoftTermAngle;
+                    ml.LoftRangeFac = LoftRangeFac;
+                    ml.LoftVelComp = LoftVelComp;
+                    ml.LoftVertVelComp = LoftVertVelComp;
+                    //ml.LoftAltComp = LoftAltComp;
+                }
+                /*if (GuidanceMode == GuidanceModes.AAMHybrid)
+                    ml.pronavGain = pronavGain;*/
 
-            ml.terminalHoming = terminalHoming;
+                if (GuidanceMode == GuidanceModes.Kappa)
+                {
+                    ml.kappaAngle = kappaAngle;
+                    ml.LoftAngle = LoftAngle;
+                    ml.LoftTermAngle = LoftTermAngle;
+                    ml.LoftMaxAltitude = LoftMaxAltitude;
+                    ml.LoftRangeFac = LoftRangeFac;
+                    ml.LoftVertVelComp = LoftVertVelComp;
+                    ml.LoftRangeOverride = LoftRangeOverride;
+                }
+            }
+            
             if (terminalHoming)
             {
                 if (homingModeTerminal == GuidanceModes.AGMBallistic)
@@ -1589,40 +1584,34 @@ namespace BDArmory.Weapons.Missiles
                     ml.CruiseSpeed = CruiseSpeed;
                     ml.CruisePredictionTime = CruisePredictionTime;
                 }
-                if (homingModeTerminal == GuidanceModes.AAMLoft)
-                {
-                    ml.LoftMaxAltitude = LoftMaxAltitude;
-                    ml.LoftRangeOverride = LoftRangeOverride;
-                    ml.LoftAltitudeAdvMax = LoftAltitudeAdvMax;
-                    ml.LoftMinAltitude = LoftMinAltitude;
-                    ml.LoftAngle = LoftAngle;
-                    ml.LoftTermAngle = LoftTermAngle;
-                    ml.LoftRangeFac = LoftRangeFac;
-                    ml.LoftVelComp = LoftVelComp;
-                    ml.LoftVertVelComp = LoftVertVelComp;
-                    //ml.LoftAltComp = LoftAltComp;
-                    ml.pronavGain = pronavGain;
-                    ml.loftState = LoftStates.Boost;
-                    ml.TimeToImpact = float.PositiveInfinity;
-                }
-                if (homingModeTerminal == GuidanceModes.APN || homingModeTerminal == GuidanceModes.PN)
-                    ml.pronavGain = pronavGain;
 
-                if (homingModeTerminal == GuidanceModes.Kappa)
+                if (BDArmorySettings.DEBUG_MISSILES)
                 {
-                    ml.kappaAngle = kappaAngle;
-                    ml.LoftAngle = LoftAngle;
-                    ml.loftState = LoftStates.Boost;
-                    ml.LoftTermAngle = LoftTermAngle;
-                    ml.LoftMaxAltitude = LoftMaxAltitude;
-                    ml.LoftRangeFac = LoftRangeFac;
-                    ml.LoftVertVelComp = LoftVertVelComp;
-                    ml.LoftRangeOverride = LoftRangeOverride;
-                }
+                    if (homingModeTerminal == GuidanceModes.AAMLoft)
+                    {
+                        ml.LoftMaxAltitude = LoftMaxAltitude;
+                        ml.LoftRangeOverride = LoftRangeOverride;
+                        ml.LoftAltitudeAdvMax = LoftAltitudeAdvMax;
+                        ml.LoftMinAltitude = LoftMinAltitude;
+                        ml.LoftAngle = LoftAngle;
+                        ml.LoftTermAngle = LoftTermAngle;
+                        ml.LoftRangeFac = LoftRangeFac;
+                        ml.LoftVelComp = LoftVelComp;
+                        ml.LoftVertVelComp = LoftVertVelComp;
+                        //ml.LoftAltComp = LoftAltComp;
+                    }
 
-                ml.terminalHomingRange = terminalHomingRange;
-                ml.homingModeTerminal = homingModeTerminal;
-                ml.terminalHomingActive = false;
+                    if (homingModeTerminal == GuidanceModes.Kappa)
+                    {
+                        ml.kappaAngle = kappaAngle;
+                        ml.LoftAngle = LoftAngle;
+                        ml.LoftTermAngle = LoftTermAngle;
+                        ml.LoftMaxAltitude = LoftMaxAltitude;
+                        ml.LoftRangeFac = LoftRangeFac;
+                        ml.LoftVertVelComp = LoftVertVelComp;
+                        ml.LoftRangeOverride = LoftRangeOverride;
+                    }
+                }
             }
 
             ml.decoupleForward = decoupleForward;
