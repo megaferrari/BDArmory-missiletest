@@ -29,6 +29,7 @@
 	- Multi-barreled guns now fire tracers every tracerInterval rounds of each barrel, and will fire tracers simultaneously from all barrels.
 	- Remove maxEngagementRange (default 5000m) check from bombs when AI is selecting what weapon to use.
 	- Fix aim lead offset for weapons with deploy animations.
+	- Added fuzeDelay and fuzeSensitivity functionality to bullets. Now, for penetrating and delay fuzes you can specify the fuze delay in seconds, and the fuze sensitivity in mm for penetrating fuzes, by listing them with commas, I.E. "fuzeType = Penetrating,0.01,20" for a 0.01 s delay which will be set off by 20 mm of armor (currently material differences are not considered).
 	- Missiles:
 		- General Changes:
 			- Fix maddog ARH missile launches not turning on seeker.
