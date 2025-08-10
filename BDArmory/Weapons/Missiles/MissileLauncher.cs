@@ -1555,6 +1555,8 @@ namespace BDArmory.Weapons.Missiles
                     ml.LoftVelComp = LoftVelComp;
                     ml.LoftVertVelComp = LoftVertVelComp;
                     //ml.LoftAltComp = LoftAltComp;
+                    ml.loftState = LoftStates.Boost;
+                    ml.TimeToImpact = float.PositiveInfinity;
                 }
                 /*if (GuidanceMode == GuidanceModes.AAMHybrid)
                     ml.pronavGain = pronavGain;*/
@@ -1568,6 +1570,7 @@ namespace BDArmory.Weapons.Missiles
                     ml.LoftRangeFac = LoftRangeFac;
                     ml.LoftVertVelComp = LoftVertVelComp;
                     ml.LoftRangeOverride = LoftRangeOverride;
+                    ml.loftState = LoftStates.Boost;
                 }
             }
             
@@ -1599,6 +1602,8 @@ namespace BDArmory.Weapons.Missiles
                         ml.LoftVelComp = LoftVelComp;
                         ml.LoftVertVelComp = LoftVertVelComp;
                         //ml.LoftAltComp = LoftAltComp;
+                        ml.loftState = LoftStates.Boost;
+                        ml.TimeToImpact = float.PositiveInfinity;
                     }
 
                     if (homingModeTerminal == GuidanceModes.Kappa)
@@ -1610,6 +1615,7 @@ namespace BDArmory.Weapons.Missiles
                         ml.LoftRangeFac = LoftRangeFac;
                         ml.LoftVertVelComp = LoftVertVelComp;
                         ml.LoftRangeOverride = LoftRangeOverride;
+                        ml.loftState = LoftStates.Boost;
                     }
                 }
             }

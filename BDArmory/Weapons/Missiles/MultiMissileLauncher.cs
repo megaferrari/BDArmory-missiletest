@@ -894,6 +894,8 @@ namespace BDArmory.Weapons.Missiles
                         ml.LoftVelComp = missileLauncher.LoftVelComp;
                         ml.LoftVertVelComp = missileLauncher.LoftVertVelComp;
                         //ml.LoftAltComp = missileLauncher.LoftAltComp;
+                        ml.loftState = LoftStates.Boost;
+                        ml.TimeToImpact = float.PositiveInfinity;
                     }
                     /*if (missileLauncher.GuidanceMode == GuidanceModes.AAMHybrid)
                     {
@@ -911,6 +913,7 @@ namespace BDArmory.Weapons.Missiles
                         ml.LoftVertVelComp = missileLauncher.LoftVertVelComp;
                         ml.LoftRangeOverride = missileLauncher.LoftRangeOverride;
                         ml.LoftTermAngle = missileLauncher.LoftTermAngle;
+                        ml.loftState = LoftStates.Boost;
                     }
                 }
 
@@ -941,7 +944,6 @@ namespace BDArmory.Weapons.Missiles
                             ml.LoftVelComp = missileLauncher.LoftVelComp;
                             ml.LoftVertVelComp = missileLauncher.LoftVertVelComp;
                             //ml.LoftAltComp = missileLauncher.LoftAltComp;
-                            ml.pronavGain = missileLauncher.pronavGain;
                             ml.loftState = LoftStates.Boost;
                             ml.TimeToImpact = float.PositiveInfinity;
                         }
@@ -954,8 +956,8 @@ namespace BDArmory.Weapons.Missiles
                             ml.LoftRangeFac = missileLauncher.LoftRangeFac;
                             ml.LoftVertVelComp = missileLauncher.LoftVertVelComp;
                             ml.LoftRangeOverride = missileLauncher.LoftRangeOverride;
-                            ml.loftState = LoftStates.Boost;
                             ml.LoftTermAngle = missileLauncher.LoftTermAngle;
+                            ml.loftState = LoftStates.Boost;
                         }
                     }
                 }
