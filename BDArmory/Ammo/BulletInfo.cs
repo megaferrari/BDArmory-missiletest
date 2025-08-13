@@ -318,7 +318,7 @@ namespace BDArmory.Bullets
 
             if (tntMass > 0 || beehive)
             {
-                string[] fuzeStrings = fuzeType.Split(new char[] { ',' });
+                string[] fuzeStrings = fuzeType.Split([',']);
                 if (fuzeStrings.Length > 0)
                 {
                     eFuzeType = fuzeStrings[0].ToLower() switch
@@ -343,21 +343,15 @@ namespace BDArmory.Bullets
 
                 if (eFuzeType == BulletFuzeTypes.Delay && fuzeStrings.Length > 1)
                 {
-                    float temp = -1;
-                    if (float.TryParse(fuzeStrings[1], out temp))
+                    if (float.TryParse(fuzeStrings[1], out float temp))
                         fuzeDelay = temp;
                 }
                 else if (eFuzeType == BulletFuzeTypes.Penetrating && fuzeStrings.Length > 1)
                 {
-                    float temp = -1;
-                    if (float.TryParse(fuzeStrings[1], out temp))
+                    if (float.TryParse(fuzeStrings[1], out float temp))
                         fuzeDelay = temp;
-                    if (fuzeStrings.Length > 2)
-                    {
-                        temp = -1;
-                        if (float.TryParse(fuzeStrings[2], out temp))
-                            fuzeSensitivity = temp;
-                    }
+                    if (fuzeStrings.Length > 2 && float.TryParse(fuzeStrings[2], out temp))
+                        fuzeSensitivity = temp;
                 }
             }
             else

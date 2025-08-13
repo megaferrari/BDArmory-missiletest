@@ -356,6 +356,10 @@ namespace BDArmory.Weapons.Missiles
         [KSPField]
         public float LoftTermRange = -1;
 
+        [KSPField]
+        public float maneuvergLimit = 20;
+        float invManeuvergLimit;
+
         public GPSTargetInfo designatedGPSInfo;
 
         float[] rcsFiredTimes;
@@ -884,6 +888,7 @@ namespace BDArmory.Weapons.Missiles
             SetInitialDetonationDistance();
             uncagedLock = (allAspect) ? allAspect : uncagedLock;
             guidanceFailureRatePerFrame = (guidanceFailureRate >= 1) ? 1f : 1f - Mathf.Exp(Mathf.Log(1f - guidanceFailureRate) * Time.fixedDeltaTime); // Convert from per-second failure rate to per-frame failure rate
+            invManeuvergLimit = 1f / maneuvergLimit;
 
             if (isTimed)
             {
@@ -3195,7 +3200,7 @@ namespace BDArmory.Weapons.Missiles
         {
             if (this._guidance == null)
             {
-                this._guidance = new CruiseGuidance(this);
+                this._guidance = new CruiseGuidance(this, invManeuvergLimit);
             }
 
             Vector3 cruiseTarget = TargetPosition;
@@ -3282,7 +3287,7 @@ namespace BDArmory.Weapons.Missiles
                             float tempPronavGain = pronavGain > 0 ? pronavGain : pronavGainCurve.Evaluate(Vector3.Distance(TargetPosition, vessel.CoM));
 
                             //aamTarget = MissileGuidance.GetAirToAirLoftTarget(TargetPosition, TargetVelocity, TargetAcceleration, vessel, targetAlt, LoftMaxAltitude, LoftRangeFac, LoftAltComp, LoftVelComp, LoftAngle, LoftTermAngle, terminalHomingRange, ref loftState, out float currTimeToImpact, out float rangeToTarget, optimumAirspeed);
-                            aamTarget = MissileGuidance.GetAirToAirLoftTarget(TargetPosition, TargetVelocity, TargetAcceleration, vessel, targetAlt, LoftMaxAltitude, LoftRangeFac, LoftVertVelComp, LoftVelComp, LoftAngle, LoftTermAngle, terminalHomingRange, ref loftState, out float currTimeToImpact, out currgLimit, out float rangeToTarget, homingModeTerminal, tempPronavGain, optimumAirspeed);
+                            aamTarget = MissileGuidance.GetAirToAirLoftTarget(TargetPosition, TargetVelocity, TargetAcceleration, vessel, targetAlt, LoftMaxAltitude, LoftRangeFac, LoftVertVelComp, LoftVelComp, LoftAngle, LoftTermAngle, terminalHomingRange, maneuvergLimit, invManeuvergLimit, ref loftState, out float currTimeToImpact, out currgLimit, out float rangeToTarget, homingModeTerminal, tempPronavGain, optimumAirspeed);
 
                             //float fac = (1 - (rangeToTarget - terminalHomingRange - 100f) / Mathf.Clamp(terminalHomingRange * 4f, 5000f, 25000f));
 

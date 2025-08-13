@@ -550,7 +550,7 @@ namespace BDArmory.Guidances
                 turnFactor = Mathf.Clamp(turnFactor, -1f, 1f);
 
                 // Limit gs during climb
-                gLimit = 6f;
+                gLimit = ml.maneuvergLimit;
 
                 return ml.vessel.CoM + currSpeed * ((Mathf.Cos(loftAngle * turnFactor * Mathf.Deg2Rad) * planarDirectionToTarget) + (Mathf.Sin(loftAngle * turnFactor * Mathf.Deg2Rad) * upDirection));
             }
@@ -653,9 +653,9 @@ namespace BDArmory.Guidances
         public static Vector3 GetAirToAirLoftTarget(Vector3 targetPosition, Vector3 targetVelocity,
             Vector3 targetAcceleration, Vessel missileVessel, float targetAlt, float maxAltitude,
             float rangeFactor, float vertVelComp, float velComp, float loftAngle, float termAngle,
-            float termDist, ref MissileBase.LoftStates loftState, out float timeToImpact, out float gLimit,
-            out float targetDistance, MissileBase.GuidanceModes homingModeTerminal, float N,
-            float optimumAirspeed = 200)
+            float termDist, float maneuvergLimit, float invManeuvergLimit, ref MissileBase.LoftStates loftState,
+            out float timeToImpact, out float gLimit, out float targetDistance,
+            MissileBase.GuidanceModes homingModeTerminal, float N, float optimumAirspeed = 200)
         {
             Vector3 velDirection = missileVessel.srf_vel_direction; //missileVessel.Velocity().normalized;
 
@@ -747,7 +747,7 @@ namespace BDArmory.Guidances
                             float tempSpeed = Mathf.Max(currSpeed * 1.1f, optimumAirspeed);
 
                             float curvatureCompensation = (1f - Vector3.Dot(upDirection, VectorUtils.GetUpDirection(targetPosition))) * (float)FlightGlobals.currentMainBody.Radius;
-                            float turnRadius = (tempSpeed * tempSpeed * invg * 0.1f);
+                            float turnRadius = (tempSpeed * tempSpeed * invg * invManeuvergLimit);
 
                             Vector3 turnLead = (turnRadius * (pullDownCos + Mathf.Sin(termAngle * Mathf.Deg2Rad))) * planarDirectionToTarget + (turnRadius * (1f - pullDownSin) - curvatureCompensation) * upDirection;
 
@@ -829,7 +829,7 @@ namespace BDArmory.Guidances
 
                     //loftAngle = Mathf.Max(loftAngle, angle);
 
-                    gLimit = 10f;
+                    gLimit = maneuvergLimit;
 
                     //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileGuidance]: AAM Loft altitudeClamp: [{altitudeClamp:G6}] COS: [{Mathf.Cos(loftAngle * turnFactor * Mathf.Deg2Rad):G3}], SIN: [{Mathf.Sin(loftAngle * turnFactor * Mathf.Deg2Rad):G3}], turnFactor: [{turnFactor:G3}].");
                     return missileVessel.CoM + (float)missileVessel.srfSpeed * ((Mathf.Cos(loftAngle * turnFactor * Mathf.Deg2Rad) * planarDirectionToTarget) + (Mathf.Sin(loftAngle * turnFactor * Mathf.Deg2Rad) * upDirection));

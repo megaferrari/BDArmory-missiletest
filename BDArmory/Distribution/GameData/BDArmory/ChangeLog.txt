@@ -50,6 +50,7 @@
 			- Sanity checks for maxOffboresight and cruiseSpeed, maxOffboresight and max cruiseSpeed are loaded from the configuration file to ensure consistency with intended values.
 			- Fix buggy behavior caused by partial failure of missile warheads to detonate when a custom warhead and a standard warhead were used in conjunction with non-zero fuze failure settings.
 			- New "maxTorqueAero" field for missiles, provides a dynamic pressure (density times velocity squared) based component to maxTorque. This is intended to simulate aerodynamic control surfaces (as opposed to maxTorque, which now represents things like thrust-vectoring).
+			- New "maneuvergLimit" field for missiles, provides the gLimit for the various maneuvers a missile might conduct (not general guidance maneuvers). Specifically, the pull-up phase of lofted guidance types, like AAMloft and kappa, and the pop-up maneuver of cruise missiles.
 			- Several missile parameters can now be specified for different phases of flight with comma-separated values
 				- "liftArea"/"dragArea" has the format: [boost], [cruise], [deltaDeploy], [deltaCruiseDeploy], separated by commas. The [cruise] value is used when "decoupleBoosters" is true, representing the change in aerodynamics after dropping the booster stage. The deltas represent the change in area when deploy animations trigger. A boolean field "deployedLiftInCruise" (defaults to true) allows you to keep [deltaDeploy] after the booster separates.
 				- "maxTorqueAero" follows the same format as above.

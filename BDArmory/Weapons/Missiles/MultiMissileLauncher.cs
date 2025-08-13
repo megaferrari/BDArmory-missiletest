@@ -606,6 +606,7 @@ namespace BDArmory.Weapons.Missiles
             missileLauncher.maxTorque = MLConfig.maxTorque;
             missileLauncher.simpleStableTorque = MLConfig.simpleStableTorque;
             missileLauncher.deployedDrag = MLConfig.deployedDrag;
+            missileLauncher.maneuvergLimit = MLConfig.maneuvergLimit;
             missileLauncher.LoftMaxAltitude = MLConfig.LoftMaxAltitude;
             missileLauncher.LoftRangeOverride = MLConfig.LoftRangeOverride;
             missileLauncher.LoftAltitudeAdvMax = MLConfig.LoftAltitudeAdvMax;
