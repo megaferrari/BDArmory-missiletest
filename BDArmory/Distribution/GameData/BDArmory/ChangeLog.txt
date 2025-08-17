@@ -26,6 +26,7 @@
 	- Locking a target will no longer automatically slave active turrets to the target when manually controlling a craft. To slave turrets to a locked radar/camera, use the 'Slave Turret' button.
 	- Fix bug that allowed radars to lock on below the radar horizon when the appropriate settings are toggled.
 	- Fix datalinked radars not conveying lock information to all datalinked vessels.
+	- Fix RCS snapshots being affected by Conformal Decals.
 - Weapons:
 	- Add a "Yaw Standby Angle" slider to gun turrets.
 	- Multi-barreled guns now no longer swap to the next ammo type in the belt until after all barrels have fired.
