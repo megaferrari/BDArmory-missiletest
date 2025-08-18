@@ -3,11 +3,14 @@
 	- Fix the g-limit overrides from needing to save the persistent savegame, which was leaving spawned craft in play when reverting to the SPH.
 - UI:
 	-	Fix spelling of "ordnance" in localisation files (settings and modules retain the misspelling).
+  - Add competition marquee messages for fuel/ammo detonations from battle damage.
+	- Tweak vessel switching weights to try to remain focused on vessels that are about to explode.
 - AI / WM:
 	- Add missing unclamped limits for 3-axis static damping.
 	- Adjust the release of the "Attack" command so that craft don't go dead-stick when under attack but not threatened enough to trigger evasion.
 	- Fix AttackVIP targeting priority impacting target priority weighting if no enemy VIP is present.
 	- When assigning turret targets, AI now checks if target is within max range of the turret.
+  - Pilot AI using divebombing will now break off the dive when bombs have been released.
 	- Add an option to disable the behaviour of disabling guard mode when vessels are spawned.
 	- Fix pilot AI's standby mode to automatically trigger AG10 and enable engines if necessary when a threat is detected.
 	- Fix behavior of Guard Mode with regards to datalinked radars, Guard Mode should no longer unlock targets when these locks are being used by a datalinked vessel to guide a missile.
@@ -23,6 +26,7 @@
 	- Locking a target will no longer automatically slave active turrets to the target when manually controlling a craft. To slave turrets to a locked radar/camera, use the 'Slave Turret' button.
 	- Fix bug that allowed radars to lock on below the radar horizon when the appropriate settings are toggled.
 	- Fix datalinked radars not conveying lock information to all datalinked vessels.
+	- Fix RCS snapshots being affected by Conformal Decals.
 - Weapons:
 	- Add a "Yaw Standby Angle" slider to gun turrets.
 	- Multi-barreled guns now no longer swap to the next ammo type in the belt until after all barrels have fired.

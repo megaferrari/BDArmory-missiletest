@@ -5,6 +5,7 @@ using UnityEngine;
 using BDArmory.Control;
 using BDArmory.CounterMeasure;
 using BDArmory.Extensions;
+using BDArmory.ModIntegration;
 using BDArmory.Settings;
 using BDArmory.Shaders;
 using BDArmory.Targeting;
@@ -21,8 +22,6 @@ namespace BDArmory.Radar
         private static bool rcsSetupCompleted = false;
         private static int radarResolution = 128;
 
-        private static bool hasCheckedForConformalDecals = false;
-        private static bool hasConformalDecals = false;
         private static bool hangarHiddenExternally = false;
 
         private static RenderTexture rcsRenderingVariable;
@@ -280,22 +279,30 @@ namespace BDArmory.Radar
             if (ti.radarSignatureMatrix is null)
                 return ti.radarBaseSignature;
 
-            Vector3 directionOfRadar = radarPosition - ti.Vessel.ReferenceTransform.position;
-            Vector3 azComponent = Vector3.ProjectOnPlane(directionOfRadar, ti.Vessel.ReferenceTransform.forward);
-            Vector3 elComponent = Vector3.ProjectOnPlane(directionOfRadar, ti.Vessel.ReferenceTransform.right);
+            try
+            {
+                Vector3 directionOfRadar = radarPosition - ti.Vessel.ReferenceTransform.position;
+                Vector3 azComponent = Vector3.ProjectOnPlane(directionOfRadar, ti.Vessel.ReferenceTransform.forward);
+                Vector3 elComponent = Vector3.ProjectOnPlane(directionOfRadar, ti.Vessel.ReferenceTransform.right);
 
-            float azAngle = Mathf.Abs(Vector3.SignedAngle(ti.Vessel.ReferenceTransform.up, azComponent, ti.Vessel.ReferenceTransform.forward));
-            float elAngle = Vector3.SignedAngle(ti.Vessel.ReferenceTransform.up, elComponent, -ti.Vessel.ReferenceTransform.right);
+                float azAngle = Mathf.Abs(Vector3.SignedAngle(ti.Vessel.ReferenceTransform.up, azComponent, ti.Vessel.ReferenceTransform.forward));
+                float elAngle = Vector3.SignedAngle(ti.Vessel.ReferenceTransform.up, elComponent, -ti.Vessel.ReferenceTransform.right);
 
-            float signatureAtAspect = RCSMatrixEval(ti.radarSignatureMatrix, ti.radarBaseSignature, azAngle, elAngle);
+                float signatureAtAspect = RCSMatrixEval(ti.radarSignatureMatrix, ti.radarBaseSignature, azAngle, elAngle);
 
-            // Incorporate any signature modification
-            signatureAtAspect *= ti.radarModifiedSignature / ti.radarBaseSignature;
+                // Incorporate any signature modification
+                signatureAtAspect *= ti.radarModifiedSignature / ti.radarBaseSignature;
 
-            if (BDArmorySettings.DEBUG_RADAR)
-                Debug.Log("[BDArmory.RadarUtils]: " + ti.Vessel.vesselName + " signature of " + signatureAtAspect.ToString("0.00") + "m^2 at az/el " + azAngle.ToString("0.0") + "/" + elAngle.ToString("0.0") + " deg.");
+                if (BDArmorySettings.DEBUG_RADAR)
+                    Debug.Log("[BDArmory.RadarUtils]: " + ti.Vessel.vesselName + " signature of " + signatureAtAspect.ToString("0.00") + "m^2 at az/el " + azAngle.ToString("0.0") + "/" + elAngle.ToString("0.0") + " deg.");
 
-            return signatureAtAspect;
+                return signatureAtAspect;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[BDArmory.RadarUtils]: Failed to evaluate aspected RCS of {ti.Vessel.vesselName}, using radarModifiedSignature {ti.radarModifiedSignature} instead: {e.Message}");
+                return ti.radarModifiedSignature;
+            }
         }
 
         private static float RCSMatrixEval(float[,] rcsMatrix, float overallRCS, float azAngle, float elAngle)
@@ -434,7 +441,15 @@ namespace BDArmory.Radar
                 else
                 {
                     // perform radar rendering to obtain base cross section
-                    ti = RenderVesselRadarSnapshot(v, v.transform, ti);
+                    try
+                    {
+                        ti = RenderVesselRadarSnapshot(v, v.transform, ti);
+                    }
+                    catch (Exception e) // Unity physics sometimes breaks (MMGs sometimes cause this).
+                    {
+                        Debug.LogWarning($"[BDArmory.RadarUtils]: Failed to get a radar snapshot of {v.GetName()}, using mass instead: {e.Message}");
+                        ti.radarBaseSignature = v.GetTotalMass();
+                    }
                 }
 
                 ti.radarSignatureMatrixNeedsUpdate = BDArmorySettings.ASPECTED_RCS ? false : ti.radarSignatureMatrixNeedsUpdate;
@@ -574,9 +589,9 @@ namespace BDArmory.Radar
                 return ti;
             }
 
-            // If in editor, turn off rendering of conformal decals
-            if (!HighLogic.LoadedSceneIsFlight && CheckForConformalDecals())
-                SetConformalDecalRendering(false);
+            // Disable rendering of conformal decals, which messes with the parent part's RCS render.
+            if (ConformalDecals.hasConformalDecals)
+                SetConformalDecalRendering(v, false);
 
             // If in editor, turn off rendering hangar
             if (!HighLogic.LoadedSceneIsFlight)
@@ -776,9 +791,9 @@ namespace BDArmory.Radar
                     }
                 }
             //}
-            // If in editor, turn back on rendering of conformal decals
-            if (!HighLogic.LoadedSceneIsFlight && CheckForConformalDecals())
-                SetConformalDecalRendering(true);
+            // Re-enable rendering of conformal decals.
+            if (ConformalDecals.hasConformalDecals)
+                SetConformalDecalRendering(v, true);
 
             // If in editor, turn back on rendering of hangar
             if (!HighLogic.LoadedSceneIsFlight)
@@ -798,42 +813,30 @@ namespace BDArmory.Radar
             return ti;
         }
 
-        public static bool CheckForConformalDecals()
+        public static void SetConformalDecalRendering(Vessel v, bool renderEnabled)
         {
-            if (hasCheckedForConformalDecals) return hasConformalDecals;
-            hasCheckedForConformalDecals = true;
-            foreach (var assy in AssemblyLoader.loadedAssemblies)
+            if (!ConformalDecals.hasConformalDecals) return;
+            if (HighLogic.LoadedSceneIsFlight && v == null) return; // Invalid vessel to render.
+
+            using List<Part>.Enumerator parts = HighLogic.LoadedSceneIsEditor ? EditorLogic.fetch.ship.Parts.GetEnumerator() : v.Parts.GetEnumerator();
+            while (parts.MoveNext())
             {
-                if (assy.assembly.FullName.StartsWith("ConformalDecals"))
+                foreach (var module in parts.Current.Modules)
                 {
-                    hasConformalDecals = true;
-                    if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Found Conformal Decals Assembly: {assy.assembly.FullName}");
-                }
-            }
-            return hasConformalDecals;
-        }
-
-        public static void SetConformalDecalRendering(bool renderEnabled)
-        {
-            if (!hasConformalDecals) return;
-
-            using (List<Part>.Enumerator parts = EditorLogic.fetch.ship.Parts.GetEnumerator())
-                while (parts.MoveNext())
-                {
-                    foreach (var module in parts.Current.Modules)
+                    if ((module.moduleName == "ModuleConformalDecal") || (module.moduleName == "ModuleConformalFlag") || (module.moduleName == "ModuleConformalText"))
                     {
-                        if ((module.moduleName == "ModuleConformalDecal") || (module.moduleName == "ModuleConformalFlag") || (module.moduleName == "ModuleConformalText"))
+                        if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Found {module.moduleName} for {parts.Current.name}.");
+                        foreach (var r in parts.Current.GetComponentsInChildren<Renderer>())
                         {
-                            if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Found {module.moduleName} for {parts.Current.name}.");
-                            foreach (var r in parts.Current.GetComponentsInChildren<Renderer>())
-                            {
-                                if (r.GetComponentInParent<Part>() != parts.Current) continue; // Don't recurse to child parts.
-                                r.enabled = renderEnabled;
-                                if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Set rendering for {parts.Current.name} to {renderEnabled}.");
-                            }
+                            if (r.GetComponentInParent<Part>() != parts.Current) continue; // Don't recurse to child parts.
+                            r.enabled = renderEnabled;
+                            if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Set rendering for {r.name} on {parts.Current.name} to {renderEnabled}.");
                         }
+                        var cdComponent = ConformalDecals.Instance.GetMCDComponent(parts.Current);
+                        if (cdComponent != null) ConformalDecals.Instance.SetMCDIsAttached(cdComponent, renderEnabled);
                     }
                 }
+            }
         }
 
         // Code to hide/show SPH/VAB during RCS render to prevent the hangar itself from affecting RCS calculation, code modified from HangarExtender
@@ -1889,7 +1892,7 @@ namespace BDArmory.Radar
                         float signature = 1;
                         if (radar.sonarMode != ModuleRadar.SonarModes.passive)    //radar or active soanr
                         {
-                            signature = (BDArmorySettings.ASPECTED_RCS) ? GetVesselRadarSignatureAtAspect(ti, position) : ti.radarModifiedSignature;
+                            signature = BDArmorySettings.ASPECTED_RCS ? GetVesselRadarSignatureAtAspect(ti, position) : ti.radarModifiedSignature;
                             signature *= GetRadarGroundClutterModifier(radar.radarGroundClutterFactor, position, loadedvessels.Current.CoM, ti);
                             if (radar.vessel.Splashed && loadedvessels.Current.Splashed) signature *= GetVesselBubbleFactor(radar.transform.position, loadedvessels.Current);
                             signature *= notchMultiplier;
