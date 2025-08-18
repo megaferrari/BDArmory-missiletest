@@ -556,7 +556,9 @@ namespace BDArmory.Weapons.Missiles
         private int locksCount = 0;
         private float _radarFailTimer = 0;
 
-        [KSPField] public float radarTimeout = 5;
+        [KSPField] public float radarTimeout = -1;
+        [KSPField] public float seekerTimeout = 5;
+        [KSPField] public float terminalSeekerTimeout = -1;
         private float lastRWRPing = 0;
         public RadarWarningReceiver.RWRThreatTypes[] antiradTargets;
         private bool radarLOALSearching = false;
@@ -798,7 +800,7 @@ namespace BDArmory.Weapons.Missiles
         protected void UpdateHeatTarget()
         {
 
-            if (lockFailTimer > 1)
+            if (lockFailTimer > seekerTimeout)
             {
                 targetVessel = null;
                 TargetAcquired = false;
@@ -1259,7 +1261,7 @@ namespace BDArmory.Weapons.Missiles
                         startDirection = GetForwardTransform();
                     }
                     _radarFailTimer += Time.fixedDeltaTime;
-                    if (_radarFailTimer > radarTimeout)
+                    if (_radarFailTimer > seekerTimeout)
                     {
                         if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileBase]: Active Radar guidance failed. LOAL could not lock a target.");
                         radarLOAL = false;
@@ -1274,7 +1276,7 @@ namespace BDArmory.Weapons.Missiles
 
             if (!radarTarget.exists)
             {
-                if (_radarFailTimer < radarTimeout)
+                if (_radarFailTimer < seekerTimeout)
                 {
                     if (radarLOAL)
                     {
@@ -1287,7 +1289,7 @@ namespace BDArmory.Weapons.Missiles
                     else
                     {
                         _radarFailTimer += Time.fixedDeltaTime;
-                        if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileBase]: No assigned radar target. Awaiting timeout({radarTimeout - _radarFailTimer}).... ");
+                        if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileBase]: No assigned radar target. Awaiting timeout({seekerTimeout - _radarFailTimer}).... ");
                     }
                 }
                 else
@@ -1354,7 +1356,7 @@ namespace BDArmory.Weapons.Missiles
                     lockFailTimer = 0;
                 }
                 lockFailTimer += Time.fixedDeltaTime;
-                if (lockFailTimer > 8)
+                if (lockFailTimer > seekerTimeout)
                 {
                     TargetAcquired = false;
                 }
@@ -1391,7 +1393,7 @@ namespace BDArmory.Weapons.Missiles
             }
             TargetCoords_ = targetGPSCoords;
 
-            if (lockFailTimer > radarTimeout)
+            if (lockFailTimer > seekerTimeout)
             {
                 targetVessel = null;
                 TargetAcquired = false;
@@ -1918,7 +1920,7 @@ namespace BDArmory.Weapons.Missiles
         {
             if (this.DetonationDistance == -1)
             {
-                if (GuidanceMode == GuidanceModes.AAMLead || GuidanceMode == GuidanceModes.AAMPure || GuidanceMode == GuidanceModes.PN || GuidanceMode == GuidanceModes.APN || GuidanceMode == GuidanceModes.AAMLoft || GuidanceMode == GuidanceModes.Kappa) //|| GuidanceMode == GuidanceModes.AAMHybrid)
+                if (GuidanceMode == GuidanceModes.AAMLead || GuidanceMode == GuidanceModes.AAMPure || GuidanceMode == GuidanceModes.PN || GuidanceMode == GuidanceModes.APN || GuidanceMode == GuidanceModes.AAMLoft || GuidanceMode == GuidanceModes.Kappa || GuidanceMode == GuidanceModes.CLOSThreePoint || GuidanceMode == GuidanceModes.CLOSLead) //|| GuidanceMode == GuidanceModes.AAMHybrid)
                 {
                     DetonationDistance = GetBlastRadius() * 0.25f;
                 }

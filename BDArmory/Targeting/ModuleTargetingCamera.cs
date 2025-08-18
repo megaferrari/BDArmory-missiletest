@@ -42,6 +42,9 @@ namespace BDArmory.Targeting
         [KSPField(isPersistant = true)]
         public bool cameraEnabled;
 
+        [KSPField]
+        public bool colorCamera = false;
+
         float fov
         {
             get
@@ -201,6 +204,7 @@ namespace BDArmory.Targeting
                 activeCam = this;
                 windowIsOpen = true;
                 TargetingCamera.Instance.EnableCamera(cameraParentTransform);
+                TargetingCamera.Instance.color = colorCamera;
                 TargetingCamera.Instance.nvMode = nvMode;
                 TargetingCamera.Instance.SetFOV(fov);
                 ResizeTargetWindow();
@@ -208,9 +212,10 @@ namespace BDArmory.Targeting
 
             cameraEnabled = true;
 
-            if (WeaponManager)
+            var weaponManager = WeaponManager;
+            if (weaponManager)
             {
-                WeaponManager.mainTGP = this;
+                weaponManager.mainTGP = this;
             }
 
             BDATargetManager.RegisterLaserPoint(this);
@@ -251,9 +256,10 @@ namespace BDArmory.Targeting
             }
             BDATargetManager.ActiveLasers.Remove(this);
 
-            if (WeaponManager && WeaponManager.mainTGP == this)
+            var weaponManager = WeaponManager;
+            if (weaponManager && weaponManager.mainTGP == this)
             {
-                WeaponManager.mainTGP = FindNextActiveCamera();
+                weaponManager.mainTGP = FindNextActiveCamera();
             }
         }
 
@@ -312,6 +318,7 @@ namespace BDArmory.Targeting
                     Debug.Log("[BDArmory.ModuleTargetingCamera]: saved gtp: " + bodyRelativeGTP);
                     DelayedEnable();
                 }
+                TimingManager.FixedUpdateAdd(TimingManager.TimingStage.BetterLateThanNever, CameraTracking);
             }
         }
 
@@ -403,10 +410,15 @@ namespace BDArmory.Targeting
                 Vector3 camUp = cameraParentTransform.up;
                 if (eyeHolderTransform) camUp = Vector3.Cross(cameraParentTransform.forward, eyeHolderTransform.right);
                 cameraParentTransform.rotation = Quaternion.LookRotation(lookVector, camUp);
-                if (vessel.isActiveVessel && activeCam == this && TargetingCamera.cameraTransform)
-                {
-                    TargetingCamera.cameraTransform.rotation = Quaternion.LookRotation(cameraParentTransform.forward, worldUp);
-                }
+            }
+        }
+
+        void UpdateCameraDirection()
+        {
+            Vector3 worldUp = VectorUtils.GetUpDirection(cameraParentTransform.position);
+            if (vessel.isActiveVessel && activeCam == this && TargetingCamera.cameraTransform)
+            {
+                TargetingCamera.cameraTransform.rotation = Quaternion.LookRotation(cameraParentTransform.forward, worldUp);
             }
         }
 
@@ -428,14 +440,54 @@ namespace BDArmory.Targeting
                     {
                         TargetingCamera.Instance.SetFOV(fov);
                     }
+
+                    UpdateCameraDirection();
                 }
+
+                CameraTracking();
+            }
+        }
+
+        public override void OnFixedUpdate()
+        {
+            base.OnFixedUpdate();
+            if (HighLogic.LoadedSceneIsFlight)
+            {
+                if (cameraEnabled && !vessel.packed && !vessel.IsControllable)
+                {
+                    DisableCamera();
+                }
+            }
+        }
+
+        void FixedUpdate()
+        {
+            if (HighLogic.LoadedSceneIsFlight)
+            {
+                if (cameraEnabled && !vessel.packed)
+                {
+                    if (!vessel.IsControllable)
+                    {
+                        DisableCamera();
+                    }
+                    if (delayedEnabling) return;
+                }
+            }
+        }
+
+        void CameraTracking()
+        {
+            if (cameraEnabled && TargetingCamera.ReadyForUse && vessel.IsControllable)
+            {
+                if (delayedEnabling) return;
+                if (!TargetingCamera.Instance || FlightGlobals.currentMainBody == null) return;
 
                 if (radarLock)
                 {
                     UpdateRadarLock();
                 }
 
-                if (groundStabilized)
+                if (groundStabilized && !slewingToPosition)
                 {
                     if (lockedVessel != null)
                         groundTargetPosition = lockedVessel.CoM;
@@ -475,38 +527,7 @@ namespace BDArmory.Targeting
 
                 UpdateControls();
                 UpdateSlaveData();
-            }
-        }
-
-        public override void OnFixedUpdate()
-        {
-            base.OnFixedUpdate();
-            if (HighLogic.LoadedSceneIsFlight)
-            {
-                if (cameraEnabled && !vessel.packed && !vessel.IsControllable)
-                {
-                    DisableCamera();
-                }
-            }
-        }
-
-        void FixedUpdate()
-        {
-            if (HighLogic.LoadedSceneIsFlight)
-            {
-                if (cameraEnabled && !vessel.packed)
-                {
-                    if (!vessel.IsControllable)
-                    {
-                        DisableCamera();
-                    }
-                    if (delayedEnabling) return;
-
-                    if (cameraEnabled)
-                    {
-                        GetHitPoint();
-                    }
-                }
+                GetHitPoint();
             }
         }
 
@@ -632,10 +653,10 @@ namespace BDArmory.Targeting
 
         void UpdateRadarLock()
         {
-            var wm = WeaponManager;
-            if (wm && wm.vesselRadarData && wm.vesselRadarData.locked)
+            var weaponManager = WeaponManager;
+            if (weaponManager && weaponManager.vesselRadarData && weaponManager.vesselRadarData.locked)
             {
-                RadarDisplayData tgt = wm.vesselRadarData.lockedTargetData;
+                RadarDisplayData tgt = weaponManager.vesselRadarData.lockedTargetData;
                 Vector3 radarTargetPos = tgt.targetData.predictedPosition;
                 Vector3 targetDirection = radarTargetPos - cameraParentTransform.position;
 
@@ -657,7 +678,7 @@ namespace BDArmory.Targeting
                         ClearTarget();
                     }
                     //lookRotation = Quaternion.RotateTowards(cameraParentTransform.rotation, lookRotation, 120*Time.fixedDeltaTime);
-                    Vector3 rotateTwdDirection = Vector3.RotateTowards(cameraParentTransform.forward, targetDirection, 1200 * Time.fixedDeltaTime * Mathf.Deg2Rad, 0);
+                    Vector3 rotateTwdDirection = Vector3.RotateTowards(cameraParentTransform.forward, targetDirection, traverseRate * Time.fixedDeltaTime * Mathf.Deg2Rad, 0);
                     PointCameraModel(rotateTwdDirection);
                 }
             }
@@ -911,8 +932,7 @@ namespace BDArmory.Targeting
                     ClearTarget();
                 }
 
-                var wm = WeaponManager;
-                if (wm)
+                if (WeaponManager)
                 {
                     Rect sendGPSRect = new Rect(startX, controlsStartY + ++line * lineHeight, buttonWidth, buttonHeight);
                     if (GUI.Button(sendGPSRect, "Send GPS", buttonStyle))
@@ -958,13 +978,14 @@ namespace BDArmory.Targeting
                 */
 
                 //DLZ
-                if (wm && wm.selectedWeapon != null)
+                if (weaponManager && weaponManager.selectedWeapon != null)
                 {
-                    if (wm.selectedWeapon.GetWeaponClass() == WeaponClasses.Missile)
+                    if (weaponManager.selectedWeapon.GetWeaponClass() == WeaponClasses.Missile)
                     {
-                        MissileBase currMissile = wm.CurrentMissile;
-                        if (currMissile.TargetingMode == MissileBase.TargetingModes.Gps ||
-                            currMissile.TargetingMode == MissileBase.TargetingModes.Laser)
+                        MissileBase currMissile = weaponManager.CurrentMissile;
+                        if (currMissile &&
+                            (currMissile.TargetingMode == MissileBase.TargetingModes.Gps ||
+                            currMissile.TargetingMode == MissileBase.TargetingModes.Laser))
                         {
                             MissileLaunchParams dlz =
                                 MissileLaunchParams.GetDynamicLaunchParams(currMissile, Vector3.zero, groundTargetPosition);
@@ -1107,9 +1128,10 @@ namespace BDArmory.Targeting
 
         void SendGPS()
         {
-            if (groundStabilized && WeaponManager)
+            var weaponManager = WeaponManager;
+            if (groundStabilized && weaponManager)
             {
-                BDATargetManager.GPSTargetList(WeaponManager.Team).Add(new GPSTargetInfo(bodyRelativeGTP, "Target"));
+                BDATargetManager.GPSTargetList(weaponManager.Team).Add(new GPSTargetInfo(bodyRelativeGTP, "Target"));
                 BDATargetManager.Instance.SaveGPSTargets();
             }
         }
@@ -1161,7 +1183,7 @@ namespace BDArmory.Targeting
             if (weaponManager.slavingTurrets) return; //turrets already slaved to active radar lock
             weaponManager.slavedPosition = groundStabilized ? groundTargetPosition : targetPointPosition;
             weaponManager.slavedVelocity = Vector3.zero;
-            weaponManager.slavedAcceleration = Vector3.zero; 
+            weaponManager.slavedAcceleration = Vector3.zero;
         }
 
         internal static void ResizeTargetWindow()
@@ -1224,9 +1246,10 @@ namespace BDArmory.Targeting
 
         void PointToGPSTarget()
         {
-            if (WeaponManager && WeaponManager.designatedGPSCoords != Vector3d.zero)
+            var weaponManager = WeaponManager;
+            if (weaponManager && weaponManager.designatedGPSCoords != Vector3d.zero)
             {
-                StartCoroutine(PointToPositionRoutine(VectorUtils.GetWorldSurfacePostion(WeaponManager.designatedGPSCoords, vessel.mainBody)));
+                StartCoroutine(PointToPositionRoutine(VectorUtils.GetWorldSurfacePostion(weaponManager.designatedGPSCoords, vessel.mainBody)));
             }
         }
 
@@ -1310,6 +1333,10 @@ namespace BDArmory.Targeting
                             lockedVessel = p.vessel;
                             //StartCoroutine(PointToPositionRoutine(p.vessel.CoM, p.vessel, false));
                         }
+                        else
+                        {
+                            lockedVessel = null;
+                        }
                     }
                     Vector3d newGTP = VectorUtils.WorldPositionToGeoCoords(groundTargetPosition, vessel.mainBody);
                     if (newGTP != Vector3d.zero)
@@ -1377,6 +1404,10 @@ namespace BDArmory.Targeting
                         {
                             groundTargetPosition = p.vessel.CoM;
                             lockedVessel = p.vessel;
+                        }
+                        else
+                        {
+                            lockedVessel = null;
                         }
                     }
                     Vector3d newGTP = VectorUtils.WorldPositionToGeoCoords(groundTargetPosition, vessel.mainBody);
@@ -1533,6 +1564,7 @@ namespace BDArmory.Targeting
             }
             GameEvents.onVesselCreate.Remove(Disconnect);
             SlewingMouseCam = false;
+            TimingManager.FixedUpdateRemove(TimingManager.TimingStage.FashionablyLate, CameraTracking);
         }
 
         Vector2 TargetAzimuthElevationScreenPos(Rect screenRect, Vector3 targetPosition, float textureSize)
