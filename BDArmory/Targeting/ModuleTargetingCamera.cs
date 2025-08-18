@@ -932,7 +932,8 @@ namespace BDArmory.Targeting
                     ClearTarget();
                 }
 
-                if (WeaponManager)
+                var weaponManager = WeaponManager;
+                if (weaponManager)
                 {
                     Rect sendGPSRect = new Rect(startX, controlsStartY + ++line * lineHeight, buttonWidth, buttonHeight);
                     if (GUI.Button(sendGPSRect, "Send GPS", buttonStyle))
