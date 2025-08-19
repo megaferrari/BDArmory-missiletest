@@ -74,7 +74,7 @@ namespace BDArmory.Weapons.Missiles
                 Vector3 missileFwd = missile.GetForwardTransform();
                 if (maxAngleOffTarget >= 0) { missileFwd = Vector3.RotateTowards(vectorToTarget, missileFwd, maxAngleOffTarget, 0); }
 
-                if ((Vector3.Dot(vectorToTarget, missileFwd) < 0.965f) || ((!surfaceLaunch) && (missile.GetWeaponClass() != WeaponClasses.SLW) && (ml.guidanceActive))) // Only evaluate missile turning ability if the target is outside ~15 deg cone, or isn't a torpedo and has guidance
+                if ((Vector3.Dot(vectorToTarget, missileFwd) < 0.965f) && (!surfaceLaunch && (missile.GetWeaponClass() != WeaponClasses.SLW) && ml.guidanceActive)) // Only evaluate missile turning ability if the target is outside ~15 deg cone, or isn't a torpedo and has guidance
                 {
                     // Rough range estimate of max missile G in a turn after launch, the following code is quite janky but works decently well in practice
                     float maxEstimatedGForce = Mathf.Max(bodyGravity * ml.maxTorque, 15f); // Rough estimate of max G based on missile torque, use minimum of 15G to prevent some VLS parts from not working

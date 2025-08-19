@@ -10,6 +10,7 @@ using BDArmory.GameModes;
 using BDArmory.Settings;
 using BDArmory.Utils;
 using BDArmory.Weapons;
+using BDArmory.Weapons.Missiles;
 
 namespace BDArmory.FX
 {
@@ -263,25 +264,28 @@ namespace BDArmory.FX
             }
             if (explosionEventsVesselsHit.Count > 0)
             {
-                if (ExplosionSource != ExplosionSourceType.Bullet || ExplosionSource != ExplosionSourceType.Rocket)
+                string message = "";
+                foreach (var vesselName in explosionEventsVesselsHit.Keys)
+                    message += (message == "" ? "" : " and ") + vesselName + " had " + explosionEventsVesselsHit[vesselName];
+                if (ExplosionSource == ExplosionSourceType.Missile)
                 {
-                    string message = "";
-                    foreach (var vesselName in explosionEventsVesselsHit.Keys)
-                        message += (message == "" ? "" : " and ") + vesselName + " had " + explosionEventsVesselsHit[vesselName];
-                    if (ExplosionSource == ExplosionSourceType.Missile)
-                    {
-                        message += " parts damaged due to missile strike";
-                    }
-                    else //ExplosionType BattleDamage || Other
-                    {
-                        message += " parts damaged due to explosion";
-                    }
-                    message += (ReportingName != null ? " (" + ReportingName + ")" : "") + (SourceVesselName != null ? " from " + SourceVesselName : "") + ".";
-                    BDACompetitionMode.Instance.competitionStatus.Add(message);
+                    message += " parts damaged due to nuclear missile strike";
                 }
+                else //ExplosionType BattleDamage || Other
+                {
+                    message += " parts damaged due to nuclear explosion";
+                }
+                message += (ReportingName != null ? " (" + ReportingName + ")" : "") + (SourceVesselName != null ? " from " + SourceVesselName : "") + ".";
+                BDACompetitionMode.Instance.competitionStatus.Add(message);
                 // Note: damage hasn't actually been applied to the parts yet, just assigned as events, so we can't know if they survived.
                 foreach (var vesselName in explosionEventsVesselsHit.Keys) // Note: sourceVesselName is already checked for being in the competition before damagedVesselName is added to explosionEventsVesselsHitByMissiles, so we don't need to check it here.
                 {
+                    switch (ExplosionSource)
+                    {
+                        case ExplosionSourceType.Missile:
+                            BDACompetitionMode.Instance.Scores.RegisterMissileStrike(SourceVesselName, vesselName);
+                            break;
+                    }
                     switch (ExplosionSource)
                     {
                         case ExplosionSourceType.Missile:
@@ -530,6 +534,14 @@ namespace BDArmory.FX
                                             if (BDACompetitionMode.Instance.Scores.RegisterMissileHit(SourceVesselName, damagedVesselName, 1))
                                                 registered = true;
                                             break;
+                                        case ExplosionSourceType.Rocket:
+                                            if (BDACompetitionMode.Instance.Scores.RegisterRocketHit(SourceVesselName, damagedVesselName, 1))
+                                                registered = true;
+                                            break;
+                                        case ExplosionSourceType.Bullet:
+                                            if (BDACompetitionMode.Instance.Scores.RegisterMissileHit(SourceVesselName, damagedVesselName, 1)) //should this be missile damage or bullet damage?
+                                                registered = true;
+                                            break;
                                     }
                                     if (registered)
                                     {
@@ -546,9 +558,16 @@ namespace BDArmory.FX
                                     case ExplosionSourceType.Missile:
                                         BDACompetitionMode.Instance.Scores.RegisterMissileDamage(aName, tName, damage); //FIXME/TODO - damage should probably correlate in some way to armor mass lost/damage to armor, instead of '0'
                                         break;
+                                    case ExplosionSourceType.Bullet:
+                                        BDACompetitionMode.Instance.Scores.RegisterMissileDamage(aName, tName, damage); //FIXME/TODO - Should this be bullet damage or missile damage for scoring purposes?
+                                        break;
+                                    case ExplosionSourceType.Rocket:
+                                        BDACompetitionMode.Instance.Scores.RegisterRocketDamage(aName, tName, damage); //FIXME/TODO - damage should probably correlate in some way to armor mass lost/damage to armor, instead of '0'
+                                        break;
                                     case ExplosionSourceType.BattleDamage:
                                         BDACompetitionMode.Instance.Scores.RegisterBattleDamage(aName, part.vessel, damage);
                                         break;
+
                                 }
                             }
                         }
@@ -589,6 +608,8 @@ namespace BDArmory.FX
                             if (EMP == null)
                             {
                                 EMP = (ModuleDrainEC)part.vessel.rootPart.AddModule("ModuleDrainEC");
+                                var MB = part.vessel.rootPart.FindModuleImplementing<MissileBase>();
+                                if (MB != null) EMP.EMPThreshold = 10;
                             }
                             EMP.incomingDamage = ((EMPRadius / realDistance) * 100); //this way craft at edge of blast might only get disabled instead of bricked
                                                                                      //work on a better EMP damage value, in case of configs with very large thermalRadius

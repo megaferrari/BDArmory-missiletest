@@ -13,6 +13,7 @@ using BDArmory.Settings;
 using BDArmory.UI;
 using BDArmory.Utils;
 using static BDArmory.Bullets.PooledBullet;
+using BDArmory.Weapons.Missiles;
 
 namespace BDArmory.Bullets
 {
@@ -872,6 +873,7 @@ namespace BDArmory.Bullets
                             currentPosition = AIUtils.PredictPosition(currentPosition, currentVelocity, currentAcceleration, timeToCPA); // Adjust the rocket position to the detonation position.
                             if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.PooledRocket]: Detonating proxy rocket with detonation range {detonationRange}m ({localDetonationRange}m) at distance {(currentPosition - loadedVessels.Current.PredictPosition(timeToCPA)).magnitude}m ({timeToCPA}s) from {loadedVessels.Current.vesselName} of radius {loadedVessels.Current.GetRadius(average: true)}m");
                             currentPosition -= timeToCPA * BDKrakensbane.FrameVelocityV3f; // Adjust for Krakensbane.
+                            BDACompetitionMode.Instance.Scores.RegisterRocketStrike(sourceVesselName, loadedVessels.Current.GetName()); //fix proxi rockets not recording a rocket strike
                             return true;
                         }
                     }
@@ -1040,6 +1042,8 @@ namespace BDArmory.Bullets
                                             if (MDEC == null)
                                             {
                                                 MDEC = (ModuleDrainEC)partHit.vessel.rootPart.AddModule("ModuleDrainEC");
+                                                var MB = partHit.vessel.rootPart.FindModuleImplementing<MissileBase>();
+                                                if (MB != null) MDEC.EMPThreshold = 10;
                                             }
                                             MDEC.incomingDamage = (25 - distance) * 5; //this way craft at edge of blast might only get disabled instead of bricked
                                             MDEC.softEMP = false; //can bypass EMP damage cap                                            

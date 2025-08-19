@@ -2518,12 +2518,21 @@ namespace BDArmory.Control
             {
                 float boresightFactor = (vessel.LandedOrSplashed || v.LandedOrSplashed || missile.uncagedLock) ? 0.75f : 0.35f;
                 float minOffBoresight = missile.maxOffBoresight * boresightFactor;
+                float missileAngleToTarget = Vector3.Angle(missile.GetForwardTransform(), v.transform.position - missile.transform.position);
                 var minDynamicLaunchRange = MissileLaunchParams.GetDynamicLaunchParams(
                     missile,
                     v.Velocity(),
                     v.transform.position,
-                    minOffBoresight + (180f - minOffBoresight) * Mathf.Clamp01(((missile.transform.position - v.transform.position).magnitude - missile.minStaticLaunchRange) / (Mathf.Max(100f + missile.minStaticLaunchRange * 1.5f, 0.1f * missile.maxStaticLaunchRange) - missile.minStaticLaunchRange)) // Reduce the effect of being off-target while extending to prevent super long extends.
+                    //minOffBoresight + (180f - minOffBoresight) * Mathf.Clamp01(((missile.transform.position - v.transform.position).magnitude - missile.minStaticLaunchRange) / (Mathf.Max(100f + missile.minStaticLaunchRange * 1.5f, 0.1f * missile.maxStaticLaunchRange) - missile.minStaticLaunchRange)) // Reduce the effect of being off-target while extending to prevent super long extends.
+                    missileAngleToTarget <= minOffBoresight ? -1 : (missile.transform.position - v.transform.position).sqrMagnitude < (missile.minStaticLaunchRange * missile.minStaticLaunchRange) ? 180 : -1
                 ).minLaunchRange;
+                //all we should be concerned about here is: 
+                //1) we're on target, but too close - extend back to min launch range, AI will handle coming about so by time it does so we whould still be outside min range; all we need is missile absolute min distance
+                //2) off target, and too close - extend to min launch range, ditto
+                //3) on target, and beyond min range - no need to extend
+                //4) off target, and beyond min launch range - are we within kinematic min range?
+                //so: the FoV value should then be (missileAngleToTarget <= maxBoresight ? -1 : (missile.transform.position - v.transform.position).sqrmagnitude < (missile.minStaticLaunchRange * missile.minStaticLaunchRange) ? 180 : -1)
+
                 if (canExtend && targetDot > 0 && distanceToTarget < minDynamicLaunchRange && vessel.srfSpeed > idleSpeed)
                 {
                     RequestExtend($"too close for missile: {minDynamicLaunchRange}m", v, minDynamicLaunchRange, missile: missile); // Get far enough away to use the missile.
@@ -2927,13 +2936,15 @@ namespace BDArmory.Control
                     {
                         float boresightFactor = (vessel.LandedOrSplashed || extendTarget.LandedOrSplashed || extendForMissile.uncagedLock) ? 0.75f : 0.35f;
                         float minOffBoresight = extendForMissile.maxOffBoresight * boresightFactor;
+                        float missileAngleToTarget = Vector3.Angle(extendForMissile.GetForwardTransform(), extendTarget.transform.position - extendForMissile.transform.position);
                         var minDynamicLaunchRange = MissileLaunchParams.GetDynamicLaunchParams(
                             extendForMissile,
                             extendTarget.Velocity(),
                             extendTarget.transform.position,
-                            minOffBoresight + (180f - minOffBoresight) * Mathf.Clamp01(((extendForMissile.transform.position - extendTarget.transform.position).magnitude - extendForMissile.minStaticLaunchRange) / (Mathf.Max(100f + extendForMissile.minStaticLaunchRange * 1.5f, 0.1f * extendForMissile.maxStaticLaunchRange) - extendForMissile.minStaticLaunchRange)) // Reduce the effect of being off-target while extending to prevent super long extends.
+                            //minOffBoresight + (180f - minOffBoresight) * Mathf.Clamp01(((missile.transform.position - v.transform.position).magnitude - missile.minStaticLaunchRange) / (Mathf.Max(100f + missile.minStaticLaunchRange * 1.5f, 0.1f * missile.maxStaticLaunchRange) - missile.minStaticLaunchRange)) // Reduce the effect of being off-target while extending to prevent super long extends.
+                            missileAngleToTarget <= minOffBoresight ? -1 : (extendForMissile.transform.position - extendTarget.transform.position).sqrMagnitude < (extendForMissile.minStaticLaunchRange * extendForMissile.minStaticLaunchRange) ? 180 : -1
                         ).minLaunchRange;
-                        extendDistance = Mathf.Max(extendDistanceAirToAir, minDynamicLaunchRange); //with really unmaneuverable missiles, if a vessel has, say, turned away as part of evasion and then the minDLZ dist triggers because the ship is now within the min distance it takes for the missile to turn to the target, this will result in extremely long extend distances as the vessel turns away from the target (and thus needs even greater distance for the missile to be within min turn distance)
+                        extendDistance = Mathf.Max(extendDistanceAirToAir, minDynamicLaunchRange); 
                         extendDesiredMinAltitude = Mathf.Min(finalBombingAlt, minAltitude);
                         //(weaponManager.currentTarget != null && weaponManager.currentTarget.Vessel != null && weaponManager.currentTarget.Vessel.LandedOrSplashed) ? (extendForMissile.GetWeaponClass() == WeaponClasses.SLW ? 10 : //drop to the deck for torpedo run
                         //Mathf.Max(defaultAltitude - 500f, minAltitude)) : //else commence level bombing
@@ -2977,7 +2988,7 @@ namespace BDArmory.Control
                     // extendDistance = Mathf.Clamp(weaponManager.guardRange - 1800, 2500, 4000);
                     // desiredMinAltitude = (float)vessel.radarAltitude + (defaultAltitude - (float)vessel.radarAltitude) * extendMult; // Desired minimum altitude after extending.
                     //extendDistance = extendDistanceAirToGround + ((float)vessel.horizontalSrfSpeed * BDAMath.Sqrt(2 * finalBombingAlt / bodyGravity)); //account for bomb lead distance
-                    extendDistance = Mathf.Max(extendDistanceAirToAir, strafingSpeed * BDAMath.Sqrt(2 * finalBombingAlt / bodyGravity)); //horizontalSrfSpeed is a non-static value, which means extend dist will increase as vesselaccelerated during the extend
+                    extendDistance = Mathf.Max(extendDistanceAirToAir, strafingSpeed * BDAMath.Sqrt(2 * finalBombingAlt / bodyGravity)); //horizontalSrfSpeed is a non-static value, which means extend dist will increase as vessel accelerates during the extend
                     extendDesiredMinAltitude = Mathf.Min(finalBombingAlt, minAltitude);
                     //((weaponManager.CurrentMissile && weaponManager.CurrentMissile.GetWeaponClass() == WeaponClasses.SLW) ? 10 : //drop to the deck for torpedo run
                     //           defaultAltitude); //else commence level bombing

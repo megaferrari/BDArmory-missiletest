@@ -66,6 +66,7 @@ namespace BDArmory.Damage
         private bool isProcWing = false;
         private bool isProcPart = false;
         private bool isProcWheel = false;
+        private bool isVariantPart = false;
         private bool waitingForHullSetup = false;
         private float OldArmorType = -1;
 
@@ -156,6 +157,7 @@ namespace BDArmory.Damage
 
         //Part vars
         private float partMass = 0f;
+        private float oldPartMass = 0f;
         public Vector3 partSize;
         [KSPField(isPersistant = true)]
         public float maxSupportedArmor = -1; //upper cap on armor per part, overridable in MM/.cfg
@@ -327,6 +329,10 @@ namespace BDArmory.Damage
             if (part.Modules.Contains("KSPWheelBase"))
             {
                 isProcWheel = true;
+            }
+            if (part.Modules.Contains("ModuleB9PartSwitch") || part.Modules.Contains("ModulePartVariants"))
+            {
+                isVariantPart = true;
             }
             StartingArmor = Armor;
             if (ProjectileUtils.IsArmorPart(this.part))
@@ -563,13 +569,13 @@ namespace BDArmory.Damage
                 }
             }
             if (!isProcWing) //moving this here so any dynamic texture adjustment post spawn (TURD/TUFX/etc) will be grabbed by the defaultShader census
-            {
+            {                   //have this be done by RadarUtils when doing RCS snapshots instead?
                 var r = part.GetComponentsInChildren<Renderer>();
                 for (int i = 0; i < r.Length; i++)
                 {
                     if (r[i].GetComponentInParent<Part>() != part) continue; // Don't recurse to child parts.
                     int key = r[i].material.GetInstanceID(); // The instance ID is unique for each object (not just component or gameObject).
-                    defaultShader.Add(key, r[i].material.shader);
+                    defaultShader.Add(key, r[i].material.shader); //This doesn't grab part variants - parts with variants that are switched to will not register in defaultShader, and render as black in the RCS window
                     if (BDArmorySettings.DEBUG_ARMOR) Debug.Log($"[BDArmory.HitpointTracker]: ARMOR: part shader on {r[i].GetComponentInParent<Part>().partInfo.name} is {r[i].material.shader.name}");
                     if (r[i].material.HasProperty("_Color"))
                     {
@@ -605,7 +611,7 @@ namespace BDArmory.Damage
         public void ShipModified(ShipConstruct data)
         {
             // Note: this triggers if the ship is modified, but really we only want to run this when the part is modified.
-            if (isProcWing || isProcPart || isProcWheel)
+            if (isProcWing || isProcPart || isProcWheel || isVariantPart)
             {
                 if (!_delayedShipModifiedRunning)
                 {
@@ -623,7 +629,7 @@ namespace BDArmory.Damage
         }
 
         private bool _delayedShipModifiedRunning = false;
-        IEnumerator DelayedShipModified() // Wait a frame before triggering to allow proc wings to update it's mass properly.
+        IEnumerator DelayedShipModified() // Wait a frame before triggering to allow proc wings to update their mass properly.
         {
             _delayedShipModifiedRunning = true;
             yield return new WaitForFixedUpdate();
@@ -674,7 +680,11 @@ namespace BDArmory.Damage
                     HullSetup(null, null);
                 }
                 if (!_updateMass) // Wait for the mass to update first.
+                {
                     RefreshHitPoints();
+                    if (oldPartMass != part.mass) _updateMass = true; //catch part variants getting switched to
+                    if(BDArmorySettings.DEBUG_ARMOR) Debug.Log($"[BDArmory.HitpointTracker] part mass change detected in {part.partInfo.title}");
+                }
                 if (HighLogic.LoadedSceneIsFlight && _armorConfigured && _hullConfigured && _hpConfigured) // No more changes, we're done.
                 {
                     _finished_setting_up = true;
@@ -687,13 +697,12 @@ namespace BDArmory.Damage
             if (_updateMass)
             {
                 _updateMass = false;
-                var oldPartMass = partMass;
+                oldPartMass = partMass;
                 var oldHullMassAdjust = HullMassAdjust; // We need to temporarily remove the HullmassAdjust and update the part.mass to get the correct value as KSP clamps the mass to > 1e-4.
                 HullMassAdjust = 0;
                 part.UpdateMass();
                 //partMass = part.mass - armorMass - HullMassAdjust; //part mass is taken from the part.cfg val, not current part mass; this overrides that
-                //need to get ModuleSelfSealingTank mass adjustment. Could move the SST module to BDA.Core
-                if (isProcWing || isProcPart || isProcWheel)
+                if (isProcWing || isProcPart || isProcWheel || isVariantPart)
                 {
                     float Safetymass = 0;
                     var SST = part.GetComponent<ModuleSelfSealingTank>();
@@ -706,13 +715,25 @@ namespace BDArmory.Damage
                 if (oldPartMass != partMass)
                 {
                     if (BDArmorySettings.DEBUG_ARMOR) Debug.Log($"[BDArmory.HitpointTracker]: {part.name} updated mass at {Time.time}: part.mass {part.mass}, partMass {oldPartMass}->{partMass}, armorMass {armorMass}, hullMassAdjust {HullMassAdjust}");
-                    if (isProcPart || isProcWheel)
+                    if (isProcPart || isProcWheel || isVariantPart)
                     {
                         calcPartSize();
                         _armorModified = true;
                     }
                     _hullModified = true; // Modifying the mass modifies the hull.
                     _updateHitpoints = true;
+                    var r = part.GetComponentsInChildren<Renderer>();
+                    for (int i = 0; i < r.Length; i++)
+                    {
+                        if (r[i].GetComponentInParent<Part>() != part) continue; // Don't recurse to child parts.
+                        int key = r[i].material.GetInstanceID(); // The instance ID is unique for each object (not just component or gameObject).
+                        if (!defaultShader.ContainsKey(key)) defaultShader.Add(key, r[i].material.shader); //grab materials for part variant variants when switching to that variant
+                        if (BDArmorySettings.DEBUG_ARMOR) Debug.Log($"[BDArmory.HitpointTracker]: ARMOR: part shader on {r[i].GetComponentInParent<Part>().partInfo.name} is {r[i].material.shader.name}");
+                        if (r[i].material.HasProperty("_Color"))
+                        {
+                            if (!defaultColor.ContainsKey(key)) defaultColor.Add(key, r[i].material.color);
+                        }
+                    }
                 }
             }
 
@@ -966,7 +987,7 @@ namespace BDArmory.Damage
                             else
                                 hitpoints = (float)part.Modules.GetModule<ModuleLiftingSurface>().deflectionLiftCoeff * 700 * hitpointMultiplier * 0.333f; //stock wings are 700 HP per lifting surface area; using lift instead of mass (110 Lift/ton) due to control surfaces weighing more
                         }
-                        if (isProcPart || isProcWheel)
+                        if (isProcPart || isProcWheel || isVariantPart)
                         {
                             structuralVolume = armorVolume * Mathf.PI / 6f * 0.1f; // Box area * sphere/cube ratio * 10cm. We use sphere/cube ratio to get similar results as part.GetAverageBoundSize().
                             density = (partMass * 1000f) / structuralVolume;

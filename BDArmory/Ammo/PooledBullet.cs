@@ -15,6 +15,7 @@ using BDArmory.Targeting;
 using BDArmory.UI;
 using BDArmory.Utils;
 using BDArmory.Weapons;
+using BDArmory.Weapons.Missiles;
 
 namespace BDArmory.Bullets
 {
@@ -1093,6 +1094,8 @@ namespace BDArmory.Bullets
                 if (emp == null)
                 {
                     emp = (ModuleDrainEC)hitPart.vessel.rootPart.AddModule("ModuleDrainEC");
+                    var MB = hitPart.vessel.rootPart.FindModuleImplementing<MissileBase>();
+                    if (MB != null) emp.EMPThreshold = 10;
                 }
                 emp.incomingDamage += (caliber * Mathf.Clamp(bulletMass - tntMass, 0.1f, 101)); //soft EMP caps at 100; can always add a EMP amount value to bulletcfg later, but this should work for now
                 emp.softEMP = true;
@@ -2119,6 +2122,7 @@ namespace BDArmory.Bullets
                                     iTime = TimeWarp.fixedDeltaTime - timeToCPA;
                                     if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.PooledBullet]: Detonating proxy round with detonation range {detonationRange}m at {currentPosition} at distance {(currentPosition - loadedVessels.Current.PredictPosition(timeToCPA)).magnitude}m from {loadedVessels.Current.vesselName} of radius {loadedVessels.Current.GetRadius(average: true)}m");
                                     currentPosition -= timeToCPA * BDKrakensbane.FrameVelocityV3f; // Adjust for Krakensbane.
+                                    BDACompetitionMode.Instance.Scores.RegisterBulletHit(sourceVesselName, loadedVessels.Current.GetName(), name, distanceTraveled); hasDetonated = true; //fix proxiHE bullets not registering hits
                                     return true;
                                 }
                             }

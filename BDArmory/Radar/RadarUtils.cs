@@ -13,6 +13,7 @@ using BDArmory.Utils;
 using BDArmory.Weapons;
 using BDArmory.Weapons.Missiles;
 using BDArmory.Damage;
+using BDArmory.ModIntegration;
 
 namespace BDArmory.Radar
 {
@@ -816,6 +817,7 @@ namespace BDArmory.Radar
         public static void SetConformalDecalRendering(bool renderEnabled)
         {
             if (!hasConformalDecals) return;
+            if (!ConformalDecals.hasConformalDecals) return;
 
             using (List<Part>.Enumerator parts = EditorLogic.fetch.ship.Parts.GetEnumerator())
                 while (parts.MoveNext())
@@ -829,8 +831,11 @@ namespace BDArmory.Radar
                             {
                                 if (r.GetComponentInParent<Part>() != parts.Current) continue; // Don't recurse to child parts.
                                 r.enabled = renderEnabled;
-                                if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Set rendering for {parts.Current.name} to {renderEnabled}.");
+                                if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Set rendering for {r.name} on {parts.Current.name} to {renderEnabled}.");
                             }
+                            // module.enabled = renderEnabled;
+                            var cdComponent = ConformalDecals.Instance.GetMCDComponent(parts.Current);
+                            if (cdComponent != null) ConformalDecals.Instance.SetMCDIsAttached(cdComponent, renderEnabled);
                         }
                     }
                 }

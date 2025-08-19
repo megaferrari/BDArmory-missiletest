@@ -10,6 +10,7 @@ using BDArmory.Targeting;
 using BDArmory.UI;
 using BDArmory.Utils;
 using BDArmory.Weapons;
+using BDArmory.Weapons.Missiles;
 
 namespace BDArmory.Damage
 {
@@ -17,7 +18,7 @@ namespace BDArmory.Damage
     {
         public float incomingDamage = 0; //damage from EMP source
         public float EMPDamage = 0; //total EMP buildup accrued
-        int EMPThreshold = 100; //craft get temporarily disabled
+        public int EMPThreshold = 100; //craft get temporarily disabled
         int BrickThreshold = 1000; //craft get permanently bricked
         public bool softEMP = true; //can EMPdamage exceed EMPthreshold?
         private bool disabled = false; //prevent further EMP buildup while rebooting
@@ -199,6 +200,12 @@ namespace BDArmory.Damage
                     WM.guardMode = false; //disable guardmode
                     WM.debilitated = true; //for weapon selection and targeting;
                 }
+                var MB = p.FindModuleImplementing<MissileBase>();
+                if (MB != null)
+                {
+                    MB.guidanceActive = false;
+                }
+
                 PartResource r = p.Resources.Where(pr => pr.resourceName == "ElectricCharge").FirstOrDefault();
                 if (r != null)
                 {
