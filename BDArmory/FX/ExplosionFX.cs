@@ -432,8 +432,8 @@ namespace BDArmory.FX
                                 }
                                 break;
                             case ExplosionSourceType.BattleDamage:
-                                message += (message == "" ? "" : " and ") + vesselName + " had " + explosionEventsVesselsHit[vesselName];
-                                message += " parts damaged due to" + SourceWeaponName != null ? SourceWeaponName.Contains("Fuel") ? $" Fuel detonation ({ExplosivePart.partInfo.title})" : " Ammo explosion(" + SourceWeaponName + ")" + (SourceVesselName != null ? $" from {SourceVesselName}" : "") + "." : "part failure.";
+                                message += (message == "" ? "" : " and ") + vesselName + " had " + explosionEventsVesselsHit[vesselName] + " parts damaged from";
+                                message += SourceWeaponName != null ? SourceWeaponName.Contains("Fuel") ? $" Fuel detonation ({ExplosivePart.partInfo.title})" : $" Ammo explosion({SourceWeaponName})" + (SourceVesselName != null ? $" from {SourceVesselName}" : "") + "." : "part failure.";
                                 break;
                         }
                     if (!string.IsNullOrEmpty(message)) BDACompetitionMode.Instance.competitionStatus.Add(message);

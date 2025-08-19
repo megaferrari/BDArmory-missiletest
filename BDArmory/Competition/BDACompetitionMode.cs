@@ -2404,6 +2404,13 @@ namespace BDArmory.Competition
         /// <param name="condition">The condition to satisfy first</param>
         IEnumerator EnableGuardModeWhen(IBDAIControl pilot, Func<bool> condition)
         {
+            float originalMinAlt = 200;
+            if (BDArmorySettings.RUNWAY_PROJECT_ROUND == 77)
+            {
+                var pAI = VesselModuleRegistry.GetBDModulePilotAI(pilot.vessel);
+                if (pAI != null)
+                    originalMinAlt = pAI.minAltitude; //store the original minAlt for later
+            }
             yield return new WaitUntilFixed(condition);
             if (pilot == null || pilot.vessel == null) yield break;
             if (pilot.weaponManager != null && !pilot.weaponManager.guardMode)
@@ -2414,7 +2421,7 @@ namespace BDArmory.Competition
                 {
                     var pAI = VesselModuleRegistry.GetBDModulePilotAI(pilot.vessel);
                     if (pAI != null)
-                        pAI.minAltitude = pAI.originalMinAlt; //combat's started, reset minAlt so craft won't crash later
+                        pAI.minAltitude = originalMinAlt; //combat's started, reset minAlt so craft won't crash later
                 }
             }
         }

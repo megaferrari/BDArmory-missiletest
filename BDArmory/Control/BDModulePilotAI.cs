@@ -269,8 +269,6 @@ namespace BDArmory.Control
             UI_FloatRange(minValue = 10f, maxValue = 1000, stepIncrement = 10f, scene = UI_Scene.All)]
         public float minAltitude = 200f;
 
-        public float originalMinAlt = 200f;
-
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_AI_HardMinAltitude", advancedTweakable = true,
             groupName = "pilotAI_Altitudes", groupDisplayName = "#LOC_BDArmory_AI_Altitudes", groupStartCollapsed = true),
             UI_Toggle(enabledText = "#LOC_BDArmory_Enabled", disabledText = "#LOC_BDArmory_Disabled", scene = UI_Scene.All)]
@@ -1745,7 +1743,6 @@ namespace BDArmory.Control
                 dynVelSmoothingCoef = Mathf.Exp(Mathf.Log(0.5f) * Time.fixedDeltaTime); // Smoothing rate with a half-life of 1s.
                 smoothedGLoad = new SmoothingF(Mathf.Exp(Mathf.Log(0.5f) * Time.fixedDeltaTime * 10f)); // Half-life of 0.1s.
                 smoothedSinAoA = new SmoothingF(Mathf.Exp(Mathf.Log(0.5f) * Time.fixedDeltaTime * 10f)); // Half-life of 0.1s.
-                originalMinAlt = minAltitude;
             }
             if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == 55)
             {
@@ -2988,7 +2985,7 @@ namespace BDArmory.Control
                     // extendDistance = Mathf.Clamp(weaponManager.guardRange - 1800, 2500, 4000);
                     // desiredMinAltitude = (float)vessel.radarAltitude + (defaultAltitude - (float)vessel.radarAltitude) * extendMult; // Desired minimum altitude after extending.
                     //extendDistance = extendDistanceAirToGround + ((float)vessel.horizontalSrfSpeed * BDAMath.Sqrt(2 * finalBombingAlt / bodyGravity)); //account for bomb lead distance
-                    extendDistance = Mathf.Max(extendDistanceAirToAir, strafingSpeed * BDAMath.Sqrt(2 * finalBombingAlt / bodyGravity)); //horizontalSrfSpeed is a non-static value, which means extend dist will increase as vessel accelerates during the extend
+                    extendDistance = Mathf.Max(extendDistanceAirToGround, strafingSpeed * BDAMath.Sqrt(2 * finalBombingAlt / bodyGravity)); //horizontalSrfSpeed is a non-static value, which means extend dist will increase as vessel accelerates during the extend
                     extendDesiredMinAltitude = Mathf.Min(finalBombingAlt, minAltitude);
                     //((weaponManager.CurrentMissile && weaponManager.CurrentMissile.GetWeaponClass() == WeaponClasses.SLW) ? 10 : //drop to the deck for torpedo run
                     //           defaultAltitude); //else commence level bombing

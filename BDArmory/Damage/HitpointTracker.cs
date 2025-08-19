@@ -682,8 +682,6 @@ namespace BDArmory.Damage
                 if (!_updateMass) // Wait for the mass to update first.
                 {
                     RefreshHitPoints();
-                    if (oldPartMass != part.mass) _updateMass = true; //catch part variants getting switched to
-                    if(BDArmorySettings.DEBUG_ARMOR) Debug.Log($"[BDArmory.HitpointTracker] part mass change detected in {part.partInfo.title}");
                 }
                 if (HighLogic.LoadedSceneIsFlight && _armorConfigured && _hullConfigured && _hpConfigured) // No more changes, we're done.
                 {
@@ -1063,7 +1061,7 @@ namespace BDArmory.Damage
                             var scale = BDArmorySettings.HP_THRESHOLD / (Mathf.Exp(1) - 1);
                             hitpoints = Mathf.Min(hitpoints, BDArmorySettings.HP_THRESHOLD * Mathf.Log(hitpoints / scale + 1));
                         }
-                        hitpoints = BDAMath.RoundToUnit(hitpoints, HpRounding);
+                        hitpoints = Mathf.Max(BDAMath.RoundToUnit(hitpoints, HpRounding), HpRounding); //fix ultralight parts like CM boxes having 0 HP
                         //hitpoints = Mathf.Round(hitpoints);//?
                         hitpoints *= HullInfo.materials[hullType].healthMod; // Apply health mod after rounding and lower limit.
                         if (BDArmorySettings.DEBUG_ARMOR && maxHitPoints <= 0 && Hitpoints != hitpoints) Debug.Log($"[BDArmory.HitpointTracker]: {part.name} updated HP: {Hitpoints}->{hitpoints} at time {Time.time}, partMass: {partMass}, density: {density}, structuralVolume: {structuralVolume}, structuralMass {structuralMass}");

@@ -349,7 +349,6 @@
     <Compile Include="Weapons\ClusterBomb.cs" />
     <Compile Include="Weapons\EngageableWeapon.cs" />
     <Compile Include="Weapons\IBDWeapon.cs" />
-    <Compile Include="Weapons\KineticImpactorExperiment.cs" />
     <Compile Include="Weapons\Missiles\BDMMLauncher.cs" />
     <Compile Include="Weapons\Missiles\BDModularGuidance.cs" />
     <Compile Include="Weapons\Missiles\MissileBase.cs" />
