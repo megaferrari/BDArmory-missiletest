@@ -27,7 +27,6 @@ namespace BDArmory.ModIntegration
 			CheckForConformalDecals();
 			if (hasConformalDecals)
 			{
-				if (BDArmorySettings.DEBUG_OTHER) Debug.Log($"[BDArmory.ModIntegration.MouseAimFlight]: MouseAimFlight mod detected.");
 				GetMCDModType();
 				GetMCDIsAttachedField();
 			}
@@ -47,7 +46,7 @@ namespace BDArmory.ModIntegration
 				{
 					CDAssembly = a.Current;
 					hasConformalDecals = true;
-					Debug.Log($"DEBUG Found ConformalDecals {CDAssembly.FullName}");
+					if (BDArmorySettings.DEBUG_OTHER) Debug.Log($"[BDArmory.ModIntegration.ConformalDecals]: Conformal Decals mod detected: {CDAssembly.FullName}.");
 					return;
 				}
 			}
@@ -62,10 +61,10 @@ namespace BDArmory.ModIntegration
 				if (t.Name == "ModuleConformalDecal")
 				{
 					MCDModType = t;
-					Debug.Log($"DEBUG Found ModuleConformalDecal");
 					return;
 				}
 			}
+			Debug.LogError($"[BDArmory.ModIntegration.ConformalDecals]: Failed to find ModuleConformalDecal despite ConformalDecals mod being detected!");
 		}
 		public void GetMCDIsAttachedField()
 		{
@@ -75,7 +74,6 @@ namespace BDArmory.ModIntegration
 				var fieldInfo = MCDModType.GetField("_isAttached", BindingFlags.NonPublic | BindingFlags.Instance);
 				CDisAttachedFieldGetter = ReflectionUtils.CreateGetter<object, bool>(fieldInfo);
 				CDisAttachedFieldSetter = ReflectionUtils.CreateSetter<object, bool>(fieldInfo);
-				Debug.Log($"DEBUG Found ModuleConformalDecals._isAttached and created getter/setter");
 			}
 			catch (Exception e)
 			{
@@ -86,10 +84,7 @@ namespace BDArmory.ModIntegration
 		public object GetMCDComponent(Part p)
 		{
 			if (MCDModType == null) return null;
-			object component = p.GetComponent(MCDModType);
-			if (component != null) Debug.Log($"DEBUG Found {MCDModType} on {p.name}");
-			else Debug.Log($"DEBUG {p.name} had no {MCDModType} component.");
-			return component;
+			return p.GetComponent(MCDModType);
 		}
 		public bool GetMCDIsAttached(object MCDComponent)
 		{
@@ -98,8 +93,6 @@ namespace BDArmory.ModIntegration
 		}
 		public void SetMCDIsAttached(object MCDComponent, bool value)
 		{
-			if (MCDComponent == null) return;
-			Debug.Log($"DEBUG Setting _isAttached to {value} on {MCDComponent}");
 			CDisAttachedFieldSetter(MCDComponent, value);
 		}
 	}
