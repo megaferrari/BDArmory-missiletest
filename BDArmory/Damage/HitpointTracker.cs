@@ -157,7 +157,6 @@ namespace BDArmory.Damage
 
         //Part vars
         private float partMass = 0f;
-        private float oldPartMass = 0f;
         public Vector3 partSize;
         [KSPField(isPersistant = true)]
         public float maxSupportedArmor = -1; //upper cap on armor per part, overridable in MM/.cfg
@@ -695,7 +694,7 @@ namespace BDArmory.Damage
             if (_updateMass)
             {
                 _updateMass = false;
-                oldPartMass = partMass;
+                var oldPartMass = partMass;
                 var oldHullMassAdjust = HullMassAdjust; // We need to temporarily remove the HullmassAdjust and update the part.mass to get the correct value as KSP clamps the mass to > 1e-4.
                 HullMassAdjust = 0;
                 part.UpdateMass();
@@ -707,6 +706,24 @@ namespace BDArmory.Damage
                     if (SST != null)
                     { Safetymass = SST.FBmass + SST.FISmass; }
                     partMass = part.mass - armorMass - HullMassAdjust - Safetymass;
+                    if (isVariantPart)
+                    {
+                        var r = part.GetComponentsInChildren<Renderer>();
+                        for (int i = 0; i < r.Length; i++)
+                        {
+                            if (r[i].GetComponentInParent<Part>() != part) continue; // Don't recurse to child parts.
+                            int key = r[i].material.GetInstanceID(); // The instance ID is unique for each object (not just component or gameObject).
+                            if (!defaultShader.ContainsKey(key))
+                            {
+                                defaultShader.Add(key, r[i].material.shader); //grab materials for part variant variants when switching to that variant
+                                if (BDArmorySettings.DEBUG_ARMOR) Debug.Log($"[BDArmory.HitpointTracker]: ARMOR: part shader on {r[i].GetComponentInParent<Part>().partInfo.name} is {r[i].material.shader.name}");
+                            }
+                            if (r[i].material.HasProperty("_Color"))
+                            {
+                                if (!defaultColor.ContainsKey(key)) defaultColor.Add(key, r[i].material.color);
+                            }
+                        }
+                    }
                 }
                 CalculateDryCost(); //recalc if modify event added a fueltank -resource swap, etc
                 HullMassAdjust = oldHullMassAdjust; // Put the HullmassAdjust back so we can test against it when we update the hull mass.
@@ -720,18 +737,6 @@ namespace BDArmory.Damage
                     }
                     _hullModified = true; // Modifying the mass modifies the hull.
                     _updateHitpoints = true;
-                    var r = part.GetComponentsInChildren<Renderer>();
-                    for (int i = 0; i < r.Length; i++)
-                    {
-                        if (r[i].GetComponentInParent<Part>() != part) continue; // Don't recurse to child parts.
-                        int key = r[i].material.GetInstanceID(); // The instance ID is unique for each object (not just component or gameObject).
-                        if (!defaultShader.ContainsKey(key)) defaultShader.Add(key, r[i].material.shader); //grab materials for part variant variants when switching to that variant
-                        if (BDArmorySettings.DEBUG_ARMOR) Debug.Log($"[BDArmory.HitpointTracker]: ARMOR: part shader on {r[i].GetComponentInParent<Part>().partInfo.name} is {r[i].material.shader.name}");
-                        if (r[i].material.HasProperty("_Color"))
-                        {
-                            if (!defaultColor.ContainsKey(key)) defaultColor.Add(key, r[i].material.color);
-                        }
-                    }
                 }
             }
 

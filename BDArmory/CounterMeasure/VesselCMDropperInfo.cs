@@ -131,11 +131,11 @@ namespace BDArmory.CounterMeasure
                 if (p.vessel != this.vessel) continue;
                 cmCounts[p.cmType] += p.cmCount;
                 cmMaxCounts[p.cmType] += p.maxCMCount;
-                /*  //Does not work - causes 1 gauge for the first type of CM on the vessel to get drawn, no other CM types get gauges
+
                 if (hasCMGauge[p.cmType] || p.hasGauge)
                 {
                     hasCMGauge[p.cmType] = true;
-                    break;
+                    continue;
                 }
                 p.gauge = (BDStagingAreaGauge)p.part.AddModule("BDStagingAreaGauge");
                 hasCMGauge[p.cmType] = true;
@@ -150,7 +150,7 @@ namespace BDArmory.CounterMeasure
                     CMDropper.CountermeasureTypes.Bubbles => "Bubbles",
                     _ => "???"
                 };
-                */
+                /*
                 bool addGauge = false;
                 switch (p.cmType)
                 {
@@ -205,6 +205,7 @@ namespace BDArmory.CounterMeasure
                         _ => "???"
                     };
                 }
+                */
             }
             foreach (var cmType in Enum.GetValues(typeof(CMDropper.CountermeasureTypes)).Cast<CMDropper.CountermeasureTypes>())
             {

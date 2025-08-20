@@ -873,7 +873,6 @@ namespace BDArmory.Bullets
                             currentPosition = AIUtils.PredictPosition(currentPosition, currentVelocity, currentAcceleration, timeToCPA); // Adjust the rocket position to the detonation position.
                             if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log($"[BDArmory.PooledRocket]: Detonating proxy rocket with detonation range {detonationRange}m ({localDetonationRange}m) at distance {(currentPosition - loadedVessels.Current.PredictPosition(timeToCPA)).magnitude}m ({timeToCPA}s) from {loadedVessels.Current.vesselName} of radius {loadedVessels.Current.GetRadius(average: true)}m");
                             currentPosition -= timeToCPA * BDKrakensbane.FrameVelocityV3f; // Adjust for Krakensbane.
-                            BDACompetitionMode.Instance.Scores.RegisterRocketStrike(sourceVesselName, loadedVessels.Current.GetName()); //fix proxi rockets not recording a rocket strike
                             return true;
                         }
                     }
