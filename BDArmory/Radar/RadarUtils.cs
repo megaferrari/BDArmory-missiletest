@@ -14,7 +14,6 @@ using BDArmory.Utils;
 using BDArmory.Weapons;
 using BDArmory.Weapons.Missiles;
 using BDArmory.Damage;
-using BDArmory.ModIntegration;
 
 namespace BDArmory.Radar
 {
