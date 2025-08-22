@@ -408,6 +408,16 @@ namespace BDArmory.FX
                     {
                         ExecuteBuildingBlastEvent((BuildingNukeHitEvent)eventToExecute);
                     }
+                }                
+            }
+
+            if (hasDetonated && explosionEvents.Count == 0 && TimeIndex > MaxTime)
+            {
+                hasDetonated = false;
+                if (LightFx != null)
+                {
+                    LightFx.intensity = 0;
+                    LightFx.range = 0;
                 }
                 foreach (var vesselName in explosionEventsVesselsHit.Keys) //once blast completed, register vessel strikes as appropriate
                 {
@@ -424,16 +434,6 @@ namespace BDArmory.FX
                             BDACompetitionMode.Instance.Scores.RegisterMissileStrike(SourceVesselName, vesselName);
                             break;
                     }
-                }
-            }
-
-            if (hasDetonated && explosionEvents.Count == 0 && TimeIndex > MaxTime)
-            {
-                hasDetonated = false;
-                if (LightFx != null)
-                {
-                    LightFx.intensity = 0;
-                    LightFx.range = 0;
                 }
                 gameObject.SetActive(false);
                 return;

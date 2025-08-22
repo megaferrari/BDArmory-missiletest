@@ -293,6 +293,10 @@ namespace BDArmory.FX
                                                 if (BDACompetitionMode.Instance.Scores.RegisterMissileHit(SourceVesselName, damagedVesselName, 1))
                                                     registered = true;
                                                 break;
+                                            case ExplosionSourceType.Bullet:
+                                                if (isReportingWeapon || !bulletHitRegistered)
+                                                    registered = true;
+                                                break;
                                         }
                                         if (damagedVesselName != null)
                                         {
