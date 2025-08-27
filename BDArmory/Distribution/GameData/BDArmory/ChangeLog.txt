@@ -6,7 +6,9 @@
 	- Fix spelling of "ordnance" in localisation files (settings and modules retain the misspelling).
 	- Add competition marquee messages for fuel/ammo detonations from battle damage.
 	- Fix 'Disable Radar vs ARMs' WM GUI toggle being inverted.
-  - Tweak vessel switching weights to try to remain focused on vessels that are about to explode.
+	- Tweak vessel switching weights to try to remain focused on vessels that are about to explode.
+	- Fix EMP disable messages on craft that have alraedy been disabled before claiming a negative float value time duration.
+	- Fix Radar Display not displaying correctly on radars using radarTransform defined pointing directions.
 - AI / WM:
 	- Add missing unclamped limits for 3-axis static damping.
 	- Adjust the release of the "Attack" command so that craft don't go dead-stick when under attack but not threatened enough to trigger evasion.
@@ -20,6 +22,7 @@
 	- Tweaks to the auto-tuning loss function to give a more stable roll-relevance. Show an auto-tuning summary to reduce confusion in the SPH about the auto-tuning results.
 	- Disable Battle Damage while auto-tuning to avoid wooden parts catching fire.
 	- Fix AI continuing to increase extend distance while extending away from a target for lining up a bombing run.
+	- Fix some errors in Dynamic Launch Zone math.
 - Countermeasures:
 	- Add 'Ammo' gauges for Countermeasure dispensers for how many CMs they have remaining.
 - Sensors:

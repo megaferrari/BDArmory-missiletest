@@ -2521,10 +2521,11 @@ namespace BDArmory.Control
                     v.Velocity(),
                     v.transform.position,
                     //minOffBoresight + (180f - minOffBoresight) * Mathf.Clamp01(((missile.transform.position - v.transform.position).magnitude - missile.minStaticLaunchRange) / (Mathf.Max(100f + missile.minStaticLaunchRange * 1.5f, 0.1f * missile.maxStaticLaunchRange) - missile.minStaticLaunchRange)) // Reduce the effect of being off-target while extending to prevent super long extends.
-                    missileAngleToTarget <= minOffBoresight ? -1 : (missile.transform.position - v.transform.position).sqrMagnitude < (missile.minStaticLaunchRange * missile.minStaticLaunchRange) ? 180 : -1
+                    //missileAngleToTarget <= minOffBoresight ? -1 : (missile.transform.position - v.transform.position).sqrMagnitude < (missile.minStaticLaunchRange * missile.minStaticLaunchRange) ? 180 : -1
+                    missileAngleToTarget <= minOffBoresight ? -1 : minOffBoresight
                 ).minLaunchRange;
                 //all we should be concerned about here is: 
-                //1) we're on target, but too close - extend back to min launch range, AI will handle coming about so by time it does so we whould still be outside min range; all we need is missile absolute min distance
+                //1) we're on target, but too close - extend back to min launch range, AI will handle coming about so by time it does so we should still be outside min range; all we need is missile absolute min distance
                 //2) off target, and too close - extend to min launch range, ditto
                 //3) on target, and beyond min range - no need to extend
                 //4) off target, and beyond min launch range - are we within kinematic min range?
@@ -2939,7 +2940,8 @@ namespace BDArmory.Control
                             extendTarget.Velocity(),
                             extendTarget.transform.position,
                             //minOffBoresight + (180f - minOffBoresight) * Mathf.Clamp01(((missile.transform.position - v.transform.position).magnitude - missile.minStaticLaunchRange) / (Mathf.Max(100f + missile.minStaticLaunchRange * 1.5f, 0.1f * missile.maxStaticLaunchRange) - missile.minStaticLaunchRange)) // Reduce the effect of being off-target while extending to prevent super long extends.
-                            missileAngleToTarget <= minOffBoresight ? -1 : (extendForMissile.transform.position - extendTarget.transform.position).sqrMagnitude < (extendForMissile.minStaticLaunchRange * extendForMissile.minStaticLaunchRange) ? 180 : -1
+                            //missileAngleToTarget <= minOffBoresight ? -1 : (extendForMissile.transform.position - extendTarget.transform.position).sqrMagnitude < (extendForMissile.minStaticLaunchRange * extendForMissile.minStaticLaunchRange) ? 180 : -1
+                            missileAngleToTarget <= minOffBoresight ? -1 : minOffBoresight
                         ).minLaunchRange;
                         extendDistance = Mathf.Max(extendDistanceAirToAir, minDynamicLaunchRange); 
                         extendDesiredMinAltitude = Mathf.Min(finalBombingAlt, minAltitude);
