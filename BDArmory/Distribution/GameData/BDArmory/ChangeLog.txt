@@ -35,6 +35,8 @@
 	- Fix aim lead offset for weapons with deploy animations.
 	- Added fuzeDelay and fuzeSensitivity functionality to bullets. Now, for penetrating and delay fuzes you can specify the fuze delay in seconds, and the fuze sensitivity in mm for penetrating fuzes, by listing them with commas, I.E. "fuzeType = Penetrating,0.01,20" for a 0.01 s delay which will be set off by 20 mm of armor (currently material differences are not considered).
 	- Fix bullet behavior when hitting parts with multiple colliders embedded in each other, bullets should now only hit such a part once, unless it exits the part and then hits the part again. Note the system in place cannot catch cases where another part is clipped in such a part.
+	- Added stack attachment nodes to all turret bases.
+	- Sanity-checked turret bulkhead sizes.
 	- Missiles:
 		- General Changes:
 			- Fix maddog ARH missile launches not turning on seeker.
@@ -42,6 +44,7 @@
 				- Added a new FloatCurve "lockedSensorVelocityMagnitudeBias", weights target score based on the normalized angular velocity magnitude difference, where 1 is when the target's angular velocity magnitude matches the expected angular velocity magnitude and 0 is when the angular velocity magnitude is off by the expected angular velocity magnitude (either 0, or twice the expected). FloatCurve defaults to all 1s when lockedSensorVelocityBias is not specified and linear when specified.
 				- Added lockedSensorMinAngularVelocity field which sets the minimum detectable angular velocity magnitude for angular velocity magnitude differencing.
 			- Ensure laser-guided weapons have "TargetAcquired" properly set prior to firing.
+			- Added cruise specific missile deployment animations.
 		- Guidance:
 			- Add improved missile controller.
 				- Missiles will now better respect gLimit as well as guidance-commanded acceleration, note this means some parameters may need to be tweaked to retain previous performance, specifically pronavGain and weave guidance accelerations.
