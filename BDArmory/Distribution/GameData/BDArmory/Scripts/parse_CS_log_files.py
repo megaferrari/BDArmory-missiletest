@@ -6,7 +6,7 @@ import re
 import sys
 from pathlib import Path
 
-VERSION = "5.1"
+VERSION = "5.2"
 
 parser = argparse.ArgumentParser(description="Log file parser for continuous spawning logs.", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("logs", nargs='*', help="Log files to parse. If none are given, the latest log file is parsed.")
@@ -51,7 +51,7 @@ else:
 
 data = {}
 for filename in competition_files:
-    with open(filename, "r") as file_data:
+    with open(filename, "r", encoding="utf-8") as file_data:
         data[filename] = {}
         Craft_Name = None
         for line in file_data:
