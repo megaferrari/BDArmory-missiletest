@@ -1104,6 +1104,12 @@ namespace BDArmory.UI
                     case 53:
                         BDACompetitionMode.Instance.StartRapidDeployment(0);
                         yield break;
+                    case 67:
+                        BDACompetitionMode.Instance.StartRapidDeployment(0);
+                        yield break;
+                    case 77:
+                        BDACompetitionMode.Instance.StartRapidDeployment(0);
+                        yield break;
                 }
             }
             BDACompetitionMode.Instance.StartCompetitionMode(BDArmorySettings.COMPETITION_DISTANCE, BDArmorySettings.COMPETITION_START_DESPITE_FAILURES);

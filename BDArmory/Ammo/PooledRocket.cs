@@ -13,6 +13,7 @@ using BDArmory.Settings;
 using BDArmory.UI;
 using BDArmory.Utils;
 using static BDArmory.Bullets.PooledBullet;
+using BDArmory.Weapons.Missiles;
 
 namespace BDArmory.Bullets
 {
@@ -1040,6 +1041,8 @@ namespace BDArmory.Bullets
                                             if (MDEC == null)
                                             {
                                                 MDEC = (ModuleDrainEC)partHit.vessel.rootPart.AddModule("ModuleDrainEC");
+                                                var MB = partHit.vessel.rootPart.FindModuleImplementing<MissileBase>();
+                                                if (MB != null) MDEC.EMPThreshold = 10;
                                             }
                                             MDEC.incomingDamage = (25 - distance) * 5; //this way craft at edge of blast might only get disabled instead of bricked
                                             MDEC.softEMP = false; //can bypass EMP damage cap                                            

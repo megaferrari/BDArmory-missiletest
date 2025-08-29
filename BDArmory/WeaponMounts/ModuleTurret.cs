@@ -300,7 +300,7 @@ namespace BDArmory.WeaponMounts
         {
             if (!referenceTransform) return false;
             Vector3 vectorToTarget = targetPosition - referenceTransform.position;
-            if (vectorToTarget.sqrMagnitude < maxDistance * maxDistance) return false;
+            if (vectorToTarget.sqrMagnitude > maxDistance * maxDistance) return false;
 
             float angleYaw = Vector3.Angle(vectorToTarget.ProjectOnPlanePreNormalized(referenceTransform.up), referenceTransform.forward);
             float signedAnglePitch = 90 - Vector3.Angle(referenceTransform.up, vectorToTarget);
