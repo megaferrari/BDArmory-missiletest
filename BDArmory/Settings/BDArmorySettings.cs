@@ -251,6 +251,7 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static float ASTEROID_RAIN_RADIUS = 3f; // Km.
         [BDAPersistentSettingsField] public static bool ASTEROID_RAIN_FOLLOWS_CENTROID = true;
         [BDAPersistentSettingsField] public static bool ASTEROID_RAIN_FOLLOWS_SPREAD = true;
+        [BDAPersistentSettingsField] public static float GUARD_MODE_TRIGGER_ALT = 3000; // m.
         [BDAPersistentSettingsField] public static bool MUTATOR_MODE = false;
         [BDAPersistentSettingsField] public static bool ZOMBIE_MODE = false;
         [BDAPersistentSettingsField] public static bool DISCO_MODE = false;

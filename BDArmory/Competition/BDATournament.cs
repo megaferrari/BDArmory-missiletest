@@ -2003,6 +2003,12 @@ namespace BDArmory.Competition
                     case 53:
                         BDACompetitionMode.Instance.StartRapidDeployment(0);
                         break;
+                    case 67:
+                        BDACompetitionMode.Instance.StartRapidDeployment(0);
+                        break;
+                    case 77:
+                        BDACompetitionMode.Instance.StartRapidDeployment(0);
+                        break;
                     default:
                         BDACompetitionMode.Instance.StartCompetitionMode(BDArmorySettings.COMPETITION_DISTANCE, startDespiteFailures);
                         break;

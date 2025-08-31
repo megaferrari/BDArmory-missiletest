@@ -4,6 +4,7 @@ using UnityEngine;
 using BDArmory.Damage;
 using BDArmory.Settings;
 using BDArmory.Utils;
+using BDArmory.Weapons.Missiles;
 
 namespace BDArmory.Weapons
 {
@@ -46,6 +47,8 @@ namespace BDArmory.Weapons
                         if (emp == null)
                         {
                             emp = (ModuleDrainEC)v.rootPart.AddModule("ModuleDrainEC");
+                            var MB = v.rootPart.FindModuleImplementing<MissileBase>();
+                            if (MB != null) emp.EMPThreshold = 10;
                         }
                         emp.incomingDamage += ((proximity - (float)targetDistance) * 10); //this way craft at edge of blast might only get disabled instead of bricked
                         emp.softEMP = AllowReboot; //can bypass DMP damage cap

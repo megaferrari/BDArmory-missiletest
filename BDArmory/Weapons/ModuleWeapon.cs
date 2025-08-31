@@ -2598,6 +2598,8 @@ namespace BDArmory.Weapons
                                                 {
                                                     emp = (ModuleDrainEC)p.vessel.rootPart.AddModule("ModuleDrainEC");
                                                     //Debug.Log($"[BDArmory.ModuleWeapon]: EMP Module added to {p.vessel.GetName()}: {p.vessel.rootPart.partInfo.title}");
+                                                    var MB = p.vessel.rootPart.FindModuleImplementing<MissileBase>();
+                                                    if (MB != null) emp.EMPThreshold = 10;
                                                 }
                                                 float EMPDamage = 0;
                                                 if (!pulseLaser)
@@ -3577,18 +3579,18 @@ namespace BDArmory.Weapons
         {
             fireSound = SoundUtils.GetAudioClip(fireSoundPath);
             overheatSound = SoundUtils.GetAudioClip(overheatSoundPath);
-            if (!audioSource)
+            if (!audioSource) //Fire sound
             {
                 audioSource = gameObject.AddComponent<AudioSource>();
                 audioSource.bypassListenerEffects = true;
                 audioSource.minDistance = .3f;
-                audioSource.maxDistance = 1000;
+                audioSource.maxDistance = Mathf.Clamp(100 * caliber / 2, 1000, 10000); //gunshots of bigger guns carry further
                 audioSource.priority = 10;
                 audioSource.dopplerLevel = 0;
                 audioSource.spatialBlend = 1;
             }
 
-            if (!audioSource2)
+            if (!audioSource2) //overheat/reload/reload complete
             {
                 audioSource2 = gameObject.AddComponent<AudioSource>();
                 audioSource2.bypassListenerEffects = true;
@@ -6058,6 +6060,7 @@ namespace BDArmory.Weapons
                         baseBulletVelocity = bulletInfoList[customAmmoBeltIndexes[0]].bulletVelocity;
                     }
                 }
+                electroLaser = bulletInfo.EMP; //borrowing electrolaser bool, should really rename it empWeapon
             }
             if (eWeaponType == WeaponTypes.Rocket)
             {
@@ -6082,48 +6085,51 @@ namespace BDArmory.Weapons
                 {
                     guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_Nuclear") + " ";
                 }
-                if (rocketInfo.explosive && !rocketInfo.nuclear)
+                else
                 {
-                    if (rocketInfo.flak)
+                    if (rocketInfo.explosive)
                     {
-                        guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_Flak") + " ";
-                        eFuzeType = BulletFuzeTypes.Flak; //fix rockets not getting detonation range slider 
-                    }
-                    else if (rocketInfo.shaped)
-                    {
-                        guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_Shaped") + " ";
-                    }
-                    if (rocketInfo.EMP || rocketInfo.choker || rocketInfo.impulse)
-                    {
-                        if (rocketInfo.EMP)
+                        if (rocketInfo.flak)
                         {
-                            guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_EMP") + " ";
+                            guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_Flak") + " ";
+                            eFuzeType = BulletFuzeTypes.Flak; //fix rockets not getting detonation range slider 
                         }
-                        if (rocketInfo.choker)
+                        else if (rocketInfo.shaped)
                         {
-                            guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_Choker") + " ";
+                            guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_Shaped") + " ";
                         }
-                        if (rocketInfo.impulse)
+                        if (rocketInfo.EMP || rocketInfo.choker || rocketInfo.impulse)
                         {
-                            guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_Impulse") + " ";
+                            if (rocketInfo.EMP)
+                            {
+                                guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_EMP") + " ";
+                            }
+                            if (rocketInfo.choker)
+                            {
+                                guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_Choker") + " ";
+                            }
+                            if (rocketInfo.impulse)
+                            {
+                                guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_Impulse") + " ";
+                            }
+                        }
+                        else
+                        {
+                            guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_HE") + " ";
+                        }
+                        if (rocketInfo.incendiary)
+                        {
+                            guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_Incendiary") + " ";
+                        }
+                        if (rocketInfo.gravitic)
+                        {
+                            guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_Gravitic") + " ";
                         }
                     }
                     else
                     {
-                        guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_HE") + " ";
+                        guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_Kinetic");
                     }
-                    if (rocketInfo.incendiary)
-                    {
-                        guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_Incendiary") + " ";
-                    }
-                    if (rocketInfo.gravitic)
-                    {
-                        guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_Gravitic") + " ";
-                    }
-                }
-                else
-                {
-                    guiAmmoTypeString += StringUtils.Localize("#LOC_BDArmory_Ammo_Kinetic");
                 }
                 if (rocketInfo.flak)
                 {

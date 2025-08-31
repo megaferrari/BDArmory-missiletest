@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
-VERSION = "25.1"
+VERSION = "25.2"
 
 parser = argparse.ArgumentParser(description="Tournament log parser", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('tournament', type=str, nargs='*', help="Tournament folder to parse.")
@@ -69,7 +69,7 @@ score_fields = ('wins', 'survivedCount', 'miaCount', 'deathCount', 'deathOrder',
                 'missileHits', 'missileHitsTaken', 'missilePartsHit', 'missilePartsHitTaken', 'missileDamage', 'missileDamageTaken', 'ramScore', 'ramScoreTaken', 'battleDamage', 'partsLostToAsteroids', 'HPremaining', 'accuracy', 'rocket_accuracy', 'waypointCount', 'waypointTime', 'waypointDeviation')
 try:
     if args.weights == 'cfg':
-        with open(Path(__file__).parent.parent / 'PluginData' / 'score_weights.cfg', 'r') as f:
+        with open(Path(__file__).parent.parent / 'PluginData' / 'score_weights.cfg', 'r', encoding='utf-8') as f:
             lines = f.readlines()
         field_names = {
             "Wins": "wins",

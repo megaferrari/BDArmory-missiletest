@@ -275,6 +275,10 @@ namespace BDArmory.UI
         private void OnEditorPartPlacedEvent(Part data)
         {
             DoVesselLegalityChecks(true);
+            if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == 78)
+            {
+                data.sameVesselCollision = true;
+            }
         }
 
         private void OnDestroy()

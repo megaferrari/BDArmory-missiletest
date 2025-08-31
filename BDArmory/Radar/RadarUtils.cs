@@ -817,7 +817,6 @@ namespace BDArmory.Radar
         {
             if (!ConformalDecals.hasConformalDecals) return;
             if (HighLogic.LoadedSceneIsFlight && v == null) return; // Invalid vessel to render.
-
             using List<Part>.Enumerator parts = HighLogic.LoadedSceneIsEditor ? EditorLogic.fetch.ship.Parts.GetEnumerator() : v.Parts.GetEnumerator();
             while (parts.MoveNext())
             {

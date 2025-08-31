@@ -1454,18 +1454,33 @@ namespace BDArmory.Competition
                     };
                     altitudeLimitGracePeriod = 30; // t=60 (30s after the competition starts), activate the altitude limit
                     break;
-                case 60: //change this later (Pinata deployment)
+                case 67: //Asteroid Interception
                     commandSequence = new List<string>{
                         "0:ActionGroup:13:1", // t=0, AG4 - Enable SAS
                         "0:ActionGroup:16:0", // t=0, Retract gear (if it's not retracted)
                         "0:ActionGroup:10", // t=0, AG10
                         "0:ActivateEngines", // t=0, Activate engines
                         "0:SetThrottle:100", // t=0, Full throttle
-                        "0:TogglePilot:1", // t=30, Activate pilots
+                        "0:TogglePilot:1", // t=0, Activate pilots
                         "0:SetTeam:1",      //t=0, Set everyone to same team
-                        "0:ToggleGuard:1", // t=30, Activate guard mode (attack)
-                        "5:RemoveDebris", // t=35, Remove any other debris and spectators
+                        "0:ToggleGuard:1", // t=0, Activate guard mode (attack)
+                        "5:RemoveDebris", // t=5, Remove any other debris and spectators
                         // "0:EnableGM", // t=60, Activate the killer GM
+                    };
+                    break;
+                case 77: //Shuttle launch
+                    commandSequence = new List<string>{
+                        "0:ActionGroup:13:1", // t=0, AG4 - Enable SAS
+                        "0:ActionGroup:16:0", // t=0, Retract gear (if it's not retracted)
+                        "0:ActionGroup:14:0", // t=0, Disable brakes
+                        "0:ActionGroup:10", // t=0, AG10
+                        "0:ActivateEngines", // t=0, Activate engines
+                        "0:SetThrottle:100", // t=0, Full throttle
+                        "0:TogglePilot:1", // t=30, Activate pilots
+                        "0:AttackCenter", // t=30, "Attack" center point
+                        "0:ToggleGuard:0", // t=0, Disable guard mode (for those who triggered it early)
+                        "0:ToggleGuard:77", // t=30, Activate guard mode (attack)
+                        "5:RemoveDebris", // t=35, Remove any other debris and spectators
                     };
                     break;
                 default: // Same as S3R3 for now, until we do something different.
@@ -1820,6 +1835,10 @@ namespace BDArmory.Competition
                                         foreach (var pilot in pilots)
                                             StartCoroutine(EnableGuardModeWhen(pilot, () => (pilot == null || pilot.vessel == null || pilot.vessel.radarAltitude < limit)));
                                         break;
+                                    case "77": // Shuttle Launch
+                                        foreach (var pilot in pilots)
+                                            StartCoroutine(EnableGuardModeWhen(pilot, () => (pilot == null || pilot.vessel == null || pilot.vessel.radarAltitude > BDArmorySettings.GUARD_MODE_TRIGGER_ALT)));
+                                        break;
                                 }
                             }
                             else // FIXME This branch isn't taken as all the ToggleGuard commands have 3 parts.
@@ -1970,8 +1989,12 @@ namespace BDArmory.Competition
                             foreach (var pilot in pilots)
                             {
                                 attackGPS = centerGPS;
-                                if (pilot.vessel.ActiveController().PilotAI != null)
+                                var pAI = pilot.vessel.ActiveController().PilotAI;
+                                if (pAI != null)
+                                {
                                     attackGPS.z = (float)BodyUtils.GetTerrainAltitudeAtPos(center) + 1000; // Target 1km above the terrain at the center.
+                                    if (BDArmorySettings.RUNWAY_PROJECT_ROUND == 77) pAI.minAltitude = 5; //set minAlt to 5 so AI doesn't go into Gaining Alt routine while below MinAlt and will maintain a stright-up course
+                                }
                                 pilot.ReleaseCommand();
                                 pilot.CommandAttack(attackGPS);
                             }
@@ -2388,12 +2411,25 @@ namespace BDArmory.Competition
         /// <param name="condition">The condition to satisfy first</param>
         IEnumerator EnableGuardModeWhen(IBDAIControl pilot, Func<bool> condition)
         {
+            float originalMinAlt = 200;
+            if (BDArmorySettings.RUNWAY_PROJECT_ROUND == 77)
+            {
+                var pAI = VesselModuleRegistry.GetBDModulePilotAI(pilot.vessel);
+                if (pAI != null)
+                    originalMinAlt = pAI.minAltitude; //store the original minAlt for later
+            }
             yield return new WaitUntilFixed(condition);
             if (pilot == null || pilot.vessel == null) yield break;
             if (pilot.WeaponManager != null && !pilot.WeaponManager.guardMode)
             {
                 competitionStatus.Add($"Enabling guard mode for {pilot.vessel.vesselName}");
                 pilot.WeaponManager.ToggleGuardMode();
+                if (BDArmorySettings.RUNWAY_PROJECT_ROUND == 77)
+                {
+                    var pAI = VesselModuleRegistry.GetBDModulePilotAI(pilot.vessel);
+                    if (pAI != null)
+                        pAI.minAltitude = originalMinAlt; //combat's started, reset minAlt so craft won't crash later
+                }
             }
         }
 
@@ -2750,7 +2786,7 @@ namespace BDArmory.Competition
                             var surfaceAI = VesselModuleRegistry.GetModule<BDModuleSurfaceAI>(vessel);
                             if (surfaceAI != null)
                             {
-                                if (surfaceAI.currentStatusMode == BDModuleSurfaceAI.StatusMode.Panic) 
+                                if (surfaceAI.currentStatusMode == BDModuleSurfaceAI.StatusMode.Panic)
                                 {
                                     if (!vData.landedState)
                                     {
