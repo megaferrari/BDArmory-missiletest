@@ -306,6 +306,7 @@ namespace BDArmory.Radar
         public bool linkCapabilityDirty;
         public bool rangeCapabilityDirty;
         public bool radarsReady;
+        public bool queueLinks = false;
 
         private void Awake()
         {
@@ -747,6 +748,9 @@ namespace BDArmory.Radar
                 UpdateRangeCapability();
                 rangeCapabilityDirty = false;
             }
+
+            if (queueLinks && canReceiveRadarData)
+                LinkAllRadars();
 
             drawGUI = (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready && !vessel.packed && rCount + iCount > 0 &&
                        vessel.isActiveVessel && BDArmorySetup.GAME_UI_ENABLED && !MapView.MapIsEnabled);
@@ -1520,6 +1524,7 @@ namespace BDArmory.Radar
                     LinkVRD(v.Current);
             }
             v.Dispose();
+            queueLinks = false;
         }
 
         public void RemoveDataFromRadar(ModuleRadar radar)

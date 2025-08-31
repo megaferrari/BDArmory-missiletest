@@ -351,31 +351,47 @@ namespace BDArmory.Radar
             resourceID = PartResourceLibrary.Instance.GetDefinition(resourceName).id;
         }
 
-        public void EnsureVesselRadarData()
+        public void EnsureVesselRadarData(bool addRadar = false)
         {
             if (vessel == null) return;
             //myVesselID = vessel.id.ToString();
 
-            if (vesselRadarData != null && vesselRadarData.vessel == vessel && vesselRadarData.weaponManager == WeaponManager) return;
+            bool swappedVessels = false;
+            if (vesselRadarData == null || (swappedVessels = (vesselRadarData.vessel != vessel)) || vesselRadarData.weaponManager != WeaponManager)
+            {
+                // Technically it would be better if we linked to the previous vessel here, but theoretically speaking,
+                // if guard mode is enabled post-decouple on the child craft it should automatically datalink with all
+                // available VRDs post swap taking care of this. If we do want to ensure this functions properly even
+                // without guard mode being enabled post decouple we would add a `QueueVRDLink(vrd)` function to
+                // vesselRadarData, save the previous VRD in this if statement, and then queue the link
+                if (swappedVessels)
+                    vesselRadarData.RemoveRadar(this);
 
-            vesselRadarData = vessel.gameObject.GetComponent<VesselRadarData>();
-            if (vesselRadarData == null)
-                vesselRadarData = vessel.gameObject.AddComponent<VesselRadarData>();
+                vesselRadarData = vessel.gameObject.GetComponent<VesselRadarData>();
+                if (vesselRadarData == null)
+                    vesselRadarData = vessel.gameObject.AddComponent<VesselRadarData>();
 
-            vesselRadarData.weaponManager = WeaponManager;
+                vesselRadarData.weaponManager = WeaponManager;
+                
+                // Something wasn't right with the previous VRD so make sure we add the radar, primarily to take care of the multi-craft case
+                addRadar = true;
+            }
+
+            if (addRadar)
+                vesselRadarData.AddRadar(this);
         }
 
         public void EnableRadar()
         {
-            EnsureVesselRadarData();
+            EnsureVesselRadarData(true);
             radarEnabled = true;
 
             UpdateToggleGuiName();
-            vesselRadarData.AddRadar(this);
+            //vesselRadarData.AddRadar(this); // Moved this to EnsureVesselRadarData() to account for the multi-craft case
             var wm = WeaponManager;
             if (wm != null)
             {
-                if (wm.guardMode) vesselRadarData.LinkAllRadars();
+                if (wm.guardMode) vesselRadarData.queueLinks = true;
                 if (sonarMode == SonarModes.None)
                     wm._radarsEnabled = true;
                 else if (sonarMode == SonarModes.Active)
