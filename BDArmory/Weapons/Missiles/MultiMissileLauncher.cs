@@ -356,9 +356,12 @@ namespace BDArmory.Weapons.Missiles
 
         public void updateMaxOffBoresight(float maxOffBoresight)
         {
+            // Need to update the maxOffBoresight value with the value from ModuleMissileRearm
+            // except for in the case of this being a cluster missile
             if (isClusterMissile)
                 return;
 
+            // Have to wait until missileLauncher is loaded before doing this
             StartCoroutine(UpdateMaxOffBoresightRoutine(maxOffBoresight));
         }
 

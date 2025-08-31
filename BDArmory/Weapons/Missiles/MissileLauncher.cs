@@ -845,6 +845,7 @@ namespace BDArmory.Weapons.Missiles
             }
             if (warheadType == WarheadTypes.Kinetic && blastPower > 0) warheadType = WarheadTypes.Legacy;
 
+            // Get maxOffboresight here because MMLs won't have the correct value for this if this is done in SetFields()
             string maxOffboresightString = ConfigNodeUtils.FindPartModuleConfigNodeValue(part.partInfo.partConfig, "MissileLauncher", "maxOffBoresight");
             if (!string.IsNullOrEmpty(maxOffboresightString)) // Use the default value from the MM patch.
             {
@@ -964,6 +965,7 @@ namespace BDArmory.Weapons.Missiles
                 Fields["dropTime"].guiActiveEditor = true;
             }
 
+            // Moved mFA setting here instead of OnStart() to account for the need for this to be set for MMLs as well
             if (maxOffBoresight < 360 && missileType.ToLower() == "missile" || missileType.ToLower() == "torpedo")
             {
                 UI_FloatRange mFA = (UI_FloatRange)Fields["missileFireAngle"].uiControlEditor;

@@ -192,6 +192,7 @@ UI_ProgressBar(affectSymCounterparts = UI_Scene.None, controlEnabled = false, sc
 
             if (MML != null && !MML.isClusterMissile)
             {
+                // Parse maxOffboresight here instead of in MML since we're getting the partPrefab here anyways
                 string maxOffboresightString = ConfigNodeUtils.FindPartModuleConfigNodeValue(missilePart.partPrefab.partInfo.partConfig, "MissileLauncher", "maxOffBoresight");
                 if (!string.IsNullOrEmpty(maxOffboresightString)) // Use the default value from the MM patch.
                 {
