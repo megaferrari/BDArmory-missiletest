@@ -147,6 +147,12 @@ namespace BDArmory.FX
             //LightFx = gameObject.GetComponent<Light>();
             //LightFx.range = BDArmorySettings.LIGHTFX ? 0 : Range * 3f;
             //LightFx.intensity = BDArmorySettings.LIGHTFX ? 0 : 8f; // Reset light intensity.
+            if (BDArmorySettings.waterHitEffect && FlightGlobals.currentMainBody.ocean)
+            {
+                Vector3 up = VectorUtils.GetUpDirection(Position, out double alt);
+                if (alt < 0 && (Power > 100f || alt < 2f * Range))
+                    FXMonger.Splash(Position - up * (float)alt, 20f * Power);
+            }
 
             audioSource = gameObject.GetComponent<AudioSource>();
             // if (ExSound == null)

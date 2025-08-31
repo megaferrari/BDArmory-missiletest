@@ -298,6 +298,27 @@ namespace BDArmory.Utils
             return (position - FlightGlobals.currentMainBody.position).normalized;
         }
 
+        /// <summary>
+        /// Get the up direction and altitude at a position.
+        /// Note: If the position is a vessel's position, then this is the same as vessel.up and vessel.altitude, which are precomputed. Use those instead!
+        /// </summary>
+        /// <param name="position"></param>
+        /// <param name="altitude"></param>
+        /// <returns>The normalized up direction at the position.</returns>
+        public static Vector3 GetUpDirection(Vector3 position, out double altitude)
+        {
+            if (FlightGlobals.currentMainBody == null)
+            {
+                altitude = 0;
+                return Vector3.up;
+            }
+            Vector3 upDir;
+            (altitude, upDir) = (position - FlightGlobals.currentMainBody.position).MagNorm();
+            altitude -= FlightGlobals.currentMainBody.Radius;
+
+            return upDir;
+        }
+
         public static bool SphereRayIntersect(Ray ray, Vector3 sphereCenter, double sphereRadius, out double distance)
         {
             Vector3 o = ray.origin;
