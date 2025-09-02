@@ -28,7 +28,7 @@ namespace BDArmory.FX
             return ObjectPool.CreateObjectPool(template, BDArmorySettings.MAX_NUM_BULLET_DECALS, false, true, 0, true);
         }
 
-        public void AttachAt(Part hitPart, RaycastHit hit, Vector3 offset)
+        public void AttachAt(Part hitPart, RaycastHit hit, Vector3 offset, bool applyVelCorrection)
         {
             if (hitPart is null) return;
             parentPart = hitPart;
@@ -37,8 +37,8 @@ namespace BDArmory.FX
             // I assume the hit.collider should always exist, in any case, perform a null check for the
             // transform and use it for SetParent if possible in order to account for things like turrets
             // and other moving parts
-            transform.SetParent(hit.collider.transform ? hit.collider.transform : hitPart.transform);
-            transform.position = hit.point + offset;
+            transform.SetParent(hit.collider.transform ?? hitPart.transform);
+            transform.position = hit.point + (applyVelCorrection ? offset + (hitPart.rb.velocity + BDKrakensbane.FrameVelocityV3f) * TimeWarp.fixedDeltaTime : offset);
             transform.rotation = Quaternion.FromToRotation(Vector3.forward, hit.normal);
             parentPart.OnJustAboutToDie += OnParentDestroy;
             parentPart.OnJustAboutToBeDestroyed += OnParentDestroy;
@@ -218,7 +218,7 @@ namespace BDArmory.FX
             }
         }
 
-        public static void SpawnDecal(RaycastHit hit, Part hitPart, float caliber, float penetrationfactor, string team)
+        public static void SpawnDecal(RaycastHit hit, Part hitPart, float caliber, float penetrationfactor, string team, bool applyVelCorrection)
         {
             if (!BDArmorySettings.BULLET_DECALS) return;
             ObjectPool decalPool_;
@@ -256,7 +256,7 @@ namespace BDArmory.FX
             if (decalFront != null && hitPart != null)
             {
                 var decal = decalFront.GetComponentInChildren<Decal>();
-                decal.AttachAt(hitPart, hit, new Vector3(0.25f, 0f, 0f));
+                decal.AttachAt(hitPart, hit, new Vector3(0.25f, 0f, 0f), applyVelCorrection);
 
                 if (BDArmorySettings.PAINTBALL_MODE)
                 {
@@ -273,7 +273,7 @@ namespace BDArmory.FX
                 if (decalBack != null && hitPart != null)
                 {
                     var decal = decalBack.GetComponentInChildren<Decal>();
-                    decal.AttachAt(hitPart, hit, new Vector3(-0.25f, 0f, 0f));
+                    decal.AttachAt(hitPart, hit, new Vector3(-0.25f, 0f, 0f), applyVelCorrection);
                 }
             }
         }
@@ -427,7 +427,7 @@ namespace BDArmory.FX
             }
         }
 
-        public static void CreateBulletHit(Part hitPart, Vector3 position, RaycastHit hit, Vector3 normalDirection, bool ricochet, float caliber, float penetrationfactor, string team)
+        public static void CreateBulletHit(Part hitPart, Vector3 position, RaycastHit hit, Vector3 normalDirection, bool ricochet, float caliber, float penetrationfactor, string team, bool applyVelCorrection = false)
         {
             if (decalPool_large == null || decalPool_small == null)
                 SetupShellPool();
@@ -438,7 +438,7 @@ namespace BDArmory.FX
 
             if ((hitPart != null) && caliber != 0 && !hitPart.IgnoreDecal())
             {
-                SpawnDecal(hit, hitPart, caliber, penetrationfactor, team); //No bullet decals for laser or ricochet                
+                SpawnDecal(hit, hitPart, caliber, penetrationfactor, team, applyVelCorrection); //No bullet decals for laser or ricochet                
             }
 
             GameObject newExplosion = (caliber <= 30 || BDArmorySettings.PAINTBALL_MODE) ? bulletHitFXPool.GetPooledObject() : penetrationFXPool.GetPooledObject();
