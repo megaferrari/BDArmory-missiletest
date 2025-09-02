@@ -696,6 +696,8 @@ namespace BDArmory.UI
 
         void Update()
         {
+            if (!scalingUI) BDArmorySettings.PREVIOUS_UI_SCALE = BDArmorySettings.UI_SCALE_ACTUAL;
+
             if (HighLogic.LoadedSceneIsFlight)
             {
                 if (missileWarning && Time.time - missileWarningTime > 1.5f) missileWarning = false;
@@ -943,7 +945,7 @@ namespace BDArmory.UI
             {
                 var guiMatrix = GUI.matrix; // Store and restore the GUI.matrix so we can apply a different scaling for the WM window.
                 if (scalingUI && Mouse.Left.GetButtonUp()) scalingUI = false; // Don't rescale the settings window until the mouse is released otherwise it messes with the slider.
-                if (!scalingUI) { oldUIScale = BDArmorySettings.UI_SCALE_ACTUAL; BDArmorySettings.PREVIOUS_UI_SCALE = BDArmorySettings.UI_SCALE; }
+                if (!scalingUI) oldUIScale = BDArmorySettings.UI_SCALE_ACTUAL;
                 if (oldUIScale != 1) GUIUtility.ScaleAroundPivot(oldUIScale * Vector2.one, WindowRectSettings.position);
                 WindowRectSettings = GUI.Window(129419, WindowRectSettings, WindowSettings, GUIContent.none, settingsTitleStyle);
                 GUI.matrix = guiMatrix;
@@ -1889,7 +1891,7 @@ namespace BDArmory.UI
                     if (ActiveWeaponManager.radars.Count > 0)
                     {
                         numberOfModules++;
-                        string Radarlabel = $"{StringUtils.Localize("#LOC_BDArmory_DynamicRadar")}: {(ActiveWeaponManager.DynamicRadarOverride ? StringUtils.Localize("#LOC_BDArmory_false") : StringUtils.Localize("#LOC_BDArmory_true"))}";//"Dynamic Radar vs ARMs: True, False
+                        string Radarlabel = $"{StringUtils.Localize("#LOC_BDArmory_DynamicRadar")}: {(!ActiveWeaponManager.DynamicRadarOverride ? StringUtils.Localize("#LOC_BDArmory_false") : StringUtils.Localize("#LOC_BDArmory_true"))}";//"Dynamic Radar vs ARMs: True, False
                         if (GUI.Button(new Rect(leftIndent, +(moduleLines * entryHeight), columnWidth - 2 * leftIndent, entryHeight), Radarlabel, ActiveWeaponManager.DynamicRadarOverride ? BDGuiSkin.button : BDGuiSkin.box))
                         {
                             ActiveWeaponManager.DynamicRadarOverride = !ActiveWeaponManager.DynamicRadarOverride;
@@ -2430,10 +2432,8 @@ namespace BDArmory.UI
                 BDArmorySettings.UI_SCALE_FOLLOWS_STOCK = GUI.Toggle(SQuarterRect(line, 1), BDArmorySettings.UI_SCALE_FOLLOWS_STOCK, $"{StringUtils.Localize("#LOC_BDArmory_Settings_UIScaleFollowsStock")}");
                 if (!BDArmorySettings.UI_SCALE_FOLLOWS_STOCK)
                 {
-                    var previousUIScale = BDArmorySettings.UI_SCALE;
                     if (BDArmorySettings.UI_SCALE != (BDArmorySettings.UI_SCALE = BDAMath.RoundToUnit(GUI.HorizontalSlider(SRightSliderRect(line), BDArmorySettings.UI_SCALE, 0.5f, 2f), 0.05f)))
                     {
-                        BDArmorySettings.PREVIOUS_UI_SCALE = previousUIScale;
                         scalingUI = true;
                         BDACompetitionMode.Instance.UpdateGUIElements();
                     }
@@ -2613,6 +2613,21 @@ namespace BDArmory.UI
                         // GUI.Label(SLeftSliderRect(++line), $"Initial correction: {(TestNumericalMethodsIC == 0 ? "None" : TestNumericalMethodsIC == 1 ? "All" : TestNumericalMethodsIC == 2 ? "Local" : "Gravity")}");
                         // TestNumericalMethodsIC = Mathf.RoundToInt(GUI.HorizontalSlider(SRightSliderRect(line), TestNumericalMethodsIC, 0, 3));
                         // if (GUI.Button(SLineRect(++line), $"Test Forward Euler vs Semi-Implicit Euler vs Leap-frog ({PROF_N * Time.fixedDeltaTime}s, {PROF_N / Math.Min(PROF_N / 2, PROF_n)} steps)")) StartCoroutine(TestNumericalMethods(PROF_N * Time.fixedDeltaTime, PROF_N / Math.Min(PROF_N / 2, PROF_n)));
+                        // if (GUI.Button(SLineRect(++line), "Take Radar Snapshot"))
+                        // {
+                        //     if (HighLogic.LoadedSceneIsFlight)
+                        //     {
+                        //         var v = FlightGlobals.ActiveVessel;
+                        //         var ti = RadarUtils.RenderVesselRadarSnapshot(v, v.transform);
+                        //     }
+                        //     else
+                        //     {
+                        //         Vessel v = new Vessel();
+                        //         v.parts = EditorLogic.fetch.ship.Parts;
+                        //         v.vesselType = VesselType.Plane;
+                        //         var ti = RadarUtils.RenderVesselRadarSnapshot(v, EditorLogic.RootPart.transform);
+                        //     }
+                        // }
                         // if (GUI.Button(SLineRect(++line), "Test Abs")) TestAbs();
                         // if (GUI.Button(SLineRect(++line), "Test \"up\"")) TestUp();
                         // if (GUI.Button(SLineRect(++line), "Test inside vs on unit sphere")) TestInOnUnitSphere();
@@ -4184,6 +4199,12 @@ namespace BDArmory.UI
                                         BDACompetitionMode.Instance.StartRapidDeployment(0);
                                         break;
                                     case 53:
+                                        BDACompetitionMode.Instance.StartRapidDeployment(0);
+                                        break;
+                                    case 67:
+                                        BDACompetitionMode.Instance.StartRapidDeployment(0);
+                                        break;
+                                    case 77:
                                         BDACompetitionMode.Instance.StartRapidDeployment(0);
                                         break;
                                     default:

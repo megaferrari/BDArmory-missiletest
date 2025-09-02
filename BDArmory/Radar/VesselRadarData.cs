@@ -1116,7 +1116,7 @@ namespace BDArmory.Radar
                     float currentAngle = availableRadars[i].currentAngle;
 
                     float radarAngle = VectorUtils.SignedAngle(projectedVesselFwd,
-                        availableRadars[i].transform.up.ProjectOnPlanePreNormalized(referenceTransform.up),
+                    availableRadars[i].referenceTransform.forward.ProjectOnPlanePreNormalized(referenceTransform.up),
                         referenceTransform.right);
 
                     if (!canScan || availableRadars[i].vessel != vessel) continue;

@@ -2061,6 +2061,7 @@ namespace BDArmory.Control
         }
         public override void OnFixedUpdate()
         {
+            base.OnFixedUpdate();
             if (vessel == null || !vessel.gameObject.activeInHierarchy) return;
             if (weaponsListNeedsUpdating) UpdateList();
 
@@ -4026,7 +4027,7 @@ namespace BDArmory.Control
         {
             if (weapon == null)
             {
-                return "None";
+                return StringUtils.Localize("#LOC_BDArmory_WMWindow_NoneWeapon");
             }
             else
             {
@@ -5481,8 +5482,6 @@ namespace BDArmory.Control
 
                                     if (vessel.Splashed && (BDArmorySettings.BULLET_WATER_DRAG && FlightGlobals.getAltitudeAtPos(fireTransform.position) < 0)) continue;
 
-                                    if (electrolaser) continue; //electrolasers useless against missiles
-
                                     if (targetWeapon != null && (candidateYTraverse > 0 || candidatePTraverse > 0)) //prioritize turreted lasers
                                     {
                                         ModuleTurret turret = Laser.turret;
@@ -5569,6 +5568,7 @@ namespace BDArmory.Control
                                     }
 
                                     if (vessel.Splashed && (BDArmorySettings.BULLET_WATER_DRAG && FlightGlobals.getAltitudeAtPos(fireTransform.position) < 0)) continue;
+                                    if (Rocket.choker || Rocket.impulseWeapon) continue; 
                                     if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == 41)
                                     {
                                         candidateRPM = BDArmorySettings.FIRE_RATE_OVERRIDE / 2;
@@ -5786,7 +5786,7 @@ namespace BDArmory.Control
                                     {
                                         candidateRPM = BDArmorySettings.FIRE_RATE_OVERRIDE;
                                     }
-
+                                    if ((Rocket.choker || Rocket.electroLaser) && target.isDebilitated) continue; //don't keep shooting target with shutdown guns if shutdown
                                     if (targetWeapon != null && targetWeaponPriority > candidatePriority)
                                         continue; //dont replace a higher priority weapon with a lower priority one
 
@@ -5867,7 +5867,7 @@ namespace BDArmory.Control
                                         targetWeaponPriority = 99;
                                         continue;
                                     }
-
+                                    if ((Gun.Impulse != 0 && Gun.electroLaser) && target.isDebilitated) continue; //don't keep shooting target with non-damaging shutdown guns if shutdown
                                     if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == 41)
                                     {
                                         candidateRPM = BDArmorySettings.FIRE_RATE_OVERRIDE;
@@ -6067,7 +6067,7 @@ namespace BDArmory.Control
                                                 if (!mlauncher.radarLOAL) candidateTDPS *= 0.001f; //no radar lock, skip to something else unless nothing else available
                                                 else
                                                 {
-                                                    if (mlauncher.radarTimeout < ((distance - mlauncher.activeRadarRange) / mlauncher.optimumAirspeed)) candidateTDPS *= 0.5f; //outside missile self-lock zone 
+                                                    if (mlauncher.seekerTimeout < ((distance - mlauncher.activeRadarRange) / mlauncher.optimumAirspeed)) candidateTDPS *= 0.5f; //outside missile self-lock zone 
                                                 }
                                             }
                                         }
@@ -6255,7 +6255,7 @@ namespace BDArmory.Control
                                         targetWeaponPriority = 99;
                                         continue;
                                     }
-
+                                    if ((Gun.Impulse != 0 && Gun.electroLaser) && target.isDebilitated) continue; //don't keep shooting target with non-damaging shutdown guns if shutdown
                                     if (BDArmorySettings.BULLET_WATER_DRAG)
                                     {
                                         if ((!surfaceAI || surfaceAI.SurfaceType != AIUtils.VehicleMovementType.Submarine) && vessel.Splashed && FlightGlobals.getAltitudeAtPos(fireTransform.position) < 0) continue;
@@ -6317,7 +6317,7 @@ namespace BDArmory.Control
                                         targetWeaponPriority = 99;
                                         continue;
                                     }
-
+                                    if ((Rocket.choker || Rocket.electroLaser) && target.isDebilitated) continue; //don't keep shooting target with non-damaging shutdown guns if shutdown
                                     if (vessel.Splashed && (BDArmorySettings.BULLET_WATER_DRAG && FlightGlobals.getAltitudeAtPos(fireTransform.position) < 0))
                                     {
                                         if (distance > 100 * CandidateEndurance) continue;
@@ -6765,7 +6765,7 @@ namespace BDArmory.Control
                                             if (!SLW.radarLOAL) candidateTDPS *= 0.001f; //no radar/sonar lock, skip to something else unless nothing else available
                                             else
                                             {
-                                                if (SLW.radarTimeout < ((distance - SLW.activeRadarRange) / SLW.optimumAirspeed)) candidateTDPS *= 0.5f; //outside missile self-lock zone 
+                                                if (SLW.seekerTimeout < ((distance - SLW.activeRadarRange) / SLW.optimumAirspeed)) candidateTDPS *= 0.5f; //outside missile self-lock zone 
                                             }
                                         }
                                     }
@@ -6814,7 +6814,7 @@ namespace BDArmory.Control
                                         targetWeaponPriority = 99;
                                         continue;
                                     }
-
+                                    if ((Rocket.choker || Rocket.electroLaser) && target.isDebilitated) continue; //don't keep shooting target with non-damaging shutdown guns if shutdown
                                     if (vessel.Splashed && FlightGlobals.getAltitudeAtPos(fireTransform.position) < -5)//if underwater, rockets might work, at close range
                                     {
                                         if (BDArmorySettings.BULLET_WATER_DRAG)
@@ -7707,6 +7707,7 @@ namespace BDArmory.Control
                         if (laserPointDetected)
                         {
                             ml.lockedCamera = foundCam;
+                            ml.TargetAcquired = true;
                             if (guardMode && guardTarget != null && (foundCam.groundTargetPosition - guardTarget.CoM).sqrMagnitude < 10 * 10) validTarget = true; //*highly* unlikely laser-guided missiles used for missile interception, so leaving these guardTarget
                         }
                         else
@@ -8439,7 +8440,7 @@ namespace BDArmory.Control
                                 if (((weapon.Current.engageAir && targetsAssigned[TurretID].isFlying) ||
                                     (weapon.Current.engageGround && targetsAssigned[TurretID].isLandedOrSurfaceSplashed) ||
                                     (weapon.Current.engageSLW && targetsAssigned[TurretID].isUnderwater)) //check engagement envelope
-                                    && TargetInTurretRange(weapon.Current.turret, 7, targetsAssigned[TurretID].Vessel.CoM, weapon.Current))
+                                    && TargetInTurretRange(weapon.Current.turret, 7, targetsAssigned[TurretID].Vessel.CoM, weapon.Current)) 
                                 {
                                     weapon.Current.visualTargetVessel = targetsAssigned[TurretID].Vessel; // if target within turret fire zone, assign
                                     firedTargets.Add(targetsAssigned[TurretID]);
@@ -9091,7 +9092,7 @@ namespace BDArmory.Control
                 ml.TargetingMode switch
                 {
                     MissileBase.TargetingModes.Laser => BDATargetManager.ActiveLasers.Count <= 0,
-                    MissileBase.TargetingModes.Radar => !(torpedo ? _sonarsEnabled : _radarsEnabled) && (!ml.radarLOAL || (mlauncher != null && ml.radarTimeout < ((distanceToTarget - ml.activeRadarRange) / mlauncher.optimumAirspeed))),
+                    MissileBase.TargetingModes.Radar => !(torpedo ? _sonarsEnabled : _radarsEnabled) && (!ml.radarLOAL || (mlauncher != null && ml.seekerTimeout < ((distanceToTarget - ml.activeRadarRange) / mlauncher.optimumAirspeed))),
                     MissileBase.TargetingModes.Inertial => !((torpedo ? _sonarsEnabled : _radarsEnabled) || _irstsEnabled),
                     MissileBase.TargetingModes.Gps => BDATargetManager.ActiveLasers.Count <= 0 && !_radarsEnabled,
                     _ => false

@@ -2359,10 +2359,9 @@ namespace BDArmory.Control
                                     }
                                     else
                                     {
-                                        target = AIUtils.PredictPosition(v, weaponManager.bombAirTime); //make AI properly lead bombs vs moving targets, also why AI didn't like dropping them before. Should be at altitude, so use correct timeing
-                                        //target = target + (finalBombingAlt * upDirection); // Aim for a consistent target point
-                                        //if (Mathf.Abs((float)vessel.altitude - finalBombingAlt) > 100) target = transform.position + (target - transform.position).normalized * (distanceToTarget / 2); //get to bombing alt if not yet there. but not as aggressively as torp bombing
-                                        //target += (finalBombingAlt - (float)FlightGlobals.getAltitudeAtPos(target)) * upDirection;
+                                        target = AIUtils.PredictPosition(v, weaponManager.bombAirTime); //make AI properly lead bombs vs moving targets, also why AI didn't like dropping them before. Should be at altitude, so use correct timing
+                                        //Look at averaged velocity of target? SrfAI weave behavior throws off bombing targting, due to 10+ sec drop time (ofc, this is true to life - point me to one instance of level bombing with UGBs vs moving targets being accurate)
+                                        //could just accept that UGBs need low bombingAlts/divebombing and higher bombing should be with JDAMs
                                     }
                                     var (distance, direction) = (vessel.CoM - target).ProjectOnPlanePreNormalized(upDirection).MagNorm();
                                     target += (missile.GetWeaponClass() == WeaponClasses.SLW ? 0.85f : 0.5f) * distance * direction + finalBombingAlt * upDirection; //get to target alt semi-aggressively. 0.75 is a bit too leisurely for torp bombing, but 0.85 seems to do reasonably well.
@@ -2380,6 +2379,7 @@ namespace BDArmory.Control
                             {
                                 target = AIUtils.PredictPosition(v, weaponManager.bombAirTime); //actively diving towards target, use real-Time drop time vs estimate for static alt
                                 if (distanceToTarget < defaultAltitude * 2) finalBombingAlt = (v.LandedOrSplashed ? minAltitude : (float)v.altitude + missile.GetBlastRadius() * 2); //dive towards target. Distance trigger in MissileFire may need some tweaking; currently must be under this + 500 to drop bombs
+                                if (weaponManager.firedMissiles >= weaponManager.maxMissilesOnTarget) finalBombingAlt = bombingAltitude; //have craft break off as soon as bombs away so AI doesn't continue to fly towards enemy guns/ground
                                 target += finalBombingAlt * upDirection;
                             }
                         }
@@ -2515,12 +2515,22 @@ namespace BDArmory.Control
             {
                 float boresightFactor = (vessel.LandedOrSplashed || v.LandedOrSplashed || missile.uncagedLock) ? 0.75f : 0.35f;
                 float minOffBoresight = missile.maxOffBoresight * boresightFactor;
+                float missileAngleToTarget = Vector3.Angle(missile.GetForwardTransform(), v.transform.position - missile.transform.position);
                 var minDynamicLaunchRange = MissileLaunchParams.GetDynamicLaunchParams(
                     missile,
                     v.Velocity(),
                     v.transform.position,
-                    minOffBoresight + (180f - minOffBoresight) * Mathf.Clamp01(((missile.transform.position - v.transform.position).magnitude - missile.minStaticLaunchRange) / (Mathf.Max(100f + missile.minStaticLaunchRange * 1.5f, 0.1f * missile.maxStaticLaunchRange) - missile.minStaticLaunchRange)) // Reduce the effect of being off-target while extending to prevent super long extends.
+                    // minOffBoresight + (180f - minOffBoresight) * Mathf.Clamp01(((missile.transform.position - v.transform.position).magnitude - missile.minStaticLaunchRange) / (Mathf.Max(100f + missile.minStaticLaunchRange * 1.5f, 0.1f * missile.maxStaticLaunchRange) - missile.minStaticLaunchRange)) // Reduce the effect of being off-target while extending to prevent super long extends.
+                    // missileAngleToTarget <= minOffBoresight ? -1 : (missile.transform.position - v.transform.position).sqrMagnitude < (missile.minStaticLaunchRange * missile.minStaticLaunchRange) ? 180 : -1
+                    missileAngleToTarget <= minOffBoresight ? -1 : minOffBoresight
                 ).minLaunchRange;
+                //all we should be concerned about here is: 
+                //1) we're on target, but too close - extend back to min launch range, AI will handle coming about so by time it does so we should still be outside min range; all we need is missile absolute min distance
+                //2) off target, and too close - extend to min launch range, ditto
+                //3) on target, and beyond min range - no need to extend
+                //4) off target, and beyond min launch range - are we within kinematic min range?
+                //so: the FoV value should then be (missileAngleToTarget <= maxBoresight ? -1 : (missile.transform.position - v.transform.position).sqrmagnitude < (missile.minStaticLaunchRange * missile.minStaticLaunchRange) ? 180 : -1)
+
                 if (canExtend && targetDot > 0 && distanceToTarget < minDynamicLaunchRange && vessel.srfSpeed > idleSpeed)
                 {
                     RequestExtend($"too close for missile: {minDynamicLaunchRange}m", v, minDynamicLaunchRange, missile: missile); // Get far enough away to use the missile.
@@ -2924,13 +2934,16 @@ namespace BDArmory.Control
                     {
                         float boresightFactor = (vessel.LandedOrSplashed || extendTarget.LandedOrSplashed || extendForMissile.uncagedLock) ? 0.75f : 0.35f;
                         float minOffBoresight = extendForMissile.maxOffBoresight * boresightFactor;
+                        float missileAngleToTarget = Vector3.Angle(extendForMissile.GetForwardTransform(), extendTarget.transform.position - extendForMissile.transform.position);
                         var minDynamicLaunchRange = MissileLaunchParams.GetDynamicLaunchParams(
                             extendForMissile,
                             extendTarget.Velocity(),
                             extendTarget.transform.position,
-                            minOffBoresight + (180f - minOffBoresight) * Mathf.Clamp01(((extendForMissile.transform.position - extendTarget.transform.position).magnitude - extendForMissile.minStaticLaunchRange) / (Mathf.Max(100f + extendForMissile.minStaticLaunchRange * 1.5f, 0.1f * extendForMissile.maxStaticLaunchRange) - extendForMissile.minStaticLaunchRange)) // Reduce the effect of being off-target while extending to prevent super long extends.
+                            //minOffBoresight + (180f - minOffBoresight) * Mathf.Clamp01(((missile.transform.position - v.transform.position).magnitude - missile.minStaticLaunchRange) / (Mathf.Max(100f + missile.minStaticLaunchRange * 1.5f, 0.1f * missile.maxStaticLaunchRange) - missile.minStaticLaunchRange)) // Reduce the effect of being off-target while extending to prevent super long extends.
+                            //missileAngleToTarget <= minOffBoresight ? -1 : (extendForMissile.transform.position - extendTarget.transform.position).sqrMagnitude < (extendForMissile.minStaticLaunchRange * extendForMissile.minStaticLaunchRange) ? 180 : -1
+                            missileAngleToTarget <= minOffBoresight ? -1 : minOffBoresight
                         ).minLaunchRange;
-                        extendDistance = Mathf.Max(extendDistanceAirToAir, minDynamicLaunchRange);
+                        extendDistance = Mathf.Max(extendDistanceAirToAir, minDynamicLaunchRange); 
                         extendDesiredMinAltitude = Mathf.Min(finalBombingAlt, minAltitude);
                         //(weaponManager.currentTarget != null && weaponManager.currentTarget.Vessel != null && weaponManager.currentTarget.Vessel.LandedOrSplashed) ? (extendForMissile.GetWeaponClass() == WeaponClasses.SLW ? 10 : //drop to the deck for torpedo run
                         //Mathf.Max(defaultAltitude - 500f, minAltitude)) : //else commence level bombing
@@ -2973,7 +2986,8 @@ namespace BDArmory.Control
                 {
                     // extendDistance = Mathf.Clamp(weaponManager.guardRange - 1800, 2500, 4000);
                     // desiredMinAltitude = (float)vessel.radarAltitude + (defaultAltitude - (float)vessel.radarAltitude) * extendMult; // Desired minimum altitude after extending.
-                    extendDistance = extendDistanceAirToGround + ((float)vessel.horizontalSrfSpeed * BDAMath.Sqrt(2 * finalBombingAlt / bodyGravity)); //account for bomb lead distance
+                    //extendDistance = extendDistanceAirToGround + ((float)vessel.horizontalSrfSpeed * BDAMath.Sqrt(2 * finalBombingAlt / bodyGravity)); //account for bomb lead distance
+                    extendDistance = Mathf.Max(extendDistanceAirToGround, strafingSpeed * BDAMath.Sqrt(2 * finalBombingAlt / bodyGravity)); //horizontalSrfSpeed is a non-static value, which means extend dist will increase as vessel accelerates during the extend
                     extendDesiredMinAltitude = Mathf.Min(finalBombingAlt, minAltitude);
                     //((weaponManager.CurrentMissile && weaponManager.CurrentMissile.GetWeaponClass() == WeaponClasses.SLW) ? 10 : //drop to the deck for torpedo run
                     //           defaultAltitude); //else commence level bombing
@@ -3305,7 +3319,11 @@ namespace BDArmory.Control
                     AdjustThrottle(targetSpeed, false, useAB);
                 }
 
-                if (weaponManager.incomingMissileVessel != null && (weaponManager.ThreatClosingTime(weaponManager.incomingMissileVessel) <= weaponManager.evadeThreshold)) // Missile evasion
+                if (
+                    weaponManager.incomingMissileVessel != null
+                    && VesselModuleRegistry.GetMissileBase(weaponManager.incomingMissileVessel) != null // Modular missiles can lose the MMG part.
+                    && (weaponManager.ThreatClosingTime(weaponManager.incomingMissileVessel) <= weaponManager.evadeThreshold)
+                ) // Missile evasion
                 {
                     Vector3 targetDirection;
                     bool overrideThrottle = false;
@@ -4575,7 +4593,13 @@ namespace BDArmory.Control
                     if (weaponManager.underAttack || weaponManager.underFire) // Switch to Free to allow combat behaviours, but continue flying towards the attack point for now.
                         ReleaseCommand(false);
                     SetStatus("Attack");
-                    FlyOrbit(s, assignedPositionGeo, 2500, maxSpeed, ClockwiseOrbit);
+                    if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == 77)
+                    {
+                        AdjustThrottle(maxSpeed, false);
+                        FlyToPosition(s, vesselTransform.position + upDirection * BDArmorySettings.GUARD_MODE_TRIGGER_ALT);
+                    }
+                    else
+                        FlyOrbit(s, assignedPositionGeo, 2500, maxSpeed, ClockwiseOrbit);
                 }
             }
         }
@@ -5006,7 +5030,7 @@ namespace BDArmory.Control
 
             // Update UI.
             if (string.IsNullOrEmpty(AI.autoTuningLossLabel)) AI.autoTuningLossLabel = $"measuring";
-            AI.autoTuningLossLabel2 = $"LR: {lr.current:G2}, Roll rel.: {optimiser.rollRelevance:G2}";
+            AI.autoTuningLossLabel2 = $"LR: {lr.current:G3}, Roll rel.: {optimiser.rollRelevance:G2}";
             AI.autoTuningLossLabel3 = $"{currentField}, sample nr: {sampleNumber + 1}";
 
             // pitchChange = 30f * UnityEngine.Random.Range(-1f, 1f) * UnityEngine.Random.Range(-1f, 1f); // Adjust pitch by ±30°, biased towards 0°.
@@ -5096,11 +5120,11 @@ namespace BDArmory.Control
                     if (loss < lr.bestLoss)
                     {
                         bestValues = baseValues.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                        Debug.Log($"[BDArmory.BDModulePilotAI.PIDAutoTuning]: Updated best values: " + string.Join(", ", bestValues.Select(kvp => fields[kvp.Key].guiName + ":" + kvp.Value)) + $", LR: {lr.current}, RR: {optimiser.rollRelevance}, Loss: {loss}");
+                        Debug.Log($"[BDArmory.BDModulePilotAI.PIDAutoTuning]: Updated best values: " + string.Join(", ", bestValues.Select(kvp => fields[kvp.Key].guiName + ":" + kvp.Value)) + $", LR: {lr.current:G3}, RR: {optimiser.rollRelevance}, Loss: {loss}");
                         bestValues["rollRelevance"] = optimiser.rollRelevance; // Store the roll relevance for the best PID settings too.
                         AI.autoTuningOptionInitialRollRelevance = optimiser.rollRelevance;
                     }
-                    if (BDArmorySettings.DEBUG_AI) Debug.Log($"[BDArmory.BDModulePilotAI.PIDAutoTuning]: Current: " + string.Join(", ", baseValues.Select(kvp => fields[kvp.Key].guiName + ":" + kvp.Value)) + $", LR: {lr.current}, RR: {optimiser.rollRelevance}, Loss: {loss}");
+                    if (BDArmorySettings.DEBUG_AI) Debug.Log($"[BDArmory.BDModulePilotAI.PIDAutoTuning]: Current: " + string.Join(", ", baseValues.Select(kvp => fields[kvp.Key].guiName + ":" + kvp.Value)) + $", LR: {lr.current:G3}, RR: {optimiser.rollRelevance}, Loss: {loss}");
                     var lrDecreased = lr.Update(loss, optimiser.rollRelevance); // Update learning rate based on the current loss.
                     optimiser.Update();
                     if (lrDecreased)

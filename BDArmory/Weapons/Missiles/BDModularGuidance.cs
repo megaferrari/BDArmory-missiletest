@@ -924,7 +924,7 @@ namespace BDArmory.Weapons.Missiles
                         else loftState = LoftStates.Terminal;
                     }
                     float currgLimit = -1;
-                    aamTarget = MissileGuidance.GetAirToAirLoftTarget(TargetPosition, TargetVelocity, TargetAcceleration, vessel, targetAlt, LoftMaxAltitude, LoftRangeFac, LoftVertVelComp, LoftVelComp, LoftAngle, LoftTermAngle, terminalHomingRange, ref loftState, out float currTimeToImpact, out currgLimit, out float rangeToTarget, homingModeTerminal, 3);
+                    aamTarget = MissileGuidance.GetAirToAirLoftTarget(TargetPosition, TargetVelocity, TargetAcceleration, vessel, targetAlt, LoftMaxAltitude, LoftRangeFac, LoftVertVelComp, LoftVelComp, LoftAngle, LoftTermAngle, terminalHomingRange, 20f, 0.05f, ref loftState, out float currTimeToImpact, out currgLimit, out float rangeToTarget, homingModeTerminal, 3);
 
                     float fac = (1 - (rangeToTarget - terminalHomingRange - 100f) / Mathf.Clamp(terminalHomingRange * 4f, 5000f, 25000f));
 
@@ -1522,10 +1522,19 @@ namespace BDArmory.Weapons.Missiles
             vessel.ActionGroups.ToggleGroup(
                 (KSPActionGroup)Enum.Parse(typeof(KSPActionGroup), "Custom0" + (int)_nextStage));
 
-            if (StagesNumber == 1)
+            if (MissileState > MissileStates.Drop) // Past the drop stage, auto-enable some things if the player forgot.
             {
-                if (SpawnUtils.CountActiveEngines(vessel) < 1)
-                    SpawnUtils.ActivateAllEngines(vessel, true, false);
+                if (StagesNumber == 1) // Auto-enable engines for single stage missiles.
+                {
+                    if (SpawnUtils.CountActiveEngines(vessel) < 1)
+                        SpawnUtils.ActivateAllEngines(vessel, true, false);
+                }
+                var warheads = VesselModuleRegistry.GetModules<BDExplosivePart>(vessel);
+                if (!warheads.Any(warhead => warhead.Armed)) // Auto-arm warheads if none are armed.
+                {
+                    foreach (var warhead in warheads)
+                        warhead.ArmAG(null);
+                }
             }
 
             _nextStage++;
