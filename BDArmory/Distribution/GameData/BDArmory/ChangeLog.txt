@@ -66,6 +66,7 @@
   - Weapons fire SFX maximum distance it can be heard now scales based on weapon caliber
 	- Added fuzeDelay and fuzeSensitivity functionality to bullets. Now, for penetrating and delay fuzes you can specify the fuze delay in seconds, and the fuze sensitivity in mm for penetrating fuzes, by listing them with commas, I.E. "fuzeType = Penetrating,0.01,20" for a 0.01 s delay which will be set off by 20 mm of armor (currently material differences are not considered).
 	- Fix bullet behavior when hitting parts with multiple colliders embedded in each other, bullets should now only hit such a part once, unless it exits the part and then hits the part again. Note the system in place cannot catch cases where another part is clipped in such a part.
+	- Fix phantom water on planets without oceans
 	- Added stack attachment nodes to all turret bases.
 	- Sanity-checked turret bulkhead sizes.
 	- Missiles:
@@ -109,6 +110,10 @@
 			- Fix certain missiles becoming ghost-like entities that ignored bullets and interceptor missiles when fired from MultiMissileLaunchers with "ignoreLauncherColliders = true".
 			- Added "Lofted Aimpoint" toggle to Missile Turrets, with the accompanying "Loft Velocity Factor". When toggled on, the turret will aim above the target to provide some lofting to the missile trajectory (though this requires the usage of pronav and a gain schedule). "Loft Velocity Factor" is used to scale the missile's "optimimumVelocity" for the ballistic simulation, a lower "Loft Velocity Factor" results in a higher loft angle.
 			- Added new "deployBlocksPitch", "deployBlocksYaw" and "deployBlocksReload" booleans to Missile Turrets, when toggled on, the turret will have to finish it's deploy animation before pitching/yawing, and will have to retract for reloading (respecting the pitch and yaw toggles as well).
+- Effects:
+	- Add splash effects to underwater explosions (very WIP, feedback on size, behavior etc. would be appreciated)
+	- Bullet hits now attached to whatever collider they hit, so bullet hits on animated parts, like turrets, will now move with them
+	- Fix floating bullet hits from explosions (note this does NOT fix decals floating due to collider issues, that's a problem with the part model)
 - GameModes:
 	- Don't spawn new asteroids in asteroid rain mode while in high time-warp.
 - Competition:
