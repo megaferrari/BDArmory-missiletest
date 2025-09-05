@@ -1173,6 +1173,7 @@ namespace BDArmory.Utils
                     if (BDACompetitionMode.Instance.competitionIsActive)
                         BDACompetitionMode.Instance.AddToCompetitionWhenReady(WM, false); // We've already set the AI/WM state, so don't go weapons-free when adding them to the competition.
                     IsFighter = true; // Detached craft are "fighters".
+                    WM.CheckMissiles();
                     WM.ParentWM = null; // Clear the parent WM at the end of frame in case the WM is not on the root part since losing the root part will trigger OnLoadVessel again.
                 }
             }

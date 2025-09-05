@@ -2080,6 +2080,58 @@ namespace BDArmory.Control
             engagedTargets = missilesAway.Count;
             //this.missilesAway = tempMissilesAway;
         }
+
+        public void CheckMissiles()
+        {
+            // Only do this check if we're in guard mode, assume that if a human player is control they're properly managing their radars
+            if (!guardMode) return;
+
+            MissileBase missileBase;
+
+            using (List<IBDWeapon>.Enumerator Missiles = BDATargetManager.FiredMissiles.GetEnumerator())
+                while (Missiles.MoveNext())
+                {
+                    if (Missiles.Current == null) continue;
+
+                    missileBase = Missiles.Current as MissileBase;
+
+                    if (missileBase.targetVessel == null) continue;
+                    // We assume that if the FiredByWM is the ParentWM that both vessels are on the same team, maybe not always a correct assumption?
+                    if (missileBase.FiredByWM == ParentWM)
+                    {
+                        // Ensure the missile is actually one that has launched
+                        if ((missileBase.HasFired || missileBase.launched) && !missileBase.HasMissed && !missileBase.HasExploded || missileBase.GetWeaponClass() == WeaponClasses.Bomb) //culling post-thrust missiles makes AGMs get cleared almost immediately after launch
+                        {
+                            // If the missile is using a radar for targeting
+                            if ((missileBase.TargetingMode == MissileBase.TargetingModes.Radar && !missileBase.ActiveRadar) || (missileBase.TargetingMode == MissileBase.TargetingModes.Gps && missileBase.gpsUpdates >= 0))
+                            {
+                                // Determine if the missile is using a radar that is onboard this vessel
+                                if (missileBase.radarTarget.exists && missileBase.radarTarget.lockedByRadar && missileBase.radarTarget.lockedByRadar.vessel == vessel)
+                                {
+                                    // If it is, then swap command of the missile over to this vessel
+                                    missileBase.FiredByWM = this;
+                                    missileBase.SourceVessel = vessel;
+
+                                    // Check if we have VRD and that it's our VRD
+                                    if (!vesselRadarData || vesselRadarData.vessel != vessel)
+                                    {
+                                        vesselRadarData = vessel.gameObject.GetComponent<VesselRadarData>();
+                                        if (vesselRadarData == null)
+                                            vesselRadarData = vessel.gameObject.AddComponent<VesselRadarData>();
+
+                                        vesselRadarData.weaponManager = this;
+                                    }
+
+                                    // Set VRD
+                                    missileBase.vrd = vesselRadarData;
+
+                                    if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire] Missile source swap! {vessel}, launched from {ParentWM.vessel} has taken command of missile {missileBase.shortName}!");
+                                }
+                            }
+                        }
+                    }
+                }
+        }
         public override void OnFixedUpdate()
         {
             base.OnFixedUpdate();
