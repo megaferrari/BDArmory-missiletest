@@ -58,6 +58,7 @@ namespace BDArmory.Weapons.Missiles
         [KSPField] public float tntMass = 1; //for MissileLauncher GetInfo()
         [KSPField] public bool OverrideDropSettings = false; //allow setting eject speed/dir
         [KSPField] public bool displayOrdinance = true; //display missile dummies (for rails and the like) or hide them (bomblet dispensers, gun-launched missiles, etc)
+        [KSPField] public bool displayOrdinanceHasColliders = true; //should missile dummies have colliders? (offers somewhat of a performance boost if disabled)
         [KSPField] public bool permitJettison = false; //allow jettisoning of missiles for multimissile launchrails and similar
         [KSPField] public bool ignoreLauncherColliders = false; //temporarily disable missile colliders to let them clear the launcher, for large-scale VLS or similar. -WARNING- has some effect on missile flight
         AnimationState deployState;
@@ -722,6 +723,12 @@ namespace BDArmory.Weapons.Missiles
                     dummy.transform.localScale = dummyScale;
                     var mslAnim = dummy.GetComponentInChildren<Animation>();
                     if (mslAnim != null) mslAnim.enabled = false;
+                    if (!displayOrdinanceHasColliders)
+                    {
+                        var childColliders = dummy.GetComponentsInChildren<Collider>(includeInactive: false);
+                        foreach (var col in childColliders)
+                            col.enabled = false;
+                    }
                 }
             }
         }
