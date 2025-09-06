@@ -533,9 +533,11 @@ namespace BDArmory.FX
             }
             if (warheadType == WarheadTypes.ContinuousRod)
             {
-                if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log($"[BDArmory.ExplosionFX]: {p.name} at {Vector3.Angle(direction, (hit.point - Position).normalized)} angle from CR explosion direction");
+                float dotProduct = Vector3.Dot(direction, (hit.point - Position).normalized);
+                if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log($"[BDArmory.ExplosionFX]: {p.name} at {Mathf.Acos(dotProduct)} angle from CR explosion direction");
                 //if (Vector3.Angle(direction, (hit.point - Position).normalized) >= 60 && Vector3.Angle(direction, (hit.point - Position).normalized) <= 90)
-                if (Vector3.Dot(direction, (hit.point - Position).normalized) <= 0.5 && Vector3.Dot(direction, (hit.point - Position).normalized) >= 0)
+                // 30-60° AoE instead of 60-90°
+                if (dotProduct <= 0.866025388240814208984375f && dotProduct >= 0.5)
                 {
                     return true;
                 }
