@@ -222,7 +222,7 @@ namespace BDArmory.FX
             // parentPartName = parentPart.name;
             // parentVesselName = parentPart.vessel.vesselName;
             transform.SetParent(hitPart.transform);
-            transform.position = hit.point + (velCorrectionDeltaTime > 0f ? offset + (hitPart.rb.velocity + BDKrakensbane.FrameVelocityV3f) * velCorrectionDeltaTime : offset);
+            transform.position = hit.point + (velCorrectionDeltaTime > 0f ? offset + (hitPart.rb ? hitPart.rb.velocity + BDKrakensbane.FrameVelocityV3f : (Vector3)hitPart.vessel.Velocity()) * velCorrectionDeltaTime : offset);
             transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
             parentPart.OnJustAboutToDie += OnParentDestroy;
             parentPart.OnJustAboutToBeDestroyed += OnParentDestroy;

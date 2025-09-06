@@ -38,7 +38,7 @@ namespace BDArmory.FX
             // transform and use it for SetParent if possible in order to account for things like turrets
             // and other moving parts
             transform.SetParent(hit.collider.transform);
-            transform.position = hit.point + (velCorrectionDeltaTime > 0f ? offset + (hitPart.rb.velocity + BDKrakensbane.FrameVelocityV3f) * velCorrectionDeltaTime : offset);
+            transform.position = hit.point + (velCorrectionDeltaTime > 0f ? offset + (hitPart.rb ? hitPart.rb.velocity + BDKrakensbane.FrameVelocityV3f : (Vector3)hitPart.vessel.Velocity()) * velCorrectionDeltaTime : offset);
             transform.rotation = Quaternion.FromToRotation(Vector3.forward, hit.normal);
             parentPart.OnJustAboutToDie += OnParentDestroy;
             parentPart.OnJustAboutToBeDestroyed += OnParentDestroy;
