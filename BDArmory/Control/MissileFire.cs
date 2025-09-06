@@ -8680,7 +8680,7 @@ namespace BDArmory.Control
                                 while (target.MoveNext())
                                 {
                                     if (target.Current == null) continue;
-                                    if (target.Current.team == team) continue;
+                                    if (target.Current.team == teamString) continue;
                                     if (PDRktTgts.Contains(target.Current)) continue;
                                     Vector3 targetPosition = target.Current.currentPosition - kbCorrection;
                                     float threatDirectionFactor = (transform.position - targetPosition).DotNormalized(target.Current.currentVelocity - vessel.Velocity());
@@ -8709,7 +8709,7 @@ namespace BDArmory.Control
                                 while (target.MoveNext())
                                 {
                                     if (target.Current == null) continue;
-                                    if (target.Current.team == team) continue;
+                                    if (target.Current.team == teamString) continue;
                                     if (PDBulletTgts.Contains(target.Current)) continue;
                                     Vector3 targetPosition = target.Current.currentPosition - kbCorrection;
                                     float threatDirectionFactor = (transform.position - targetPosition).DotNormalized(target.Current.currentVelocity - vessel.Velocity());
