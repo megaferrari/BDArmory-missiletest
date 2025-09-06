@@ -37,7 +37,7 @@ namespace BDArmory.FX
             // I assume the hit.collider should always exist, in any case, perform a null check for the
             // transform and use it for SetParent if possible in order to account for things like turrets
             // and other moving parts
-            transform.SetParent(hit.collider.transform ?? hitPart.transform);
+            transform.SetParent(hit.collider.transform);
             transform.position = hit.point + (velCorrectionDeltaTime > 0f ? offset + (hitPart.rb.velocity + BDKrakensbane.FrameVelocityV3f) * velCorrectionDeltaTime : offset);
             transform.rotation = Quaternion.FromToRotation(Vector3.forward, hit.normal);
             parentPart.OnJustAboutToDie += OnParentDestroy;
