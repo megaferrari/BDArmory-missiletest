@@ -20,7 +20,7 @@ namespace BDArmory.GameModes
 {
     class BattleDamageHandler
     {
-        public static void CheckDamageFX(Part part, float caliber, float penetrationFactor, bool explosivedamage, bool incendiary, string attacker, RaycastHit hitLoc, bool firsthit = true, bool cockpitPen = false)
+        public static void CheckDamageFX(Part part, float caliber, float penetrationFactor, bool explosivedamage, bool incendiary, string attacker, RaycastHit hitLoc, bool firsthit = true, bool cockpitPen = false, bool applyVelCorrection = false)
         {      
             if (!BDArmorySettings.BATTLEDAMAGE || BDArmorySettings.PAINTBALL_MODE) return;
             if (penetrationFactor <= 0) penetrationFactor = 0.01f;
@@ -59,7 +59,7 @@ namespace BDArmory.GameModes
                         }
                         else
                         {
-                            BulletHitFX.AttachLeak(hitLoc, part, caliber, explosivedamage, incendiary, attacker, rubbertank != null ? rubbertank.InertTank : false);
+                            BulletHitFX.AttachLeak(hitLoc, part, caliber, explosivedamage, incendiary, attacker, rubbertank != null ? rubbertank.InertTank : false, applyVelCorrection);
                         }
                     }
                 }
@@ -174,7 +174,7 @@ namespace BDArmory.GameModes
                             var leak = part.GetComponentInChildren<FuelLeakFX>();
                             if (leak == null && !tracker.isSRB) //engine isn't a srb
                             {
-                                BulletHitFX.AttachLeak(hitLoc, part, caliber, explosivedamage, incendiary, attacker, false);
+                                BulletHitFX.AttachLeak(hitLoc, part, caliber, explosivedamage, incendiary, attacker, false, applyVelCorrection);
                             }
                         }
                         if (part.GetDamagePercentage() < 0.50f || (part.GetDamagePercentage() < 0.625f && penetrationFactor > 2))

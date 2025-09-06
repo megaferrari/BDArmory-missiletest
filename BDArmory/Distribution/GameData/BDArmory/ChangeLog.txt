@@ -113,7 +113,7 @@
 - Effects:
 	- Add splash effects to underwater explosions (very WIP, feedback on size, behavior etc. would be appreciated)
 	- Bullet hits now attached to whatever collider they hit, so bullet hits on animated parts, like turrets, will now move with them
-	- Fix floating bullet hits from explosions (note this does NOT fix decals floating due to collider issues, that's a problem with the part model)
+	- Fix floating bullet hits and fuel leaks from explosions (note this does NOT fix decals floating due to collider issues, that's a problem with the part model)
 - GameModes:
 	- Don't spawn new asteroids in asteroid rain mode while in high time-warp.
 - Competition:

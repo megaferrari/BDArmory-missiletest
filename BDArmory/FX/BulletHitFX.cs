@@ -464,7 +464,7 @@ namespace BDArmory.FX
             }
         }
 
-        public static void AttachLeak(RaycastHit hit, Part hitPart, float caliber, bool explosive, bool incendiary, string sourcevessel, bool inertTank)
+        public static void AttachLeak(RaycastHit hit, Part hitPart, float caliber, bool explosive, bool incendiary, string sourcevessel, bool inertTank, bool applyVelCorrection)
         {
             if (BDArmorySettings.BATTLEDAMAGE && BDArmorySettings.BD_TANKS && hitPart.Modules.GetModule<HitpointTracker>().Hitpoints > 0)
             {
@@ -478,7 +478,7 @@ namespace BDArmory.FX
                 {
                     if (!hitPart.isEngine())
                     {
-                        leakFX.AttachAt(hitPart, hit, new Vector3(0.25f, 0f, 0f));
+                        leakFX.AttachAt(hitPart, hit, new Vector3(0.25f, 0f, 0f), applyVelCorrection);
                         leakFX.transform.localScale = Vector3.one * (caliber * caliber / 200f);
                         leakFX.drainRate = ((caliber * caliber / 200f) * BDArmorySettings.BD_TANK_LEAK_RATE);
                         leakFX.lifeTime = (BDArmorySettings.BD_TANK_LEAK_TIME);
@@ -511,7 +511,7 @@ namespace BDArmory.FX
                 }
                 else
                 {
-                    leakFX.AttachAt(hitPart, hit, new Vector3(0.25f, 0f, 0f));
+                    leakFX.AttachAt(hitPart, hit, new Vector3(0.25f, 0f, 0f), applyVelCorrection);
                     leakFX.transform.localScale = Vector3.one * (caliber * caliber / 200f);
                     leakFX.drainRate = ((caliber * caliber / 200f) * BDArmorySettings.BD_TANK_LEAK_RATE);
                     leakFX.lifeTime = (BDArmorySettings.BD_TANK_LEAK_TIME);
