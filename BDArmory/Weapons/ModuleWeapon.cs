@@ -1566,7 +1566,7 @@ namespace BDArmory.Weapons
                 baseDeviation = maxDeviation; //store original MD value
 
                 var weaponManager = WeaponManager;
-                sourceInfo = new SourceInfo(vessel, weaponManager ? weaponManager.team : null, part, Vector3.zero);
+                sourceInfo = new SourceInfo(vessel, weaponManager ? weaponManager.teamString : null, part, Vector3.zero);
                 graphicsInfo = new GraphicsInfo(bulletTexturePath, projectileColorC, startColorC,
                                     tracerStartWidth, tracerEndWidth, tracerLength, tracerLuminance, tracerDeltaFactor,
                                     smokeTexturePath, explModelPath, explSoundPath);
@@ -2275,7 +2275,7 @@ namespace BDArmory.Weapons
                                 }
 
                                 sourceInfo.vessel = vessel; // The vessel might have changed if it's on a detachable fighter, for example.
-                                sourceInfo.team = WeaponManager.team; // Similarly, teams may change if reassigned after spawning.
+                                sourceInfo.team = WeaponManager.teamString; // Similarly, teams may change if reassigned after spawning.
                                 sourceInfo.position = fireTransform.position;
                                 graphicsInfo.projectileColor = projectileColorC;
                                 graphicsInfo.startColor = startColorC;
