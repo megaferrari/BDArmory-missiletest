@@ -1103,7 +1103,7 @@ namespace BDArmory.FX
 
                                 if (penetrationFactor > 0)
                                 {
-                                    BulletHitFX.CreateBulletHit(part, eventToExecute.HitPoint, eventToExecute.Hit, eventToExecute.Hit.normal, true, Caliber, penetrationFactor > 0 ? penetrationFactor : 0f, null, true);
+                                    BulletHitFX.CreateBulletHit(part, eventToExecute.HitPoint, eventToExecute.Hit, eventToExecute.Hit.normal, true, Caliber, penetrationFactor > 0 ? penetrationFactor : 0f, null, TimeIndex);
                                     damage = part.AddBallisticDamage(warheadType == WarheadTypes.ShapedCharge ? Power * 0.0555f : ProjMass, Caliber, 1f, penetrationFactor, dmgMult,
                                         warheadType switch
                                         {
@@ -1154,7 +1154,7 @@ namespace BDArmory.FX
                             {
                                 if (BDArmorySettings.BATTLEDAMAGE)
                                 {
-                                    BattleDamageHandler.CheckDamageFX(part, Caliber, penetrationFactor, true, warheadType == WarheadTypes.ShapedCharge ? true : false, SourceVesselName, eventToExecute.Hit, applyVelCorrection: true);
+                                    BattleDamageHandler.CheckDamageFX(part, Caliber, penetrationFactor, true, warheadType == WarheadTypes.ShapedCharge ? true : false, SourceVesselName, eventToExecute.Hit, velCorrectionDeltaTime: TimeIndex);
                                 }
                                 // Update scoring structures
                                 //damage = Mathf.Clamp(damage, 0, part.Damage()); //if we want to clamp overkill score inflation

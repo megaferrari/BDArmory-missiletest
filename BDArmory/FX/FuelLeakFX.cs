@@ -215,14 +215,14 @@ namespace BDArmory.FX
                 Deactivate();
             }
         }
-        public void AttachAt(Part hitPart, RaycastHit hit, Vector3 offset, bool applyVelCorrection)
+        public void AttachAt(Part hitPart, RaycastHit hit, Vector3 offset, float velCorrectionDeltaTime)
         {
             if (hitPart is null) return;
             parentPart = hitPart;
             // parentPartName = parentPart.name;
             // parentVesselName = parentPart.vessel.vesselName;
             transform.SetParent(hitPart.transform);
-            transform.position = hit.point + (applyVelCorrection ? offset + (hitPart.rb.velocity + BDKrakensbane.FrameVelocityV3f) * TimeWarp.fixedDeltaTime : offset);
+            transform.position = hit.point + (velCorrectionDeltaTime > 0f ? offset + (hitPart.rb.velocity + BDKrakensbane.FrameVelocityV3f) * velCorrectionDeltaTime : offset);
             transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
             parentPart.OnJustAboutToDie += OnParentDestroy;
             parentPart.OnJustAboutToBeDestroyed += OnParentDestroy;
