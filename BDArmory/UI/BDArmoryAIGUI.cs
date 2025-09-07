@@ -1088,9 +1088,18 @@ namespace BDArmory.UI
                                     if (AI.AutoTune) // Auto-tuning
                                     {
                                         pidLines += 0.25f;
-                                        GUI.Label(SettinglabelRect(pidLines++), StringUtils.Localize("#LOC_BDArmory_AI_PID_AutoTuning_Loss") + $": {AI.autoTuningLossLabel}", Label);
-                                        GUI.Label(SettinglabelRect(pidLines++), $"\tParams: {AI.autoTuningLossLabel2}", Label);
-                                        GUI.Label(SettinglabelRect(pidLines++), $"\tField: {AI.autoTuningLossLabel3}", Label);
+                                        if (HighLogic.LoadedSceneIsEditor)
+                                        {
+                                            if (!string.IsNullOrEmpty(AI.autoTuningLossLabel)) // Not auto-tuning, but have been previously => show a summary of the last results.
+                                                GUI.Label(new Rect(contentInnerMargin + labelWidth / 8, pidLines++ * entryHeight, labelWidth, entryHeight),
+                                                    StringUtils.Localize("#LOC_BDArmory_AI_PID_AutoTuning_Summary") + $":   {AI.autoTuningSummary}", Label);
+                                        }
+                                        else
+                                        {
+                                            GUI.Label(SettinglabelRect(pidLines++), StringUtils.Localize("#LOC_BDArmory_AI_PID_AutoTuning_Loss") + $": {AI.autoTuningLossLabel}", Label);
+                                            GUI.Label(SettinglabelRect(pidLines++), $"\tParams: {AI.autoTuningLossLabel2}", Label);
+                                            GUI.Label(SettinglabelRect(pidLines++), $"\tField: {AI.autoTuningLossLabel3}", Label);
+                                        }
 
                                         pidLines = ContentEntry(ContentType.FloatSlider, pidLines, contentWidth, ref AI.autoTuningOptionNumSamples, nameof(AI.autoTuningOptionNumSamples), "PIDAutoTuningNumSamples", $"{AI.autoTuningOptionNumSamples:0}", splitContext: true);
                                         pidLines = ContentEntry(ContentType.FloatSlider, pidLines, contentWidth, ref AI.autoTuningOptionFastResponseRelevance, nameof(AI.autoTuningOptionFastResponseRelevance), "PIDAutoTuningFastResponseRelevance", $"{AI.autoTuningOptionFastResponseRelevance:G3}", splitContext: true);
@@ -1178,8 +1187,8 @@ namespace BDArmory.UI
                                     }
                                     else if (!string.IsNullOrEmpty(AI.autoTuningLossLabel)) // Not auto-tuning, but have been previously => show a summary of the last results.
                                     {
-                                        GUI.Label(new Rect(contentInnerMargin + labelWidth / 6, pidLines * entryHeight, labelWidth, entryHeight),
-                                            StringUtils.Localize("#LOC_BDArmory_AI_PID_AutoTuning_Summary") + $":   Loss: {AI.autoTuningLossLabel}, {AI.autoTuningLossLabel2}", Label);
+                                        GUI.Label(new Rect(contentInnerMargin + labelWidth / 8, pidLines * entryHeight, labelWidth, entryHeight),
+                                            StringUtils.Localize("#LOC_BDArmory_AI_PID_AutoTuning_Summary") + $":   {AI.autoTuningSummary}", Label);
                                         pidLines += 1.25f;
                                     }
                                     #endregion

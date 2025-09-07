@@ -5,6 +5,7 @@ using UnityEngine;
 using BDArmory.Control;
 using BDArmory.CounterMeasure;
 using BDArmory.Extensions;
+using BDArmory.ModIntegration;
 using BDArmory.Settings;
 using BDArmory.Shaders;
 using BDArmory.Targeting;
@@ -21,8 +22,6 @@ namespace BDArmory.Radar
         private static bool rcsSetupCompleted = false;
         private static int radarResolution = 128;
 
-        private static bool hasCheckedForConformalDecals = false;
-        private static bool hasConformalDecals = false;
         private static bool hangarHiddenExternally = false;
 
         private static RenderTexture rcsRenderingVariable;
@@ -280,22 +279,30 @@ namespace BDArmory.Radar
             if (ti.radarSignatureMatrix is null)
                 return ti.radarBaseSignature;
 
-            Vector3 directionOfRadar = radarPosition - ti.Vessel.ReferenceTransform.position;
-            Vector3 azComponent = Vector3.ProjectOnPlane(directionOfRadar, ti.Vessel.ReferenceTransform.forward);
-            Vector3 elComponent = Vector3.ProjectOnPlane(directionOfRadar, ti.Vessel.ReferenceTransform.right);
+            try
+            {
+                Vector3 directionOfRadar = radarPosition - ti.Vessel.ReferenceTransform.position;
+                Vector3 azComponent = Vector3.ProjectOnPlane(directionOfRadar, ti.Vessel.ReferenceTransform.forward);
+                Vector3 elComponent = Vector3.ProjectOnPlane(directionOfRadar, ti.Vessel.ReferenceTransform.right);
 
-            float azAngle = Mathf.Abs(Vector3.SignedAngle(ti.Vessel.ReferenceTransform.up, azComponent, ti.Vessel.ReferenceTransform.forward));
-            float elAngle = Vector3.SignedAngle(ti.Vessel.ReferenceTransform.up, elComponent, -ti.Vessel.ReferenceTransform.right);
+                float azAngle = Mathf.Abs(Vector3.SignedAngle(ti.Vessel.ReferenceTransform.up, azComponent, ti.Vessel.ReferenceTransform.forward));
+                float elAngle = Vector3.SignedAngle(ti.Vessel.ReferenceTransform.up, elComponent, -ti.Vessel.ReferenceTransform.right);
 
-            float signatureAtAspect = RCSMatrixEval(ti.radarSignatureMatrix, ti.radarBaseSignature, azAngle, elAngle);
+                float signatureAtAspect = RCSMatrixEval(ti.radarSignatureMatrix, ti.radarBaseSignature, azAngle, elAngle);
 
-            // Incorporate any signature modification
-            signatureAtAspect *= ti.radarModifiedSignature / ti.radarBaseSignature;
+                // Incorporate any signature modification
+                signatureAtAspect *= ti.radarModifiedSignature / ti.radarBaseSignature;
 
-            if (BDArmorySettings.DEBUG_RADAR)
-                Debug.Log("[BDArmory.RadarUtils]: " + ti.Vessel.vesselName + " signature of " + signatureAtAspect.ToString("0.00") + "m^2 at az/el " + azAngle.ToString("0.0") + "/" + elAngle.ToString("0.0") + " deg.");
+                if (BDArmorySettings.DEBUG_RADAR)
+                    Debug.Log("[BDArmory.RadarUtils]: " + ti.Vessel.vesselName + " signature of " + signatureAtAspect.ToString("0.00") + "m^2 at az/el " + azAngle.ToString("0.0") + "/" + elAngle.ToString("0.0") + " deg.");
 
-            return signatureAtAspect;
+                return signatureAtAspect;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[BDArmory.RadarUtils]: Failed to evaluate aspected RCS of {ti.Vessel.vesselName}, using radarModifiedSignature {ti.radarModifiedSignature} instead: {e.Message}");
+                return ti.radarModifiedSignature;
+            }
         }
 
         private static float RCSMatrixEval(float[,] rcsMatrix, float overallRCS, float azAngle, float elAngle)
@@ -434,7 +441,15 @@ namespace BDArmory.Radar
                 else
                 {
                     // perform radar rendering to obtain base cross section
-                    ti = RenderVesselRadarSnapshot(v, v.transform, ti);
+                    try
+                    {
+                        ti = RenderVesselRadarSnapshot(v, v.transform, ti);
+                    }
+                    catch (Exception e) // Unity physics sometimes breaks (MMGs sometimes cause this).
+                    {
+                        Debug.LogWarning($"[BDArmory.RadarUtils]: Failed to get a radar snapshot of {v.GetName()}, using mass instead: {e.Message}");
+                        ti.radarBaseSignature = v.GetTotalMass();
+                    }
                 }
 
                 ti.radarSignatureMatrixNeedsUpdate = BDArmorySettings.ASPECTED_RCS ? false : ti.radarSignatureMatrixNeedsUpdate;
@@ -574,9 +589,9 @@ namespace BDArmory.Radar
                 return ti;
             }
 
-            // If in editor, turn off rendering of conformal decals
-            if (!HighLogic.LoadedSceneIsFlight && CheckForConformalDecals())
-                SetConformalDecalRendering(false);
+            // Disable rendering of conformal decals, which messes with the parent part's RCS render.
+            if (ConformalDecals.hasConformalDecals)
+                SetConformalDecalRendering(v, false);
 
             // If in editor, turn off rendering hangar
             if (!HighLogic.LoadedSceneIsFlight)
@@ -776,9 +791,9 @@ namespace BDArmory.Radar
                     }
                 }
             //}
-            // If in editor, turn back on rendering of conformal decals
-            if (!HighLogic.LoadedSceneIsFlight && CheckForConformalDecals())
-                SetConformalDecalRendering(true);
+            // Re-enable rendering of conformal decals.
+            if (ConformalDecals.hasConformalDecals)
+                SetConformalDecalRendering(v, true);
 
             // If in editor, turn back on rendering of hangar
             if (!HighLogic.LoadedSceneIsFlight)
@@ -798,42 +813,29 @@ namespace BDArmory.Radar
             return ti;
         }
 
-        public static bool CheckForConformalDecals()
+        public static void SetConformalDecalRendering(Vessel v, bool renderEnabled)
         {
-            if (hasCheckedForConformalDecals) return hasConformalDecals;
-            hasCheckedForConformalDecals = true;
-            foreach (var assy in AssemblyLoader.loadedAssemblies)
+            if (!ConformalDecals.hasConformalDecals) return;
+            if (HighLogic.LoadedSceneIsFlight && v == null) return; // Invalid vessel to render.
+            using List<Part>.Enumerator parts = HighLogic.LoadedSceneIsEditor ? EditorLogic.fetch.ship.Parts.GetEnumerator() : v.Parts.GetEnumerator();
+            while (parts.MoveNext())
             {
-                if (assy.assembly.FullName.StartsWith("ConformalDecals"))
+                foreach (var module in parts.Current.Modules)
                 {
-                    hasConformalDecals = true;
-                    if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Found Conformal Decals Assembly: {assy.assembly.FullName}");
-                }
-            }
-            return hasConformalDecals;
-        }
-
-        public static void SetConformalDecalRendering(bool renderEnabled)
-        {
-            if (!hasConformalDecals) return;
-
-            using (List<Part>.Enumerator parts = EditorLogic.fetch.ship.Parts.GetEnumerator())
-                while (parts.MoveNext())
-                {
-                    foreach (var module in parts.Current.Modules)
+                    if ((module.moduleName == "ModuleConformalDecal") || (module.moduleName == "ModuleConformalFlag") || (module.moduleName == "ModuleConformalText"))
                     {
-                        if ((module.moduleName == "ModuleConformalDecal") || (module.moduleName == "ModuleConformalFlag") || (module.moduleName == "ModuleConformalText"))
+                        if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Found {module.moduleName} for {parts.Current.name}.");
+                        foreach (var r in parts.Current.GetComponentsInChildren<Renderer>())
                         {
-                            if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Found {module.moduleName} for {parts.Current.name}.");
-                            foreach (var r in parts.Current.GetComponentsInChildren<Renderer>())
-                            {
-                                if (r.GetComponentInParent<Part>() != parts.Current) continue; // Don't recurse to child parts.
-                                r.enabled = renderEnabled;
-                                if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Set rendering for {parts.Current.name} to {renderEnabled}.");
-                            }
+                            if (r.GetComponentInParent<Part>() != parts.Current) continue; // Don't recurse to child parts.
+                            r.enabled = renderEnabled;
+                            if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Set rendering for {r.name} on {parts.Current.name} to {renderEnabled}.");
                         }
+                        var cdComponent = ConformalDecals.Instance.GetMCDComponent(parts.Current);
+                        if (cdComponent != null) ConformalDecals.Instance.SetMCDIsAttached(cdComponent, renderEnabled);
                     }
                 }
+            }
         }
 
         // Code to hide/show SPH/VAB during RCS render to prevent the hangar itself from affecting RCS calculation, code modified from HangarExtender
@@ -1404,10 +1406,7 @@ namespace BDArmory.Radar
             if (radarRangeGate.minTime == float.MaxValue || radarVelocityGate.minTime == float.MaxValue)
                 return 1f;
 
-            Vector3 targetDirection = (vesselposition - position);
-            targetDirection.x /= targetRange;
-            targetDirection.y /= targetRange;
-            targetDirection.z /= targetRange;
+            Vector3 targetDirection = (vesselposition - position) / targetRange;
 
             float inLineSpeed = Mathf.Abs(Vector3.Dot(vesselsrfvel, targetDirection));
 
@@ -1892,7 +1891,7 @@ namespace BDArmory.Radar
                         float signature = 1;
                         if (radar.sonarMode != ModuleRadar.SonarModes.passive)    //radar or active soanr
                         {
-                            signature = (BDArmorySettings.ASPECTED_RCS) ? GetVesselRadarSignatureAtAspect(ti, position) : ti.radarModifiedSignature;
+                            signature = BDArmorySettings.ASPECTED_RCS ? GetVesselRadarSignatureAtAspect(ti, position) : ti.radarModifiedSignature;
                             signature *= GetRadarGroundClutterModifier(radar.radarGroundClutterFactor, position, loadedvessels.Current.CoM, ti);
                             if (radar.vessel.Splashed && loadedvessels.Current.Splashed) signature *= GetVesselBubbleFactor(radar.transform.position, loadedvessels.Current);
                             signature *= notchMultiplier;
@@ -1932,13 +1931,15 @@ namespace BDArmory.Radar
                                         dataIndex++;
                                     }
 
-                                    if (dataIndex < dataArray.Length)
+                                    if (!(dataIndex < dataArray.Length))
                                     {
-                                        dataArray[dataIndex] = new TargetSignatureData(loadedvessels.Current, signature);
-                                        dataArray[dataIndex].lockedByRadar = radar;
-                                        dataIndex++;
-                                        hasLocked = true;
+                                        Array.Resize(ref dataArray, BDATargetManager.LoadedVessels.Count);
                                     }
+
+                                    dataArray[dataIndex] = new TargetSignatureData(loadedvessels.Current, signature);
+                                    dataArray[dataIndex].lockedByRadar = radar;
+                                    dataIndex++;
+                                    hasLocked = true;
                                 }
                             }
                             if (radar.sonarMode != ModuleRadar.SonarModes.passive)
@@ -2511,29 +2512,25 @@ namespace BDArmory.Radar
         /// <summary>
         /// Helper method: check if line intersects terrain OR water
         /// </summary>
-        public static bool TerrainCheck(Vector3 start, Vector3 end, CelestialBody body, bool ignoreSetting = false)
+        public static bool TerrainCheck(Vector3 start, Vector3 end, CelestialBody body, bool forceIgnoreWater = false)
         {
-            if (!ignoreSetting)
+            if (!BDArmorySettings.CHECK_WATER_TERRAIN || forceIgnoreWater)
+                return Physics.Linecast(start, end, (int)LayerMasks.Scenery);
+
+            if (!Physics.Linecast(start, end, (int)LayerMasks.Scenery))
             {
-                if (!BDArmorySettings.CHECK_WATER_TERRAIN)
-                    return Physics.Linecast(start, end, (int)LayerMasks.Scenery);
-
-                if (!Physics.Linecast(start, end, (int)LayerMasks.Scenery))
-                {
-                    float dummyR, dummyA;
-                    bool result = checkWater(start, end, body, -1f, out dummyR, out dummyA);
-                    return result;
-                }
-
-                return true;
+                float dummyR, dummyA;
+                bool result = checkWater(start, end, body, -1f, out dummyR, out dummyA);
+                return result;
             }
-            return false;
+
+            return true;
         }
 
         /// <summary>
         /// Helper method: check if line intersects terrain and gives range and angle of intersection. Note this check goes to up to sqrRange, though the boolean behavior is still restricted to between start and end
         /// </summary>
-        public static bool TerrainCheck(Vector3 start, Vector3 end, CelestialBody body, float range, out float R, out float angle, bool ignoreSetting = false)
+        public static bool TerrainCheck(Vector3 start, Vector3 end, CelestialBody body, float range, out float R, out float angle, bool forceWaterCheck = false)
         {
             angle = 0f;
             if (!BDArmorySettings.IGNORE_TERRAIN_CHECK)
@@ -2549,13 +2546,13 @@ namespace BDArmory.Radar
                     R = hitInfo.distance;
                     angle = 90f - Vector3.Angle(hitInfo.normal, start - end);
 
-                    //if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils.TerrainCheck]: Hit terrain at sqrDist {R * R * 0.000001f} km^2. Terrain blocking?: {(R * R) < sqrDist}");
+                    //if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils.TerrainCheck]: Hit terrain at sqrDist {R * R * 0.000001f} km^2. Terrain blocking?: {(R * R) < offset.sqrMagnitude}");
 
                     return (R * R) < offset.sqrMagnitude;
                 }
                 else
                 {
-                    if (!(BDArmorySettings.CHECK_WATER_TERRAIN || ignoreSetting))
+                    if (!(BDArmorySettings.CHECK_WATER_TERRAIN || forceWaterCheck))
                     {
                         R = float.MaxValue;
                         return false;
@@ -2564,6 +2561,9 @@ namespace BDArmory.Radar
                     if (checkWater(start, end, body, range, out R, out angle, true))
                     {
                         R = BDAMath.Sqrt(R);
+
+                        //if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils.TerrainCheck]: Hit water at sqrDist {R * R * 0.000001f} km^2. Water blocking?: {(R * R) < offset.sqrMagnitude}");
+
                         return (R * R) < offset.sqrMagnitude;
                     }
                     return false;
@@ -2578,57 +2578,60 @@ namespace BDArmory.Radar
             angle = 0f;
             if (body.ocean || !body.hasSolidSurface)
             {
-                float R = (float)body.Radius;
-                float x, y, z;
-                float xB, yB, zB;
-                float a, b, c, det;
+                double R = body.Radius;
+                double x, y, z;
+                double xB, yB, zB;
+                double a, b, c, det;
 
                 x = end.x - start.x;
                 y = end.y - start.y;
                 z = end.z - start.z;
-                xB = (float)body.position.x;
-                yB = (float)body.position.y;
-                zB = (float)body.position.z;
+                xB = body.position.x;
+                yB = body.position.y;
+                zB = body.position.z;
 
                 a = x * x + y * y + z * z;
-                b = 2f * (x * (start.x - xB) + y * (start.y - yB) + z * (start.z - zB));
-                c = xB * xB + yB * yB + zB * zB + start.x * start.x + start.y * start.y + start.z * start.z - 2f * (xB * start.x + yB * start.y + zB * start.z) - R * R;
-                det = b * b - 4f * a * c;
-                if (a < 0.001f || det < 0 || b > 0)
+                b = 2.0 * (x * (start.x - xB) + y * (start.y - yB) + z * (start.z - zB));
+                c = xB * xB + yB * yB + zB * zB + start.x * start.x + start.y * start.y + start.z * start.z - 2.0 * (xB * start.x + yB * start.y + zB * start.z) - R * R;
+                det = b * b - 4.0 * a * c;
+                if (a < 0.001 || det < 0 || b > 0)
                 {
                     sqrRange = float.MaxValue;
                     return false;
                 }
 
-                float u;
+                double u;
 
                 if (det < 0.0001f)
                 {
                     // Quadratic Eq assuming det = 0: u =  - b / (2 * a)
-                    u = (-0.5f * b / a);
+                    u = (-0.5 * b / a);
                 }
                 else
                 {
                     // Quadratic Eq: u = (-b - sqrt(det)) / (2 * a)
-                    u = 0.5f * (-b - BDAMath.Sqrt(det)) / a;
+                    u = 0.5f * (-b - Math.Sqrt(det)) / a;
                 }
 
-                sqrRange = a * u * u;
+                sqrRange = (float)(a * u * u);
 
                 // If the point of intersection is further than the range we're checking then just ignore this
-                if (range < 0 && u > 1f)
-                    return false;
+                if (range < 0)
+                {
+                    if (u > 1.0)
+                        return false;
+                }
                 else if (sqrRange > range * range)
                     return false;
 
                 if (calcAngle)
                 {
                     Vector3 intcptVec;
-                    intcptVec.x = u * x + start.x - xB;
-                    intcptVec.y = u * y + start.y - yB;
-                    intcptVec.z = u * z + start.z - zB;
+                    intcptVec.x = (float)(u * x + start.x - xB);
+                    intcptVec.y = (float)(u * y + start.y - yB);
+                    intcptVec.z = (float)(u * z + start.z - zB);
 
-                    angle = Vector3.Angle(new Vector3(-x, -y, -z), intcptVec);
+                    angle = Vector3.Angle(new Vector3(-(float)x, -(float)y, -(float)z), intcptVec);
                     angle = 90f - angle;
                 }
 
