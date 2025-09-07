@@ -2520,8 +2520,8 @@ namespace BDArmory.Control
                     missile,
                     v.Velocity(),
                     v.transform.position,
-                    //minOffBoresight + (180f - minOffBoresight) * Mathf.Clamp01(((missile.transform.position - v.transform.position).magnitude - missile.minStaticLaunchRange) / (Mathf.Max(100f + missile.minStaticLaunchRange * 1.5f, 0.1f * missile.maxStaticLaunchRange) - missile.minStaticLaunchRange)) // Reduce the effect of being off-target while extending to prevent super long extends.
-                    //missileAngleToTarget <= minOffBoresight ? -1 : (missile.transform.position - v.transform.position).sqrMagnitude < (missile.minStaticLaunchRange * missile.minStaticLaunchRange) ? 180 : -1
+                    // minOffBoresight + (180f - minOffBoresight) * Mathf.Clamp01(((missile.transform.position - v.transform.position).magnitude - missile.minStaticLaunchRange) / (Mathf.Max(100f + missile.minStaticLaunchRange * 1.5f, 0.1f * missile.maxStaticLaunchRange) - missile.minStaticLaunchRange)) // Reduce the effect of being off-target while extending to prevent super long extends.
+                    // missileAngleToTarget <= minOffBoresight ? -1 : (missile.transform.position - v.transform.position).sqrMagnitude < (missile.minStaticLaunchRange * missile.minStaticLaunchRange) ? 180 : -1
                     missileAngleToTarget <= minOffBoresight ? -1 : minOffBoresight
                 ).minLaunchRange;
                 //all we should be concerned about here is: 

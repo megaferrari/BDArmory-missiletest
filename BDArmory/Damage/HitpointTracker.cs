@@ -574,6 +574,7 @@ namespace BDArmory.Damage
                 {
                     if (r[i].GetComponentInParent<Part>() != part) continue; // Don't recurse to child parts.
                     int key = r[i].material.GetInstanceID(); // The instance ID is unique for each object (not just component or gameObject).
+                    if (defaultShader.ContainsKey(key)) continue;
                     defaultShader.Add(key, r[i].material.shader); //This doesn't grab part variants - parts with variants that are switched to will not register in defaultShader, and render as black in the RCS window
                     if (BDArmorySettings.DEBUG_ARMOR) Debug.Log($"[BDArmory.HitpointTracker]: ARMOR: part shader on {r[i].GetComponentInParent<Part>().partInfo.name} is {r[i].material.shader.name}");
                     if (r[i].material.HasProperty("_Color"))
