@@ -2586,7 +2586,7 @@ namespace BDArmory.Weapons
                                                     emp = (ModuleDrainEC)p.vessel.rootPart.AddModule("ModuleDrainEC");
                                                     //Debug.Log($"[BDArmory.ModuleWeapon]: EMP Module added to {p.vessel.GetName()}: {p.vessel.rootPart.partInfo.title}");
                                                     var MB = p.vessel.rootPart.FindModuleImplementing<MissileBase>();
-                                                    if (MB != null) emp.EMPThreshold = 10;
+                                                    if (MB != null) emp.isMissile = true;
                                                 }
                                                 float EMPDamage = 0;
                                                 if (!pulseLaser)
@@ -2598,7 +2598,7 @@ namespace BDArmory.Weapons
                                                 else
                                                 {
                                                     //EMPDamage = secondaryAmmoPerShot / 10;
-                                                    EMPDamage = laserDamage;
+                                                    EMPDamage = laserDamage * BDArmorySettings.DMG_MULTIPLIER;
                                                     emp.incomingDamage += EMPDamage;
                                                 }
                                                 emp.softEMP = true;

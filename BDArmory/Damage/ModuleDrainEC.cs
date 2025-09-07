@@ -23,6 +23,7 @@ namespace BDArmory.Damage
         public bool softEMP = true; //can EMPdamage exceed EMPthreshold?
         private bool disabled = false; //prevent further EMP buildup while rebooting
         public bool bricked = false; //He's dead, jeb
+        public bool isMissile = false;
         private float rebootTimer = 15;
         private bool initialAIState = false; //if for whatever reason players are manually firing EMPs at targets with AI/WM disabled, don't enable them when vessel reboots
         private bool initialWMState = false;
@@ -77,7 +78,14 @@ namespace BDArmory.Damage
         {
             if (!HighLogic.LoadedSceneIsFlight) return;
             if (BDArmorySetup.GameIsPaused) return;
-
+            if (BDArmorySettings.PAINTBALL_MODE && !isMissile)
+            {
+                EMPDamage = 0; 
+                incomingDamage = 0;
+                if (disabled) EnableVessel();
+                return;
+                
+            }
             if (!bricked)
             {
                 if (EMPDamage > 0 || incomingDamage > 0)
@@ -117,6 +125,18 @@ namespace BDArmory.Damage
             else
             {
                 EMPDamage = Mathf.Clamp(EMPDamage - 5 * TimeWarp.fixedDeltaTime, 0, Mathf.Infinity); //have EMP buildup dissipate over time
+            }
+            if (isMissile && EMPDamage > 10)
+            {
+                foreach (Part p in vessel.parts)
+                {
+                    var MB = p.FindModuleImplementing<MissileBase>();
+                    if (MB != null)
+                    {
+                        MB.guidanceActive = false;
+                    }
+                }
+                bricked = true;
             }
             if (EMPDamage > EMPThreshold && !bricked && !disabled) //does the damage exceed the soft cap, but not the hard cap?
             {
@@ -199,11 +219,6 @@ namespace BDArmory.Damage
                     if (WM.guardMode) initialWMState = true;
                     WM.guardMode = false; //disable guardmode
                     WM.debilitated = true; //for weapon selection and targeting;
-                }
-                var MB = p.FindModuleImplementing<MissileBase>();
-                if (MB != null)
-                {
-                    MB.guidanceActive = false;
                 }
 
                 PartResource r = p.Resources.Where(pr => pr.resourceName == "ElectricCharge").FirstOrDefault();
