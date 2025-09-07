@@ -288,6 +288,7 @@ namespace BDArmory.FX
                             HitPoint = hit.point,
                             Hit = hit,
                             SourceVesselName = sourceVesselName,
+                            ColliderLocalHitPoint = hit.collider is not null ? hit.collider.transform.InverseTransformPoint(hit.point) : default
                         });
 
                         partsAdded.Add(part);
@@ -305,6 +306,7 @@ namespace BDArmory.FX
                         HitPoint = hit.point,
                         Hit = hit,
                         SourceVesselName = sourceVesselName,
+                        ColliderLocalHitPoint = hit.collider is not null ? hit.collider.transform.InverseTransformPoint(hit.point) : default
                     });
 
                     partsAdded.Add(part);
@@ -507,7 +509,7 @@ namespace BDArmory.FX
                             {
                                 if (BDArmorySettings.BATTLEDAMAGE)
                                 {
-                                    BattleDamageHandler.CheckDamageFX(part, 50, 0.5f, true, false, SourceVesselName, eventToExecute.Hit);
+                                    BattleDamageHandler.CheckDamageFX(part, 50, 0.5f, true, false, SourceVesselName, eventToExecute.Hit, colliderLocalHitPoint: eventToExecute.ColliderLocalHitPoint);
                                 }
                                 // Update scoring structures
                                 if (BDACompetitionMode.Instance) //moving this here - only give scores to stuff still inside blast radius when blastfront arrives
@@ -749,6 +751,7 @@ namespace BDArmory.FX
         public RaycastHit Hit { get; set; }
         public float NegativeForce { get; set; }
         public string SourceVesselName { get; set; }
+        public Vector3 ColliderLocalHitPoint { get; set; } = default;
     }
 
     internal class BuildingNukeHitEvent : NukeHitEvent

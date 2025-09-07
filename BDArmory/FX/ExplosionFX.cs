@@ -512,8 +512,9 @@ namespace BDArmory.FX
                         HitPoint = hit.point,
                         Hit = hit,
                         SourceVesselName = sourceVesselName,
-                        withinAngleofEffect = angleOverride ? true : (IsAngleAllowed(Direction, hit, part)),
-                        IntermediateParts = LoSIntermediateParts // A copy is made internally.
+                        withinAngleofEffect = angleOverride ? true : IsAngleAllowed(Direction, hit, part),
+                        IntermediateParts = LoSIntermediateParts, // A copy is made internally.
+                        ColliderLocalHitPoint = hit.collider is not null ? hit.collider.transform.InverseTransformPoint(hit.point) : default
                     });
                 }
                 partsAdded.Add(part);
@@ -1105,7 +1106,7 @@ namespace BDArmory.FX
 
                                 if (penetrationFactor > 0)
                                 {
-                                    BulletHitFX.CreateBulletHit(part, eventToExecute.HitPoint, eventToExecute.Hit, eventToExecute.Hit.normal, true, Caliber, penetrationFactor > 0 ? penetrationFactor : 0f, SourceVesselTeam, TimeIndex);
+                                    BulletHitFX.CreateBulletHit(part, eventToExecute.HitPoint, eventToExecute.Hit, eventToExecute.Hit.normal, true, Caliber, penetrationFactor > 0 ? penetrationFactor : 0f, SourceVesselTeam, eventToExecute.ColliderLocalHitPoint);
                                     damage = part.AddBallisticDamage(warheadType == WarheadTypes.ShapedCharge ? Power * 0.0555f : ProjMass, Caliber, 1f, penetrationFactor, dmgMult,
                                         warheadType switch
                                         {
@@ -1156,7 +1157,7 @@ namespace BDArmory.FX
                             {
                                 if (BDArmorySettings.BATTLEDAMAGE)
                                 {
-                                    BattleDamageHandler.CheckDamageFX(part, Caliber, penetrationFactor, true, warheadType == WarheadTypes.ShapedCharge ? true : false, SourceVesselName, eventToExecute.Hit, velCorrectionDeltaTime: TimeIndex);
+                                    BattleDamageHandler.CheckDamageFX(part, Caliber, penetrationFactor, true, warheadType == WarheadTypes.ShapedCharge ? true : false, SourceVesselName, eventToExecute.Hit, colliderLocalHitPoint: eventToExecute.ColliderLocalHitPoint);
                                 }
                                 // Update scoring structures
                                 //damage = Mathf.Clamp(damage, 0, part.Damage()); //if we want to clamp overkill score inflation
@@ -1410,6 +1411,7 @@ namespace BDArmory.FX
     {
         public Part Part { get; set; }
         public Vector3 HitPoint { get; set; }
+        public Vector3 ColliderLocalHitPoint { get; set; } = default;
         public RaycastHit Hit { get; set; }
         public float NegativeForce { get; set; }
         public string SourceVesselName { get; set; }
