@@ -1108,9 +1108,9 @@ namespace BDArmory.Bullets
                 {
                     emp = (ModuleDrainEC)hitPart.vessel.rootPart.AddModule("ModuleDrainEC");
                     var MB = hitPart.vessel.rootPart.FindModuleImplementing<MissileBase>();
-                    if (MB != null) emp.EMPThreshold = 10;
+                    if (MB != null) emp.isMissile = true;
                 }
-                emp.incomingDamage += (caliber * Mathf.Clamp(bulletMass - tntMass, 0.1f, 101)); //soft EMP caps at 100; can always add a EMP amount value to bulletcfg later, but this should work for now
+                emp.incomingDamage += (caliber * Mathf.Clamp(bulletMass - tntMass, 0.1f, 101)) * BDArmorySettings.DMG_MULTIPLIER; //soft EMP caps at 100; can always add a EMP amount value to bulletcfg later, but this should work for now
                 emp.softEMP = true;
             }
             if (impulse != 0 && hitPart.rb != null)

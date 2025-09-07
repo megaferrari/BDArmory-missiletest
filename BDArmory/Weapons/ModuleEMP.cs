@@ -48,9 +48,9 @@ namespace BDArmory.Weapons
                         {
                             emp = (ModuleDrainEC)v.rootPart.AddModule("ModuleDrainEC");
                             var MB = v.rootPart.FindModuleImplementing<MissileBase>();
-                            if (MB != null) emp.EMPThreshold = 10;
+                            if (MB != null) emp.isMissile = true;
                         }
-                        emp.incomingDamage += ((proximity - (float)targetDistance) * 10); //this way craft at edge of blast might only get disabled instead of bricked
+                        emp.incomingDamage += ((proximity - (float)targetDistance) * 10) * BDArmorySettings.DMG_MULTIPLIER; //this way craft at edge of blast might only get disabled instead of bricked
                         emp.softEMP = AllowReboot; //can bypass DMP damage cap
                     }
                 }
