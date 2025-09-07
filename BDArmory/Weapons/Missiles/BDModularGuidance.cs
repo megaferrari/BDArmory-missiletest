@@ -1229,13 +1229,13 @@ namespace BDArmory.Weapons.Missiles
                 (vessel.CoM + (vessel.Velocity() * Time.fixedDeltaTime) - (targetPosition + (TargetVelocity * Time.fixedDeltaTime))).sqrMagnitude) return;
             if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.BDModularGuidance]: Missile CheckMiss showed miss for {vessel.vesselName} ({SourceVessel}) with target at {targetPosition - vessel.CoM:G3}");
 
-            var AI = vessel.ActiveController().AI; // Get the AI if the missile has one.
-            if (AI != null)
-            {
-                ResetMissile();
-                AI.ActivatePilot();
-                return;
-            }
+            // var AI = vessel.ActiveController().AI; // Get the AI if the missile has one.
+            // if (AI != null)
+            // {
+            //     ResetMissile();
+            //     AI.ActivatePilot();
+            //     return;
+            // }
 
             HasMissed = true;
             guidanceActive = false;
@@ -1280,13 +1280,13 @@ namespace BDArmory.Weapons.Missiles
             {
                 if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.BDModularGuidance]: Missile CheckMiss showed miss for {vessel.vesselName}");
 
-                var AI = vessel.ActiveController().AI; // Get the AI if the missile has one.
-                if (AI != null)
-                {
-                    ResetMissile();
-                    AI.ActivatePilot();
-                    return;
-                }
+                // var AI = vessel.ActiveController().AI; // Get the AI if the missile has one.
+                // if (AI != null)
+                // {
+                //     ResetMissile();
+                //     AI.ActivatePilot();
+                //     return;
+                // }
 
                 HasMissed = true;
                 guidanceActive = false;
@@ -1304,11 +1304,10 @@ namespace BDArmory.Weapons.Missiles
             debugString.Length = 0;
             if (guidanceActive && MissileReferenceTransform != null && _velocityTransform != null)
             {
-                var weaponManager = WeaponManager;
-                if (weaponManager != null && !weaponManager.guardFiringMissile)
+                if (FiredByWM != null && !FiredByWM.guardFiringMissile)
                 {
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.BDModularGuidance]: enabling target lock for {vessel.vesselName}");
-                    weaponManager.guardFiringMissile = true; // Enable target lock.
+                    FiredByWM.guardFiringMissile = true; // Enable target lock.
                 }
 
                 if (vessel.Velocity().magnitude < MinSpeedGuidance)
@@ -1576,16 +1575,16 @@ namespace BDArmory.Weapons.Missiles
         /// <summary>
         ///     Reset the missile if it has a pilot AI.
         /// </summary>
-        [KSPAction("Reset Missile")]
-        public void AGReset(KSPActionParam param)
-        {
-            var AI = vessel.ActiveController().AI; // Get the AI if the missile has one.
-            if (AI != null)
-            {
-                ResetMissile();
-                AI.ActivatePilot();
-            }
-        }
+        // [KSPAction("Reset Missile")]
+        // public void AGReset(KSPActionParam param)
+        // {
+        //     var AI = vessel.ActiveController().AI; // Get the AI if the missile has one.
+        //     if (AI != null)
+        //     {
+        //         ResetMissile();
+        //         AI.ActivatePilot();
+        //     }
+        // }
 
         #endregion KSP ACTIONS
 
@@ -1602,7 +1601,7 @@ namespace BDArmory.Weapons.Missiles
         {
             if (HasFired) return;
 
-            FiredByWM = WeaponManager; // Generally, the parent plane's WM, but may also be the WM on the modular missile if the missile has reset. FIXME SI If the missile has reset, should FiredByWM also get updated? What happens if a modular missile has it's own WM? Should that automatically take over when a missile is fired anyway or only on a reset? The latter seems more reasonable.
+            FiredByWM = WeaponManager; // Generally, the parent plane's WM, but may also be the WM on the modular missile if the missile has reset.
             if (FiredByWM != null && targetVessel == null)
                 FiredByWM.SendTargetDataToMissile(this, null);
 
@@ -1728,9 +1727,14 @@ namespace BDArmory.Weapons.Missiles
                 ((ModuleAnchoredDecoupler)_targetDecoupler).Decouple();
             }
 
-            var weaponManager = WeaponManager;
+            var weaponManager = WeaponManager; // If there's a WM on the MMG, update its weapons list, then disable it.
             if (weaponManager != null)
+            {
                 weaponManager.UpdateList();
+                if (weaponManager.guardMode) weaponManager.ToggleGuardMode();
+            }
+            var AI = vessel.ActiveController().AI; // Get the AI if the missile has one and deactivate it. The MMG is in control.
+            if (AI != null) AI.DeactivatePilot();
         }
 
         public override float GetBlastRadius()
