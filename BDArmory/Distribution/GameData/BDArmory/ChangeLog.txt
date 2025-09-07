@@ -62,13 +62,14 @@
 	- Multi-barreled guns now fire tracers every tracerInterval rounds of each barrel, and will fire tracers simultaneously from all barrels.
 	- Remove maxEngagementRange (default 5000m) check from bombs when AI is selecting what weapon to use.
 	- Fix aim lead offset for weapons with deploy animations.
-  - EMP weapons (both guns and missiles) now capable of disabling missiles.
-  - Weapons fire SFX maximum distance it can be heard now scales based on weapon caliber
+	- EMP weapons (both guns and missiles) now capable of disabling missiles.
+	- Weapons fire SFX maximum distance it can be heard now scales based on weapon caliber
 	- Added fuzeDelay and fuzeSensitivity functionality to bullets. Now, for penetrating and delay fuzes you can specify the fuze delay in seconds, and the fuze sensitivity in mm for penetrating fuzes, by listing them with commas, I.E. "fuzeType = Penetrating,0.01,20" for a 0.01 s delay which will be set off by 20 mm of armor (currently material differences are not considered).
 	- Fix bullet behavior when hitting parts with multiple colliders embedded in each other, bullets should now only hit such a part once, unless it exits the part and then hits the part again. Note the system in place cannot catch cases where another part is clipped in such a part.
 	- Fix phantom water on planets without oceans
 	- Added stack attachment nodes to all turret bases.
 	- Sanity-checked turret bulkhead sizes.
+	- Changed continuous rod warhead damage area from 60°-90° to 30°-60°.
 	- Missiles:
 		- General Changes:
 			- Fix maddog ARH missile launches not turning on seeker.
@@ -104,6 +105,7 @@
 				- "beamCorrectionFactor" is multiplied with the lateral error from the specified line of sight to provide a lateral velocity command, higher values result in a faster snap to the line of sight line, but also more oscillation
 				- "pronavGain" is used, in a similar manner as it use used in pronav guidance, to multiply the velocity error and provide an acceleration command. Higher values result in a faster snap to the commanded velocity vector, but also more oscillation.
 			- Replaced "radarTimeout" field with general "seekerTimeout", which is now used for heat-seeking, active radar homing, inertial and anti-radiation homing. Added "terminalSeekerTimeout" field so this can be specified separately for the initial and terminal targeting types.
+			- Improved guidance for continuous rod missiles, offset direction now depends on if the missile is above/below the target rather than always being offset above.
 		- Launchers:
 			- Fix multi-missile launcher issues when railAmmo > launcher rails on the mode
 			- Fix multi-missile launchers not properly calculating "FiringAngle" parameter
