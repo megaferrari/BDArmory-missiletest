@@ -1005,7 +1005,7 @@ namespace BDArmory.Utils
                 if (string.IsNullOrEmpty(vesselName)) vesselName = "new vessel";
                 Debug.Log($"[BDArmory.ActiveController]: ActiveController modules updated on {(string.IsNullOrEmpty(vesselName) ? Vessel.rootPart.partInfo.name : vesselName)} ({Vessel.persistentId}, {Vessel.vesselType}), WM: {WM != null}, PilotAI: {PilotAI != null}, SurfaceAI: {SurfaceAI != null}, VTOLAI: {VTOLAI != null}, OrbitalAI: {OrbitalAI != null}, AI: {AI}");
             }
-            LoadedVesselSwitcher.Instance.UpdateWMs(); // Flag the the WMs in the VS need refreshing.
+            LoadedVesselSwitcher.Instance.UpdateWMs(); // Flag that the WMs in the VS need refreshing.
         }
 
         /// <summary>
@@ -1211,6 +1211,7 @@ namespace BDArmory.Utils
         {
             TimingManager.FixedUpdateRemove(TimingManager.TimingStage.Precalc, UpdateModules);
             TimingManager.FixedUpdateRemove(TimingManager.TimingStage.ObscenelyEarly, GetVesselName);
+            TimingManager.FixedUpdateRemove(TimingManager.TimingStage.Precalc, UpdateVesselType);
             GameEvents.onVesselPartCountChanged.Remove(OnVesselPartCountChanged);
         }
 
