@@ -3240,7 +3240,7 @@ namespace BDArmory.Weapons.Missiles
                 {
                     Vector3 up = VectorUtils.GetUpDirection(TargetPosition);
                     // If target is above, the we offset below, if target is below, we offset above
-                    TargetPosition += up * (Vector3.Dot(vessel.CoM - TargetPosition, up) * (blastRadius > 0f ? Mathf.Min(blastRadius / 3f, DetonationDistance / 3f) : 5f));
+                    TargetPosition += up * (Mathf.Sign(Vector3.Dot(vessel.CoM - TargetPosition, up)) * (blastRadius > 0f ? Mathf.Min(blastRadius / 3f, DetonationDistance / 3f) : 5f));
                 }
                 DrawDebugLine(vessel.CoM + (part.rb.velocity * Time.fixedDeltaTime), TargetPosition);
 
