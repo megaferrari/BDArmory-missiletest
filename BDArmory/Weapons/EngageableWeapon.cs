@@ -35,6 +35,10 @@ namespace BDArmory.Weapons
         UI_Toggle(disabledText = "#LOC_BDArmory_false", enabledText = "#LOC_BDArmory_true")]//false--true
         public bool engageSLW = true;
 
+        [KSPField(advancedTweakable = true, isPersistant = true, guiActive = false, guiActiveEditor = false, guiName = "#LOC_BDArmory_weaponChannel"),
+            UI_FloatRange(minValue = 0, maxValue = 10, stepIncrement = 1, scene = UI_Scene.All, affectSymCounterparts = UI_Scene.All)]
+        public int weaponChannel = 0; // weaponChannel telling a weaponManager which weapons it may use
+
         [KSPEvent(guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_DisableEngageOptions", active = true)]//Disable Engage Options
         public void ToggleEngageOptions()
         {
@@ -177,6 +181,11 @@ namespace BDArmory.Weapons
         public string GetShortName()
         {
             return shortName;
+        }
+
+        public int GetWeaponChannel()
+        {
+            return weaponChannel;
         }
     }
 }

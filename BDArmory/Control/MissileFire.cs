@@ -788,6 +788,9 @@ namespace BDArmory.Control
             UI_Toggle(enabledText = "#LOC_BDArmory_IsVIP_enabledText", disabledText = "#LOC_BDArmory_IsVIP_disabledText", scene = UI_Scene.All),]//yes--no
         public bool isVIP = false;
 
+        [KSPField(advancedTweakable = true, isPersistant = true, guiActive = false, guiActiveEditor = false, guiName = "#LOC_BDArmory_weaponChannel"),
+            UI_FloatRange(minValue = 0, maxValue = 10, stepIncrement = 1, scene = UI_Scene.All, affectSymCounterparts = UI_Scene.All)]
+        public float weaponChannel = 0; // weaponChannel telling a weaponManager which weapons it may use
 
         public void ToggleGuardMode()
         {
@@ -4189,6 +4192,9 @@ namespace BDArmory.Control
                                 //break;
                             }
                         }
+
+                    if (weapon.Current.GetWeaponChannel() > weaponChannel)
+                        continue;
 
                     if (weapon.Current.GetWeaponClass() == WeaponClasses.Gun || weapon.Current.GetWeaponClass() == WeaponClasses.Rocket || weapon.Current.GetWeaponClass() == WeaponClasses.DefenseLaser)
                     {
@@ -8741,6 +8747,7 @@ namespace BDArmory.Control
                     if (missile.Current == null) continue;
                     if (!missile.Current.engageMissile) continue;
                     if (missile.Current.HasFired || missile.Current.launched) continue;
+                    if (missile.Current.GetWeaponChannel() > weaponChannel) continue;
                     MissileLauncher ml = missile.Current as MissileLauncher;
                     if (ml && ml.multiLauncher && ml.multiLauncher.turret)
                     {
@@ -8926,6 +8933,7 @@ namespace BDArmory.Control
                         if (currMissile == null) continue;
                         if (!currMissile.engageMissile) continue;
                         if (currMissile.HasFired || currMissile.launched) continue;
+                        if (weapon.Current.GetWeaponChannel() > weaponChannel) continue;
                         if (MissileID >= PDMslTgts.Count) MissileID = 0;
 
                         float targetDist = Vector3.Distance(currMissile.MissileReferenceTransform.position, PDMslTgts[MissileID].Vessel.CoM);
