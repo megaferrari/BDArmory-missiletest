@@ -16,7 +16,7 @@ namespace BDArmory.Weapons
 
         string GetPartName();
 
-        int GetWeaponChannel();
+        float GetWeaponChannel();
 
         Part GetPart();
 
