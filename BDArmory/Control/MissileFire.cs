@@ -4167,7 +4167,28 @@ namespace BDArmory.Control
                     if (weapon.Current == null) continue;
                     string weaponName = weapon.Current.GetShortName();
                     bool alreadyAdded = false;
-                    
+
+                    if (weapon.Current.GetWeaponClass() == WeaponClasses.Gun || weapon.Current.GetWeaponClass() == WeaponClasses.Rocket || weapon.Current.GetWeaponClass() == WeaponClasses.DefenseLaser)
+                    {
+                        if (!gunRippleIndex.ContainsKey(weapon.Current.GetPartName())) //I think the empty rocketpod? contine might have been tripping up the ripple dict and not adding the hydra
+                            gunRippleIndex.Add(weapon.Current.GetPartName(), 0);
+                        var gun = weapon.Current.GetWeaponModule();
+                        //dont add empty rocket pods
+                        if ((gun.rocketPod && !gun.externalAmmo) && gun.GetRocketResource().amount < 1 && !BDArmorySettings.INFINITE_AMMO)
+                        {
+                            continue;
+                        }
+                        //dont add APS
+                        if (gun.isAPS)
+                        {
+                            pointDefenseWeapons.Add(gun);
+                            if (!gun.dualModeAPS) continue;
+                        }
+                    }
+
+                    if (weapon.Current.GetWeaponChannel() > weaponChannel)
+                        continue;
+
                     bool currIsMissile = false;
                     MissileBase mb = null;
                     if (weapon.Current.GetWeaponClass() == WeaponClasses.Missile || weapon.Current.GetWeaponClass() == WeaponClasses.Bomb || weapon.Current.GetWeaponClass() == WeaponClasses.SLW)
@@ -4207,27 +4228,6 @@ namespace BDArmory.Control
                                 //break;
                             }
                         }
-
-                    if (weapon.Current.GetWeaponClass() == WeaponClasses.Gun || weapon.Current.GetWeaponClass() == WeaponClasses.Rocket || weapon.Current.GetWeaponClass() == WeaponClasses.DefenseLaser)
-                    {
-                        if (!gunRippleIndex.ContainsKey(weapon.Current.GetPartName())) //I think the empty rocketpod? contine might have been tripping up the ripple dict and not adding the hydra
-                            gunRippleIndex.Add(weapon.Current.GetPartName(), 0);
-                        var gun = weapon.Current.GetWeaponModule();
-                        //dont add empty rocket pods
-                        if ((gun.rocketPod && !gun.externalAmmo) && gun.GetRocketResource().amount < 1 && !BDArmorySettings.INFINITE_AMMO)
-                        {
-                            continue;
-                        }
-                        //dont add APS
-                        if (gun.isAPS && !gun.dualModeAPS)
-                        {
-                            pointDefenseWeapons.Add(gun);
-                            continue;
-                        }
-                    }
-
-                    if (weapon.Current.GetWeaponChannel() > weaponChannel)
-                        continue;
 
                     if (!alreadyAdded)
                     {
@@ -8680,6 +8680,7 @@ namespace BDArmory.Control
         int MissileID = 0;
         public void PointDefenseTurretFiring()
         {
+            if (!IsPrimaryWM) return;
             // Note: this runs in the Earlyish timing stage, before bullets have moved.
             int TurretID = 0;
             int ballisticTurretID = 0;
