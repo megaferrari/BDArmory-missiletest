@@ -275,12 +275,14 @@ namespace BDArmory.Radar
 
         public void RemoveRadar(ModuleRadar mr)
         {
-            availableRadars.Remove(mr);
-            rCount = availableRadars.Count;
-            RemoveDataFromRadar(mr);
-            //UpdateDataLinkCapability();
-            linkCapabilityDirty = true;
-            rangeCapabilityDirty = true;
+            if (availableRadars.Remove(mr))
+            {
+                rCount = availableRadars.Count;
+                RemoveDataFromRadar(mr);
+                //UpdateDataLinkCapability();
+                linkCapabilityDirty = true;
+                rangeCapabilityDirty = true;
+            }
         }
 
         public void AddIRST(ModuleIRST mi)
@@ -613,6 +615,7 @@ namespace BDArmory.Radar
             while (rrad.MoveNext())
             {
                 if (rrad.Current == null) continue;
+                rrad.Current.EnsureVesselRadarData();
                 RemoveRadar(rrad.Current);
             }
             rrad.Dispose();

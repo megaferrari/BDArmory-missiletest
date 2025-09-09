@@ -377,14 +377,14 @@ namespace BDArmory.Radar
                 addRadar = true;
             }
 
-            if (addRadar)
+            if (addRadar && radarEnabled)
                 vesselRadarData.AddRadar(this);
         }
 
         public void EnableRadar()
         {
-            EnsureVesselRadarData(true);
             radarEnabled = true;
+            EnsureVesselRadarData(true);
 
             UpdateToggleGuiName();
             //vesselRadarData.AddRadar(this); // Moved this to EnsureVesselRadarData() to account for the multi-craft case
