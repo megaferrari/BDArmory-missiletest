@@ -692,9 +692,10 @@ namespace BDArmory.Weapons.Missiles
         }
         public void PopulateMissileDummies(bool refresh = false)
         {
+            bool populateDummies = true;
             if (refresh && displayOrdinance)
             {
-                SetupMissileDummyPool(subMunitionPath);
+                populateDummies = SetupMissileDummyPool(subMunitionPath);
                 foreach (var existingDummy in part.GetComponentsInChildren<MissileDummy>())
                 {
                     existingDummy.Deactivate(); //if changing out missiles loaded into a VLS or similar, reset missile dummies
@@ -715,6 +716,11 @@ namespace BDArmory.Weapons.Missiles
                 else
                 {
                     if (!displayOrdinance) return;
+                    if (!populateDummies)
+                    {
+                        Debug.LogError($"[BDArmory.MultiMissileLauncher]: Reminder! Model {subMunitionPath} not found. Cannot populate missile dummies!");
+                        return;
+                    }
                     GameObject dummy = mslDummyPool[subMunitionPath].GetPooledObject();
                     MissileDummy dummyThis = dummy.GetComponentInChildren<MissileDummy>();
 
@@ -1477,7 +1483,7 @@ namespace BDArmory.Weapons.Missiles
             //Debug.Log($"[BDArmory.MultiMissileLauncher]: {targetV.GetName()}; assigned radar target {(ml.radarTarget.exists ? ml.radarTarget.vessel.GetName() : "null")}");
         }
 
-        public void SetupMissileDummyPool(string modelpath)
+        public bool SetupMissileDummyPool(string modelpath)
         {
             var key = modelpath;
             if (!mslDummyPool.ContainsKey(key) || mslDummyPool[key] == null)
@@ -1486,13 +1492,13 @@ namespace BDArmory.Weapons.Missiles
                 if (Template == null)
                 {
                     Debug.LogError("[BDArmory.MultiMissileLauncher]: model '" + modelpath + "' not found. Expect exceptions if trying to use this missile.");
-                    return;
+                    return false;
                 }
                 Template.SetActive(false);
                 Template.AddComponent<MissileDummy>();
                 mslDummyPool[key] = ObjectPool.CreateObjectPool(Template, 10, true, true);
             }
-
+            return true;
         }
         public override string GetInfo()
         {
