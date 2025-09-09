@@ -522,7 +522,7 @@ namespace BDArmory.Weapons.Missiles
             }
         }
 
-        private string GetMeshurl(UrlDir.UrlConfig cfgdir)
+        public string GetMeshurl(UrlDir.UrlConfig cfgdir)
         {
             //check if part uses a MODEL node to grab an (external?) .mu file
             string url;

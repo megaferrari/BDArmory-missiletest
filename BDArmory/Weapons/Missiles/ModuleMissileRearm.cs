@@ -207,6 +207,7 @@ UI_ProgressBar(affectSymCounterparts = UI_Scene.None, controlEnabled = false, sc
                         Debug.LogError("[BDArmory.ModuleMissileRearm]: Failed to parse maxOffBoresight configNode: " + e.Message);
                     }
                 }
+                MML.GetMeshurl((UrlDir.UrlConfig)GameDatabase.Instance.root.GetConfig(missilePart.partPrefab.partInfo.partUrl));
             }
         }
 
