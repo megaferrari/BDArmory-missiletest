@@ -777,6 +777,13 @@ namespace BDArmory.Radar
             UpdateLockedTargets();
         }
 
+        public void SetMaxRange()
+        {
+            rangeIndex = rIncrements.Length - 1;
+            pingPositionsDirty = true;
+            UpdateRWRRange();
+        }
+
         private void IncreaseRange()
         {
             int origIndex = rangeIndex;

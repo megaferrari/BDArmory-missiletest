@@ -872,6 +872,7 @@ namespace BDArmory.Control
                     if (rwr && !rwr.rwrEnabled) rwr.EnableRWR();
                     if (rwr && rwr.rwrEnabled && !rwr.displayRWR) rwr.displayRWR = true;
                 }
+                vesselRadarData.SetMaxRange();
             }
         }
 
