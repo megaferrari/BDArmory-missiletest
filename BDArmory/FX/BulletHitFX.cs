@@ -95,13 +95,13 @@ namespace BDArmory.FX
 
         void Deactivate()
         {
+            transform.parent = null;
             gameObject.SetActive(false);
         }
 
         void OnDisable()
         {
             parentPart = null;
-            transform.parent = null;
             transform.localScale = Vector3.one; // Reset localScale so that Unity doesn't mess with the size.
             if (hasOnVesselUnloaded) // onVesselUnloaded event introduced in 1.11
                 OnVesselUnloaded_1_11(false);
@@ -411,8 +411,6 @@ namespace BDArmory.FX
                     pe.emit = false;
                     EffectBehaviour.RemoveParticleEmitter(pe);
                 }
-            transform.parent = null;
-            transform.localScale = Vector3.one; // Reset localScale so that Unity doesn't mess with the size and it's ready for our custom scaling.
         }
 
         void Update()
@@ -481,7 +479,7 @@ namespace BDArmory.FX
                     if (!hitPart.isEngine())
                     {
                         var scale = caliber * caliber / 200f;
-                        leakFX.transform.localScale *= scale;
+                        leakFX.transform.localScale = scale * Vector3.one;
                         leakFX.AttachAt(hitPart, hit, new Vector3(0.25f, 0f, 0f), colliderLocalHitPoint);
                         leakFX.drainRate = scale * BDArmorySettings.BD_TANK_LEAK_RATE;
                         leakFX.lifeTime = BDArmorySettings.BD_TANK_LEAK_TIME;
@@ -515,7 +513,7 @@ namespace BDArmory.FX
                 else
                 {
                     var scale = caliber * caliber / 200f;
-                    leakFX.transform.localScale *= scale;
+                    leakFX.transform.localScale = scale * Vector3.one;
                     leakFX.AttachAt(hitPart, hit, new Vector3(0.25f, 0f, 0f), colliderLocalHitPoint);
                     leakFX.drainRate = scale * BDArmorySettings.BD_TANK_LEAK_RATE;
                     leakFX.lifeTime = BDArmorySettings.BD_TANK_LEAK_TIME;
