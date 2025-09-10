@@ -19,6 +19,7 @@
 	- Fix pilot AI's standby mode to automatically trigger AG10 and enable engines if necessary when a threat is detected.
 	- Fix behavior of Guard Mode with regards to datalinked radars, Guard Mode should no longer unlock targets when these locks are being used by a datalinked vessel to guide a missile.
 	- Slightly improved Guard Mode radar lock management, locks are only dropped as needed on radars that can lock on to the target.
+		- AI will automatically set radar to max range when toggled on, allowing it to make full use of the radars.
 	- Tweaks to the auto-tuning loss function to give a more stable roll-relevance. Show an auto-tuning summary to reduce confusion in the SPH about the auto-tuning results.
 	- Disable Battle Damage while auto-tuning to avoid wooden parts catching fire.
 	- Fix AI continuing to increase extend distance while extending away from a target for lining up a bombing run.
@@ -112,6 +113,7 @@
 			- Fix certain missiles becoming ghost-like entities that ignored bullets and interceptor missiles when fired from MultiMissileLaunchers with "ignoreLauncherColliders = true".
 			- Added "Lofted Aimpoint" toggle to Missile Turrets, with the accompanying "Loft Velocity Factor". When toggled on, the turret will aim above the target to provide some lofting to the missile trajectory (though this requires the usage of pronav and a gain schedule). "Loft Velocity Factor" is used to scale the missile's "optimimumVelocity" for the ballistic simulation, a lower "Loft Velocity Factor" results in a higher loft angle.
 			- Added new "deployBlocksPitch", "deployBlocksYaw" and "deployBlocksReload" booleans to Missile Turrets, when toggled on, the turret will have to finish it's deploy animation before pitching/yawing, and will have to retract for reloading (respecting the pitch and yaw toggles as well).
+			- Allow multi-missile launcher to gracefully error in the event of the missile model not being found. A debug log entry will be made, warning the user of such an error, and if it is a launcher, it will attempt to find the correct model to use.
 - Effects:
 	- Add splash effects to underwater explosions (very WIP, feedback on size, behavior etc. would be appreciated)
 	- Bullet hits now attached to whatever collider they hit, so bullet hits on animated parts, like turrets, will now move with them
