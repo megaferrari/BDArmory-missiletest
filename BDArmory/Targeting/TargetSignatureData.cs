@@ -27,6 +27,7 @@ namespace BDArmory.Targeting
         public ModuleRadar lockedByRadar;
         public Vessel vessel;
         public Part IRSource;
+        public bool isDecoy = false;
         bool orbital;
         Orbit orbit;
 
@@ -97,6 +98,7 @@ namespace BDArmory.Targeting
             lockedByRadar = null;
             vessel = null;
             IRSource = null;
+            isDecoy = true;
             notchMod = 0f;
         }
 
@@ -117,6 +119,7 @@ namespace BDArmory.Targeting
             lockedByRadar = null;
             vessel = null;
             IRSource = null;
+            isDecoy = true;
             notchMod = 0f;
         }
 

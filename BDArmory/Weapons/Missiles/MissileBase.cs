@@ -845,7 +845,9 @@ namespace BDArmory.Weapons.Missiles
                 else
                     heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, lookRay, predictedHeatTarget, lockedSensorFOV * 0.5f, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity, FiredByWM, targetVessel, IFF: hasIFF);
 
-                if (heatTarget.exists)
+                // heatTarget.vessel == null should account for flares and decoys, but out of an abundance of caution
+                // I've added a .isDecoy flag to TargetSignatureData, might be useful for other purposes too
+                if (heatTarget.exists && (heatTarget.isDecoy || CheckTargetEngagementEnvelope(heatTarget.targetInfo)))
                 {
                     TargetAcquired = true;
                     TargetPosition = heatTarget.position;
