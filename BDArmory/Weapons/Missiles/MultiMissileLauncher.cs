@@ -1453,7 +1453,7 @@ namespace BDArmory.Weapons.Missiles
                 if (missileLauncher.MissileReferenceTransform.position.CloserToThan(targetV.CoM, ml.activeRadarRange))
                 {
                     TargetSignatureData[] scannedTargets = new TargetSignatureData[(int)FiredByWM.multiMissileTgtNum];
-                    RadarUtils.RadarUpdateMissileLock(new Ray(ml.transform.position, ml.GetForwardTransform()), ml.maxOffBoresight / 2, ref scannedTargets, 0.4f, ml);
+                    RadarUtils.RadarUpdateMissileLock(new Ray(ml.transform.position, ml.GetForwardTransform()), ml.maxOffBoresight, ref scannedTargets, 0.4f, ml);
                     TargetSignatureData lockedTarget = TargetSignatureData.noTarget;
 
                     for (int i = 0; i < scannedTargets.Length; i++)

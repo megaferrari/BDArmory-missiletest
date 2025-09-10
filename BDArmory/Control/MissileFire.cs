@@ -9196,7 +9196,7 @@ namespace BDArmory.Control
                 }
 
                 // Check that target is within maxOffBoresight now and in future time fTime if we are in atmosphere
-                launchAuthorized = missile.maxOffBoresight >= 360 || Vector3.Angle(missile.GetForwardTransform(), target - missile.transform.position) < Mathf.Min(missile.missileFireAngle, boresightAngle); // Launch is possible now
+                launchAuthorized = missile.maxOffBoresight >= 180 || Vector3.Angle(missile.GetForwardTransform(), target - missile.transform.position) < Mathf.Min(missile.missileFireAngle, boresightAngle); // Launch is possible now
                 if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: {vessel.vesselName} final boresight check {(launchAuthorized ? "passed" : "failed")}, boresight angle {Vector3.Angle(missile.GetForwardTransform(), target - missile.transform.position)} of {missile.missileFireAngle}/{boresightAngle}.");
                 if (launchAuthorized && !vessel.InVacuum())
                 {
@@ -9204,7 +9204,7 @@ namespace BDArmory.Control
                     float fTime = MissileLaunchParams.GetMissileActiveTime(missile, vessel.LandedOrSplashed);
                     Vector3 futurePos = target + (targetV.Velocity() * fTime);
                     Vector3 myFuturePos = vessel.CoM + (vessel.Velocity() * fTime);
-                    launchAuthorized = launchAuthorized && ((!unguidedWeapon && missile.maxOffBoresight >= 360) || Vector3.Angle(missile.GetForwardTransform(), futurePos - myFuturePos) < boresightAngle); // Launch is likely also possible at fTime
+                    launchAuthorized = launchAuthorized && ((!unguidedWeapon && missile.maxOffBoresight >= 180) || Vector3.Angle(missile.GetForwardTransform(), futurePos - myFuturePos) < boresightAngle); // Launch is likely also possible at fTime
                 }
             }
 

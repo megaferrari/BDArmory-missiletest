@@ -966,7 +966,7 @@ namespace BDArmory.Weapons.Missiles
             }
 
             // Moved mFA setting here instead of OnStart() to account for the need for this to be set for MMLs as well
-            if (maxOffBoresight < 360 && missileType.ToLower() == "missile" || missileType.ToLower() == "torpedo")
+            if (maxOffBoresight < 180 && missileType.ToLower() == "missile" || missileType.ToLower() == "torpedo")
             {
                 UI_FloatRange mFA = (UI_FloatRange)Fields["missileFireAngle"].uiControlEditor;
                 mFA.maxValue = maxOffBoresight * 0.75f;
@@ -2302,10 +2302,10 @@ namespace BDArmory.Weapons.Missiles
                         // gets ground heat targets and after locking one, disallows the lock to break to another target
 
                         if (activeRadarRange < 0 && torpedo)
-                            heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, new Ray(vessel.CoM, tempTargetPos - vessel.CoM), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity,
+                            heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, new Ray(vessel.CoM, tempTargetPos - vessel.CoM), TargetSignatureData.noTarget, lockedSensorFOV * 0.5f, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity,
                                 FiredByWM, targetVessel, IFF: hasIFF);
                         else
-                            heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, new Ray(vessel.CoM, tempTargetPos - vessel.CoM), TargetSignatureData.noTarget, lockedSensorFOV / 2, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity, FiredByWM, targetVessel, IFF: hasIFF);
+                            heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, new Ray(vessel.CoM, tempTargetPos - vessel.CoM), TargetSignatureData.noTarget, lockedSensorFOV * 0.5f, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity, FiredByWM, targetVessel, IFF: hasIFF);
                         if (heatTarget.exists && CheckTargetEngagementEnvelope(heatTarget.targetInfo))
                         {
                             if (BDArmorySettings.DEBUG_MISSILES)
@@ -3950,7 +3950,7 @@ namespace BDArmory.Weapons.Missiles
             homingModeTerminal = ParseHomingType(terminalHomingType);
 
             if (TargetingMode == TargetingModes.Gps)
-                maxOffBoresight = 360;
+                maxOffBoresight = 180;
 
             if (!terminalHoming && GuidanceMode == GuidanceModes.AAMLoft)
             {
@@ -4172,7 +4172,7 @@ namespace BDArmory.Weapons.Missiles
                     output.AppendLine($"- LOAL: {radarLOAL}");
                     if (radarLOAL) output.AppendLine($"  - Max Radar Search Time: {tempSeekerTimeout} s");
                 }
-                output.AppendLine($"Max Offboresight: {maxOffBoresight}");
+                output.AppendLine($"Max Off Boresight: {maxOffBoresight}");
                 output.AppendLine($"Locked FOV: {lockedSensorFOV}");
                 output.AppendLine($"Chaff Sensitivity: {chaffEffectivity}");
             }
@@ -4181,7 +4181,7 @@ namespace BDArmory.Weapons.Missiles
             {
                 output.AppendLine($"Uncaged Lock: {uncagedLock}");
                 output.AppendLine($"Min Heat threshold: {heatThreshold}");
-                output.AppendLine($"Max Offboresight: {maxOffBoresight}");
+                output.AppendLine($"Max Off Boresight: {maxOffBoresight}");
                 output.AppendLine($"Locked FOV: {lockedSensorFOV}");
                 output.AppendLine($"Flare Sensitivity: {flareEffectivity}");
                 output.AppendLine($"Seeker Search Time: {tempSeekerTimeout} s");

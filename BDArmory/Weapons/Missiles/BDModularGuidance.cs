@@ -665,7 +665,7 @@ namespace BDArmory.Weapons.Missiles
             lockedSensorFOV = 5;
             radarLOAL = true;
 
-            if (missileFireAngle < 0 && maxOffBoresight < 360)
+            if (missileFireAngle < 0 && maxOffBoresight < 180)
             {
                 UI_FloatRange mFA = (UI_FloatRange)Fields["missileFireAngle"].uiControlEditor;
                 mFA.maxValue = maxOffBoresight * 0.75f;
