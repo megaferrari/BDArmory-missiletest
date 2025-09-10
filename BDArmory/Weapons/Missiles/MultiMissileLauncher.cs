@@ -358,8 +358,9 @@ namespace BDArmory.Weapons.Missiles
         public void updateMaxOffBoresight(float maxOffBoresight)
         {
             // Need to update the maxOffBoresight value with the value from ModuleMissileRearm
-            // except for in the case of this being a cluster missile
-            if (isClusterMissile)
+            // except for in the case of this being a cluster missile or we're overriding the reference
+            // transform, as is the case with VLS cells
+            if (isClusterMissile || overrideReferenceTransform)
                 return;
 
             // Have to wait until missileLauncher is loaded before doing this
