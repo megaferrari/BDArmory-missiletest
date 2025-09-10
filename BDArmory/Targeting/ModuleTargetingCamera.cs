@@ -56,6 +56,7 @@ namespace BDArmory.Targeting
         [KSPField]
         public string zoomFOVs = "40,15,3,1";
         float[] zoomFovs;
+        float[] zoomTimes;
 
         [KSPField(isPersistant = true)]
         public int currentFovIndex;
@@ -892,7 +893,7 @@ namespace BDArmory.Targeting
             zoomBox.alignment = TextAnchor.UpperCenter;
             zoomBox.padding.top = 0;
             GUI.enabled = true;
-            GUI.Label(zoomInfoRect, (currentFovIndex + 1).ToString() + "X", zoomBox);
+            GUI.Label(zoomInfoRect, $"{zoomTimes[currentFovIndex]:F1} X", zoomBox);
 
             GUI.enabled = currentFovIndex < zoomFovs.Length - 1;
             if (GUI.Button(zoomInRect, "+", GUI.skin.button))
@@ -1545,6 +1546,12 @@ namespace BDArmory.Targeting
         void ParseFovs()
         {
             zoomFovs = OtherUtils.ParseToFloatArray(zoomFOVs);
+            zoomTimes = new float[zoomFovs.Length];
+            zoomTimes[0] = 1f;
+            // Just doing it based on relative size of objects
+            float tanoneXzoom = Mathf.Tan(Mathf.Deg2Rad * zoomFovs[0]);
+            for (int i = 1; i < zoomFovs.Length; i++)
+                zoomTimes[i] = tanoneXzoom / Mathf.Tan(Mathf.Deg2Rad * zoomFovs[i]);
         }
 
         void OnDestroy()

@@ -52,6 +52,7 @@
 - Sensors:
 	- Add support for slaving turrets via targeting cameras.
 	- Fix targeting camera issues with moving targets.
+	- Targeting camera now displays actual zoom power.
 	- Fix 'Slave Turret' button occasionally locking the turret to the vessel's origin point or non-target point in space.
 	- Locking a target will no longer automatically slave active turrets to the target when manually controlling a craft. To slave turrets to a locked radar/camera, use the 'Slave Turret' button.
 	- Fix bug that allowed radars to lock on below the radar horizon when the appropriate settings are toggled.
@@ -114,6 +115,7 @@
 			- Added "Lofted Aimpoint" toggle to Missile Turrets, with the accompanying "Loft Velocity Factor". When toggled on, the turret will aim above the target to provide some lofting to the missile trajectory (though this requires the usage of pronav and a gain schedule). "Loft Velocity Factor" is used to scale the missile's "optimimumVelocity" for the ballistic simulation, a lower "Loft Velocity Factor" results in a higher loft angle.
 			- Added new "deployBlocksPitch", "deployBlocksYaw" and "deployBlocksReload" booleans to Missile Turrets, when toggled on, the turret will have to finish it's deploy animation before pitching/yawing, and will have to retract for reloading (respecting the pitch and yaw toggles as well).
 			- Allow multi-missile launcher to gracefully error in the event of the missile model not being found. A debug log entry will be made, warning the user of such an error, and if it is a launcher, it will attempt to find the correct model to use.
+			- Added "displayOrdinanceHasColliders" field to multi-missile launchers, defaults to true. When set to false disables the colliders on the dummy missiles granting a very minimal performance improvment.
 - Effects:
 	- Add splash effects to underwater explosions (very WIP, feedback on size, behavior etc. would be appreciated)
 	- Bullet hits now attached to whatever collider they hit, so bullet hits on animated parts, like turrets, will now move with them
