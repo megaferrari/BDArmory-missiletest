@@ -877,11 +877,17 @@ namespace BDArmory.Targeting
 
         private void DrawZoomButtons()
         {
-            float zoomStartX = adjCamImageSize * 0.94f - (buttonHeight * 3) - (4 * gap);
+            float zoomGap = 9 * gap;
+            if (zoomTimes[currentFovIndex] >= 100f)
+                zoomGap *= 9 * gap;
+            else if (zoomTimes[currentFovIndex] >= 10f)
+                zoomGap += 5 * gap;
+
+            float zoomStartX = adjCamImageSize * 0.94f - (buttonHeight * 3) - zoomGap;
             float zoomStartY = 20 + (adjCamImageSize * 0.06f);
             Rect zoomOutRect = new Rect(zoomStartX, zoomStartY, buttonHeight, buttonHeight);
-            Rect zoomInfoRect = new Rect(zoomStartX + buttonHeight + gap, zoomStartY, buttonHeight + 4 * gap, buttonHeight);
-            Rect zoomInRect = new Rect(zoomStartX + buttonHeight * 2 + 5 * gap, zoomStartY, buttonHeight, buttonHeight);
+            Rect zoomInfoRect = new Rect(zoomStartX + buttonHeight + gap, zoomStartY, buttonHeight + zoomGap, buttonHeight);
+            Rect zoomInRect = new Rect(zoomStartX + buttonHeight * 2 + (zoomGap + gap), zoomStartY, buttonHeight, buttonHeight);
 
             GUI.enabled = currentFovIndex > 0;
             if (GUI.Button(zoomOutRect, "-", GUI.skin.button))
