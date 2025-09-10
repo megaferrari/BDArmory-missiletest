@@ -526,8 +526,8 @@ namespace BDArmory.Weapons.Missiles
         {
             //check if part uses a MODEL node to grab an (external?) .mu file
             string url;
-            float invRescaleFactor = 1f / part.rescaleFactor;
-            dummyScale = new Vector3(invRescaleFactor, invRescaleFactor, invRescaleFactor);
+            //float invRescaleFactor = 1f / part.rescaleFactor;
+            dummyScale = Vector3.one; //new Vector3(invRescaleFactor, invRescaleFactor, invRescaleFactor);
             if (cfgdir.config.HasNode("MODEL"))
             {
                 var MODEL = cfgdir.config.GetNode("MODEL");
@@ -724,9 +724,9 @@ namespace BDArmory.Weapons.Missiles
                     GameObject dummy = mslDummyPool[subMunitionPath].GetPooledObject();
                     MissileDummy dummyThis = dummy.GetComponentInChildren<MissileDummy>();
 
+                    dummy.transform.localScale = dummyScale;
                     dummyThis.AttachAt(part, launchTransforms[i]);
                     if (adjustableRail && attachedMissileDia > 0) dummyThis.transform.localPosition = new Vector3(attachedMissileDia / 2, 0, 0);
-                    dummy.transform.localScale = dummyScale;
                     var mslAnim = dummy.GetComponentInChildren<Animation>();
                     if (mslAnim != null) mslAnim.enabled = false;
                     if (!displayOrdinanceHasColliders)
