@@ -1,7 +1,14 @@
 ﻿IMPROVEMENTS / FIXES
 - General:
 	- Fix the g-limit overrides from needing to save the persistent savegame, which was leaving spawned craft in play when reverting to the SPH.
-	- Fix Conformal Decals and part variants breaking craft RCS analysis.
+- Part Changes:
+	- Added stack attachment nodes to all turret bases.
+	- Sanity-checked turret bulkhead sizes.
+	- Increased FoV settings for FLIR ball and Targeting Pod to take advantage of new zoom readouts
+	- Missiles:
+		- AMRAAMs given INS/ARH guidance and AAM/Pronav guidance to bring its capabilities in line with modern BDA+ features
+		- Sidewinder missile given Pronav guidance
+		- Hellfire missile slightly buffed and given Kappa guidance, giving it top-attack capabilities.
 - UI:
 	- Fix spelling of "ordnance" in localisation files (settings and modules retain the misspelling).
 	- Add competition marquee messages for fuel/ammo detonations from battle damage.
@@ -69,8 +76,6 @@
 	- Added fuzeDelay and fuzeSensitivity functionality to bullets. Now, for penetrating and delay fuzes you can specify the fuze delay in seconds, and the fuze sensitivity in mm for penetrating fuzes, by listing them with commas, I.E. "fuzeType = Penetrating,0.01,20" for a 0.01 s delay which will be set off by 20 mm of armor (currently material differences are not considered).
 	- Fix bullet behavior when hitting parts with multiple colliders embedded in each other, bullets should now only hit such a part once, unless it exits the part and then hits the part again. Note the system in place cannot catch cases where another part is clipped in such a part.
 	- Fix phantom water on planets without oceans
-	- Added stack attachment nodes to all turret bases.
-	- Sanity-checked turret bulkhead sizes.
 	- Changed continuous rod warhead damage area from 60°-90° to 30°-60°.
 	- Missiles:
 		- General Changes:
