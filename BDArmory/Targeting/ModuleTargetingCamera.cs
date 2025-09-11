@@ -879,7 +879,7 @@ namespace BDArmory.Targeting
         {
             float zoomGap = 9 * gap;
             if (zoomTimes[currentFovIndex] >= 100f)
-                zoomGap *= 9 * gap;
+                zoomGap += 10 * gap;
             else if (zoomTimes[currentFovIndex] >= 10f)
                 zoomGap += 5 * gap;
 
