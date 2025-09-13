@@ -1203,40 +1203,40 @@ namespace BDArmory.UI
             TargetInfo info = v.gameObject.GetComponent<TargetInfo>();
             if (!info)
             {
-                using (var mf = VesselModuleRegistry.GetMissileFires(v).GetEnumerator())
-                    while (mf.MoveNext())
+                MissileFire mf = ActiveController.GetActiveController(v).WM;
+                if (mf != null)
+                {
+                    if (reporter.Team.IsEnemy(mf.Team))
                     {
-                        if (mf.Current == null) continue;
-                        if (reporter.Team.IsEnemy(mf.Current.Team))
+                        info = v.gameObject.AddComponent<TargetInfo>();
+                        info.detectedTime[reporter.Team] = Time.time;
+                        if (radar)
                         {
-                            info = v.gameObject.AddComponent<TargetInfo>();
-                            info.detectedTime[reporter.Team] = Time.time;
-                            if (radar)
-                            {
-                                info.detected[reporter.Team] = true;
-                            }
-                            break;
+                            info.detected[reporter.Team] = true;
                         }
                     }
-
-                using (var ml = VesselModuleRegistry.GetModules<MissileBase>(v).GetEnumerator())
-                    while (ml.MoveNext())
-                    {
-                        if (ml.Current == null) continue;
-                        if (ml.Current.HasFired)
+                }
+                else
+                {
+                    using (var ml = VesselModuleRegistry.GetModules<MissileBase>(v).GetEnumerator())
+                        while (ml.MoveNext())
                         {
-                            if (reporter.Team.IsEnemy(ml.Current.Team))
+                            if (ml.Current == null) continue;
+                            if (ml.Current.HasFired)
                             {
-                                info = v.gameObject.AddComponent<TargetInfo>();
-                                info.detectedTime[reporter.Team] = Time.time;
-                                if (radar)
+                                if (reporter.Team.IsEnemy(ml.Current.Team))
                                 {
-                                    info.detected[reporter.Team] = true;
+                                    info = v.gameObject.AddComponent<TargetInfo>();
+                                    info.detectedTime[reporter.Team] = Time.time;
+                                    if (radar)
+                                    {
+                                        info.detected[reporter.Team] = true;
+                                    }
+                                    break;
                                 }
-                                break;
                             }
                         }
-                    }
+                }
             }
             if (initialSetup) return;
             // add target to database
