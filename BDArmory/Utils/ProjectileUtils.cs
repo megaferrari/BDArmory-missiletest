@@ -557,7 +557,8 @@ namespace BDArmory.Utils
                 {
                     //armorArea = hitPart.Modules.GetModule<HitpointTracker>().armorVolume * 10000;
                     // This effectively does the same thing as `Armor.armorVolume`...
-                    armorArea = (Armor.totalArmorQty / (Armor.Density / 1000)) / (Armor.Armor / 1000); //mass / density / thickness to get surface area, m2
+                    //armorArea = (Armor.totalArmorQty / (Armor.Density / 1000)) / (Armor.Armor / 1000); //mass / density / thickness to get surface area, m2
+                    armorArea = Armor.armorVolume;
                     if (double.IsNaN(armorArea) || Armor.Armor <= 0)
                         return false; //no armor to stop explosion
                     spallArea = Mathf.Min(armorArea, radius * radius * 1.5f); //clamp based on max size of explosion, m2
