@@ -296,7 +296,7 @@ namespace BDArmory.Radar
                 signatureAtAspect *= ti.radarModifiedSignature / ti.radarBaseSignature;
 
                 if (BDArmorySettings.DEBUG_RADAR)
-                    Debug.Log("[BDArmory.RadarUtils]: " + ti.Vessel.vesselName + " signature of " + signatureAtAspect.ToString("0.00") + "m^2 at az/el " + azAngle.ToString("0.0") + "/" + elAngle.ToString("0.0") + " deg.");
+                    Debug.Log($"[BDArmory.RadarUtils]: {ti.Vessel.vesselName} signature of {signatureAtAspect.ToString("0.00")} m² at az/el {azAngle.ToString("0.0")}/{elAngle.ToString("0.0")} deg.");
 
                 return signatureAtAspect;
             }
