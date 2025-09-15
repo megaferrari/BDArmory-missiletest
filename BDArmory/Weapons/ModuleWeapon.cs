@@ -1285,9 +1285,24 @@ namespace BDArmory.Weapons
             ammoList = BDAcTools.ParseNames(bulletType);
             if (ammoList.Count > 1)
             {
-                if (!canHotSwap)
+                if (advancedAmmoOption == true)
                 {
+                    Events["ToggleAmmoConfig"].guiName = StringUtils.Localize("#LOC_BDArmory_advanced");//"Advanced Ammo Config"
+                    Events["ConfigAmmo"].guiActive = true;
+                    Events["ConfigAmmo"].guiActiveEditor = true;
                     Fields["AmmoTypeNum"].guiActive = false;
+                    Fields["AmmoTypeNum"].guiActiveEditor = false;
+                }
+                else
+                {
+                    Events["ToggleAmmoConfig"].guiName = StringUtils.Localize("#LOC_BDArmory_simple");//"Simple Ammo Config
+                    Events["ConfigAmmo"].guiActive = false;
+                    Events["ConfigAmmo"].guiActiveEditor = false;
+                    Fields["AmmoTypeNum"].guiActiveEditor = true;
+                    if (!canHotSwap)
+                        Fields["AmmoTypeNum"].guiActive = false;
+                    else
+                        Fields["AmmoTypeNum"].guiActive = true;
                 }
                 UI_FloatRange ATrangeEditor = (UI_FloatRange)Fields["AmmoTypeNum"].uiControlEditor;
                 ATrangeEditor.maxValue = (float)ammoList.Count;
