@@ -312,9 +312,13 @@ namespace BDArmory.Guidances
 
             float pullUpCos = Vector3.Dot(missileVel.normalized, upDirection);
 
-            float verticalAngle = (Mathf.Deg2Rad * Mathf.Sign(pullUpCos)) * Vector3.Angle(missileVel.ProjectOnPlanePreNormalized(right), planarDirToTarget);
+            VectorUtils.GetAzimuthElevation(missileVel, planarDirToTarget, right, upDirection, out float verticalAngle, out float horizontalAngle);
+            verticalAngle *= Mathf.Deg2Rad;
+            horizontalAngle *= Mathf.Deg2Rad;
 
-            float horizontalAngle = (Mathf.Deg2Rad * Mathf.Sign(Vector3.Dot(missileVel, right))) * Vector3.Angle(missileVel.ProjectOnPlanePreNormalized(upDirection), planarDirToTarget);
+            /*float verticalAngle = (Mathf.Deg2Rad * Mathf.Sign(pullUpCos)) * Vector3.Angle(missileVel.ProjectOnPlanePreNormalized(right), planarDirToTarget);
+
+            float horizontalAngle = (Mathf.Deg2Rad * Mathf.Sign(Vector3.Dot(missileVel, right))) * Vector3.Angle(missileVel.ProjectOnPlanePreNormalized(upDirection), planarDirToTarget);*/
 
             const float PI2 = 2f * Mathf.PI;
 

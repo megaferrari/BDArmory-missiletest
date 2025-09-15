@@ -52,10 +52,13 @@ namespace BDArmory.Radar
         private int resourceID;
 
         [KSPField]
-        public bool omnidirectional = true;			//false=boresight only
+        public bool omnidirectional = true;			//false=scan FoV limited to directionalFieldOfView
 
         [KSPField]
-        public float directionalFieldOfView = 90;	//relevant for omnidirectional only
+        public float directionalFieldOfView = 90;   //relevant for NON-omnidirectional only
+
+        [KSPField]
+        public float elevationFOV = 90;             //FoV of the radar in the vertical axis
 
         [KSPField]
         public float boresightFOV = 10;				//relevant for boresight only
@@ -758,7 +761,7 @@ namespace BDArmory.Radar
         void Scan()
         {
             float angleDelta = scanRotationSpeed * Time.fixedDeltaTime;
-            RadarUtils.RadarUpdateScanLock(WeaponManager, currentAngle, referenceTransform, angleDelta, referenceTransform.position, this, false, ref attemptedLocks);
+            RadarUtils.RadarUpdateScanLock(WeaponManager, currentAngle, 0f, referenceTransform, angleDelta, elevationFOV, referenceTransform.position, this, false, ref attemptedLocks);
 
             if (omnidirectional)
             {
@@ -789,9 +792,9 @@ namespace BDArmory.Radar
                 }
                 else
                 {
-                    if (Mathf.Abs(currentAngle) > directionalFieldOfView / 2)
+                    if (Mathf.Abs(currentAngle) > directionalFieldOfView / 2f)
                     {
-                        currentAngle = Mathf.Sign(currentAngle) * directionalFieldOfView / 2;
+                        currentAngle = Mathf.Sign(currentAngle) * directionalFieldOfView / 2f;
                         radialScanDirection = -radialScanDirection;
                     }
                 }
@@ -825,18 +828,21 @@ namespace BDArmory.Radar
                 }
             }
 
-            Vector3 targetPlanarDirection = (position - referenceTransform.position).ProjectOnPlanePreNormalized(referenceTransform.up);
-            float angle = Vector3.Angle(targetPlanarDirection, referenceTransform.forward);
-            if (referenceTransform.InverseTransformPoint(position).x < 0)
-            {
-                angle = -angle;
-            }
+            //Vector3 targetPlanarDirection = (position - referenceTransform.position).ProjectOnPlanePreNormalized(referenceTransform.up);
+            //float angle = Vector3.Angle(targetPlanarDirection, referenceTransform.forward);
+
+            VectorUtils.GetAzimuthElevation(position - referenceTransform.position, referenceTransform.forward, referenceTransform.up, out float azimuthAngle, out float elevationAngle);
+
+            //if (referenceTransform.InverseTransformPoint(position).x < 0)
+            //{
+            //    angle = -angle;
+            //}
             TargetSignatureData.ResetTSDArray(ref attemptedLocks);
-            RadarUtils.RadarUpdateScanLock(weaponManager, angle, referenceTransform, lockAttemptFOV, referenceTransform.position, this, true, ref attemptedLocks, signalPersistTime);
+            RadarUtils.RadarUpdateScanLock(weaponManager, azimuthAngle, elevationAngle, referenceTransform, lockAttemptFOV, lockAttemptFOV, referenceTransform.position, this, true, ref attemptedLocks, signalPersistTime);
 
             for (int i = 0; i < attemptedLocks.Length; i++)
             {
-                if (attemptedLocks[i].exists && (attemptedLocks[i].predictedPosition - position).sqrMagnitude < 40.0 * 40.0) //(lockSuccesses[i] && attemptedLocks[i].exists && (attemptedLocks[i].predictedPosition - position).sqrMagnitude < 40 * 40)
+                if (attemptedLocks[i].exists && (attemptedLocks[i].predictedPosition - position).sqrMagnitude < 40.0f * 40.0f) //(lockSuccesses[i] && attemptedLocks[i].exists && (attemptedLocks[i].predictedPosition - position).sqrMagnitude < 40 * 40)
                 {
                     // If locked onto a vessel that was not our target, return false
                     if ((attemptedLocks[i].vessel != null) && (targetVessel != null) && (attemptedLocks[i].vessel != targetVessel))

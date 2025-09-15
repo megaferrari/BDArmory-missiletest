@@ -364,11 +364,22 @@ namespace BDArmory.Utils
             }
         }
 
+        // Note to self: Technically speaking, `Vector3.Angle` is 
+        // inefficient in that it performs `sqrt` first on the product
+        // of the sqrMagnitudes before checking the magnitude
+        // but AFAIK the float multiplication operation is performed
+        // first, *before* the cast to a double for Math.Sqrt, so
+        // there isn't any "precision gain" so to speak of, and
+        // a check of the product of the two first would allow for
+        // skipping the sqrt if the product is too small.
+
         /// <summary>
         /// Get angle between two pre-normalized vectors.
         /// 
         /// This implementation assumes that the input vectors are already normalized,
         /// skipping such checks and normalization that Vector3.Angle does.
+        /// IMPORTANT NOTE: Unlike Vector3.Angle(), this returns 90° if one or both
+        /// vectors are zero vectors! Vector3.Angle() returns 0° instead.
         /// </summary>
         /// <param name="from">First vector.</param>
         /// <param name="to">Second vector.</param>
@@ -402,6 +413,56 @@ namespace BDArmory.Utils
 
             float num2 = Mathf.Clamp(Vector3.Dot(from, to) / (fromMag * toMag), -1f, 1f);
             return Mathf.Acos(num2) * Mathf.Rad2Deg;
+        }
+
+        /// <summary>
+        /// Get azimuth and elevation of a vector, relative to axes defined by forward and up.
+        /// 
+        /// </summary>
+        /// <param name="dir">Direction vector.</param>
+        /// <param name="forward">Forward vector.</param>
+        /// <param name="up">Up vector.</param>
+        /// <param name="azimuth">Azimuth output.</param>
+        /// <param name="elevation">Elevation output.</param>
+        /// <returns>The azimuth and elevation angle, in degrees, of "dir" relative to the axes defined by forward and up.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void GetAzimuthElevation(Vector3 dir, Vector3 forward, Vector3 up, out float azimuth, out float elevation)
+        {
+            // Get the right vector to fully define the coordinate system
+            Vector3 right = Vector3.Cross(up, forward);
+
+            // Get the projections
+            float x = Vector3.Dot(dir, forward);
+            float y = Vector3.Dot(dir, right);
+            float z = Vector3.Dot(dir, up);
+
+            // Return the azimuth/elevation
+            azimuth = Mathf.Rad2Deg * Mathf.Atan2(y, x);
+            elevation = Mathf.Rad2Deg * Mathf.Atan2(z, x);
+        }
+
+        /// <summary>
+        /// Get azimuth and elevation of a vector, relative to axes defined by forward, right and up.
+        /// 
+        /// </summary>
+        /// <param name="dir">Direction vector.</param>
+        /// <param name="forward">Forward vector.</param>
+        /// <param name="right">Right vector.</param>
+        /// <param name="up">Up vector.</param>
+        /// <param name="azimuth">Azimuth output.</param>
+        /// <param name="elevation">Elevation output.</param>
+        /// <returns>The azimuth and elevation angle, in degrees, of "dir" relative to the axes defined by forward, right and up.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void GetAzimuthElevation(Vector3 dir, Vector3 forward, Vector3 right, Vector3 up, out float azimuth, out float elevation)
+        {
+            // Get the projections
+            float x = Vector3.Dot(dir, forward);
+            float y = Vector3.Dot(dir, right);
+            float z = Vector3.Dot(dir, up);
+
+            // Return the azimuth/elevation
+            azimuth = Mathf.Rad2Deg * Mathf.Atan2(y, x);
+            elevation = Mathf.Rad2Deg * Mathf.Atan2(z, x);
         }
 
         /// <summary>
