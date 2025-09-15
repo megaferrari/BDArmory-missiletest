@@ -1,6 +1,7 @@
 ﻿IMPROVEMENTS / FIXES
 - General:
 	- Fix the g-limit overrides from needing to save the persistent savegame, which was leaving spawned craft in play when reverting to the SPH.
+	- Fix issues with armor damage when using "Armor Mass Multiplier" values other than 1.
 - Part Changes:
 	- Added stack attachment nodes to all turret bases.
 	- Sanity-checked turret bulkhead sizes.
@@ -65,13 +66,15 @@
 	- Fix bug that allowed radars to lock on below the radar horizon when the appropriate settings are toggled.
 	- Fix datalinked radars not conveying lock information to all datalinked vessels.
 	- Fix Conformal Decals and part variants affecting craft RCS analysis.
+	- Fix radars not having an elevation limit. Radars can now be given a specified elevation limit via "elevationFOV"
 - Weapons:
+	- Remove maxEngagementRange (default 5000m) check from bombs when AI is selecting what weapon to use.
+	- EMP weapons (both guns and missiles) now capable of disabling missiles.
 	- Add a "Yaw Standby Angle" slider to gun turrets.
 	- Multi-barreled guns now no longer swap to the next ammo type in the belt until after all barrels have fired.
 	- Multi-barreled guns now fire tracers every tracerInterval rounds of each barrel, and will fire tracers simultaneously from all barrels.
-	- Remove maxEngagementRange (default 5000m) check from bombs when AI is selecting what weapon to use.
 	- Fix aim lead offset for weapons with deploy animations.
-	- EMP weapons (both guns and missiles) now capable of disabling missiles.
+	- Fix display issue where "Advanced Ammo Config" button does not reflect the actual state of the weapon
 	- Weapons fire SFX maximum distance it can be heard now scales based on weapon caliber
 	- Added fuzeDelay and fuzeSensitivity functionality to bullets. Now, for penetrating and delay fuzes you can specify the fuze delay in seconds, and the fuze sensitivity in mm for penetrating fuzes, by listing them with commas, I.E. "fuzeType = Penetrating,0.01,20" for a 0.01 s delay which will be set off by 20 mm of armor (currently material differences are not considered).
 	- Fix bullet behavior when hitting parts with multiple colliders embedded in each other, bullets should now only hit such a part once, unless it exits the part and then hits the part again. Note the system in place cannot catch cases where another part is clipped in such a part.
