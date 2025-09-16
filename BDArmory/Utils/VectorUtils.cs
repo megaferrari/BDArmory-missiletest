@@ -378,8 +378,10 @@ namespace BDArmory.Utils
         /// 
         /// This implementation assumes that the input vectors are already normalized,
         /// skipping such checks and normalization that Vector3.Angle does.
-        /// IMPORTANT NOTE: Unlike Vector3.Angle(), this returns 90° if one or both
-        /// vectors are zero vectors! Vector3.Angle() returns 0° instead.
+        /// IMPORTANT NOTE: Unlike Vector3.Angle(), this returns 90Â° if one or both
+        /// vectors are zero vectors! Vector3.Angle() returns 0Â° instead.
+        /// If this behavior is undesireable, the "AnglePreNormalized" function which takes
+        /// in the two original vectors and their magnitudes should be used instead.
         /// </summary>
         /// <param name="from">First vector.</param>
         /// <param name="to">Second vector.</param>
