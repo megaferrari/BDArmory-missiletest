@@ -417,6 +417,8 @@ namespace BDArmory.Utils
 
         /// <summary>
         /// Get azimuth and elevation of a vector, relative to axes defined by forward and up.
+        /// Note that forward and up are expected to be unit vectors, however dir does not have
+        /// to be a unit vector!
         /// 
         /// </summary>
         /// <param name="dir">Direction vector.</param>
@@ -428,12 +430,12 @@ namespace BDArmory.Utils
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GetAzimuthElevation(Vector3 dir, Vector3 forward, Vector3 up, out float azimuth, out float elevation)
         {
-            // Get the right vector to fully define the coordinate system
-            Vector3 right = Vector3.Cross(up, forward);
+            // Get the left vector to fully define the coordinate system
+            Vector3 left = Vector3.Cross(up, forward);
 
             // Get the projections
             float x = Vector3.Dot(dir, forward);
-            float y = Vector3.Dot(dir, right);
+            float y = Vector3.Dot(dir, left);
             float z = Vector3.Dot(dir, up);
 
             // Return the azimuth/elevation
@@ -442,22 +444,25 @@ namespace BDArmory.Utils
         }
 
         /// <summary>
-        /// Get azimuth and elevation of a vector, relative to axes defined by forward, right and up.
+        /// Get azimuth and elevation of a vector, relative to axes defined by forward, left and up.
+        /// Note that forward, left and up must have equal magnitudes but do not have to be unit
+        /// vectors (though unit vectors are most likely the most convenient for this purpose. dir does
+        /// not have to be a unit vector.
         /// 
         /// </summary>
         /// <param name="dir">Direction vector.</param>
         /// <param name="forward">Forward vector.</param>
-        /// <param name="right">Right vector.</param>
+        /// <param name="left">left vector.</param>
         /// <param name="up">Up vector.</param>
         /// <param name="azimuth">Azimuth output.</param>
         /// <param name="elevation">Elevation output.</param>
-        /// <returns>The azimuth and elevation angle, in degrees, of "dir" relative to the axes defined by forward, right and up.</returns>
+        /// <returns>The azimuth and elevation angle, in degrees, of "dir" relative to the axes defined by forward, left and up.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void GetAzimuthElevation(Vector3 dir, Vector3 forward, Vector3 right, Vector3 up, out float azimuth, out float elevation)
+        public static void GetAzimuthElevation(Vector3 dir, Vector3 forward, Vector3 left, Vector3 up, out float azimuth, out float elevation)
         {
             // Get the projections
             float x = Vector3.Dot(dir, forward);
-            float y = Vector3.Dot(dir, right);
+            float y = Vector3.Dot(dir, left);
             float z = Vector3.Dot(dir, up);
 
             // Return the azimuth/elevation
