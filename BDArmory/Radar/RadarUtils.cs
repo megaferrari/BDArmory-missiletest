@@ -288,7 +288,10 @@ namespace BDArmory.Radar
                 float azAngle = Mathf.Abs(Vector3.SignedAngle(ti.Vessel.ReferenceTransform.up, azComponent, ti.Vessel.ReferenceTransform.forward));
                 float elAngle = Vector3.SignedAngle(ti.Vessel.ReferenceTransform.up, elComponent, -ti.Vessel.ReferenceTransform.right);*/
 
-                VectorUtils.GetAzimuthElevation(directionOfRadar, ti.Vessel.ReferenceTransform.forward, ti.Vessel.ReferenceTransform.up, out float azAngle, out float elAngle);
+                VectorUtils.GetAzimuthElevation(directionOfRadar, ti.Vessel.ReferenceTransform.up, ti.Vessel.ReferenceTransform.forward, out float azAngle, out float elAngle);
+
+                azAngle = Mathf.Abs(azAngle);
+                elAngle *= -1f;
 
                 float signatureAtAspect = RCSMatrixEval(ti.radarSignatureMatrix, ti.radarBaseSignature, azAngle, elAngle);
 
