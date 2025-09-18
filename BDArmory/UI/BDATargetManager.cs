@@ -952,11 +952,14 @@ namespace BDArmory.UI
             var activeVessel = FlightGlobals.ActiveVessel;
             if (activeVessel != null)
             {
-                Vector3 forward = activeVessel.vesselTransform.position + 100f * activeVessel.vesselTransform.up;
-                Vector3 aft = activeVessel.vesselTransform.position - 100f * activeVessel.vesselTransform.up;
-                Vector3 side = activeVessel.vesselTransform.position + 100f * activeVessel.vesselTransform.right;
-                Vector3 top = activeVessel.vesselTransform.position - 100f * activeVessel.vesselTransform.forward;
-                Vector3 bottom = activeVessel.vesselTransform.position + 100f * activeVessel.vesselTransform.forward;
+                Vector3 position = activeVessel.vesselTransform.position;
+                Vector3 vesselTransformUp = activeVessel.vesselTransform.up;
+                Vector3 vesselTransformForward = activeVessel.vesselTransform.forward;
+                Vector3 forward = position + 100f * vesselTransformUp;
+                Vector3 aft = position - 100f * vesselTransformUp;
+                Vector3 side = position + 100f * activeVessel.vesselTransform.right;
+                Vector3 top = position - 100f * vesselTransformForward;
+                Vector3 bottom = position + 100f * vesselTransformForward;
 
 
                 debugString.Append(Environment.NewLine);
@@ -973,9 +976,9 @@ namespace BDArmory.UI
                 string aspectedText = "";
                 if (BDArmorySettings.ASPECTED_RCS)
                 {
-                    aspectedText += ", For/Aft: " + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, forward)) + "/" + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, aft));
-                    aspectedText += ", Side: " + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, side));
-                    aspectedText += ", Top/Bot: " + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, top)) + "/" + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, bottom));
+                    aspectedText += ", For/Aft: " + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, forward, 100f)) + "/" + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, aft, 100f));
+                    aspectedText += ", Side: " + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, side, 100f));
+                    aspectedText += ", Top/Bot: " + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, top, 100f)) + "/" + RadarUtils.RCSString(RadarUtils.GetVesselRadarSignatureAtAspect(radarSig, bottom, 100f));
                 }
                 debugString.AppendLine($"Radar Signature: " + RadarUtils.RCSString(radarSig.radarModifiedSignature) + aspectedText);
                 debugString.AppendLine($"Chaff multiplier: " + RadarUtils.GetVesselChaffFactor(activeVessel).ToString("0.0"));

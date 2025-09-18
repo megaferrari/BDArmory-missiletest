@@ -1157,8 +1157,8 @@ namespace BDArmory.Radar
                     float currentAngle = availableRadars[i].currentAngle;
 
                     availableRadars[i].UpdateDisplayTransform();
-                    float radarAngle = VectorUtils.SignedAngle(projectedVesselFwd,
-                        availableRadars[i].currDisplayForward.ProjectOnPlanePreNormalized(refUp),
+                    float radarAngle = -VectorUtils.GetAngleOnPlane(projectedVesselFwd,
+                        availableRadars[i].currDisplayForward,
                         refRight);
 
                     // TODO: This does not account for the true 3D orientation of the radar! Technically, we could just
@@ -1173,7 +1173,7 @@ namespace BDArmory.Radar
                         }
                         else if (!vessel.Landed)
                         {
-                            float angleFromNorth = VectorUtils.SignedAngle(north, projectedVesselFwd,
+                            float angleFromNorth = -VectorUtils.GetAngleOnPlane(north, projectedVesselFwd,
                                 Vector3.Cross(north, vessel.upAxis));
                             currentAngle += angleFromNorth;
                         }
@@ -1213,8 +1213,8 @@ namespace BDArmory.Radar
                     bool canScan = availableIRSTs[i].canScan;
                     float currentAngle = availableIRSTs[i].currentAngle;
 
-                    float radarAngle = VectorUtils.SignedAngle(projectedVesselFwd,
-                        availableIRSTs[i].transform.up.ProjectOnPlanePreNormalized(refUp),
+                    float radarAngle = -VectorUtils.GetAngleOnPlane(projectedVesselFwd,
+                        availableIRSTs[i].transform.up,
                         refRight);
 
                     if (!canScan || availableIRSTs[i].vessel != vessel) continue;
@@ -1225,7 +1225,7 @@ namespace BDArmory.Radar
                     }
                     else if (!vessel.Landed)
                     {
-                        float angleFromNorth = VectorUtils.SignedAngle(north, projectedVesselFwd,
+                        float angleFromNorth = -VectorUtils.GetAngleOnPlane(north, projectedVesselFwd,
                             Vector3.Cross(north, vessel.upAxis));
                         currentAngle += angleFromNorth;
                     }
@@ -1352,7 +1352,7 @@ namespace BDArmory.Radar
             {
                 Vector3 localUp = vessel.ReferenceTransform.InverseTransformDirection(refUp);
                 localUp = localUp.ProjectOnPlanePreNormalized(Vector3.up).normalized;
-                float rollAngle = -BDAMath.SignedAngle(-Vector3.forward, localUp, Vector3.right);
+                float rollAngle = VectorUtils.GetAngleOnPlane(-Vector3.forward, localUp, Vector3.right);
                 GUIUtility.RotateAroundPivot(rollAngle, guiMatrix * scanRect.center);
                 GUI.DrawTexture(scanRect, rollIndicatorTexture, ScaleMode.StretchToFill, true);
                 GUI.matrix = guiMatrix;

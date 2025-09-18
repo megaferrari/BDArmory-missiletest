@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace BDArmory.Utils
 {
@@ -45,6 +46,7 @@ namespace BDArmory.Utils
             return point - (distance * planeNormal);
         }
 
+        [Obsolete("Use -VectorUtils.GetAngleOnPlane(fromDirection, toDirection, referenceRight) instead.")]
         public static float SignedAngle(Vector3 fromDirection, Vector3 toDirection, Vector3 referenceRight)
         {
             float angle = Vector3.Angle(fromDirection, toDirection);

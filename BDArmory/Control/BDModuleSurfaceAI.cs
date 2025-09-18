@@ -1006,7 +1006,7 @@ namespace BDArmory.Control
                 yawTarget = Vector3.RotateTowards(vessel.srf_velocity, yawTarget, MaxDrift * Mathf.Deg2Rad, 0);
             }
             bool invertCtrlPoint = SurfaceType != AIUtils.VehicleMovementType.Stationary && Vector3.Angle(vessel.srf_vel_direction.ProjectOnPlanePreNormalized(vessel.up), vesselTransform.up) > 90 && Math.Round(vessel.srfSpeed, 1) > 1; //need to flip vessel 'forward' when reversing for proper steerage
-            float yawError = VectorUtils.SignedAngle(invertCtrlPoint ? -vesselTransform.up : vesselTransform.up, yawTarget, vesselTransform.right) + (aimingMode ? 0 : weaveAdjustment);
+            float yawError = -VectorUtils.GetAngleOnPlane(invertCtrlPoint ? -vesselTransform.up : vesselTransform.up, yawTarget, vesselTransform.right) + (aimingMode ? 0 : weaveAdjustment);
             if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI)
             {
                 DebugLine($"yaw target: {yawTarget}, yaw error: {yawError}");
@@ -1127,7 +1127,7 @@ namespace BDArmory.Control
             else
             {
                 // Stationary vessels should align with the terrain to avoid constantly running reaction wheels.
-                pitchError = VectorUtils.SignedAngle(-vesselTransform.forward, terrainNormal.ProjectOnPlanePreNormalized(vesselTransform.right), -vesselTransform.up);
+                pitchError = -VectorUtils.GetAngleOnPlane(-vesselTransform.forward, terrainNormal, -vesselTransform.up);
                 if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) DebugLine($"pitch error: {pitchError}");
             }
             float rollError;
@@ -1138,8 +1138,8 @@ namespace BDArmory.Control
                     AIUtils.GetTerrainAltitude(vessel.CoM + baseLateral, vessel.mainBody, false)
                     - AIUtils.GetTerrainAltitude(vessel.CoM - baseLateral, vessel.mainBody, false),
                     terrainOffset * 2) * Mathf.Rad2Deg;
-                float drift = VectorUtils.SignedAngle(vesselTransform.up, vessel.GetSrfVelocity().ProjectOnPlanePreNormalized(upDir), vesselTransform.right);
-                float bank = VectorUtils.SignedAngle(-vesselTransform.forward, upDir, -vesselTransform.right);
+                float drift = -VectorUtils.GetAngleOnPlane(vesselTransform.up, vessel.GetSrfVelocity(), vesselTransform.right);
+                float bank = VectorUtils.GetAngleOnPlane(-vesselTransform.forward, upDir, vesselTransform.right);
                 float targetRoll = baseRoll + BankAngle * Mathf.Clamp01(drift / MaxDrift) * Mathf.Clamp01((float)vessel.srfSpeed / CruiseSpeed);
                 rollError = targetRoll - bank;
                 if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) DebugLine($"terrain sideways slope: {baseRoll}, target roll: {targetRoll}");
@@ -1147,7 +1147,7 @@ namespace BDArmory.Control
             else
             {
                 // Stationary vessels should align with the terrain to avoid constantly running reaction wheels.
-                rollError = VectorUtils.SignedAngle(-vesselTransform.forward, terrainNormal.ProjectOnPlanePreNormalized(vesselTransform.up), vesselTransform.right);
+                rollError = -VectorUtils.GetAngleOnPlane(-vesselTransform.forward, terrainNormal, vesselTransform.right);
                 if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) DebugLine($"roll error: {rollError}");
             }
 

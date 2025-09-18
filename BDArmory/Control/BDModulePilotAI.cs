@@ -2833,9 +2833,9 @@ namespace BDArmory.Control
                 rollTarget = Vector3.RotateTowards(horizonNormal, rollTarget, maxBank / 180 * Mathf.PI, 0.0f);
             bankAngle = Vector3.SignedAngle(horizonNormal, rollTarget, vesselTransform.up);
 
-            float pitchError = VectorUtils.SignedAngle(Vector3.up, localTargetDirection.ProjectOnPlanePreNormalized(Vector3.right), Vector3.back);
-            float yawError = VectorUtils.SignedAngle(Vector3.up, localTargetDirectionYaw.ProjectOnPlanePreNormalized(Vector3.forward), Vector3.right);
-            float rollError = BDAMath.SignedAngle(currentRoll, rollTarget, vesselTransform.right);
+            float pitchError = -VectorUtils.GetAngleOnPlane(Vector3.up, localTargetDirection, Vector3.back);
+            float yawError = -VectorUtils.GetAngleOnPlane(Vector3.up, localTargetDirectionYaw, Vector3.right);
+            float rollError = -VectorUtils.GetAngleOnPlane(currentRoll, rollTarget, vesselTransform.right);
 
             if (BDArmorySettings.DEBUG_LINES)
             {

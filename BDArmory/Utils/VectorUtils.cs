@@ -11,6 +11,7 @@ namespace BDArmory.Utils
         private static System.Random RandomGen = new System.Random();
 
         /// <param name="referenceRight">Right compared to fromDirection, make sure it's not orthogonal to toDirection, or you'll get unstable signs</param>
+        [Obsolete("Use -VectorUtils.GetAngleOnPlane(fromDirection, toDirection, referenceRight) instead.")]
         public static float SignedAngle(Vector3 fromDirection, Vector3 toDirection, Vector3 referenceRight)
         {
             float angle = Vector3.Angle(fromDirection, toDirection);
@@ -446,30 +447,67 @@ namespace BDArmory.Utils
         }
 
         /// <summary>
-        /// Get azimuth and elevation of a vector, relative to axes defined by forward, left and up.
-        /// Note that forward, left and up must have equal magnitudes but do not have to be unit
-        /// vectors (though unit vectors are most likely the most convenient for this purpose. dir does
-        /// not have to be a unit vector.
+        /// Get angle of a vector, projected on a plane defined by a forward and a left vector.
+        /// Note that forward and left must have equal magnitudes but do not have to be unit
+        /// vectors (though unit vectors are most likely the most convenient for this purpose).
+        /// dir does not have to be a unit vector.
         /// 
         /// </summary>
         /// <param name="dir">Direction vector.</param>
         /// <param name="forward">Forward vector.</param>
-        /// <param name="left">left vector.</param>
-        /// <param name="up">Up vector.</param>
-        /// <param name="azimuth">Azimuth output.</param>
-        /// <param name="elevation">Elevation output.</param>
-        /// <returns>The azimuth and elevation angle, in degrees, of "dir" relative to the axes defined by forward, left and up.</returns>
+        /// <param name="left">Left vector.</param>
+        /// <returns>The angle of "dir" relative to "forward", in degrees, projected onto a plane defined by "forward" and "left".</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void GetAzimuthElevation(Vector3 dir, Vector3 forward, Vector3 left, Vector3 up, out float azimuth, out float elevation)
+        public static float GetAngleOnPlane(Vector3 dir, Vector3 forward, Vector3 left)
         {
             // Get the projections
             float x = Vector3.Dot(dir, forward);
             float y = Vector3.Dot(dir, left);
-            float z = Vector3.Dot(dir, up);
 
             // Return the azimuth/elevation
-            azimuth = Mathf.Rad2Deg * Mathf.Atan2(y, x);
-            elevation = Mathf.Rad2Deg * Mathf.Atan2(z, x);
+            return Mathf.Rad2Deg * Mathf.Atan2(y, x);
+        }
+
+        /// <summary>
+        /// Get elevation angle of a vector, relative to an up vector.
+        /// Note that this basically an alternate form of AnglePreNormalized.
+        /// 
+        /// </summary>
+        /// <param name="dir">Direction vector.</param>
+        /// <param name="up">Up vector.</param>
+        /// <param name="dist">Magnitude of the direction vector.</param>
+        /// <param name="upMag">Magnitude of the up vector, defaults to 1.</param>
+        /// <returns>The angle of "dir" relative to "up", in degrees, as an elevation angle, with range -90° to 90°.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float GetElevation(Vector3 dir, Vector3 up, float dist, float upMag = 1.0f)
+        {
+            return 90f - AnglePreNormalized(up, dir, upMag, dist);
+        }
+
+        /// <summary>
+        /// Get elevation angle of a vector, relative to an up vector.
+        /// Note that this basically an alternate form of Vector3.Angle,
+        /// somewhat optimized for the case where the up vector is a
+        /// unit vector (skipping a mere "sqrMagnitude" call). If the
+        /// magnitude of the direction vector is known, the overload
+        /// with this magnitude is preferred:
+        /// GetElevation(dir, up, dist, upMag)
+        /// 
+        /// </summary>
+        /// <param name="dir">Direction vector.</param>
+        /// <param name="up">Up vector.</param>
+        /// <returns>The angle of "dir" relative to "up", in degrees, as an elevation angle, with range -90° to 90°.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float GetElevation(Vector3 dir, Vector3 up)
+        {
+            float dirMag = dir.magnitude;
+            if (dirMag < 1E-15f)
+            {
+                return 0f;
+            }
+
+            float num2 = Mathf.Clamp(Vector3.Dot(up, dir) / dirMag, -1f, 1f);
+            return 90f - (float)Math.Acos(num2) * 57.29578f;
         }
 
         /// <summary>

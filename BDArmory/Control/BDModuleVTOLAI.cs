@@ -713,7 +713,7 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
         {
             Vector3 yawTarget = targetDirection.ProjectOnPlanePreNormalized(vesselTransform.forward);
 
-            float yawError = VectorUtils.SignedAngle(vesselTransform.up, yawTarget, vesselTransform.right) + (aimingMode ? 0 : weaveAdjustment);
+            float yawError = -VectorUtils.GetAngleOnPlane(vesselTransform.up, yawTarget, vesselTransform.right) + (aimingMode ? 0 : weaveAdjustment);
             if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) DebugLine($"yaw target: {yawTarget}, yaw error: {yawError}");
 
             float forwardVel = Vector3.Dot(vessel.Velocity(), vesselTransform.up.ProjectOnPlanePreNormalized(upDir).normalized);
@@ -722,7 +722,7 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
             float pitchAngle = Mathf.Clamp(0.015f * -steerMult * velError - 0.33f * -steerDamping * forwardAccel, -MaxPitchAngle, MaxPitchAngle); //Adjust pitchAngle for desired speed
 
             if (aimingMode)
-                pitchAngle = VectorUtils.SignedAngle(vesselTransform.up, targetDirection.ProjectOnPlanePreNormalized(vesselTransform.right), -vesselTransform.forward);
+                pitchAngle = VectorUtils.GetAngleOnPlane(vesselTransform.up, targetDirection, vesselTransform.forward);
             else if (belowMinAltitude || targetVelocity == 0f)
                 pitchAngle = 0f;
             else if (avoidingTerrain)
@@ -733,7 +733,7 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
             float pitchError = pitchAngle - pitch;
             if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) DebugLine($"target vel: {targetVelocity}, forward vel: {forwardVel}, vel error: {velError}, target pitch: {pitchAngle}, pitch: {pitch}, pitch error: {pitchError}");
 
-            float bank = VectorUtils.SignedAngle(-vesselTransform.forward, upDir, -vesselTransform.right);
+            float bank = VectorUtils.GetAngleOnPlane(-vesselTransform.forward, upDir, vesselTransform.right);
             float latVel = Vector3.Dot(vessel.Velocity(), vesselTransform.right.ProjectOnPlanePreNormalized(upDir).normalized);
             float latAccel = Vector3.Dot(vessel.acceleration_immediate, vesselTransform.right.ProjectOnPlanePreNormalized(upDir).normalized);
             float latError = targetLatVelocity - latVel;
@@ -747,7 +747,7 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
                 }
                 else
                     rollTarget = upDir * 100;
-                targetRoll = VectorUtils.SignedAngle(rollTarget, upDir, -vesselTransform.right);
+                targetRoll = VectorUtils.GetAngleOnPlane(rollTarget, upDir, vesselTransform.right);
             }
             else
                 rollTarget = Vector3.RotateTowards(upDir, -vesselTransform.right, targetRoll * Mathf.PI / 180f, 0f); 

@@ -870,7 +870,7 @@ namespace BDArmory.Radar
         void Scan()
         {
             float angleDelta = scanRotationSpeed * Time.fixedDeltaTime;
-            RadarUtils.RadarUpdateScanLock(WeaponManager, currentAngle, radarElOffset, angleDelta, radarElFOV, currPosition, currForward, currUp, this, false, ref attemptedLocks);
+            RadarUtils.RadarUpdateScanLock(WeaponManager, currentAngle, radarElOffset, angleDelta, radarElFOV, this, false, ref attemptedLocks);
 
             if (omnidirectional)
             {
@@ -883,7 +883,7 @@ namespace BDArmory.Radar
                 if (locked)
                 {
                     // If we're locked, then get the angle to the target
-                    float targetAngle = VectorUtils.SignedAngle(currForward, (lockedTarget.position - currPosition).ProjectOnPlanePreNormalized(currUp), currRight);
+                    float targetAngle = VectorUtils.GetAngleOnPlane(lockedTarget.position - currPosition, currForward, currRight);
                     
                     // And then set the left/right limits based on multiLockFOV, limited by the radarAzLimits
                     leftLimit = Mathf.Clamp(targetAngle - (multiLockFOV * 0.5f), radarAzLimits[0],
@@ -962,13 +962,19 @@ namespace BDArmory.Radar
             //{
             //    angle = -angle;
             //}
-            
+
             // Since now we're concerned with azimuth and elevation, may as well use this function
-            VectorUtils.GetAzimuthElevation(position - currPosition, currForward, currUp, out float azimuthAngle, out float elevationAngle);
+            //VectorUtils.GetAzimuthElevation(position - currPosition, currForward, currUp, out float azimuthAngle, out float elevationAngle);
+            Vector3 relativePosition = position - currPosition;
+            // Note this would typically be the wrong way around, however because our radar code uses
+            // negative angles for the left and positive angles for the right, may as well take advantage
+            // of that fact.
+            float azimuthAngle = VectorUtils.GetAngleOnPlane(relativePosition, currForward, currRight);
+            float elevationAngle = VectorUtils.GetElevation(relativePosition, currUp);
 
             TargetSignatureData.ResetTSDArray(ref attemptedLocks);
             // Scan in the target direction
-            RadarUtils.RadarUpdateScanLock(weaponManager, azimuthAngle, elevationAngle, lockAttemptFOV, lockAttemptFOV, currPosition, currForward, currUp, this, true, ref attemptedLocks, signalPersistTime);
+            RadarUtils.RadarUpdateScanLock(weaponManager, azimuthAngle, elevationAngle, lockAttemptFOV, lockAttemptFOV, this, true, ref attemptedLocks, signalPersistTime);
 
             // Check the locks to see if we've detected the target
             for (int i = 0; i < attemptedLocks.Length; i++)
@@ -981,7 +987,8 @@ namespace BDArmory.Radar
 
                     if (!locked && !omnidirectional)
                     {
-                        float targetAngle = VectorUtils.SignedAngle(currForward, (attemptedLocks[i].position - currPosition).ProjectOnPlanePreNormalized(currUp), currRight);
+                        // Note this would typically give the opposite of the desired sign, but because radar convention is reversed this is correct.
+                        float targetAngle = VectorUtils.GetAngleOnPlane((attemptedLocks[i].position - currPosition), currForward, currRight);
                         currentAngle = targetAngle;
                     }
                     lockedTargets.Add(attemptedLocks[i]);
@@ -1042,14 +1049,41 @@ namespace BDArmory.Radar
             if (omnidirectional)
             {
                 // Check elevation only, determine angle from the vertical axis
-                return (Mathf.Abs(90f - Vector3.Angle(currUp, targetPosition - currPosition) - radarElOffset) < radarElFOV);
+                return (Mathf.Abs(VectorUtils.GetElevation(targetPosition - currPosition, currUp) - radarElOffset) < radarElFOV);
             }
             else
             {
                 // Target exists and omnidirectional, we must check if we're within radar FoV
-                VectorUtils.GetAzimuthElevation(targetPosition - currPosition, currForward, currUp, out float az, out float el);
+                //VectorUtils.GetAzimuthElevation(targetPosition - currPosition, currForward, currUp, out float az, out float el);
+                Vector3 relativePosition = targetPosition - currPosition;
+
                 // Radar azimuth is reversed, for whatever reason
-                az = -az;
+                float az = VectorUtils.GetAngleOnPlane(relativePosition, currForward, currRight);
+                float el = VectorUtils.GetElevation(relativePosition, currUp);
+
+                // Check if we're outside FoV
+                return (Mathf.Abs(az - radarAzOffset) < radarAzFOV && Mathf.Abs(el - radarElOffset) < radarElFOV);
+            }
+        }
+
+        /// <summary>
+        /// Checks if the direction vector is within the radar's FoV limits
+        /// </summary>
+        /// <param name="dir">Target direction relative to radar (unit vector).</param>
+        /// <returns>Boolean value, true if the target is within the radar's FoV limits.</returns>
+        public bool CheckFOVDir(Vector3 dir)
+        {
+            if (omnidirectional)
+            {
+                // Check elevation only, determine angle from the vertical axis
+                return (Mathf.Abs(VectorUtils.GetElevation(dir, currUp, 1.0f, 1.0f) - radarElOffset) < radarElFOV);
+            }
+            else
+            {
+                // Target exists and omnidirectional, we must check if we're within radar FoV
+                // Radar azimuth is reversed, for whatever reason
+                float az = VectorUtils.GetAngleOnPlane(dir, currForward, currRight);
+                float el = VectorUtils.GetElevation(dir, currUp, 1.0f, 1.0f);
 
                 // Check if we're outside FoV
                 return (Mathf.Abs(az - radarAzOffset) < radarAzFOV && Mathf.Abs(el - radarElOffset) < radarElFOV);
@@ -1107,7 +1141,8 @@ namespace BDArmory.Radar
             }
 
             //if still failed or out of FOV, unlock.
-            if (!lockedTarget.exists && !CheckFOV(lockedTarget.position))
+            // MOVED FOV CHECK TO RadarUpdateLockTrack!
+            if (!lockedTarget.exists)
             {
                 //UnlockAllTargets();
                 UnlockTargetAt(index, true);

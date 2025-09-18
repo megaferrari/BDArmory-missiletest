@@ -312,7 +312,9 @@ namespace BDArmory.Guidances
 
             float pullUpCos = Vector3.Dot(missileVel.normalized, upDirection);
 
-            VectorUtils.GetAzimuthElevation(missileVel, planarDirToTarget, right, upDirection, out float horizontalAngle, out float verticalAngle);
+            float horizontalAngle = VectorUtils.GetAngleOnPlane(missileVel, planarDirToTarget, right);
+            float verticalAngle = VectorUtils.GetElevation(missileVel, upDirection);
+
             verticalAngle *= Mathf.Deg2Rad;
             horizontalAngle *= Mathf.Deg2Rad;
 
