@@ -837,7 +837,7 @@ namespace BDArmory.Control
                                 if (rd.Current.sonarMode == ModuleRadar.SonarModes.None)
                                 {
                                     rd.Current.EnableRadar();
-                                    float scanSpeed = rd.Current.directionalFieldOfView / rd.Current.scanRotationSpeed * 2;
+                                    float scanSpeed = rd.Current.radarAzFOV / rd.Current.scanRotationSpeed * 2;
                                     if (GpsUpdateMax > 0 && scanSpeed < GpsUpdateMax) GpsUpdateMax = scanSpeed;
                                     _radarsEnabled = true;
                                 }
@@ -845,7 +845,7 @@ namespace BDArmory.Control
                                 // Only enable passive sonar, wouldn't want to ping the enemy
                                 {
                                     rd.Current.EnableRadar();
-                                    float scanSpeed = rd.Current.directionalFieldOfView / rd.Current.scanRotationSpeed * 2;
+                                    float scanSpeed = rd.Current.radarAzFOV / rd.Current.scanRotationSpeed * 2;
                                     if (GpsUpdateMax > 0 && scanSpeed < GpsUpdateMax) GpsUpdateMax = scanSpeed;
                                     //_sonarsEnabled = true;
                                 }
@@ -7226,7 +7226,7 @@ namespace BDArmory.Control
                                             if (rd.Current != null && rd.Current.sonarMode == ModuleRadar.SonarModes.None)
                                             {
                                                 if (rd.Current.DynamicRadar && results.foundAntiRadiationMissile) continue; //don't enable radar if incoming HARM, unless radar is specifically set to be used regardless
-                                                float scanSpeed = (rd.Current.locked && rd.Current.lockedTarget.vessel == targetVessel) ? rd.Current.multiLockFOV : rd.Current.directionalFieldOfView / rd.Current.scanRotationSpeed * 2;
+                                                float scanSpeed = (rd.Current.locked && rd.Current.lockedTarget.vessel == targetVessel) ? rd.Current.multiLockFOV : rd.Current.radarAzFOV / rd.Current.scanRotationSpeed * 2;
                                                 if (GpsUpdateMax > 0 && scanSpeed < GpsUpdateMax) GpsUpdateMax = scanSpeed;
                                                 rd.Current.EnableRadar();
                                                 if (ml.GetWeaponClass() != WeaponClasses.SLW) _radarsEnabled = true;
@@ -7390,7 +7390,7 @@ namespace BDArmory.Control
                                             rd.Current.EnableRadar();
                                             _sonarsEnabled = true;
                                         }
-                                        float scanSpeed = (rd.Current.locked && rd.Current.lockedTarget.vessel == targetVessel) ? rd.Current.multiLockFOV : rd.Current.directionalFieldOfView / rd.Current.scanRotationSpeed * 2;
+                                        float scanSpeed = (rd.Current.locked && rd.Current.lockedTarget.vessel == targetVessel) ? rd.Current.multiLockFOV : rd.Current.radarAzFOV / rd.Current.scanRotationSpeed * 2;
                                         if (GpsUpdateMax > 0 && scanSpeed < GpsUpdateMax) GpsUpdateMax = scanSpeed;
                                     }
                             }

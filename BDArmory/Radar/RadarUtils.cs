@@ -1565,13 +1565,13 @@ namespace BDArmory.Radar
                             signature = (BDArmorySettings.ASPECTED_RCS) ? GetVesselRadarSignatureAtAspect(ti, ray.origin) : ti.radarModifiedSignature;
                             signature *= GetRadarGroundClutterModifier(radar.radarGroundClutterFactor, ray.origin, directionToTarget, ti);
                             signature *= GetStandoffJammingModifier(radar.vessel, radar.WeaponManager.Team, ray.origin, loadedvessels.Current, signature);
-                            if (radar.vessel.Splashed && loadedvessels.Current.Splashed) signature *= GetVesselBubbleFactor(radar.transform.position, loadedvessels.Current);
+                            if (radar.vessel.Splashed && loadedvessels.Current.Splashed) signature *= GetVesselBubbleFactor(ray.origin, loadedvessels.Current);
                             signature *= notchMultiplier;
                         }
                         else
                         {
-                            float selfNoise = BDATargetManager.GetVesselAcousticSignature(radar.vessel, radar.referenceTransform.position).Item1 / 3;
-                            signature = BDATargetManager.GetVesselAcousticSignature(loadedvessels.Current, radar.referenceTransform.position).Item1 - selfNoise;
+                            float selfNoise = BDATargetManager.GetVesselAcousticSignature(radar.vessel, ray.origin).Item1 / 3;
+                            signature = BDATargetManager.GetVesselAcousticSignature(loadedvessels.Current, ray.origin).Item1 - selfNoise;
                         }
                         // no ecm lockbreak factor here
                         // no chaff factor here
@@ -1753,10 +1753,10 @@ namespace BDArmory.Radar
         /// <param name="dataArray">relevant only for modeTryLock=true</param>
         /// <param name="dataPersistTime">optional, relevant only for modeTryLock=true</param>
         /// <returns></returns>
-        public static bool RadarUpdateScanLock(MissileFire myWpnManager, float directionAngle, float elevationAngle, Transform referenceTransform, float azFov, float elFov, Vector3 position, ModuleRadar radar, bool modeTryLock, ref TargetSignatureData[] dataArray, float dataPersistTime = 0f)
+        public static bool RadarUpdateScanLock(MissileFire myWpnManager, float directionAngle, float elevationAngle, float azFov, float elFov, Vector3 position, Vector3 forwardVector, Vector3 upVector, ModuleRadar radar, bool modeTryLock, ref TargetSignatureData[] dataArray, float dataPersistTime = 0f)
         {
-            Vector3 forwardVector = referenceTransform.forward;
-            Vector3 upVector = referenceTransform.up;
+            //Vector3 forwardVector = referenceTransform.forward;
+            //Vector3 upVector = referenceTransform.up;
             //Vector3 lookDirection = Quaternion.AngleAxis(directionAngle, upVector) * forwardVector;
             int dataIndex = 0;
             bool hasLocked = false;
@@ -1776,7 +1776,7 @@ namespace BDArmory.Radar
                 return false;
             if (radar.sonarMode == ModuleRadar.SonarModes.passive)
             {
-                selfNoise = BDATargetManager.GetVesselAcousticSignature(radar.vessel, radar.referenceTransform.position).Item1 / 3;
+                selfNoise = BDATargetManager.GetVesselAcousticSignature(radar.vessel, position).Item1 / 3;
             }
             using (var loadedvessels = BDATargetManager.LoadedVessels.GetEnumerator())
                 while (loadedvessels.MoveNext())
@@ -1824,11 +1824,11 @@ namespace BDArmory.Radar
                         {
                             signature = BDArmorySettings.ASPECTED_RCS ? GetVesselRadarSignatureAtAspect(ti, position) : ti.radarModifiedSignature;
                             signature *= GetRadarGroundClutterModifier(radar.radarGroundClutterFactor, position, directionToTarget, ti);
-                            if (radar.vessel.Splashed && loadedvessels.Current.Splashed) signature *= GetVesselBubbleFactor(radar.transform.position, loadedvessels.Current);
+                            if (radar.vessel.Splashed && loadedvessels.Current.Splashed) signature *= GetVesselBubbleFactor(position, loadedvessels.Current);
                             signature *= notchMultiplier;
                         }
                         else //passive sonar
-                            signature = BDATargetManager.GetVesselAcousticSignature(loadedvessels.Current, radar.referenceTransform.position).Item1 - selfNoise;
+                            signature = BDATargetManager.GetVesselAcousticSignature(loadedvessels.Current, position).Item1 - selfNoise;
                         //do not multiply chaff factor here
 
                         BDATargetManager.ClearRadarReport(loadedvessels.Current, myWpnManager);
