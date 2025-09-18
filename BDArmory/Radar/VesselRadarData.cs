@@ -1116,6 +1116,8 @@ namespace BDArmory.Radar
             // rotate that over to the other side, relative to the offset centerline) could be calculated as local vectors relative to the
             // radar transform, though we'd have to then account for the offset for any radar with an asymmetric scan-zone, though that 
             // would be easy enough with a local quaternion.
+            // Actually we calculate the radar's `Quaternion.LookRotation` for the ReferenceTransform anyways, so it's probably best to
+            // just have vectors to 2 opposing corners of the FoV pyramid, save the quaternion, and then rotate them using it.
 
             if (omniDisplay)
             {
