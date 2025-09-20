@@ -271,6 +271,7 @@ namespace BDArmory.Settings
         #region Battle Damage settings
         [BDAPersistentSettingsField] public static bool BATTLEDAMAGE_TOGGLE = false;    // Main battle damage toggle.
         [BDAPersistentSettingsField] public static float BD_DAMAGE_CHANCE = 5;          // Base chance per-hit to proc damage
+        [BDAPersistentSettingsField] public static float BD_DAMAGE_PENETRATION = 0.2f;  // Penetration factor required to proc damage
         [BDAPersistentSettingsField] public static bool BD_SUBSYSTEMS = true;           // Non-critical module damage?
         [BDAPersistentSettingsField] public static bool BD_TANKS = true;                // Fuel tanks, batteries can leak/burn
         [BDAPersistentSettingsField] public static float BD_TANK_LEAK_TIME = 20;        // Leak duration

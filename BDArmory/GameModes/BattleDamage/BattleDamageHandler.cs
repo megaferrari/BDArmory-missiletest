@@ -23,7 +23,7 @@ namespace BDArmory.GameModes
         public static void CheckDamageFX(Part part, float caliber, float penetrationFactor, bool explosivedamage, bool incendiary, string attacker, RaycastHit hitLoc, bool firsthit = true, bool cockpitPen = false, Vector3 colliderLocalHitPoint = default)
         {      
             if (!BDArmorySettings.BATTLEDAMAGE || BDArmorySettings.PAINTBALL_MODE) return;
-            if (penetrationFactor <= 0) penetrationFactor = 0.01f;
+            penetrationFactor = Mathf.Clamp(penetrationFactor, 0.01f, 4f);
             if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.ZOMBIE_MODE)
             //if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == -1)
             {
@@ -37,7 +37,7 @@ namespace BDArmory.GameModes
             }
             if (ProjectileUtils.IsIgnoredPart(part)) return; // Ignore ignored parts.
 
-            double damageChance = Mathf.Clamp((BDArmorySettings.BD_DAMAGE_CHANCE * ((1 - part.GetDamagePercentage()) * 10) * (penetrationFactor / 2)), 0, 100); //more heavily damaged parts more likely to take battledamage
+            double damageChance = Mathf.Clamp((BDArmorySettings.BD_DAMAGE_CHANCE * ((1f - part.GetDamagePercentage()) * 10f) * ((penetrationFactor - BDArmorySettings.BD_DAMAGE_PENETRATION) * 0.5f)), 0, 100); //more heavily damaged parts more likely to take battledamage
             Vector3 hitPoint = colliderLocalHitPoint == default ? hitLoc.point : hitLoc.collider.transform.TransformPoint(colliderLocalHitPoint);
 
             if (BDArmorySettings.BD_TANKS)
