@@ -32,6 +32,7 @@
 	- Disable Battle Damage while auto-tuning to avoid wooden parts catching fire.
 	- Fix AI continuing to increase extend distance while extending away from a target for lining up a bombing run.
 	- Fix some errors in Dynamic Launch Zone math.
+	- Improve VTOL AI's calculation of bank angle.
 	- Overhaul of logic for which AI / WM is in control of a vessel and proper support for motherships / detachable fighters:
 		- The "primary" WM is the WM closest (in hierarchical distance) to the root part of the vessel (an "Is Primary" label is added to the top of the WM's PAW to allow checking this).
 		- Only a single AI is allowed to be active on a craft at any given time.  Activating one will deactivate the others.
@@ -67,6 +68,14 @@
 	- Fix datalinked radars not conveying lock information to all datalinked vessels.
 	- Fix Conformal Decals and part variants affecting craft RCS analysis.
 	- Fix radars not having an elevation limit. Radars can now be given a specified elevation limit via "elevationFOV"
+		- Non-omnidirectional radars are assumed to be roll stabilized and will scan "directionalFieldOfView" horizontally and "elevationFOV" vertically. Radars will scan the ENTIRE pitch FoV with every sweep, vertical scan limits are affected by vessel pitch, however!
+		- Omnidirectional radars scan about an up/down axis (this will at some point be corrected so that they scan about their own spin axis), limited by "elevationFOV".
+		- Default behavior for non-omnidirectional radars is to assume a square scan zone (I.E. equal "directionalFieldOfView" and "elevationFOV" unless otherwise specified)
+		- Default behavior for omnidirectional radars is to provide full spherical coverage, as they did previously
+	- Radars can now have asymmetric scan zones, both "directionalFieldOfView" and "elevationFOV" can be given two values to specify a lower/upper scan limit. (I.E. a radar with "directionalFieldOfView = -40, 20" will scan up to 40 degrees to the left and 20 to the right.)
+		- Note this is a very WIP feature and visualizations may not be perfect!
+		- For debugging, the "DEBUG DETECTORS" setting may be used, which will output the radar's lower/upper limits, FoV limit and offset (of the scan centerline) for both the azimuth and elevation axes
+	- Fix radar display not being pitch stabilized, position of targets should now remain static even when maneuvering in pitch
 - Weapons:
 	- Remove maxEngagementRange (default 5000m) check from bombs when AI is selecting what weapon to use.
 	- EMP weapons (both guns and missiles) now capable of disabling missiles.
