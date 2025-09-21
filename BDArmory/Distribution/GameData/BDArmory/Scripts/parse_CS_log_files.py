@@ -200,7 +200,7 @@ if len(data) > 0:
 
             if not args.no_file:
                 # Write results to file
-                with open(log_dir / f"results-{Path(filename).stem}.csv", "w") as results_data:
+                with open(log_dir / f"results-{Path(filename).stem}.csv", "w", encoding="utf-8") as results_data:
                     results_data.write("Name,Score," + ",".join(fields_to_show) + "\n")
                     for craft in sorted(summary, key=lambda c: summary[c]["score"], reverse=True):
                         results_data.write(f"{craft},{summary[craft]['score']:.2f}," + ",".join(f"{summary[craft][field]:.2f}" for field in fields_to_show) + "\n")
@@ -228,7 +228,7 @@ if len(data) > 0:
 
         if not args.no_file:
             # Write results to file
-            with open(log_dir / f"results.csv", "w") as results_data:
+            with open(log_dir / f"results.csv", "w", encoding="utf-8") as results_data:
                 results_data.write("Name,Score," + ",".join(fields_to_show) + "\n")
                 for craft in sorted(summary, key=lambda c: summary[c]["score"], reverse=True):
                     results_data.write(f"{craft},{summary[craft]['score']:.2f}," + ",".join(f"{summary[craft][field]:.2f}" for field in fields_to_show) + "\n")

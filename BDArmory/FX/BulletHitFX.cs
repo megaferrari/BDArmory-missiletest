@@ -95,14 +95,16 @@ namespace BDArmory.FX
 
         void Deactivate()
         {
-            if (hasOnVesselUnloaded) // onVesselUnloaded event introduced in 1.11
-                OnVesselUnloaded_1_11(false);
-            if (gameObject is not null && gameObject.activeSelf) // Deactivate even if a parent is already inactive.
-            {
-            parentPart = null;
             transform.parent = null;
             gameObject.SetActive(false);
-            }
+        }
+
+        void OnDisable()
+        {
+            parentPart = null;
+            transform.localScale = Vector3.one; // Reset localScale so that Unity doesn't mess with the size.
+            if (hasOnVesselUnloaded) // onVesselUnloaded event introduced in 1.11
+                OnVesselUnloaded_1_11(false);
         }
 
         public void OnDestroy() // This shouldn't be happening except on exiting KSP, but sometimes they get destroyed instead of disabled!
@@ -476,10 +478,11 @@ namespace BDArmory.FX
                 {
                     if (!hitPart.isEngine())
                     {
+                        var scale = caliber * caliber / 200f;
+                        leakFX.transform.localScale = scale * Vector3.one;
                         leakFX.AttachAt(hitPart, hit, new Vector3(0.25f, 0f, 0f), colliderLocalHitPoint);
-                        leakFX.transform.localScale = Vector3.one * (caliber * caliber / 200f);
-                        leakFX.drainRate = ((caliber * caliber / 200f) * BDArmorySettings.BD_TANK_LEAK_RATE);
-                        leakFX.lifeTime = (BDArmorySettings.BD_TANK_LEAK_TIME);
+                        leakFX.drainRate = scale * BDArmorySettings.BD_TANK_LEAK_RATE;
+                        leakFX.lifeTime = BDArmorySettings.BD_TANK_LEAK_TIME;
                         if (BDArmorySettings.BD_FIRES_ENABLED && !inertTank)
                         {
                             float ammoMod = BDArmorySettings.BD_FIRE_CHANCE_TRACER; //10% chance of AP rounds starting fires from sparks/tracers/etc
@@ -509,10 +512,11 @@ namespace BDArmory.FX
                 }
                 else
                 {
+                    var scale = caliber * caliber / 200f;
+                    leakFX.transform.localScale = scale * Vector3.one;
                     leakFX.AttachAt(hitPart, hit, new Vector3(0.25f, 0f, 0f), colliderLocalHitPoint);
-                    leakFX.transform.localScale = Vector3.one * (caliber * caliber / 200f);
-                    leakFX.drainRate = ((caliber * caliber / 200f) * BDArmorySettings.BD_TANK_LEAK_RATE);
-                    leakFX.lifeTime = (BDArmorySettings.BD_TANK_LEAK_TIME);
+                    leakFX.drainRate = scale * BDArmorySettings.BD_TANK_LEAK_RATE;
+                    leakFX.lifeTime = BDArmorySettings.BD_TANK_LEAK_TIME;
 
                     if (hitPart.isEngine())
                     {
