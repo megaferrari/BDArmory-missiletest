@@ -370,14 +370,26 @@ namespace BDArmory.Utils
             }
         }
 
-        // Note to self: Technically speaking, `Vector3.Angle` is 
-        // inefficient in that it performs `sqrt` first on the product
-        // of the sqrMagnitudes before checking the magnitude
-        // but AFAIK the float multiplication operation is performed
-        // first, *before* the cast to a double for Math.Sqrt, so
-        // there isn't any "precision gain" so to speak of, and
-        // a check of the product of the two first would allow for
-        // skipping the sqrt if the product is too small.
+        /// <summary>
+        /// A more accurate Angle that is maintains precision down to an angle of 1e-5
+        /// (as compared to (float)Vector3d.Angle) instead of the 1e-2 that Vector3.Angle gives.
+        /// Additionally, it's around 30% faster than Vector3.Angle and 12% faster than (float)Vector3d(from, to).
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Angle(Vector3 from, Vector3 to)
+        {
+            double num = ((Vector3d)from).sqrMagnitude * ((Vector3d)to).sqrMagnitude;
+            if (num < 1e-30)
+            {
+                return 0f;
+            }
+
+            double num2 = BDAMath.Clamp(Vector3d.Dot(from, to) / Math.Sqrt(num), -1.0, 1.0);
+            return (float)(Math.Acos(num2) * 57.295779513082325);
+        }
 
         /// <summary>
         /// Get angle between two pre-normalized vectors.

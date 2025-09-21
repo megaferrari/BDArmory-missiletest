@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using UnityEngine;
+using System.Runtime.CompilerServices;
 
 namespace BDArmory.Utils
 {
@@ -99,5 +100,15 @@ namespace BDArmory.Utils
                 return x;
             }
         }
+
+        /// <summary>
+        /// A double version of Mathf.Clamp.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static double Clamp(double value, double min, double max)
+        {
+            return value < min ? min : value > max ? max : value;
+        }
+
     }
 }
