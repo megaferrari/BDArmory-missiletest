@@ -76,6 +76,7 @@
 		- Note this is a very WIP feature and visualizations may not be perfect!
 		- For debugging, the "DEBUG DETECTORS" setting may be used, which will output the radar's lower/upper limits, FoV limit and offset (of the scan centerline) for both the azimuth and elevation axes
 	- Fix radar display not being pitch stabilized, position of targets should now remain static even when maneuvering in pitch
+	- RWR display should no longer drift
 - Weapons:
 	- Remove maxEngagementRange (default 5000m) check from bombs when AI is selecting what weapon to use.
 	- EMP weapons (both guns and missiles) now capable of disabling missiles.
