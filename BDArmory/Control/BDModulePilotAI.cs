@@ -2843,7 +2843,7 @@ namespace BDArmory.Control
             float yawError = VectorUtils.GetAngleOnPlane(localTargetDirectionYaw, Vector3.up, Vector3.right);
             float rollError;
             if (useVelRollTarget)
-                rollError = VectorUtils.SignedAngle(rollTarget, currentRoll, vesselRight);
+                rollError = VectorUtils.SignedAngle(currentRoll, rollTarget, vesselRight);
             else 
                 rollError = VectorUtils.GetAngleOnPlane(rollTarget, currentRoll, vesselRight);
             
