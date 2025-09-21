@@ -82,7 +82,7 @@ namespace BDArmory.Radar
         internal static float HeaderSize = 15;
 
         public TargetSignatureData[] pingsData;
-        public Vector3[] pingWorldPositions;
+        //public Vector3[] pingWorldPositions;
         List<TargetSignatureData> launchWarnings;
 
         Transform rt;
@@ -122,7 +122,7 @@ namespace BDArmory.Radar
             if (HighLogic.LoadedSceneIsFlight)
             {
                 pingsData = new TargetSignatureData[dataCount];
-                pingWorldPositions = new Vector3[dataCount];
+                //pingWorldPositions = new Vector3[dataCount];
                 TargetSignatureData.ResetTSDArray(ref pingsData);
                 launchWarnings = new List<TargetSignatureData>();
 
@@ -218,8 +218,8 @@ namespace BDArmory.Radar
             if (sqrDist < BDArmorySettings.MAX_ENGAGEMENT_RANGE * BDArmorySettings.MAX_ENGAGEMENT_RANGE && sqrDist > 10000f && Vector3.Angle(direction, part.transform.position - source) < 15f)
             {
                 StartCoroutine(
-                    LaunchWarningRoutine(new TargetSignatureData(Vector3.zero,
-                        RadarUtils.WorldToRadar(source, referenceTransform, RwrDisplayRect, rwrDisplayRange), Vector3.zero,
+                    LaunchWarningRoutine(new TargetSignatureData(source,
+                        RadarUtils.WorldToRadar(source, referenceTransform, RwrDisplayRect, rwrDisplayRange),
                         true, RWRThreatTypes.MissileLaunch)));
                 PlayWarningSound(RWRThreatTypes.MissileLaunch);
 
@@ -250,10 +250,10 @@ namespace BDArmory.Radar
             if (type == RWRThreatTypes.MissileLaunch || type == RWRThreatTypes.Torpedo)
             {
                 StartCoroutine(
-                    LaunchWarningRoutine(new TargetSignatureData(Vector3.zero,
+                    LaunchWarningRoutine(new TargetSignatureData(source,
                         RadarUtils.WorldToRadar(source, referenceTransform, RwrDisplayRect, rwrDisplayRange),
-                        Vector3.zero, true, type)));
-                PlayWarningSound(type, (source - vessel.transform.position).sqrMagnitude);
+                        true, type)));
+                PlayWarningSound(type, (source - vessel.CoM).sqrMagnitude);
                 return;
             }
             else if (type == RWRThreatTypes.MissileLock)
@@ -270,7 +270,7 @@ namespace BDArmory.Radar
             for (int i = 0; i < dataCount; i++)
             {
                 if (pingsData[i].exists &&
-                    ((Vector2)pingsData[i].position -
+                    (pingsData[i].pingPosition -
                      RadarUtils.WorldToRadar(source, referenceTransform, RwrDisplayRect, rwrDisplayRange)).sqrMagnitude < (BDArmorySettings.LOGARITHMIC_RADAR_DISPLAY ? 100f : 900f))    //prevent ping spam
                 {
                     break;
@@ -287,10 +287,10 @@ namespace BDArmory.Radar
                 referenceTransform.rotation = Quaternion.LookRotation(vessel.ReferenceTransform.up,
                     VectorUtils.GetUpDirection(transform.position));
 
-                pingsData[openIndex] = new TargetSignatureData(Vector3.zero,
-                    RadarUtils.WorldToRadar(source, referenceTransform, RwrDisplayRect, rwrDisplayRange), Vector3.zero,
+                pingsData[openIndex] = new TargetSignatureData(source,
+                    RadarUtils.WorldToRadar(source, referenceTransform, RwrDisplayRect, rwrDisplayRange),
                     true, type);
-                pingWorldPositions[openIndex] = source; //FIXME source is improperly defined
+                //pingWorldPositions[openIndex] = source; //FIXME source is improperly defined
                 if (weaponManager.hasAntiRadiationOrdnance)
                 {
                     BDATargetManager.ReportVessel(AIUtils.VesselClosestTo(source), weaponManager); // Report RWR ping as target for anti-rads
@@ -384,7 +384,7 @@ namespace BDArmory.Radar
 
             for (int i = 0; i < dataCount; i++)
             {
-                Vector2 pingPosition = (Vector2)pingsData[i].position;
+                Vector2 pingPosition = pingsData[i].pingPosition;
                 //pingPosition = Vector2.MoveTowards(displayRect.center, pingPosition, displayRect.center.x - (pingSize/2));
                 Rect pingRect = new Rect(pingPosition.x - (pingSize / 2), pingPosition.y - (pingSize / 2), pingSize,
                     pingSize);
@@ -404,7 +404,7 @@ namespace BDArmory.Radar
             List<TargetSignatureData>.Enumerator lw = launchWarnings.GetEnumerator();
             while (lw.MoveNext())
             {
-                Vector2 pingPosition = (Vector2)lw.Current.position;
+                Vector2 pingPosition = lw.Current.pingPosition;
                 //pingPosition = Vector2.MoveTowards(displayRect.center, pingPosition, displayRect.center.x - (pingSize/2));
 
                 Rect pingRect = new Rect(pingPosition.x - (pingSize / 2), pingPosition.y - (pingSize / 2), pingSize,

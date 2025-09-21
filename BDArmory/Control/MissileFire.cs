@@ -1789,9 +1789,10 @@ namespace BDArmory.Control
                                         MissileLauncher msl = CurrentMissile as MissileLauncher;
                                         for (int i = 0; i < rwr.pingsData.Length; i++)
                                         {
-                                            if (rwr.pingsData[i].exists && msl.antiradTargets.Contains(rwr.pingsData[i].signalType) && Vector3.Dot(rwr.pingWorldPositions[i] - ml.transform.position, ml.GetForwardTransform()) > 0)
+                                            Vector3 position;
+                                            if (rwr.pingsData[i].exists && msl.antiradTargets.Contains(rwr.pingsData[i].signalType) && Vector3.Dot((position = rwr.pingsData[i].position) - ml.transform.position, ml.GetForwardTransform()) > 0)
                                             {
-                                                missileAimerUI.Add((rwr.pingWorldPositions[i], BDArmorySetup.Instance.greenDiamondTexture, 22, 0));
+                                                missileAimerUI.Add((position, BDArmorySetup.Instance.greenDiamondTexture, 22, 0));
                                             }
                                         }
                                     }
@@ -6595,7 +6596,7 @@ namespace BDArmory.Control
                                             {
                                                 if (Missile.antiradTargets.Contains(rwr.pingsData[i].signalType))
                                                 {
-                                                    if ((rwr.pingWorldPositions[i] - guardTarget.CoM).sqrMagnitude < 20 * 20) //is current target a hostile radar source?
+                                                    if ((rwr.pingsData[i].position - guardTarget.CoM).sqrMagnitude < 20f * 20f) //is current target a hostile radar source?
                                                     {
                                                         candidateAntiRad = true;
                                                         candidateYield *= 2; // Prioritize anti-rad missiles for hostile radar sources
@@ -6759,7 +6760,7 @@ namespace BDArmory.Control
                                         {
                                             if (rwr.pingsData[i].signalStrength == 6) //Sonar
                                             {
-                                                if ((rwr.pingWorldPositions[i] - guardTarget.CoM).sqrMagnitude < 20 * 20) //is current target a hostile radar source?
+                                                if ((rwr.pingsData[i].position - guardTarget.CoM).sqrMagnitude < 20f * 20f) //is current target a hostile radar source?
                                                 {
                                                     candidateYield *= 2; // Prioritize PAH Torps for hostile sonar sources
                                                     break;
@@ -6853,7 +6854,7 @@ namespace BDArmory.Control
                                         {
                                             if (rwr.pingsData[i].signalStrength == 6) //Sonar
                                             {
-                                                if ((rwr.pingWorldPositions[i] - guardTarget.CoM).sqrMagnitude < 20 * 20) //is current target a hostile radar source?
+                                                if ((rwr.pingsData[i].position - guardTarget.CoM).sqrMagnitude < 20f * 20f) //is current target a hostile radar source?
                                                 {
                                                     candidateYield *= 1.5f; // Prioritize PAH Torps for hostile sonar sources
                                                     break;
@@ -7601,7 +7602,7 @@ namespace BDArmory.Control
                 {
                     for (int i = 0; i < rwr.pingsData.Length; i++) //using copy of antirad targets due to CanSee running before weapon selection
                     {
-                        if (rwr.pingsData[i].exists && antiradTargets.Contains(rwr.pingsData[i].signalType) && (rwr.pingWorldPositions[i] - target.position).sqrMagnitude < 20 * 20)
+                        if (rwr.pingsData[i].exists && antiradTargets.Contains(rwr.pingsData[i].signalType) && (rwr.pingsData[i].position - target.position).sqrMagnitude < 20f * 20f)
                         {
                             detectedTargetTimeout = 0;
                             staleTarget = false;
@@ -7674,12 +7675,13 @@ namespace BDArmory.Control
                 {
                     if (rwr.pingsData[i].exists && ml.antiradTargets.Contains(rwr.pingsData[i].signalType))
                     {
-                        float angle = Vector3.Angle(rwr.pingWorldPositions[i] - missile.vessel.CoM, missile.GetForwardTransform());
+                        Vector3 position = rwr.pingsData[i].position;
+                        float angle = Vector3.Angle(position - missile.transform.position, missile.GetForwardTransform());
 
                         if (angle < closestAngle && angle < maxOffBoresight)
                         {
                             closestAngle = angle;
-                            antiRadiationTarget = rwr.pingWorldPositions[i];
+                            antiRadiationTarget = position;
                             antiRadTargetAcquired = true;
                             //Debug.Log($"antiradTgt count: antiRad target found: {rwr.pingsData[i].vessel.vesselName}");
                         }
@@ -7784,7 +7786,7 @@ namespace BDArmory.Control
             {
                 for (int i = 0; i < rwr.pingsData.Length; i++)
                 {
-                    if (rwr.pingsData[i].exists && (rwr.pingWorldPositions[i] - v.position).sqrMagnitude < 20 * 20)
+                    if (rwr.pingsData[i].exists && (rwr.pingsData[i].position - v.position).sqrMagnitude < 20f * 20f)
                     {
                         matchFound = true;
                         break;
