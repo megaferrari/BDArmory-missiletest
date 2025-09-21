@@ -2813,9 +2813,9 @@ namespace BDArmory.Control
             }
             else if (useVelRollTarget && !belowMinAltitude)
             {
-                Vector3 normVelNoSideslip = vessel.Velocity().ProjectOnPlanePreNormalized(vesselRight).normalized;
-                rollTarget = rollTarget.ProjectOnPlanePreNormalized(normVelNoSideslip);
-                currentRoll = Vector3.Cross(normVelNoSideslip, vesselRight);
+                Vector3 normVel = vessel.Velocity().normalized;
+                rollTarget = rollTarget.ProjectOnPlanePreNormalized(normVel);
+                currentRoll = currentRoll.ProjectOnPlanePreNormalized(normVel);
             }
             else
             {
@@ -2841,7 +2841,11 @@ namespace BDArmory.Control
 
             float pitchError = VectorUtils.GetAngleOnPlane(localTargetDirection, Vector3.up, Vector3.back);
             float yawError = VectorUtils.GetAngleOnPlane(localTargetDirectionYaw, Vector3.up, Vector3.right);
-            float rollError = VectorUtils.GetAngleOnPlane(rollTarget, currentRoll, vesselRight);
+            float rollError;
+            if (useVelRollTarget)
+                rollError = VectorUtils.SignedAngle(rollTarget, currentRoll, vesselRight);
+            else 
+                rollError = VectorUtils.GetAngleOnPlane(rollTarget, currentRoll, vesselRight);
             
             if (BDArmorySettings.DEBUG_LINES)
             {
