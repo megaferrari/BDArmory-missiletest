@@ -10,8 +10,13 @@ namespace BDArmory.Utils
     {
         private static System.Random RandomGen = new System.Random();
 
+        /// <summary>
+        /// A slightly more efficient `Vector3.Sign` function, still requires a sqrt so it is best replaced with
+        /// `VectorUtils.GetAngleOnPlane`, however that requires orthogonality from `fromDirection`. This function
+        /// may be used even if `referenceRight` is not orthogonal to `fromDirection`. This function also does not
+        /// require the magnitudes of any of its inputs to be specified in some way.
+        /// </summary>
         /// <param name="referenceRight">Right compared to fromDirection, make sure it's not orthogonal to toDirection, or you'll get unstable signs</param>
-        [Obsolete("Use -VectorUtils.GetAngleOnPlane(fromDirection, toDirection, referenceRight) instead.")]
         public static float SignedAngle(Vector3 fromDirection, Vector3 toDirection, Vector3 referenceRight)
         {
             float angle = Vector3.Angle(fromDirection, toDirection);
@@ -419,19 +424,19 @@ namespace BDArmory.Utils
         }
 
         /// <summary>
-        /// Get azimuth and elevation of a vector, relative to axes defined by forward and up.
+        /// Get AoA and Sideslip of a vector, relative to axes defined by forward and up.
         /// Note that forward and up are expected to be unit vectors, however dir does not have
         /// to be a unit vector!
         /// 
         /// </summary>
         /// <param name="dir">Direction vector.</param>
-        /// <param name="forward">Forward vector.</param>
-        /// <param name="up">Up vector.</param>
-        /// <param name="azimuth">Azimuth output.</param>
-        /// <param name="elevation">Elevation output.</param>
-        /// <returns>The azimuth and elevation angle, in degrees, of "dir" relative to the axes defined by forward and up.</returns>
+        /// <param name="forward">Aircraft aligned forward vector.</param>
+        /// <param name="up">Aircraft aligned up/lift vector.</param>
+        /// <param name="AoA">AoA output.</param>
+        /// <param name="sideslip">Sideslip output.</param>
+        /// <returns>The AoA and Sideslip angle, in degrees, of "dir" relative to the axes defined by forward and up.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void GetAzimuthElevation(Vector3 dir, Vector3 forward, Vector3 up, out float azimuth, out float elevation)
+        public static void GetAoASideslip(Vector3 dir, Vector3 forward, Vector3 up, out float AoA, out float sideslip)
         {
             // Get the left vector to fully define the coordinate system
             Vector3 left = Vector3.Cross(up, forward);
@@ -441,9 +446,9 @@ namespace BDArmory.Utils
             float y = Vector3.Dot(dir, left);
             float z = Vector3.Dot(dir, up);
 
-            // Return the azimuth/elevation
-            azimuth = Mathf.Rad2Deg * Mathf.Atan2(y, x);
-            elevation = Mathf.Rad2Deg * Mathf.Atan2(z, x);
+            // Return the AoA/sideslip
+            AoA = -Mathf.Rad2Deg * Mathf.Atan2(z, x);
+            sideslip = -Mathf.Rad2Deg * Mathf.Atan2(y, x);
         }
 
         /// <summary>
@@ -463,6 +468,10 @@ namespace BDArmory.Utils
             // Get the projections
             float x = Vector3.Dot(dir, forward);
             float y = Vector3.Dot(dir, left);
+
+            // Check for if the desired vector is straight up/down
+            if (Mathf.Abs(x) < 2f * Vector3.kEpsilon && Mathf.Abs(y) < 2f * Vector3.kEpsilon)
+                return 0f;
 
             // Return the azimuth/elevation
             return Mathf.Rad2Deg * Mathf.Atan2(y, x);

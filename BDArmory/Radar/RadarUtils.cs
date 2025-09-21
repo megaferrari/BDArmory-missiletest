@@ -290,7 +290,9 @@ namespace BDArmory.Radar
 
                 // NOTE! vessel.ReferenceTransform.up actually faces forwards! And vessel.ReferenceTransform.forward actually faces down! Who would've thunk?
                 // This is why we flip these in the function. It's also why `elAngle` has to be multiplied by a negative 1!
-                VectorUtils.GetAzimuthElevation(directionOfRadar, ti.Vessel.ReferenceTransform.up, ti.Vessel.ReferenceTransform.forward, out float azAngle, out float elAngle);
+                //VectorUtils.GetAzimuthElevation(directionOfRadar, ti.Vessel.ReferenceTransform.up, ti.Vessel.ReferenceTransform.forward, out float azAngle, out float elAngle);
+                float azAngle = VectorUtils.GetAngleOnPlane(directionOfRadar, ti.Vessel.ReferenceTransform.up, ti.Vessel.ReferenceTransform.right);
+                float elAngle = VectorUtils.GetElevation(directionOfRadar, ti.Vessel.ReferenceTransform.forward, distance, 1.0f);
 
                 // Note that we would've also had to negate azAngle (due to the flipped z axis) but since we assume craft are left/right symmetric
                 // we just use an Abs here.

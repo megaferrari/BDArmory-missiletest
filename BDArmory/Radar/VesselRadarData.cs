@@ -128,6 +128,15 @@ namespace BDArmory.Radar
         private Transform referenceTransform;
         private Transform vesselReferenceTransform;
 
+        private float ReferenceUpdateTime = -1f;
+        public float TimeSinceReferenceUpdate => Time.fixedTime - ReferenceUpdateTime;
+
+        // referenceTransform's position etc.
+        Vector3 currPosition;
+        Vector3 currForward;
+        Vector3 currUp;
+        Vector3 currRight;
+
         public MissileBase LastMissile;
 
         //bool boresightScan = false;
@@ -364,6 +373,10 @@ namespace BDArmory.Radar
 
         private void Start()
         {
+            referenceTransform = (new GameObject()).transform;
+            referenceTransform.parent = vessel.ReferenceTransform;
+            referenceTransform.localPosition = Vector3.zero;
+
             rangeIndex = rIncrements.Length - 6;
 
             //determine configured physics ranges and add a radar range level for the highest range
@@ -568,14 +581,27 @@ namespace BDArmory.Radar
 
         private void UpdateReferenceTransform()
         {
+            if (TimeSinceReferenceUpdate < Time.fixedDeltaTime)
+                return;
+
             if (radarCount == 1 && !availableRadars[0].omnidirectional && !vessel.Landed)
             {
-                referenceTransform = availableRadars[0].referenceTransform;
+                referenceTransform.position = vessel.CoM;
+                // Rotate reference transform such that we're pointed forwards along the radar's forward
+                // direction but rotated to negate any pitch, to create a stabilized perspective for radar displays
+                referenceTransform.rotation =
+                    Quaternion.LookRotation(availableRadars[0].currForward.ProjectOnPlanePreNormalized(vessel.upAxis).normalized, vessel.upAxis);
             }
             else
             {
                 referenceTransform = vesselReferenceTransform;
             }
+            currPosition = vessel.CoM;
+            currForward = referenceTransform.forward;
+            currUp = referenceTransform.up;
+            currRight = referenceTransform.right;
+
+            ReferenceUpdateTime = Time.fixedTime;
         }
 
         private void PartDestroyed(Part p)
@@ -722,7 +748,7 @@ namespace BDArmory.Radar
                 vesselReferenceTransform.position = vessel.CoM;
 
                 vesselReferenceTransform.rotation = Quaternion.LookRotation(vessel.LandedOrSplashed ?
-                  VectorUtils.GetNorthVector(vessel.transform.position, vessel.mainBody) :
+                  VectorUtils.GetNorthVector(vessel.CoM, vessel.mainBody) :
                   vessel.transform.up.ProjectOnPlanePreNormalized(vessel.upAxis), vessel.upAxis);
 
                 CleanDisplayedContacts();
@@ -1104,10 +1130,11 @@ namespace BDArmory.Radar
             //bool linked = (radarCount > 1);
             Rect scanRect = new Rect(0, 0, RadarDisplayRect.width, RadarDisplayRect.height);
 
-            Vector3 refForward = referenceTransform.forward;
-            Vector3 refUp = referenceTransform.up;
-            Vector3 refRight = referenceTransform.right;
-            Vector3 refPos = referenceTransform.position;
+            UpdateReferenceTransform();
+            //Vector3 refForward = referenceTransform.forward;
+            //Vector3 refUp = referenceTransform.up;
+            //Vector3 refRight = referenceTransform.right;
+            //Vector3 refPos = referenceTransform.position;
 
             // TODO: Overall many of these things could be cached, primarily the FoV lines, especially if we're gonna accurately represent
             // them in 3D space. A lot of these calculations do not need to be repeated unless the radars are moving around on the vessel
@@ -1133,8 +1160,9 @@ namespace BDArmory.Radar
 
                 //my ship direction icon
                 float directionSize = 16;
-                Vector3 projectedVesselFwd = vessel.ReferenceTransform.up.ProjectOnPlanePreNormalized(refUp);
-                float dAngle = Vector3.Angle(projectedVesselFwd, referenceTransform.forward);
+                Vector3 projectedVesselFwd = vessel.ReferenceTransform.up.ProjectOnPlanePreNormalized(currUp).normalized;
+                Vector3 left = Vector3.Cross(currUp, projectedVesselFwd);
+                float dAngle = VectorUtils.AnglePreNormalized(projectedVesselFwd, referenceTransform.forward);
                 if (referenceTransform.InverseTransformVector(vessel.ReferenceTransform.up).x < 0)
                 {
                     dAngle = -dAngle;
@@ -1146,7 +1174,11 @@ namespace BDArmory.Radar
                     ScaleMode.StretchToFill, true);
                 GUI.matrix = guiMatrix;
 
-                Vector3 north = VectorUtils.GetNorthVector(refPos, vessel.mainBody);
+                Vector3 north;
+                if (!vessel.Landed)
+                    north = VectorUtils.GetNorthVector(currPosition, vessel.mainBody);
+                else
+                    north = Vector3.zero;
 
                 for (int i = 0; i < rCount; i++)
                 {
@@ -1157,10 +1189,8 @@ namespace BDArmory.Radar
                     float currentAngle = availableRadars[i].currentAngle;
 
                     availableRadars[i].UpdateDisplayTransform();
-                    float radarAngle = -VectorUtils.GetAngleOnPlane(projectedVesselFwd,
-                        availableRadars[i].currDisplayForward,
-                        refRight);
-
+                    float radarAngle = VectorUtils.GetAngleOnPlane(availableRadars[i].currDisplayForward, projectedVesselFwd, left);
+                    
                     // TODO: This does not account for the true 3D orientation of the radar! Technically, we could just
                     // say it is only meant to represent the current status of the sweep, but even then we'd still have
                     // to account for the true 3D FoV limits of the radar.
@@ -1173,7 +1203,7 @@ namespace BDArmory.Radar
                         }
                         else if (!vessel.Landed)
                         {
-                            float angleFromNorth = -VectorUtils.GetAngleOnPlane(north, projectedVesselFwd,
+                            float angleFromNorth = VectorUtils.GetAngleOnPlane(projectedVesselFwd, north,
                                 Vector3.Cross(north, vessel.upAxis));
                             currentAngle += angleFromNorth;
                         }
@@ -1213,9 +1243,7 @@ namespace BDArmory.Radar
                     bool canScan = availableIRSTs[i].canScan;
                     float currentAngle = availableIRSTs[i].currentAngle;
 
-                    float radarAngle = -VectorUtils.GetAngleOnPlane(projectedVesselFwd,
-                        availableIRSTs[i].transform.up,
-                        refRight);
+                    float radarAngle = VectorUtils.SignedAngle(availableIRSTs[i].transform.up, projectedVesselFwd, left);
 
                     if (!canScan || availableIRSTs[i].vessel != vessel) continue;
 
@@ -1225,7 +1253,7 @@ namespace BDArmory.Radar
                     }
                     else if (!vessel.Landed)
                     {
-                        float angleFromNorth = -VectorUtils.GetAngleOnPlane(north, projectedVesselFwd,
+                        float angleFromNorth = VectorUtils.GetAngleOnPlane(projectedVesselFwd, north,
                             Vector3.Cross(north, vessel.upAxis));
                         currentAngle += angleFromNorth;
                     }
@@ -1274,8 +1302,8 @@ namespace BDArmory.Radar
                     float indicatorAngle = currentAngle; //locked ? lockScanAngle : currentAngle;
                     Vector2 scanIndicatorPos =
                         RadarUtils.WorldToRadarRadial(
-                            refPos +
-                            (Quaternion.AngleAxis(indicatorAngle, refUp) * refForward),
+                            currPosition +
+                            (Quaternion.AngleAxis(indicatorAngle, currUp) * currForward),
                             referenceTransform, scanRect, 5000, directionalFieldOfView, true);
                     GUI.DrawTexture(new Rect(scanIndicatorPos.x - 7, scanIndicatorPos.y - 10, 14, 20),
                         BDArmorySetup.Instance.greenDiamondTexture, ScaleMode.StretchToFill, true);
@@ -1283,15 +1311,15 @@ namespace BDArmory.Radar
                     if (!islocked || !availableRadars[i].canTrackWhileScan) continue;
                     Vector2 leftPos =
                         RadarUtils.WorldToRadarRadial(
-                            refPos +
-                            (Quaternion.AngleAxis(availableRadars[i].leftLimit, refUp) *
-                             refForward), referenceTransform, scanRect, 5000,
+                            currPosition +
+                            (Quaternion.AngleAxis(availableRadars[i].leftLimit, currUp) *
+                             currForward), referenceTransform, scanRect, 5000,
                             directionalFieldOfView, true);
                     Vector2 rightPos =
                         RadarUtils.WorldToRadarRadial(
-                            refPos +
-                            (Quaternion.AngleAxis(availableRadars[i].rightLimit, refUp) *
-                             refForward), referenceTransform, scanRect, 5000,
+                            currPosition +
+                            (Quaternion.AngleAxis(availableRadars[i].rightLimit, currUp) *
+                             currForward), referenceTransform, scanRect, 5000,
                             directionalFieldOfView, true);
                     float barWidth = 2;
                     float barHeight = 15;
@@ -1312,8 +1340,8 @@ namespace BDArmory.Radar
                     float indicatorAngle = currentAngle; //locked ? lockScanAngle : currentAngle;
                     Vector2 scanIndicatorPos =
                         RadarUtils.WorldToRadarRadial(
-                            refPos +
-                            (Quaternion.AngleAxis(indicatorAngle, refUp) * refForward),
+                            currPosition +
+                            (Quaternion.AngleAxis(indicatorAngle, currUp) * currForward),
                             referenceTransform, scanRect, 5000, directionalFieldOfView, true);
                     GUI.DrawTexture(new Rect(scanIndicatorPos.x - 7, scanIndicatorPos.y - 10, 14, 20),
                         BDArmorySetup.Instance.greenDiamondTexture, ScaleMode.StretchToFill, true); //FIXME?
@@ -1350,9 +1378,9 @@ namespace BDArmory.Radar
             //roll indicator
             if (!vessel.Landed)
             {
-                Vector3 localUp = vessel.ReferenceTransform.InverseTransformDirection(refUp);
+                Vector3 localUp = vessel.ReferenceTransform.InverseTransformDirection(vessel.upAxis);
                 localUp = localUp.ProjectOnPlanePreNormalized(Vector3.up).normalized;
-                float rollAngle = VectorUtils.GetAngleOnPlane(-Vector3.forward, localUp, Vector3.right);
+                float rollAngle = -VectorUtils.GetAngleOnPlane(localUp, -Vector3.forward, Vector3.right);
                 GUIUtility.RotateAroundPivot(rollAngle, guiMatrix * scanRect.center);
                 GUI.DrawTexture(scanRect, rollIndicatorTexture, ScaleMode.StretchToFill, true);
                 GUI.matrix = guiMatrix;
@@ -2130,10 +2158,11 @@ namespace BDArmory.Radar
 
             bool lockDirty = false;
 
-            Vector3 refForward = referenceTransform.forward;
-            Vector3 refUp = referenceTransform.up;
-            Vector3 refRight = referenceTransform.right;
-            Vector3 refPos = referenceTransform.position;
+            UpdateReferenceTransform();
+            //Vector3 refForward = referenceTransform.forward;
+            //Vector3 refUp = referenceTransform.up;
+            //Vector3 refRight = referenceTransform.right;
+            //Vector3 refPos = referenceTransform.position;
 
             // Get directional field of view, since we're only drawing radar stuff,
             // if the display ain't omni and we've got radar targets there's only
@@ -2161,8 +2190,8 @@ namespace BDArmory.Radar
                     }
 
                     //GUIUtils.DrawRectangle(new Rect(pingPosition.x-(4),pingPosition.y-(4),8, 8), Color.green);
-                    float vAngle = Vector3.Angle(lockedTarget.velocity.ProjectOnPlanePreNormalized(refUp),
-                        refForward);
+                    float vAngle = Vector3.Angle(lockedTarget.velocity.ProjectOnPlanePreNormalized(currUp),
+                        currForward);
                     if (referenceTransform.InverseTransformVector(lockedTarget.velocity).x < 0)
                     {
                         vAngle = -vAngle;
@@ -2276,7 +2305,7 @@ namespace BDArmory.Radar
                                     {
                                         targetDistY = RadarDisplayRect.height -
                                                       (Vector3.Distance(lockedTarget.predictedPosition,
-                                                           refPos) * rangeToPixels) -
+                                                           currPosition) * rangeToPixels) -
                                                       (targetDistIconSize / 2);
                                     }
 
@@ -2300,7 +2329,7 @@ namespace BDArmory.Radar
                     //jamming
                     // NEW: evaluation via radarutils!
                     bool jammed = false;
-                    float distanceToTarget = (this.vessel.transform.position - displayedTargets[i].targetData.position).sqrMagnitude;
+                    float distanceToTarget = (currPosition - displayedTargets[i].targetData.position).sqrMagnitude;
                     float jamDistance = RadarUtils.GetVesselECMJammingDistance(displayedTargets[i].targetData.vessel);
                     if (displayedTargets[i].targetData.vesselJammer && jamDistance * jamDistance > distanceToTarget)
                     {
@@ -2345,8 +2374,8 @@ namespace BDArmory.Radar
                             lockIconSize, lockIconSize);
                         float vAngle =
                             Vector3.Angle(
-                                displayedTargets[i].targetData.velocity.ProjectOnPlanePreNormalized(refUp),
-                                refForward);
+                                displayedTargets[i].targetData.velocity.ProjectOnPlanePreNormalized(currUp),
+                                currForward);
                         if (referenceTransform.InverseTransformVector(displayedTargets[i].targetData.velocity).x < 0)
                         {
                             vAngle = -vAngle;
@@ -2393,7 +2422,7 @@ namespace BDArmory.Radar
                                 jammedPosition = transform.position +
                                                  (Quaternion.AngleAxis(
                                                       Random.Range(-bearingVariation, bearingVariation),
-                                                      refUp) * (jammedPosition - transform.position));
+                                                      currUp) * (jammedPosition - transform.position));
                                 if (omniDisplay)
                                 {
                                     pingPosition = RadarUtils.WorldToRadar(jammedPosition, referenceTransform, RadarDisplayRect,

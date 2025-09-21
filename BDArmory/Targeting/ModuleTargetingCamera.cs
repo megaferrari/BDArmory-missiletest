@@ -798,7 +798,9 @@ namespace BDArmory.Targeting
             //horizon indicator
             float horizY = imageRect.y + imageRect.height - indicatorSize - indicatorBorder;
             Vector3 hForward = vesForward.ProjectOnPlanePreNormalized(upDirection);
-            float hAngle = VectorUtils.GetAngleOnPlane(hForward, vesForward, upDirection);
+            // Unfortunately, because `vesForward` and `upDirection` are not perpendicular to
+            // each other the more efficient `GetAngleOnPlane` cannot be used!
+            float hAngle = -VectorUtils.SignedAngle(hForward, vesForward, upDirection);
             horizY -= (hAngle / 90) * (indicatorSize / 2);
             Rect horizonRect = new Rect(indicatorBorder + imageRect.x, horizY, indicatorSize, indicatorSize);
             GUI.DrawTexture(horizonRect, BDArmorySetup.Instance.horizonIndicatorTexture, ScaleMode.StretchToFill, true);
@@ -808,13 +810,13 @@ namespace BDArmory.Targeting
             GUI.DrawTexture(rollRect, rollReferenceTexture, ScaleMode.StretchToFill, true);
             Vector3 localUp = vessel.ReferenceTransform.InverseTransformDirection(upDirection);
             localUp = localUp.ProjectOnPlanePreNormalized(Vector3.up).normalized;
-            float rollAngle = VectorUtils.GetAngleOnPlane(-Vector3.forward, localUp, Vector3.right);
+            float rollAngle = -VectorUtils.GetAngleOnPlane(localUp, -Vector3.forward, Vector3.right);
             GUIUtility.RotateAroundPivot(rollAngle, guiMatrix * rollRect.center);
             GUI.DrawTexture(rollRect, rollIndicatorTexture, ScaleMode.StretchToFill, true);
             GUI.matrix = guiMatrix;
 
             //target direction indicator
-            float angleToTarget = -VectorUtils.GetAngleOnPlane(hForward, (targetPointPosition - transform.position), Vector3.Cross(upDirection, hForward));
+            float angleToTarget = VectorUtils.GetAngleOnPlane((targetPointPosition - transform.position), hForward, Vector3.Cross(upDirection, hForward));
             GUIUtility.RotateAroundPivot(angleToTarget, guiMatrix * rollRect.center);
             GUI.DrawTexture(rollRect, BDArmorySetup.Instance.targetDirectionTexture, ScaleMode.StretchToFill, true);
             GUI.matrix = guiMatrix;
@@ -1586,10 +1588,10 @@ namespace BDArmory.Targeting
             Vector3 localPos = vessel.ReferenceTransform.InverseTransformPoint(targetPosition);
             Vector3 aziRef = Vector3.up;
             Vector3 aziPos = localPos.ProjectOnPlanePreNormalized(Vector3.forward);
-            float elevation = VectorUtils.GetAngleOnPlane(aziPos, localPos, Vector3.back);
+            float elevation = VectorUtils.SignedAngle(aziPos, localPos, Vector3.forward);
             float normElevation = elevation / 70;
 
-            float azimuth = VectorUtils.GetAngleOnPlane(aziRef, aziPos, Vector3.left);
+            float azimuth = VectorUtils.SignedAngle(aziRef, aziPos, Vector3.right);
             float normAzimuth = Mathf.Clamp(azimuth / 120, -1, 1);
 
             float x = screenRect.x + (screenRect.width / 2) + (normAzimuth * (screenRect.width / 2)) - (textureSize / 2);

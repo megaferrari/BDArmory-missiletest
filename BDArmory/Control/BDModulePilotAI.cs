@@ -2610,6 +2610,11 @@ namespace BDArmory.Control
         void FlyToPosition(FlightCtrlState s, Vector3 targetPosition, bool overrideThrottle = false)
         {
             var weaponManager = WeaponManager;
+            Vector3 vesselPos = vesselTransform.position;
+            Vector3 vesselForward = vesselTransform.forward;
+            Vector3 vesselUp = vesselTransform.up;
+            Vector3 vesselRight = vesselTransform.right;
+
             //test poststall (before FlightPosition is called so we're using the right steerMode)
             float AoA = Vector3.Angle(vessel.ReferenceTransform.up, vessel.Velocity());
             if (AoA > postStallAoA)
@@ -2621,8 +2626,8 @@ namespace BDArmory.Control
             {
                 isPSM = false;
             }
-            Vector3 targetDirection = (targetPosition - vesselTransform.position).normalized;
-            if (AutoTune && (Vector3.Dot(targetDirection, vesselTransform.up) > 0.9397f)) // <20°
+            Vector3 targetDirection = (targetPosition - vesselPos).normalized;
+            if (AutoTune && (Vector3.Dot(targetDirection, vesselUp) > 0.9397f)) // <20°
             {
                 steerMode = SteerModes.Aiming; // Pretend to aim when on target.
             }
@@ -2636,14 +2641,14 @@ namespace BDArmory.Control
 
                 targetPosition = LongRangeAltitudeCorrection(targetPosition); //have this only trigger in atmo?
                 targetPosition = FlightPosition(targetPosition, isBombing ? Mathf.Min(finalBombingAlt, minAltitude) : minAltitude);
-                targetDirection = (targetPosition - vesselTransform.position).normalized;
-                targetPosition = vesselTransform.position + 100 * targetDirection;
+                targetDirection = (targetPosition - vesselPos).normalized;
+                targetPosition = vesselPos + 100 * targetDirection;
             }
 
             Vector3 srfVel = vessel.Velocity();
             if (srfVel.sqrMagnitude > Vector3.kEpsilon) // vel < 3mm/s
             {
-                velocityTransform.rotation = Quaternion.LookRotation(srfVel, -vesselTransform.forward);
+                velocityTransform.rotation = Quaternion.LookRotation(srfVel, -vesselForward);
             }
             velocityTransform.rotation = Quaternion.AngleAxis(90, velocityTransform.right) * velocityTransform.rotation;
 
@@ -2657,7 +2662,7 @@ namespace BDArmory.Control
                         !target.isMissile &&
                         weaponManager.CanSeeTarget(target, true, true)
                     ).AllAndNotEmpty(target =>
-                        (target.Vessel.vesselTransform.position - vesselTransform.position).sqrMagnitude > weaponManager.maxVisualGunRangeSqr
+                        (target.Vessel.CoM - vesselPos).sqrMagnitude > weaponManager.maxVisualGunRangeSqr
                     ))))
             {
                 var squigglySquidTime = 90f * (float)vessel.missionTime + 8f * Mathf.Sin((float)vessel.missionTime * 6.28f) + 16f * Mathf.Sin((float)vessel.missionTime * 3.14f); // Vary the rate around 90°/s to be more unpredictable.
@@ -2673,7 +2678,7 @@ namespace BDArmory.Control
             prevTargetDir = targetDirection;
             targetPosition = vessel.transform.position + 100 * targetDirection;
             flyingToPosition = targetPosition;
-            float angleToTarget = Vector3.Angle(targetDirection, vesselTransform.up);
+            float angleToTarget = Vector3.Angle(targetDirection, vesselUp);
 
             //slow down for tighter turns, unless we're already at high AoA, in which case we want more thrust
             float speedReductionFactor = 1.25f;
@@ -2736,13 +2741,13 @@ namespace BDArmory.Control
             finalMaxSteer = Mathf.Clamp(finalMaxSteer, 0.1f, 1f); // added just in case to ensure some input is retained no matter what happens
 
             //roll
-            Vector3 currentRoll = -vesselTransform.forward;
+            Vector3 currentRoll = -vesselForward;
             float rollUp = steerMode == SteerModes.NormalFlight ? 10f : 5f; // Reduced roll-up for Aiming and Manoeuvering.
             if (steerMode == SteerModes.NormalFlight)
             {
                 rollUp += (1 - finalMaxSteer) * 10f;
             }
-            rollTarget = targetPosition + (rollUp * upDirection) - vesselTransform.position;
+            rollTarget = targetPosition + (rollUp * upDirection) - vesselPos;
 
             //test
             if (steerMode == SteerModes.Aiming && !belowMinAltitude && !invertRollTarget)
@@ -2763,7 +2768,7 @@ namespace BDArmory.Control
             if (avoidingTerrain || postTerrainAvoidanceCoolDownTimer >= 0)
             {
                 rollTarget = terrainAlertNormal * 100;
-                var terrainAvoidanceRollCosAngle = Vector3.Dot(-vesselTransform.forward, terrainAlertNormal.ProjectOnPlanePreNormalized(vesselTransform.up).normalized);
+                var terrainAvoidanceRollCosAngle = Vector3.Dot(-vesselForward, terrainAlertNormal.ProjectOnPlanePreNormalized(vesselUp).normalized);
                 if (terrainAvoidanceRollCosAngle < terrainAvoidanceCriticalCosAngle)
                 {
                     if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($"Inverting rollTarget: {rollTarget}, cosAngle: {terrainAvoidanceRollCosAngle} vs {terrainAvoidanceCriticalCosAngle}, isPSM: {isPSM}");
@@ -2776,7 +2781,7 @@ namespace BDArmory.Control
             }
             else if (belowMinAltitude && !gainAltInhibited)
             {
-                rollTarget = Vector3.Lerp(BodyUtils.GetSurfaceNormal(vesselTransform.position), upDirection, (float)vessel.radarAltitude / minAltitude) * 100; // Adjust the roll target smoothly from the surface normal to upwards to avoid clipping wings into terrain on take-off.
+                rollTarget = Vector3.Lerp(BodyUtils.GetSurfaceNormal(vesselPos), upDirection, (float)vessel.radarAltitude / minAltitude) * 100; // Adjust the roll target smoothly from the surface normal to upwards to avoid clipping wings into terrain on take-off.
             }
             else if (!avoidingTerrain && Vector3.Dot(rollTarget, upDirection) < 0 && Vector3.Dot(rollTarget, vessel.Velocity()) < 0) // If we're not avoiding terrain and the roll target is behind us and downwards, check that a circle arc of radius "turn radius" (scaled by twiddle factor maximum) tilted at angle of rollTarget has enough room to avoid hitting the ground.
             {
@@ -2808,17 +2813,18 @@ namespace BDArmory.Control
             }
             else if (useVelRollTarget && !belowMinAltitude)
             {
-                rollTarget = rollTarget.ProjectOnPlane(vessel.Velocity());
-                currentRoll = currentRoll.ProjectOnPlane(vessel.Velocity());
+                Vector3 normVelNoSideslip = vessel.Velocity().ProjectOnPlanePreNormalized(vesselRight).normalized;
+                rollTarget = rollTarget.ProjectOnPlanePreNormalized(normVelNoSideslip);
+                currentRoll = Vector3.Cross(normVelNoSideslip, vesselRight);
             }
             else
             {
-                rollTarget = rollTarget.ProjectOnPlanePreNormalized(vesselTransform.up);
+                rollTarget = rollTarget.ProjectOnPlanePreNormalized(vesselUp);
             }
 
             //ramming
             if (ramming)
-                rollTarget = (targetPosition - vesselTransform.position + rollUp * Mathf.Clamp((targetPosition - vesselTransform.position).magnitude / 500f, 0f, 1f) * upDirection).ProjectOnPlanePreNormalized(vesselTransform.up);
+                rollTarget = (targetPosition - vesselPos + rollUp * Mathf.Clamp((targetPosition - vesselPos).magnitude / 500f, 0f, 1f) * upDirection).ProjectOnPlanePreNormalized(vesselUp);
 
             if (requiresLowAltitudeRollTargetCorrection) // Low altitude downwards loop prevention to avoid triggering terrain avoidance.
             {
@@ -2827,16 +2833,16 @@ namespace BDArmory.Control
             }
 
             // Limit Bank Angle, this should probably be re-worked using quaternions or something like that, SignedAngle doesn't work well for angles > 90
-            Vector3 horizonNormal = (vessel.transform.position - vessel.mainBody.transform.position).ProjectOnPlanePreNormalized(vesselTransform.up);
-            float bankAngle = Vector3.SignedAngle(horizonNormal, rollTarget, vesselTransform.up);
+            Vector3 horizonNormal = (vessel.transform.position - vessel.mainBody.transform.position).ProjectOnPlanePreNormalized(vesselUp);
+            float bankAngle = Vector3.SignedAngle(horizonNormal, rollTarget, vesselUp);
             if ((Mathf.Abs(bankAngle) > maxBank) && (maxBank != 180))
                 rollTarget = Vector3.RotateTowards(horizonNormal, rollTarget, maxBank / 180 * Mathf.PI, 0.0f);
-            bankAngle = Vector3.SignedAngle(horizonNormal, rollTarget, vesselTransform.up);
+            bankAngle = Vector3.SignedAngle(horizonNormal, rollTarget, vesselUp);
 
-            float pitchError = -VectorUtils.GetAngleOnPlane(Vector3.up, localTargetDirection, Vector3.back);
-            float yawError = -VectorUtils.GetAngleOnPlane(Vector3.up, localTargetDirectionYaw, Vector3.right);
-            float rollError = -VectorUtils.GetAngleOnPlane(currentRoll, rollTarget, vesselTransform.right);
-
+            float pitchError = VectorUtils.GetAngleOnPlane(localTargetDirection, Vector3.up, Vector3.back);
+            float yawError = VectorUtils.GetAngleOnPlane(localTargetDirectionYaw, Vector3.up, Vector3.right);
+            float rollError = VectorUtils.GetAngleOnPlane(rollTarget, currentRoll, vesselRight);
+            
             if (BDArmorySettings.DEBUG_LINES)
             {
                 debugTargetPosition = vessel.transform.position + targetDirection * 1000; // The asked for target position's direction
@@ -2854,10 +2860,10 @@ namespace BDArmory.Control
             float rollDamping = 0.1f * SteerDamping(Mathf.Abs(rollError), angleToTarget, Axis.Roll) * -localAngVel.y;
 
             // For the integral, we track the vector of the pitch and yaw in the 2D plane of the vessel's forward pointing vector so that the pitch and yaw components translate between the axes when the vessel rolls.
-            directionIntegral = (directionIntegral + (pitchError * -vesselTransform.forward + yawError * vesselTransform.right) * Time.fixedDeltaTime).ProjectOnPlanePreNormalized(vesselTransform.up);
+            directionIntegral = (directionIntegral + (pitchError * -vesselForward + yawError * vesselRight) * Time.fixedDeltaTime).ProjectOnPlanePreNormalized(vesselUp);
             if (directionIntegral.sqrMagnitude > 1f) directionIntegral = directionIntegral.normalized;
-            pitchIntegral = steerKiAdjust * Vector3.Dot(directionIntegral, -vesselTransform.forward);
-            yawIntegral = 0.33f * steerKiAdjust * Vector3.Dot(directionIntegral, vesselTransform.right);
+            pitchIntegral = steerKiAdjust * Vector3.Dot(directionIntegral, -vesselForward);
+            yawIntegral = 0.33f * steerKiAdjust * Vector3.Dot(directionIntegral, vesselRight);
             rollIntegral = 0.1f * steerKiAdjust * Mathf.Clamp(rollIntegral + rollError * Time.fixedDeltaTime, -1f, 1f);
 
             var steerPitch = pitchProportional + pitchIntegral - pitchDamping;
@@ -3086,11 +3092,11 @@ namespace BDArmory.Control
                 Vector3 targetDirection = extendDistance * currentDirection;
                 Vector3 target = vessel.transform.position + targetDirection; // Target extend position horizontally.
                 if (extendingForBombing) isBombing = true;
-                target += upDirection * (Mathf.Min(extendingForBombing ? finalBombingAlt : defaultAltitude, BodyUtils.GetRadarAltitudeAtPos(vesselTransform.position)) - BodyUtils.GetRadarAltitudeAtPos(target)); // Adjust for terrain changes at target extend position.
+                target += upDirection * (Mathf.Min(extendingForBombing ? finalBombingAlt : defaultAltitude, (float)vessel.radarAltitude) - BodyUtils.GetRadarAltitudeAtPos(target)); // Adjust for terrain changes at target extend position.
                 target = FlightPosition(target, extendDesiredMinAltitude); // Further adjustments for speed, situation, etc. and desired minimum altitude after extending.
                 if (regainEnergy)
                 {
-                    RegainEnergy(s, target - vesselTransform.position);
+                    RegainEnergy(s, target - vessel.CoM);
                     return;
                 }
                 else
@@ -3114,9 +3120,11 @@ namespace BDArmory.Control
             }
             finalMaxSteer = GetSteerLimiterForSpeedAndPower();
 
+            Vector3 vesselPos = vesselTransform.position;
+
             if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($"Flying orbit");
             Vector3 flightCenter = GetTerrainSurfacePosition(VectorUtils.GetWorldSurfacePostion(centerGPS, vessel.mainBody)) + (defaultAltitude * upDirection);
-            Vector3 myVectorFromCenter = (vessel.transform.position - flightCenter).ProjectOnPlanePreNormalized(upDirection);
+            Vector3 myVectorFromCenter = (vesselPos - flightCenter).ProjectOnPlanePreNormalized(upDirection);
             Vector3 myVectorOnOrbit = myVectorFromCenter.normalized * radius;
             Vector3 targetVectorFromCenter = Quaternion.AngleAxis(clockwise ? 15f : -15f, upDirection) * myVectorOnOrbit; // 15° ahead in the orbit. Distance = π*radius/12
             Vector3 verticalVelVector = Vector3.Project(vessel.Velocity(), upDirection); //for vv damping
@@ -3128,19 +3136,19 @@ namespace BDArmory.Control
             }
             if (vessel.radarAltitude < 500) // Terrain slope adjustment when at <500m.
             {
-                Ray ray = new Ray(vesselTransform.position, (targetPosition - vesselTransform.position).normalized);
+                Ray ray = new Ray(vesselPos, (targetPosition - vesselPos).normalized);
                 var distance = Mathf.PI * radius / 12f;
                 if (Physics.Raycast(ray, out RaycastHit hit, distance, (int)LayerMasks.Scenery))
                 {
                     var slope = ray.direction.ProjectOnPlane(Vector3.Cross(hit.normal, ray.direction));
-                    targetPosition = targetPosition * (hit.distance / distance) + (1 - hit.distance / distance) * (vesselTransform.position + slope * distance);
+                    targetPosition = targetPosition * (hit.distance / distance) + (1 - hit.distance / distance) * (vesselPos + slope * distance);
                 }
             }
-            Vector3 vectorToTarget = targetPosition - vesselTransform.position;
+            Vector3 vectorToTarget = targetPosition - vesselPos;
             // Vector3 planarVel = vessel.Velocity().ProjectOnPlanePreNormalized(upDirection);
             //vectorToTarget = Vector3.RotateTowards(planarVel, vectorToTarget, 25f * Mathf.Deg2Rad, 0);
             vectorToTarget = GetLimitedClimbDirectionForSpeed(vectorToTarget);
-            targetPosition = vesselTransform.position + vectorToTarget;
+            targetPosition = vesselPos + vectorToTarget;
 
             if (command != PilotCommands.Free && (vessel.transform.position - flightCenter).sqrMagnitude < radius * radius * 1.5f)
             {

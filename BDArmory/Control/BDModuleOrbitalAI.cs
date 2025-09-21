@@ -2005,10 +2005,10 @@ namespace BDArmory.Control
             float rotationPerFrame = (currentStatusMode == StatusMode.Firing && Vector3.Dot(vesselTransform.up, targetDirection) > 0.94) ? 25f : steerMaxError; // Reduce rotation rate if firing and within ~20 deg of target
             localTargetDirection = Vector3.RotateTowards(Vector3.up, localTargetDirection, rotationPerFrame * Mathf.Deg2Rad, 0);
 
-            float pitchError = -VectorUtils.GetAngleOnPlane(Vector3.up, localTargetDirection, Vector3.back);
-            float yawError = -VectorUtils.GetAngleOnPlane(Vector3.up, localTargetDirection, Vector3.right);
-            float rollError = Mathf.Clamp(-VectorUtils.GetAngleOnPlane(currentRoll, rollTarget, vesselTransform.right), -steerMaxError, steerMaxError);
-
+            float pitchError = VectorUtils.GetAngleOnPlane(localTargetDirection, Vector3.up, Vector3.back);
+            float yawError = VectorUtils.GetAngleOnPlane(localTargetDirection, Vector3.up, Vector3.right);
+            float rollError = Mathf.Clamp(VectorUtils.GetAngleOnPlane(rollTarget, currentRoll, vesselTransform.right), -steerMaxError, steerMaxError);
+            
             Vector3 localAngVel = vessel.angularVelocity;
             Vector3 targetAngVel = Vector3.Cross(prevTargetDir, targetDirection) / Time.fixedDeltaTime;
             Vector3 localTargetAngVel = vesselTransform.InverseTransformVector(targetAngVel);

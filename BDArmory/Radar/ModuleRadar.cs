@@ -54,11 +54,12 @@ namespace BDArmory.Radar
         [KSPField]
         public bool omnidirectional = true;			//false=scan FoV limited to directionalFieldOfView
 
+        // NOTE: The radar is assumed to have full roll stabilization capabilities!
         [KSPField]
         public string directionalFieldOfView = "90";   //relevant for NON-omnidirectional only
 
         [KSPField]
-        public string elevationFOV = "90";             //FoV of the radar in the vertical axis
+        public string elevationFOV = "-1f";             //FoV of the radar in the vertical axis
 
         public float radarAzOffset = 0f;
         public float radarAzFOV = 90f;
@@ -500,6 +501,8 @@ namespace BDArmory.Radar
                     vesselRadarData.RemoveDataFromRadar(this);
                 }
 
+                referenceTransform = null;
+
                 if (linkedToVessels != null)
                 {
                     List<VesselRadarData>.Enumerator vrd = linkedToVessels.GetEnumerator();
@@ -520,12 +523,12 @@ namespace BDArmory.Radar
             }
         }
 
-        public void ParseRadarLimits(in string radarLimitString, out float radarOffset, out float radarFOV, out float[] radarLimits, out float[] radarMinMaxLimits)
+        public void ParseRadarLimits(in string radarLimitString, out float radarOffset, out float radarFOV, out float[] radarLimits, out float[] radarMinMaxLimits, bool elevationLimits = false)
         {
-            radarLimits = [-45f, 45f];
-            radarMinMaxLimits = [45f, 45f];
+            radarLimits = elevationLimits ?[radarAzLimits[0], radarAzLimits[1]] : [-45f, 45f];
+            radarMinMaxLimits = elevationLimits ? [radarMinMaxAzLimits[0],radarMinMaxAzLimits[1]] : [45f, 45f];
             radarOffset = 0f;
-            radarFOV = 90f;
+            radarFOV = elevationLimits ? radarAzFOV : 90f;
             string[] limitStrings = radarLimitString.Split([',']);
             if (limitStrings.Length > 0)
             {
@@ -564,11 +567,18 @@ namespace BDArmory.Radar
                 {
                     // Set total width
                     if (float.TryParse(limitStrings[0], out float temp))
+                    {
+                        if (temp < 0f)
+                            return;
                         radarFOV = temp;
+                    }
 
                     // Set left/right limits
                     radarLimits[1] = 0.5f * radarFOV;
                     radarLimits[0] = -radarLimits[1];
+
+                    radarMinMaxLimits[0] = radarLimits[1];
+                    radarMinMaxLimits[1] = radarLimits[1];
                 }
             }
         }
@@ -590,7 +600,14 @@ namespace BDArmory.Radar
                 linkedToVessels = new List<VesselRadarData>();
 
                 ParseRadarLimits(directionalFieldOfView, out radarAzOffset, out radarAzFOV, out radarAzLimits, out radarMinMaxAzLimits);
-                ParseRadarLimits(elevationFOV, out radarElOffset, out radarElFOV, out radarElLimits, out radarMinMaxElLimits);
+                // Retain old radar characteristics, if omnidirectional the radar should be able to see targets at +/- 90, otherwise
+                // the radar could previously see targets at +/- 90 but not lock them, so we'll just lock it to a square FoV
+                ParseRadarLimits(elevationFOV, out radarElOffset, out radarElFOV, out radarElLimits, out radarMinMaxElLimits, !omnidirectional);
+                if (BDArmorySettings.DEBUG_RADAR)
+                {
+                    Debug.Log($"[BDArmory.ModuleRadar] radarAzOffset {radarAzOffset}, radarAzFOV: {radarAzFOV}, radarAzLimits: {radarAzLimits[0]},{radarAzLimits[1]}, radarMinMaxAzLimits: {radarMinMaxAzLimits[0]},{radarMinMaxAzLimits[1]}");
+                    Debug.Log($"[BDArmory.ModuleRadar] radarElOffset {radarElOffset}, radarElFOV: {radarElFOV}, radarElLimits: {radarElLimits[0]},{radarElLimits[1]}, radarMinMaxAzLimits: {radarMinMaxElLimits[0]},{radarMinMaxElLimits[1]}");
+                }
 
                 signalPersistTime = omnidirectional
                     ? 360 / (scanRotationSpeed + 5)
@@ -715,17 +732,21 @@ namespace BDArmory.Radar
             if (omnidirectional)
             {
                 referenceTransform.position = part.transform.position;
+                currPosition = referenceTransform.position;
                 referenceTransform.rotation =
-                    Quaternion.LookRotation(VectorUtils.GetNorthVector(radarTransform.position, vessel.mainBody),
-                        VectorUtils.GetUpDirection(referenceTransform.position));
+                    Quaternion.LookRotation(VectorUtils.GetNorthVector(currPosition, vessel.mainBody),
+                        VectorUtils.GetUpDirection(currPosition));
             }
             else
             {
                 referenceTransform.position = part.transform.position;
+                currPosition = referenceTransform.position;
+                // THIS IMPLEMENTS FULL ROLL STABILIZATION
+                // We assume the radar can *always* roll such that the up direction is the projection of
+                // the up vector onto the radarTransform up plane.
                 referenceTransform.rotation = Quaternion.LookRotation(radarTransform.up,
-                    VectorUtils.GetUpDirection(referenceTransform.position));
+                    VectorUtils.GetUpDirection(currPosition).ProjectOnPlanePreNormalized(radarTransform.up).normalized);
             }
-            currPosition = referenceTransform.position;
             currForward = referenceTransform.forward;
             currUp = referenceTransform.up;
             currRight = referenceTransform.right;
@@ -1049,7 +1070,7 @@ namespace BDArmory.Radar
             if (omnidirectional)
             {
                 // Check elevation only, determine angle from the vertical axis
-                return (Mathf.Abs(VectorUtils.GetElevation(targetPosition - currPosition, currUp) - radarElOffset) < radarElFOV);
+                return (Mathf.Abs(VectorUtils.GetElevation(targetPosition - currPosition, currUp) - radarElOffset) < 0.5f * radarElFOV);
             }
             else
             {
@@ -1062,7 +1083,7 @@ namespace BDArmory.Radar
                 float el = VectorUtils.GetElevation(relativePosition, currUp);
 
                 // Check if we're outside FoV
-                return (Mathf.Abs(az - radarAzOffset) < radarAzFOV && Mathf.Abs(el - radarElOffset) < radarElFOV);
+                return (Mathf.Abs(az - radarAzOffset) < 0.5f * radarAzFOV && Mathf.Abs(el - radarElOffset) < 0.5f * radarElFOV);
             }
         }
 
@@ -1076,7 +1097,7 @@ namespace BDArmory.Radar
             if (omnidirectional)
             {
                 // Check elevation only, determine angle from the vertical axis
-                return (Mathf.Abs(VectorUtils.GetElevation(dir, currUp, 1.0f, 1.0f) - radarElOffset) < radarElFOV);
+                return (Mathf.Abs(VectorUtils.GetElevation(dir, currUp, 1.0f, 1.0f) - radarElOffset) < 0.5f * radarElFOV);
             }
             else
             {
@@ -1086,7 +1107,7 @@ namespace BDArmory.Radar
                 float el = VectorUtils.GetElevation(dir, currUp, 1.0f, 1.0f);
 
                 // Check if we're outside FoV
-                return (Mathf.Abs(az - radarAzOffset) < radarAzFOV && Mathf.Abs(el - radarElOffset) < radarElFOV);
+                return (Mathf.Abs(az - radarAzOffset) < 0.5f * radarAzFOV && Mathf.Abs(el - radarElOffset) < 0.5f * radarElFOV);
             }
         }
 

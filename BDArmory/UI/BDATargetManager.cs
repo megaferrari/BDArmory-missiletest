@@ -952,12 +952,12 @@ namespace BDArmory.UI
             var activeVessel = FlightGlobals.ActiveVessel;
             if (activeVessel != null)
             {
-                Vector3 position = activeVessel.vesselTransform.position;
-                Vector3 vesselTransformUp = activeVessel.vesselTransform.up;
-                Vector3 vesselTransformForward = activeVessel.vesselTransform.forward;
+                Vector3 position = activeVessel.ReferenceTransform.position;
+                Vector3 vesselTransformUp = activeVessel.ReferenceTransform.up;
+                Vector3 vesselTransformForward = activeVessel.ReferenceTransform.forward;
                 Vector3 forward = position + 100f * vesselTransformUp;
                 Vector3 aft = position - 100f * vesselTransformUp;
-                Vector3 side = position + 100f * activeVessel.vesselTransform.right;
+                Vector3 side = position + 100f * activeVessel.ReferenceTransform.right;
                 Vector3 top = position - 100f * vesselTransformForward;
                 Vector3 bottom = position + 100f * vesselTransformForward;
 
