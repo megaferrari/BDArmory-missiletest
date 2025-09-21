@@ -128,9 +128,6 @@ namespace BDArmory.Radar
         private Transform referenceTransform;
         private Transform vesselReferenceTransform;
 
-        private float ReferenceUpdateTime = -1f;
-        public float TimeSinceReferenceUpdate => Time.fixedTime - ReferenceUpdateTime;
-
         // referenceTransform's position etc.
         Vector3 currPosition;
         Vector3 currForward;
@@ -581,9 +578,6 @@ namespace BDArmory.Radar
 
         private void UpdateReferenceTransform()
         {
-            if (TimeSinceReferenceUpdate < Time.fixedDeltaTime)
-                return;
-
             if (radarCount == 1 && !availableRadars[0].omnidirectional && !vessel.Landed)
             {
                 referenceTransform.position = vessel.CoM;
@@ -1130,7 +1124,6 @@ namespace BDArmory.Radar
             //bool linked = (radarCount > 1);
             Rect scanRect = new Rect(0, 0, RadarDisplayRect.width, RadarDisplayRect.height);
 
-            UpdateReferenceTransform();
             //Vector3 refForward = referenceTransform.forward;
             //Vector3 refUp = referenceTransform.up;
             //Vector3 refRight = referenceTransform.right;
@@ -2158,7 +2151,6 @@ namespace BDArmory.Radar
 
             bool lockDirty = false;
 
-            UpdateReferenceTransform();
             //Vector3 refForward = referenceTransform.forward;
             //Vector3 refUp = referenceTransform.up;
             //Vector3 refRight = referenceTransform.right;
