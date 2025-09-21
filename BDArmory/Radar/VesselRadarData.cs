@@ -594,8 +594,6 @@ namespace BDArmory.Radar
             currForward = referenceTransform.forward;
             currUp = referenceTransform.up;
             currRight = referenceTransform.right;
-
-            ReferenceUpdateTime = Time.fixedTime;
         }
 
         private void PartDestroyed(Part p)
