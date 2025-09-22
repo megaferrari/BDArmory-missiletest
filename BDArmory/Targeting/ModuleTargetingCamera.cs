@@ -1580,7 +1580,7 @@ namespace BDArmory.Targeting
             }
             GameEvents.onVesselCreate.Remove(Disconnect);
             SlewingMouseCam = false;
-            TimingManager.FixedUpdateRemove(TimingManager.TimingStage.FashionablyLate, CameraTracking);
+            TimingManager.FixedUpdateRemove(TimingManager.TimingStage.BetterLateThanNever, CameraTracking);
         }
 
         Vector2 TargetAzimuthElevationScreenPos(Rect screenRect, Vector3 targetPosition, float textureSize)
