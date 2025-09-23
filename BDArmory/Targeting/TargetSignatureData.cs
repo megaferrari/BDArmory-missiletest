@@ -28,6 +28,8 @@ namespace BDArmory.Targeting
         public Vessel vessel;
         public Part IRSource;
         public bool isDecoy = false;
+        //SEE TODO in CheckJamming
+        //public Vector3 jammedGeoPos;
         bool orbital;
         Orbit orbit;
 
@@ -182,6 +184,28 @@ namespace BDArmory.Targeting
                 return position + (velocity * age);
             }
         }
+
+        // TODO: Finish this stuff, we'll have to decide on how jamming affects positional
+        // accuracy in the display. For now, I'm throwing this code in VesselRadarData
+        // as it was before, but ideally we should be pre-calculating this, and only
+        // when the radar performs a sweep (so this would ideally be called in
+        // RadarUtils.RadarUpdateScanLock, in the modeTryLock = false branch).
+        /*public void CheckJamming(ModuleRadar radar)
+        {
+            float jamDistance = RadarUtils.GetVesselECMJammingDistance(vessel);
+            Vector3 radarPosition = radar.currPosition;
+            Vector3 vectorToTarget = vessel.CoM - radar.currPosition;
+            float sqrDist = vectorToTarget.sqrMagnitude;
+            if (vesselJammer && jamDistance * jamDistance > sqrDist)
+            {
+                Vector3 dirToTarget = vectorToTarget / BDAMath.Sqrt(sqrDist);
+
+                Vector3 jammedPosition = radarPosition + (dirToTarget * UnityEngine.Random.Range(100, rIncrements[rangeIndex]));
+                float bearingVariation = Mathf.Clamp(1024e6f /    // 32000 * 32000
+                        sqrDist, 0,  80);
+                jammedPosition = radarPosition + (Quaternion.AngleAxis(Random.Range(-bearingVariation, bearingVariation), currUp) * (jammedPosition - transform.position));
+            }
+        }*/
 
         public Vector3 predictedPositionWithChaffFactor(float chaffEffectivity = 1f)
         {

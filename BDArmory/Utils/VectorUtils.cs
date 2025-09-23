@@ -534,6 +534,37 @@ namespace BDArmory.Utils
         }
 
         /// <summary>
+        /// Rotates a Vector2 in 2D about (0,0).
+        /// </summary>
+        /// <param name="v">Vector.</param>
+        /// <param name="theta">Angle.</param>
+        /// <returns>v rotated by theta degrees (anti-clockwise positive).</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Rotate2DVec2(Vector2 v, float theta)
+        {
+            float x = v.x, y = v.y;
+            float cos = Mathf.Cos(theta * Mathf.Deg2Rad);
+            float sin = BDAMath.Sqrt(1 - cos * cos);
+            return new Vector2(x * cos - y * sin, x * sin + y * cos);
+        }
+
+        /// <summary>
+        /// Rotates a Vector2 in 2D about a given point.
+        /// </summary>
+        /// <param name="v">Vector to rotate.</param>
+        /// <param name="p">Point to rotate about.</param>
+        /// <param name="theta">Angle.</param>
+        /// <returns>v rotated by theta degrees (anti-clockwise positive) about p.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Rotate2DVec2(Vector2 v, Vector2 p, float theta)
+        {
+            float x = v.x - p.x, y = v.y - p.y;
+            float cos = Mathf.Cos(theta);
+            float sin = BDAMath.Sqrt(1 - cos * cos);
+            return new Vector2(x * cos - y * sin + p.x, x * sin + y * cos + p.y);
+        }
+
+        /// <summary>
         /// Compute the 1-norm of a Vector3.
         /// </summary>
         /// <returns>The 1-norm.</returns>
