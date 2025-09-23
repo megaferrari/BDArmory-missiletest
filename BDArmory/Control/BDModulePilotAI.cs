@@ -2806,7 +2806,12 @@ namespace BDArmory.Control
                     if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($"Low-alt loop: {requiresLowAltitudeRollTargetCorrection:G4}: {vessel.radarAltitude:G4} < {h:G4}, r: {r}");
                 }
             }
-            if (useWaypointRollTarget && IsRunningWaypoints)
+
+            if (ramming)
+            {
+                rollTarget = (targetPosition - vesselPos + rollUp * Mathf.Clamp((targetPosition - vesselPos).magnitude / 500f, 0f, 1f) * upDirection).ProjectOnPlanePreNormalized(vesselUp);
+            }
+            else if (useWaypointRollTarget && IsRunningWaypoints)
             {
                 var angle = waypointRollTargetStrength * Vector3.Angle(waypointRollTarget, rollTarget);
                 rollTarget = Vector3.RotateTowards(rollTarget, waypointRollTarget, angle * Mathf.Deg2Rad, 0f).ProjectOnPlane(vessel.Velocity());
@@ -2821,10 +2826,6 @@ namespace BDArmory.Control
             {
                 rollTarget = rollTarget.ProjectOnPlanePreNormalized(vesselUp);
             }
-
-            //ramming
-            if (ramming)
-                rollTarget = (targetPosition - vesselPos + rollUp * Mathf.Clamp((targetPosition - vesselPos).magnitude / 500f, 0f, 1f) * upDirection).ProjectOnPlanePreNormalized(vesselUp);
 
             if (requiresLowAltitudeRollTargetCorrection) // Low altitude downwards loop prevention to avoid triggering terrain avoidance.
             {
