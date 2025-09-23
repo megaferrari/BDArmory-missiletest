@@ -128,9 +128,6 @@ namespace BDArmory.Radar
         private Transform referenceTransform;
         private Transform vesselReferenceTransform;
 
-        private float ReferenceUpdateTime = -1f;
-        public float TimeSinceReferenceUpdate => Time.fixedTime - ReferenceUpdateTime;
-
         // referenceTransform's position etc.
         Vector3 currPosition;
         Vector3 currForward;
@@ -404,6 +401,7 @@ namespace BDArmory.Radar
                 weaponManager = vessel.ActiveController().WM;
             }
 
+            TimingManager.UpdateAdd(TimingManager.TimingStage.BetterLateThanNever, UpdateGUIData);
             StartCoroutine(StartupRoutine());
         }
 
@@ -458,6 +456,7 @@ namespace BDArmory.Radar
             GameEvents.onGameStateSave.Remove(OnGameStateSave);
             GameEvents.onPartDestroyed.Remove(PartDestroyed);
 
+            TimingManager.UpdateRemove(TimingManager.TimingStage.BetterLateThanNever, UpdateGUIData);
             if (weaponManager)
             {
                 if (slaveTurrets)
@@ -581,9 +580,6 @@ namespace BDArmory.Radar
 
         private void UpdateReferenceTransform()
         {
-            if (TimeSinceReferenceUpdate < Time.fixedDeltaTime)
-                return;
-
             if (radarCount == 1 && !availableRadars[0].omnidirectional && !vessel.Landed)
             {
                 referenceTransform.position = vessel.CoM;
@@ -600,8 +596,6 @@ namespace BDArmory.Radar
             currForward = referenceTransform.forward;
             currUp = referenceTransform.up;
             currRight = referenceTransform.right;
-
-            ReferenceUpdateTime = Time.fixedTime;
         }
 
         private void PartDestroyed(Part p)
@@ -1125,12 +1119,9 @@ namespace BDArmory.Radar
 
             var guiMatrix = GUI.matrix;
             //bool omnidirectionalDisplay = (radarCount == 1 && linkedRadars[0].omnidirectional);
-            float directionalFieldOfView = (omniDisplay) ? 0 :
-                                           (availableRadars.Count > 0) ? (availableRadars[0].radarMinMaxAzLimits[1]) : 0.5f * availableIRSTs[0].directionalFieldOfView;
             //bool linked = (radarCount > 1);
             Rect scanRect = new Rect(0, 0, RadarDisplayRect.width, RadarDisplayRect.height);
 
-            UpdateReferenceTransform();
             //Vector3 refForward = referenceTransform.forward;
             //Vector3 refUp = referenceTransform.up;
             //Vector3 refRight = referenceTransform.right;
@@ -1146,7 +1137,7 @@ namespace BDArmory.Radar
             // Actually we calculate the radar's `Quaternion.LookRotation` for the ReferenceTransform anyways, so it's probably best to
             // just have vectors to 2 opposing corners of the FoV pyramid, save the quaternion, and then rotate them using it.
 
-            if (omniDisplay)
+            if (guiDispOmni)
             {
                 GUI.DrawTexture(scanRect, omniBgTexture, ScaleMode.StretchToFill, true);
 
@@ -1156,17 +1147,10 @@ namespace BDArmory.Radar
                 }
 
                 // Range Display and control
-                if (availableRadars.Count > 0 || availableIRSTs[0].irstRanging) DisplayRange(); //don't change dist for non-range capable IRSTs
+                if (dispRange) DisplayRange(); //don't change dist for non-range capable IRSTs
 
                 //my ship direction icon
                 float directionSize = 16;
-                Vector3 projectedVesselFwd = vessel.ReferenceTransform.up.ProjectOnPlanePreNormalized(currUp).normalized;
-                Vector3 left = Vector3.Cross(currUp, projectedVesselFwd);
-                float dAngle = VectorUtils.AnglePreNormalized(projectedVesselFwd, referenceTransform.forward);
-                if (referenceTransform.InverseTransformVector(vessel.ReferenceTransform.up).x < 0)
-                {
-                    dAngle = -dAngle;
-                }
                 GUIUtility.RotateAroundPivot(dAngle, guiMatrix * scanRect.center);
                 GUI.DrawTexture(
                     new Rect(scanRect.center.x - (directionSize / 2), scanRect.center.y - (directionSize / 2),
@@ -1174,42 +1158,12 @@ namespace BDArmory.Radar
                     ScaleMode.StretchToFill, true);
                 GUI.matrix = guiMatrix;
 
-                Vector3 north;
-                if (!vessel.Landed)
-                    north = VectorUtils.GetNorthVector(currPosition, vessel.mainBody);
-                else
-                    north = Vector3.zero;
-
-                for (int i = 0; i < rCount; i++)
+                for (int i = 0; i < guiRCount; i++)
                 {
-                    if (availableRadars[i] == null || availableRadars[i].gameObject == null) continue;
-                    bool canScan = availableRadars[i].canScan;
-                    bool canTrackWhileScan = availableRadars[i].canTrackWhileScan;
-                    bool islocked = availableRadars[i].locked;
-                    float currentAngle = availableRadars[i].currentAngle;
-
-                    availableRadars[i].UpdateDisplayTransform();
-                    float radarAngle = VectorUtils.GetAngleOnPlane(availableRadars[i].currDisplayForward, projectedVesselFwd, left);
-                    
-                    // TODO: This does not account for the true 3D orientation of the radar! Technically, we could just
-                    // say it is only meant to represent the current status of the sweep, but even then we'd still have
-                    // to account for the true 3D FoV limits of the radar.
-                    if (!canScan || availableRadars[i].vessel != vessel) continue;
-                    if ((!islocked || canTrackWhileScan))
+                    if (!float.IsNaN(radarCurrAngleArr[i]))
                     {
-                        if (!availableRadars[i].omnidirectional)
-                        {
-                            currentAngle += radarAngle + dAngle;
-                        }
-                        else if (!vessel.Landed)
-                        {
-                            float angleFromNorth = VectorUtils.GetAngleOnPlane(projectedVesselFwd, north,
-                                Vector3.Cross(north, vessel.upAxis));
-                            currentAngle += angleFromNorth;
-                        }
-
-                        GUIUtility.RotateAroundPivot(currentAngle, guiMatrix * new Vector2((RadarScreenSize * BDArmorySettings.RADAR_WINDOW_SCALE) / 2, (RadarScreenSize * BDArmorySettings.RADAR_WINDOW_SCALE) / 2));
-                        if (availableRadars[i].omnidirectional && radarCount == 1)
+                        GUIUtility.RotateAroundPivot(radarCurrAngleArr[i], guiMatrix * new Vector2((RadarScreenSize * BDArmorySettings.RADAR_WINDOW_SCALE) / 2, (RadarScreenSize * BDArmorySettings.RADAR_WINDOW_SCALE) / 2));
+                        if (guiFillScanR)
                         {
                             GUI.DrawTexture(scanRect, scanTexture, ScaleMode.StretchToFill, true);
                         }
@@ -1225,41 +1179,21 @@ namespace BDArmory.Radar
                     // TODO: FIX THIS, currently doesn't take radar orientation in 3D space into account
                     // also doesn't take into account asymmetric FOVs!
                     //if linked and directional, draw FOV lines
-                    if (availableRadars[i].omnidirectional) continue;
-                    float fovAngle = availableRadars[i].radarAzFOV * 0.5f;
+                    if (float.IsNaN(radarFOVAngleArr[i])) continue;
                     float lineWidth = 2;
                     Rect verticalLineRect = new Rect(scanRect.center.x - (lineWidth / 2), 0, lineWidth,
                       scanRect.center.y);
-                    GUIUtility.RotateAroundPivot(dAngle + fovAngle + radarAngle, guiMatrix * scanRect.center);
+                    GUIUtility.RotateAroundPivot(dAngle + radarFOVAngleArr[i] + radarAngleArr[i], guiMatrix * scanRect.center);
                     GUIUtils.DrawRectangle(verticalLineRect, new Color(0, 1, 0, 0.6f));
                     GUI.matrix = guiMatrix;
-                    GUIUtility.RotateAroundPivot(dAngle - fovAngle + radarAngle, guiMatrix * scanRect.center);
+                    GUIUtility.RotateAroundPivot(dAngle - radarFOVAngleArr[i] + radarAngleArr[i], guiMatrix * scanRect.center);
                     GUIUtils.DrawRectangle(verticalLineRect, new Color(0, 1, 0, 0.4f));
                     GUI.matrix = guiMatrix;
                 }
-                for (int i = 0; i < iCount; i++)
+                for (int i = guiRCount; i < guiSCount; i++)
                 {
-                    if (availableIRSTs[i] == null || availableIRSTs[i].gameObject == null) continue;
-                    bool canScan = availableIRSTs[i].canScan;
-                    float currentAngle = availableIRSTs[i].currentAngle;
-
-                    float radarAngle = VectorUtils.SignedAngle(availableIRSTs[i].transform.up, projectedVesselFwd, left);
-
-                    if (!canScan || availableIRSTs[i].vessel != vessel) continue;
-
-                    if (!availableIRSTs[i].omnidirectional)
-                    {
-                        currentAngle += radarAngle + dAngle;
-                    }
-                    else if (!vessel.Landed)
-                    {
-                        float angleFromNorth = VectorUtils.GetAngleOnPlane(projectedVesselFwd, north,
-                            Vector3.Cross(north, vessel.upAxis));
-                        currentAngle += angleFromNorth;
-                    }
-
-                    GUIUtility.RotateAroundPivot(currentAngle, guiMatrix * new Vector2((RadarScreenSize * BDArmorySettings.RADAR_WINDOW_SCALE) / 2, (RadarScreenSize * BDArmorySettings.RADAR_WINDOW_SCALE) / 2));
-                    if (availableIRSTs[i].omnidirectional && irstCount == 1)
+                    GUIUtility.RotateAroundPivot(radarCurrAngleArr[i], guiMatrix * new Vector2((RadarScreenSize * BDArmorySettings.RADAR_WINDOW_SCALE) / 2, (RadarScreenSize * BDArmorySettings.RADAR_WINDOW_SCALE) / 2));
+                    if (guiFillScanI)
                     {
                         GUI.DrawTexture(scanRect, IRscanTexture, ScaleMode.StretchToFill, true);
                     }
@@ -1271,17 +1205,15 @@ namespace BDArmory.Radar
                     }
                     GUI.matrix = guiMatrix;
 
-
                     //if linked and directional, draw FOV lines
-                    if (availableIRSTs[i].omnidirectional) continue;
-                    float fovAngle = availableIRSTs[i].directionalFieldOfView / 2;
+                    if (float.IsNaN(radarFOVAngleArr[i])) continue;
                     float lineWidth = 2;
                     Rect verticalLineRect = new Rect(scanRect.center.x - (lineWidth / 2), 0, lineWidth,
                       scanRect.center.y);
-                    GUIUtility.RotateAroundPivot(dAngle + fovAngle + radarAngle, guiMatrix * scanRect.center);
+                    GUIUtility.RotateAroundPivot(dAngle + radarFOVAngleArr[i] + radarAngleArr[i], guiMatrix * scanRect.center);
                     GUIUtils.DrawRectangle(verticalLineRect, new Color(1, 0, 0, 0.6f));
                     GUI.matrix = guiMatrix;
-                    GUIUtility.RotateAroundPivot(dAngle - fovAngle + radarAngle, guiMatrix * scanRect.center);
+                    GUIUtility.RotateAroundPivot(dAngle - radarFOVAngleArr[i] + radarAngleArr[i], guiMatrix * scanRect.center);
                     GUIUtils.DrawRectangle(verticalLineRect, new Color(1, 0, 0, 0.4f));
                     GUI.matrix = guiMatrix;
                 }
@@ -1290,37 +1222,17 @@ namespace BDArmory.Radar
             {
                 GUI.DrawTexture(scanRect, radialBgTexture, ScaleMode.StretchToFill, true);
 
-                if (availableRadars.Count > 0 || availableIRSTs[0].irstRanging) DisplayRange(); //don't change dist for non-range capable IRSTs
+                if (dispRange) DisplayRange(); //don't change dist for non-range capable IRSTs
 
-                for (int i = 0; i < rCount; i++)
+                for (int i = 0; i < guiRCount; i++)
                 {
-                    bool canScan = availableRadars[i].canScan;
-                    bool islocked = availableRadars[i].locked;
-                    //float lockScanAngle = linkedRadars[i].lockScanAngle;
-                    float currentAngle = availableRadars[i].currentAngle;
-                    if (!canScan) continue;
-                    float indicatorAngle = currentAngle; //locked ? lockScanAngle : currentAngle;
-                    Vector2 scanIndicatorPos =
-                        RadarUtils.WorldToRadarRadial(
-                            currPosition +
-                            (Quaternion.AngleAxis(indicatorAngle, currUp) * currForward),
-                            referenceTransform, scanRect, 5000, directionalFieldOfView, true);
+                    Vector2 scanIndicatorPos = scanPosArr[i];
                     GUI.DrawTexture(new Rect(scanIndicatorPos.x - 7, scanIndicatorPos.y - 10, 14, 20),
                         BDArmorySetup.Instance.greenDiamondTexture, ScaleMode.StretchToFill, true);
 
-                    if (!islocked || !availableRadars[i].canTrackWhileScan) continue;
-                    Vector2 leftPos =
-                        RadarUtils.WorldToRadarRadial(
-                            currPosition +
-                            (Quaternion.AngleAxis(availableRadars[i].leftLimit, currUp) *
-                             currForward), referenceTransform, scanRect, 5000,
-                            directionalFieldOfView, true);
-                    Vector2 rightPos =
-                        RadarUtils.WorldToRadarRadial(
-                            currPosition +
-                            (Quaternion.AngleAxis(availableRadars[i].rightLimit, currUp) *
-                             currForward), referenceTransform, scanRect, 5000,
-                            directionalFieldOfView, true);
+                    if (float.IsNaN(radarCurrAngleArr[i])) continue;
+                    Vector2 leftPos = leftPosArr[i];
+                    Vector2 rightPos = rightPosArr[i];
                     float barWidth = 2;
                     float barHeight = 15;
                     Color origColor = GUI.color;
@@ -1332,17 +1244,9 @@ namespace BDArmory.Radar
                     GUI.color = origColor;
                 }
 
-                for (int i = 0; i < iCount; i++)
+                for (int i = guiRCount; i < guiSCount; i++)
                 {
-                    bool canScan = availableIRSTs[i].canScan;
-                    float currentAngle = availableIRSTs[i].currentAngle;
-                    if (!canScan) continue;
-                    float indicatorAngle = currentAngle; //locked ? lockScanAngle : currentAngle;
-                    Vector2 scanIndicatorPos =
-                        RadarUtils.WorldToRadarRadial(
-                            currPosition +
-                            (Quaternion.AngleAxis(indicatorAngle, currUp) * currForward),
-                            referenceTransform, scanRect, 5000, directionalFieldOfView, true);
+                    Vector2 scanIndicatorPos = scanPosArr[i];
                     GUI.DrawTexture(new Rect(scanIndicatorPos.x - 7, scanIndicatorPos.y - 10, 14, 20),
                         BDArmorySetup.Instance.greenDiamondTexture, ScaleMode.StretchToFill, true); //FIXME?
                 }
@@ -1365,22 +1269,12 @@ namespace BDArmory.Radar
             if (LastMissile && LastMissile.TargetAcquired)
             {
                 Rect missileDataRect = new Rect(5, scanRect.height - 65, scanRect.width - 5, 60);
-                string missileDataString = LastMissile.GetShortName();
-                missileDataString += "\nT-" + LastMissile.TimeToImpact.ToString("0");
-
-                if (LastMissile.ActiveRadar && Mathf.Round(Time.time * 3) % 2 == 0)
-                {
-                    missileDataString += "\nACTIVE";
-                }
                 GUI.Label(missileDataRect, missileDataString, distanceStyle);
             }
 
             //roll indicator
             if (!vessel.Landed)
             {
-                Vector3 localUp = vessel.ReferenceTransform.InverseTransformDirection(vessel.upAxis);
-                localUp = localUp.ProjectOnPlanePreNormalized(Vector3.up).normalized;
-                float rollAngle = -VectorUtils.GetAngleOnPlane(localUp, -Vector3.forward, Vector3.right);
                 GUIUtility.RotateAroundPivot(rollAngle, guiMatrix * scanRect.center);
                 GUI.DrawTexture(scanRect, rollIndicatorTexture, ScaleMode.StretchToFill, true);
                 GUI.matrix = guiMatrix;
@@ -1426,6 +1320,246 @@ namespace BDArmory.Radar
             // End Resizing code.
 
             GUIUtils.RepositionWindow(ref BDArmorySetup.WindowRectRadar);
+        }
+
+        // UPDATE GUI DATA
+        float dAngle;
+        float[] radarAngleArr;
+        float[] radarCurrAngleArr;
+        float[] radarFOVAngleArr;
+        string missileDataString;
+        float rollAngle;
+        float directionalFieldOfView;
+        int guiRCount = -1; // Saves the number of radars in the GUI data arrays, that way the
+        // cutoff between radars and IRSTs is known, note that this is used in case rCount changes
+        // between UpdateGUIData() being executed and OnGUI() being executed. 0 should be used for
+        // cases where no radars are present.
+        int guiSCount = -1; // Total number of sensors in the arrays! This is specifically used
+        // to avoid downsizing the arrays
+        int arrSize = -1;
+        Vector2[] scanPosArr;
+        Vector2[] leftPosArr;
+        Vector2[] rightPosArr;
+        bool guiDispOmni = false; // This saves whether or not to display in omni, in case a radar
+        // is disabled/destroyed between the execution of UpdateGUIData() and OnGUI(), such that
+        // omniDisplay flips
+        bool guiFillScanR = false; // Used for scanRect conditional
+        bool guiFillScanI = false; // Used for scanRect conditional
+        bool dispRange = false;
+
+        private void UpdateGUIData()
+        {
+            if (!drawGUI) return;
+
+            int currIndex = 0;
+
+            dispRange = availableRadars.Count > 0 || availableIRSTs[0].irstRanging;
+
+            int totCount = rCount + iCount - externalRadars.Count;
+
+            // If our radarData arrays are smaller than the total count of on-board sensors
+            // then we re-size the arrays.
+            // TODO: Maybe this could be something pre-counted in OnStart() to reduce
+            // the number of times the arrays have to be re-sized, mostly for human players
+            // since Guard Mode will enable all radars/IRSTs in one shot.
+            if (arrSize < totCount)
+            {
+                radarAngleArr = new float[totCount];
+                radarCurrAngleArr = new float[totCount];
+                radarFOVAngleArr = new float[totCount];
+                scanPosArr = new Vector2[totCount];
+                leftPosArr = new Vector2[totCount];
+                rightPosArr = new Vector2[totCount];
+                arrSize = totCount;
+            }
+
+            if (omniDisplay)
+            {
+                guiDispOmni = true;
+
+                //my ship direction icon
+                Vector3 projectedVesselFwd = vessel.ReferenceTransform.up.ProjectOnPlanePreNormalized(currUp).normalized;
+                Vector3 left = Vector3.Cross(currUp, projectedVesselFwd);
+                dAngle = VectorUtils.AnglePreNormalized(projectedVesselFwd, referenceTransform.forward);
+                if (referenceTransform.InverseTransformVector(vessel.ReferenceTransform.up).x < 0)
+                {
+                    dAngle = -dAngle;
+                }
+
+                Vector3 north;
+                if (!vessel.Landed)
+                    north = VectorUtils.GetNorthVector(currPosition, vessel.mainBody);
+                else
+                    north = Vector3.zero;
+
+                for (int i = 0; i < rCount; i++)
+                {
+                    if (availableRadars[i] == null || availableRadars[i].gameObject == null) continue;
+                    if (!availableRadars[i].canScan || availableRadars[i].vessel != vessel) continue;
+
+                    float currentAngle = availableRadars[i].currentAngle;
+
+                    availableRadars[i].UpdateDisplayTransform();
+                    float radarAngle = VectorUtils.GetAngleOnPlane(availableRadars[i].currDisplayForward, projectedVesselFwd, left);
+
+                    // TODO: This does not account for the true 3D orientation of the radar! Technically, we could just
+                    // say it is only meant to represent the current status of the sweep, but even then we'd still have
+                    // to account for the true 3D FoV limits of the radar.
+                    radarAngleArr[currIndex] = radarAngle;
+
+                    if (!availableRadars[i].locked || availableRadars[i].canTrackWhileScan)
+                    {
+                        if (!availableRadars[i].omnidirectional)
+                        {
+                            currentAngle += radarAngle + dAngle;
+                        }
+                        else if (!vessel.Landed)
+                        {
+                            float angleFromNorth = VectorUtils.GetAngleOnPlane(projectedVesselFwd, north,
+                                Vector3.Cross(north, vessel.upAxis));
+                            currentAngle += angleFromNorth;
+                        }
+
+                        radarCurrAngleArr[currIndex] = currentAngle;
+
+                        guiFillScanR = availableRadars[i].omnidirectional && radarCount == 1;
+                    }
+
+                    // TODO: FIX THIS, currently doesn't take radar orientation in 3D space into account
+                    // also doesn't take into account asymmetric FOVs!
+                    //if linked and directional, draw FOV lines
+                    if (availableRadars[i].omnidirectional)
+                    {
+                        radarFOVAngleArr[currIndex] = float.NaN;
+                        currIndex++;
+                        continue;
+                    }
+
+                    radarFOVAngleArr[currIndex] = availableRadars[i].radarAzFOV * 0.5f;
+
+                    currIndex++;
+                }
+
+                guiRCount = currIndex;
+
+                for (int i = 0; i < iCount; i++)
+                {
+                    if (availableIRSTs[i] == null || availableIRSTs[i].gameObject == null) continue;
+                    if (!availableIRSTs[i].canScan || availableIRSTs[i].vessel != vessel) continue;
+
+                    float currentAngle = availableIRSTs[i].currentAngle;
+
+                    float radarAngle = VectorUtils.SignedAngle(availableIRSTs[i].transform.up, projectedVesselFwd, left);
+
+                    if (!availableIRSTs[i].omnidirectional)
+                    {
+                        currentAngle += radarAngle + dAngle;
+                    }
+                    else if (!vessel.Landed)
+                    {
+                        float angleFromNorth = VectorUtils.GetAngleOnPlane(projectedVesselFwd, north,
+                            Vector3.Cross(north, vessel.upAxis));
+                        currentAngle += angleFromNorth;
+                    }
+
+                    radarAngleArr[currIndex] = radarAngle;
+                    radarCurrAngleArr[currIndex] = currentAngle;
+                    guiFillScanR = availableRadars[i].omnidirectional && radarCount == 1;
+
+                    //if linked and directional, draw FOV lines
+                    if (availableIRSTs[i].omnidirectional)
+                    {
+                        radarFOVAngleArr[currIndex] = float.NaN;
+                        currIndex++;
+                        continue;
+                    }
+                    radarFOVAngleArr[currIndex] = availableIRSTs[i].directionalFieldOfView * 0.5f;
+                    currIndex++;
+                }
+
+                guiSCount = currIndex;
+            }
+            else
+            {
+                guiDispOmni = false;
+
+                directionalFieldOfView = (availableRadars.Count > 0) ? (availableRadars[0].radarMinMaxAzLimits[1]) : 0.5f * availableIRSTs[0].directionalFieldOfView;
+                Rect scanRect = new Rect(0, 0, RadarDisplayRect.width, RadarDisplayRect.height);
+
+                for (int i = 0; i < rCount; i++)
+                {
+                    if (!availableRadars[i].canScan) continue;
+                    bool islocked = availableRadars[i].locked;
+                    //float lockScanAngle = linkedRadars[i].lockScanAngle;
+                    float currentAngle = availableRadars[i].currentAngle;
+                    float indicatorAngle = currentAngle; //locked ? lockScanAngle : currentAngle;
+                    scanPosArr[currIndex] =
+                        RadarUtils.WorldToRadarRadial(
+                            currPosition +
+                            (Quaternion.AngleAxis(indicatorAngle, currUp) * currForward),
+                            referenceTransform, scanRect, 5000, directionalFieldOfView, true);
+
+                    if (!islocked || !availableRadars[i].canTrackWhileScan)
+                    {
+                        radarCurrAngleArr[currIndex] = float.NaN;
+                        currIndex++;
+                        continue;
+                    }
+                    radarCurrAngleArr[currIndex] = 0f;
+                    leftPosArr[currIndex] =
+                        RadarUtils.WorldToRadarRadial(
+                            currPosition +
+                            (Quaternion.AngleAxis(availableRadars[i].leftLimit, currUp) *
+                             currForward), referenceTransform, scanRect, 5000,
+                            directionalFieldOfView, true);
+                    rightPosArr[currIndex] =
+                        RadarUtils.WorldToRadarRadial(
+                            currPosition +
+                            (Quaternion.AngleAxis(availableRadars[i].rightLimit, currUp) *
+                             currForward), referenceTransform, scanRect, 5000,
+                            directionalFieldOfView, true);
+
+                    currIndex++;
+                }
+
+                guiRCount = currIndex;
+
+                for (int i = 0; i < iCount; i++)
+                {
+                    if (!availableIRSTs[i].canScan) continue;
+                    float currentAngle = availableIRSTs[i].currentAngle;
+                    float indicatorAngle = currentAngle; //locked ? lockScanAngle : currentAngle;
+                    scanPosArr[currIndex] =
+                        RadarUtils.WorldToRadarRadial(
+                            currPosition +
+                            (Quaternion.AngleAxis(indicatorAngle, currUp) * currForward),
+                            referenceTransform, scanRect, 5000, directionalFieldOfView, true);
+
+                    currIndex++;
+                }
+
+                guiSCount = currIndex;
+            }
+
+            //missile data
+            if (LastMissile && LastMissile.TargetAcquired)
+            {
+                missileDataString = LastMissile.GetShortName();
+                missileDataString += "\nT-" + LastMissile.TimeToImpact.ToString("0");
+
+                if (LastMissile.ActiveRadar && Mathf.Round(Time.time * 3) % 2 == 0)
+                {
+                    missileDataString += "\nACTIVE";
+                }
+            }
+
+            //roll indicator
+            if (!vessel.Landed)
+            {
+                Vector3 localUp = vessel.ReferenceTransform.InverseTransformDirection(vessel.upAxis);
+                localUp = localUp.ProjectOnPlanePreNormalized(Vector3.up).normalized;
+                rollAngle = -VectorUtils.GetAngleOnPlane(localUp, -Vector3.forward, Vector3.right);
+            }
         }
 
         private void DisplayRange()
@@ -2158,7 +2292,6 @@ namespace BDArmory.Radar
 
             bool lockDirty = false;
 
-            UpdateReferenceTransform();
             //Vector3 refForward = referenceTransform.forward;
             //Vector3 refUp = referenceTransform.up;
             //Vector3 refRight = referenceTransform.right;

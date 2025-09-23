@@ -1006,7 +1006,7 @@ namespace BDArmory.Control
                 yawTarget = Vector3.RotateTowards(vessel.srf_velocity, yawTarget, MaxDrift * Mathf.Deg2Rad, 0);
             }
             bool invertCtrlPoint = SurfaceType != AIUtils.VehicleMovementType.Stationary && Vector3.Angle(vessel.srf_vel_direction.ProjectOnPlanePreNormalized(vessel.up), vesselTransform.up) > 90 && Math.Round(vessel.srfSpeed, 1) > 1; //need to flip vessel 'forward' when reversing for proper steerage
-            float yawError = VectorUtils.GetAngleOnPlane(yawTarget, invertCtrlPoint ? -vesselTransform.up : vesselTransform.up, vesselTransform.right) + (aimingMode ? 0 : weaveAdjustment);
+            float yawError = VectorUtils.GetAngleOnPlane(yawTarget, vesselTransform.up, invertCtrlPoint ? -vesselTransform.right : vesselTransform.right) + (aimingMode ? 0 : weaveAdjustment);
             if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI)
             {
                 DebugLine($"yaw target: {yawTarget}, yaw error: {yawError}");
