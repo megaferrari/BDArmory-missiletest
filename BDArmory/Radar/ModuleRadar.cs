@@ -162,7 +162,7 @@ namespace BDArmory.Radar
         [KSPField(isPersistant = true)]
         public float currentAngle;
 
-        private float ReferenceUpdateTime = - 1f;
+        private float ReferenceUpdateTime = -1f;
         public float TimeSinceReferenceUpdate => Time.fixedTime - ReferenceUpdateTime;
 
         // Variables to pre-calculate transform directions
@@ -402,7 +402,7 @@ namespace BDArmory.Radar
                     vesselRadarData = vessel.gameObject.AddComponent<VesselRadarData>();
 
                 vesselRadarData.weaponManager = WeaponManager;
-                
+
                 // Something wasn't right with the previous VRD so make sure we add the radar, primarily to take care of the multi-craft case
                 addRadar = true;
             }
@@ -525,8 +525,8 @@ namespace BDArmory.Radar
 
         public void ParseRadarLimits(in string radarLimitString, out float radarOffset, out float radarFOV, out float[] radarLimits, out float[] radarMinMaxLimits, bool elevationLimits = false)
         {
-            radarLimits = elevationLimits ?[radarAzLimits[0], radarAzLimits[1]] : [-45f, 45f];
-            radarMinMaxLimits = elevationLimits ? [radarMinMaxAzLimits[0],radarMinMaxAzLimits[1]] : [45f, 45f];
+            radarLimits = elevationLimits ? [radarAzLimits[0], radarAzLimits[1]] : [-45f, 45f];
+            radarMinMaxLimits = elevationLimits ? [radarMinMaxAzLimits[0], radarMinMaxAzLimits[1]] : [45f, 45f];
             radarOffset = 0f;
             radarFOV = elevationLimits ? radarAzFOV : 90f;
             string[] limitStrings = radarLimitString.Split([',']);
@@ -761,7 +761,7 @@ namespace BDArmory.Radar
             if (TimeSinceDisplayUpdate < Time.fixedDeltaTime)
                 return;
             UpdateReferenceTransform();
-            
+
             if (radarElOffset != 0 || radarAzOffset != 0)
                 currDisplayForward = Quaternion.AngleAxis(radarElOffset, currRight) * Quaternion.AngleAxis(-radarAzOffset, currUp) * currForward;
         }
@@ -905,7 +905,7 @@ namespace BDArmory.Radar
                 {
                     // If we're locked, then get the angle to the target
                     float targetAngle = VectorUtils.GetAngleOnPlane(lockedTarget.position - currPosition, currForward, currRight);
-                    
+
                     // And then set the left/right limits based on multiLockFOV, limited by the radarAzLimits
                     leftLimit = Mathf.Clamp(targetAngle - (multiLockFOV * 0.5f), radarAzLimits[0],
                         radarAzLimits[1]);

@@ -143,7 +143,6 @@
 - Competition:
 	- Add a "defaults" button to the scoring window to reset score weights to their default values.
 	- Updated parsing and plotting scripts.
-		- Scripts moved to the folder "Scripts".
 		- Using 'python parse_tournament_log_files.py -w cfg' reads the score weights from the score_weights.cfg file.
 		- Using 'python plot_summary.py -i regex' creates the plot ignoring any craft matching the regex string.
 	- Add a "Daylight" position on the "TimeWarp Between Rounds" tournament slider to warp to dawn whenever a round would start in darkness.
@@ -151,6 +150,7 @@
 - Spawning:
 	- Automatically adjust the PRE range if the spawn distance would put craft outside the physics range.
 - Scripts:
+	- All python scripts have been moved to the folder "Scripts".
 	- Added the new "BDArmoryMissileManeuverEnvelopePlotter.py" and "KSPFloatCurveCalc.py" scripts.
 		- "KSPFloatCurveCalc.py" is a general utility, implementing KSP FloatCurves in python as a class, using numpy and some not-so-efficient-but-faster-than-opening-KSP code.
 		- "BDArmoryMissileManeuverEnvelopePlotter.py" is a new tool, using "KSPFloatCurveCalc.py", numpy and matplotlib, designed to allow modders to make the most of the new missile changes. It is a command-line utility that allows the user to plot the performance of a missile, allowing the modder to better tune the performance of their missile.
