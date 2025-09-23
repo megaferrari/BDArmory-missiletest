@@ -19,7 +19,7 @@ namespace BDArmory.Utils
         /// <param name="referenceRight">Right compared to fromDirection, make sure it's not orthogonal to toDirection, or you'll get unstable signs</param>
         public static float SignedAngle(Vector3 fromDirection, Vector3 toDirection, Vector3 referenceRight)
         {
-            float angle = Vector3.Angle(fromDirection, toDirection);
+            float angle = Angle(fromDirection, toDirection);
             float sign = Mathf.Sign(Vector3.Dot(toDirection, referenceRight));
             float finalAngle = sign * angle;
             return finalAngle;
