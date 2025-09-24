@@ -126,7 +126,6 @@ namespace BDArmory.Radar
         private List<VesselRadarData> availableExternalVRDs;
 
         private Transform referenceTransform;
-        private Transform vesselReferenceTransform;
 
         // referenceTransform's position etc.
         Vector3 currPosition;
@@ -345,11 +344,6 @@ namespace BDArmory.Radar
                 fontSize = 12
             };
 
-            vesselReferenceTransform = (new GameObject()).transform;
-            //vesselReferenceTransform.parent = vessel.transform;
-            //vesselReferenceTransform.localPosition = Vector3.zero;
-            vesselReferenceTransform.localScale = Vector3.one;
-
             displayedTargets = new List<RadarDisplayData>();
             displayedIRTargets = new List<IRSTDisplayData>();
             externalVRDs = new List<VesselRadarData>();
@@ -405,8 +399,6 @@ namespace BDArmory.Radar
             {
                 weaponManager = vessel.ActiveController().WM;
             }
-
-            TimingManager.UpdateAdd(TimingManager.TimingStage.BetterLateThanNever, UpdateGUIData);
             StartCoroutine(StartupRoutine());
         }
 
@@ -461,7 +453,6 @@ namespace BDArmory.Radar
             GameEvents.onGameStateSave.Remove(OnGameStateSave);
             GameEvents.onPartDestroyed.Remove(PartDestroyed);
 
-            TimingManager.UpdateRemove(TimingManager.TimingStage.BetterLateThanNever, UpdateGUIData);
             if (weaponManager)
             {
                 if (slaveTurrets)
@@ -585,7 +576,10 @@ namespace BDArmory.Radar
 
         private void UpdateReferenceTransform()
         {
-            if (radarCount == 1 && !availableRadars[0].omnidirectional && !vessel.Landed)
+            // Previously the following line had !vessel.Landed which is a bit weird, the b-scope display
+            // has no specific provisions for landed vessels, and thus the display would be completely
+            // wrong for landed vessels
+            if (radarCount == 1 && !availableRadars[0].omnidirectional)// && !vessel.Landed)
             {
                 referenceTransform.position = vessel.CoM;
                 // Rotate reference transform such that we're pointed forwards along the radar's forward
@@ -595,7 +589,10 @@ namespace BDArmory.Radar
             }
             else
             {
-                referenceTransform = vesselReferenceTransform;
+                referenceTransform.position = vessel.CoM;
+                referenceTransform.rotation = Quaternion.LookRotation(vessel.LandedOrSplashed ?
+                    VectorUtils.GetNorthVector(vessel.CoM, vessel.mainBody) :
+                    vessel.transform.up.ProjectOnPlanePreNormalized(vessel.upAxis), vessel.upAxis);
             }
             currPosition = vessel.CoM;
             currForward = referenceTransform.forward;
@@ -729,6 +726,12 @@ namespace BDArmory.Radar
             drawGUI = (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready && !vessel.packed && rCount + iCount > 0 &&
                        vessel.isActiveVessel && BDArmorySetup.GAME_UI_ENABLED && !MapView.MapIsEnabled);
         }
+        
+        private void LateUpdate()
+        {
+            if (drawGUI)
+                UpdateGUIData();
+        }
 
         void FixedUpdate()
         {
@@ -743,12 +746,6 @@ namespace BDArmory.Radar
             if (radarCount + irstCount > 0)
             {
                 //vesselReferenceTransform.parent = linkedRadars[0].transform;
-                vesselReferenceTransform.localScale = Vector3.one;
-                vesselReferenceTransform.position = vessel.CoM;
-
-                vesselReferenceTransform.rotation = Quaternion.LookRotation(vessel.LandedOrSplashed ?
-                  VectorUtils.GetNorthVector(vessel.CoM, vessel.mainBody) :
-                  vessel.transform.up.ProjectOnPlanePreNormalized(vessel.upAxis), vessel.upAxis);
 
                 CleanDisplayedContacts();
 
@@ -1336,18 +1333,17 @@ namespace BDArmory.Radar
         float rollAngle;
         float directionalFieldOfView;
         int guiRCount = -1; // Saves the number of radars in the GUI data arrays, that way the
-        // cutoff between radars and IRSTs is known, note that this is used in case rCount changes
-        // between UpdateGUIData() being executed and OnGUI() being executed. 0 should be used for
-        // cases where no radars are present.
+        // cutoff between radars and IRSTs is known, This is used because the GUI data arrays
+        // don't match in length with rCount and iCount, having removed external radars and
+        // null radars.
         int guiSCount = -1; // Total number of sensors in the arrays! This is specifically used
         // to avoid downsizing the arrays
         int arrSize = -1;
         Vector2[] scanPosArr;
         Vector2[] leftPosArr;
         Vector2[] rightPosArr;
-        bool guiDispOmni = false; // This saves whether or not to display in omni, in case a radar
-        // is disabled/destroyed between the execution of UpdateGUIData() and OnGUI(), such that
-        // omniDisplay flips
+        bool guiDispOmni = false; // This saves whether or not to display in omni, this is useful
+        // to know to determine whether or not we need to recalculate the ping positions
         bool guiFillScanR = false; // Used for scanRect conditional
         bool guiFillScanI = false; // Used for scanRect conditional
         bool dispRange = false;
@@ -1474,7 +1470,7 @@ namespace BDArmory.Radar
 
                     radarAngleArr[currIndex] = radarAngle;
                     radarCurrAngleArr[currIndex] = currentAngle;
-                    guiFillScanR = availableRadars[i].omnidirectional && radarCount == 1;
+                    guiFillScanI = availableIRSTs[i].omnidirectional && irstCount == 1;
 
                     //if linked and directional, draw FOV lines
                     if (availableIRSTs[i].omnidirectional)
