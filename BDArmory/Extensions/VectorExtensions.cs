@@ -141,6 +141,15 @@ namespace BDArmory.Extensions
             else
                 return (mag, Vector3.zero);
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static (float, Vector2) MagNorm(this Vector2 v)
+        {
+            float mag = v.magnitude;
+            if (mag > Vector2.kEpsilon)
+                return (mag, v / mag);
+            else
+                return (mag, Vector2.zero);
+        }
 
         /// <summary>
         /// Check if any of the vector elements are NaN.

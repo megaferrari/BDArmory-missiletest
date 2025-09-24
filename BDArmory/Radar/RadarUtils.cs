@@ -2583,18 +2583,18 @@ namespace BDArmory.Radar
         /// </summary>
         public static Vector2 WorldToRadar(Vector3 worldPosition, Transform referenceTransform, Rect radarRect, float maxDistance)
         {
-            float scale = maxDistance / (radarRect.height / 2);
+            float scale = (radarRect.height * 0.5f) / maxDistance;
             Vector3 localPosition = referenceTransform.InverseTransformPoint(worldPosition);
             localPosition.y = 0;
             if (BDArmorySettings.LOGARITHMIC_RADAR_DISPLAY)
             {
-                scale = Mathf.Log(localPosition.magnitude / scale + 1) / Mathf.Log(radarRect.height + 1);
+                scale = Mathf.Log(localPosition.magnitude * scale + 1) / Mathf.Log(radarRect.height + 1);
                 localPosition = localPosition.normalized * scale;
-                return new Vector2(radarRect.width * (1 + localPosition.x) / 2, radarRect.height * (1 - localPosition.z) / 2);
+                return new Vector2((radarRect.width * 0.5f) * (1 + localPosition.x), (radarRect.height * 0.5f) * (1 - localPosition.z));
             }
             else
             {
-                return new Vector2((radarRect.width / 2) + (localPosition.x / scale), ((radarRect.height / 2) - (localPosition.z / scale)));
+                return new Vector2((radarRect.width * 0.5f) + (localPosition.x * scale), ((radarRect.height * 0.5f) - (localPosition.z * scale)));
             }
         }
 
@@ -2605,22 +2605,22 @@ namespace BDArmory.Radar
         {
             if (referenceTransform == null) return new Vector2();
 
-            float scale = maxDistance / (radarRect.height);
+            float scale = radarRect.height / maxDistance;
             Vector3 localPosition = referenceTransform.InverseTransformPoint(worldPosition);
             localPosition.y = 0;
-            float angle = Vector3.Angle(localPosition, Vector3.forward);
-            if (localPosition.x < 0) angle = -angle;
-            float xPos = (radarRect.width / 2) + ((angle / maxAngle) * radarRect.width / 2);
+            float angle = VectorUtils.GetAngleOnPlane(localPosition, Vector3.forward, Vector3.right);
+            //if (localPosition.x < 0) angle = -angle;
+            float xPos = (radarRect.width * 0.5f) + ((angle / maxAngle) * radarRect.width * 0.5f);
             float yPos = radarRect.height;
 
             if (BDArmorySettings.LOGARITHMIC_RADAR_DISPLAY && !noLog)
             {
-                scale = Mathf.Log(localPosition.magnitude / scale + 1) / Mathf.Log(radarRect.height + 1);
+                scale = Mathf.Log(localPosition.magnitude * scale + 1) / Mathf.Log(radarRect.height + 1);
                 yPos -= radarRect.height * scale * scale; // Log^2 scales better here for some reason.
             }
             else
             {
-                yPos -= localPosition.magnitude / scale;
+                yPos -= localPosition.magnitude * scale;
             }
             Vector2 radarPos = new Vector2(xPos, yPos);
             return radarPos;
