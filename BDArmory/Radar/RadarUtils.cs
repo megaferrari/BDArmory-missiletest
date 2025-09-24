@@ -2608,7 +2608,7 @@ namespace BDArmory.Radar
             float scale = radarRect.height / maxDistance;
             Vector3 localPosition = referenceTransform.InverseTransformPoint(worldPosition);
             localPosition.y = 0;
-            float angle = VectorUtils.GetAngleOnPlane(localPosition, Vector3.forward, Vector3.left);
+            float angle = VectorUtils.GetAngleOnPlane(localPosition, Vector3.forward, Vector3.right);
             //if (localPosition.x < 0) angle = -angle;
             float xPos = (radarRect.width * 0.5f) + ((angle / maxAngle) * radarRect.width * 0.5f);
             float yPos = radarRect.height;

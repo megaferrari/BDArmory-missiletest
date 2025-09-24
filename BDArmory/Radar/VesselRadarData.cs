@@ -2002,7 +2002,7 @@ namespace BDArmory.Radar
             contactData.lockedByRadar = radar;
             rData.targetData = contactData;
             rData.pingPosition = UpdatedPingPosition(contactData.position, directionalFieldOfView);
-            rData.velAngle = -VectorUtils.GetAngleOnPlane(contactData.velocity, currForward, currRight);
+            rData.velAngle = VectorUtils.GetAngleOnPlane(contactData.velocity, currForward, currRight);
 
             if (_locked)
             {
@@ -2326,7 +2326,7 @@ namespace BDArmory.Radar
                     newData.signalPersistTime = displayedTargets[i].signalPersistTime;
                     newData.targetData = displayedTargets[i].targetData;
                     newData.vessel = displayedTargets[i].vessel;
-                    float vAngle = -VectorUtils.GetAngleOnPlane(lockedTarget.velocity, currForward, currRight);
+                    float vAngle = VectorUtils.GetAngleOnPlane(lockedTarget.velocity, currForward, currRight);
                     newData.velAngle = vAngle;
                     displayedTargets[i] = newData;
 
