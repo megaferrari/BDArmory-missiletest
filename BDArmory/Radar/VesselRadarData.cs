@@ -2310,6 +2310,10 @@ namespace BDArmory.Radar
             int currJammedIndex = 0;
             guiDrawDLZData = false;
 
+            int lTarInd = 0;
+            if (locked)
+                lTarInd = lockedTargetIndexes[activeLockedTargetIndex];
+
             for (int i = 0; i < displayedTargets.Count; i++)
             {
                 if (displayedTargets[i].locked && locked)
@@ -2331,8 +2335,6 @@ namespace BDArmory.Radar
                     float vAngle = VectorUtils.GetAngleOnPlane(lockedTarget.velocity, currForward, currRight);
                     newData.velAngle = vAngle;
                     displayedTargets[i] = newData;
-
-                    int lTarInd = lockedTargetIndexes[activeLockedTargetIndex];
 
                     if (i == lTarInd && weaponManager && weaponManager.selectedWeapon != null)
                     {
