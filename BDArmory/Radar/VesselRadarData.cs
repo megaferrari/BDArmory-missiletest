@@ -741,11 +741,10 @@ namespace BDArmory.Radar
                 return;
             }
 
-            UpdateReferenceTransform();
-
             if (radarCount + irstCount > 0)
             {
                 //vesselReferenceTransform.parent = linkedRadars[0].transform;
+                UpdateReferenceTransform();
 
                 CleanDisplayedContacts();
 
