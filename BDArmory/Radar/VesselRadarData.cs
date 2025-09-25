@@ -1354,7 +1354,7 @@ namespace BDArmory.Radar
 
             int currIndex = 0;
 
-            dispRange = availableRadars.Count > 0 || availableIRSTs[0].irstRanging;
+            dispRange = availableRadars.Count > 0;
 
             int totCount = rCount + iCount - externalRadars.Count;
 
@@ -1472,6 +1472,9 @@ namespace BDArmory.Radar
                     radarCurrAngleArr[currIndex] = currentAngle;
                     guiFillScanI = availableIRSTs[i].omnidirectional && irstCount == 1;
 
+                    if (!dispRange && availableIRSTs[i].irstRanging)
+                        dispRange = true;
+
                     //if linked and directional, draw FOV lines
                     if (availableIRSTs[i].omnidirectional)
                     {
@@ -1540,6 +1543,9 @@ namespace BDArmory.Radar
                             currPosition +
                             (Quaternion.AngleAxis(indicatorAngle, currUp) * currForward),
                             referenceTransform, scanRect, 5000, directionalFieldOfView, true);
+
+                    if (!dispRange && availableIRSTs[i].irstRanging)
+                        dispRange = true;
 
                     currIndex++;
                 }
