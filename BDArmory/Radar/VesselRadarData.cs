@@ -722,13 +722,12 @@ namespace BDArmory.Radar
             {
                 UpdateInputs();
             }
-
-            drawGUI = (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready && !vessel.packed && rCount + iCount > 0 &&
-                       vessel.isActiveVessel && BDArmorySetup.GAME_UI_ENABLED && !MapView.MapIsEnabled);
         }
         
         private void LateUpdate()
         {
+            drawGUI = (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready && !vessel.packed && rCount + iCount > 0 &&
+                       vessel.isActiveVessel && BDArmorySetup.GAME_UI_ENABLED && !MapView.MapIsEnabled);
             if (drawGUI)
                 UpdateGUIData();
         }
@@ -775,9 +774,6 @@ namespace BDArmory.Radar
 
             if (queueLinks && canReceiveRadarData)
                 LinkAllRadars();
-
-            drawGUI = (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready && !vessel.packed && rCount + iCount > 0 &&
-                       vessel.isActiveVessel && BDArmorySetup.GAME_UI_ENABLED && !MapView.MapIsEnabled);
 
             if (!vessel.loaded && (radarCount + irstCount == 0))
             {
