@@ -872,8 +872,24 @@ namespace BDArmory.Control
                     if (rwr && !rwr.rwrEnabled) rwr.EnableRWR();
                     if (rwr && rwr.rwrEnabled && !rwr.displayRWR) rwr.displayRWR = true;
                 }
-                vesselRadarData.SetMaxRange();
+                StartCoroutine(SetMaxRadarRangeRoutine());
             }
+        }
+
+        private IEnumerator SetMaxRadarRangeRoutine()
+        {
+            // Wait for vesselRadarData to be available and any radars to be turned on
+            // and active before setting the radar range to the max
+            if (!vesselRadarData)
+            {
+                vesselRadarData = vessel.gameObject.GetComponent<VesselRadarData>();
+                if (vesselRadarData == null)
+                    vesselRadarData = vessel.gameObject.AddComponent<VesselRadarData>();
+            }
+            WaitForFixedUpdate wait = new WaitForFixedUpdate();
+            yield return wait;
+            yield return wait;
+            vesselRadarData.SetMaxRange();
         }
 
         [KSPAction("Toggle Guard Mode")]

@@ -85,6 +85,9 @@ namespace BDArmory.Radar
         //public Vector3[] pingWorldPositions;
         List<TargetSignatureData> launchWarnings;
 
+        private float ReferenceUpdateTime = -1f;
+        public float TimeSinceReferenceUpdate => Time.fixedTime - ReferenceUpdateTime;
+
         Transform rt;
 
         Transform referenceTransform
@@ -171,6 +174,18 @@ namespace BDArmory.Radar
             }
         }
 
+        void UpdateReferenceTransform()
+        {
+            if (TimeSinceReferenceUpdate < Time.fixedDeltaTime)
+                return;
+
+            Vector3 upVec = VectorUtils.GetUpDirection(transform.position);
+
+            referenceTransform.rotation = Quaternion.LookRotation(vessel.ReferenceTransform.up.ProjectOnPlanePreNormalized(upVec), upVec);
+
+            ReferenceUpdateTime = Time.fixedTime;
+        }
+
         public void EnableRWR()
         {
             OnRadarPing += ReceivePing;
@@ -213,9 +228,12 @@ namespace BDArmory.Radar
             if (weaponManager == null) return;
             if (!omniDetection && !radar) return;
 
-            float sqrDist = (part.transform.position - source).sqrMagnitude;
+            UpdateReferenceTransform();
+
+            Vector3 currPos = part.transform.position;
+            float sqrDist = (currPos - source).sqrMagnitude;
             //if ((weaponManager && weaponManager.guardMode) && (sqrDist > (weaponManager.guardRange * weaponManager.guardRange))) return; //doesn't this clamp the RWR to visual view range, not radar/RWR range?
-            if (sqrDist < BDArmorySettings.MAX_ENGAGEMENT_RANGE * BDArmorySettings.MAX_ENGAGEMENT_RANGE && sqrDist > 10000f && Vector3.Angle(direction, part.transform.position - source) < 15f)
+            if (sqrDist < BDArmorySettings.MAX_ENGAGEMENT_RANGE * BDArmorySettings.MAX_ENGAGEMENT_RANGE && sqrDist > 10000f && Vector3.Angle(direction, currPos - source) < 15f)
             {
                 StartCoroutine(
                     LaunchWarningRoutine(new TargetSignatureData(source,
@@ -247,6 +265,8 @@ namespace BDArmory.Radar
                 return;
             }
 
+            UpdateReferenceTransform();
+
             if (type == RWRThreatTypes.MissileLaunch || type == RWRThreatTypes.Torpedo)
             {
                 StartCoroutine(
@@ -267,29 +287,20 @@ namespace BDArmory.Radar
             }
 
             int openIndex = -1;
+            Vector2 currPos = RadarUtils.WorldToRadar(source, referenceTransform, RwrDisplayRect, rwrDisplayRange);
             for (int i = 0; i < dataCount; i++)
             {
-                if (pingsData[i].exists &&
-                    (pingsData[i].pingPosition -
-                     RadarUtils.WorldToRadar(source, referenceTransform, RwrDisplayRect, rwrDisplayRange)).sqrMagnitude < (BDArmorySettings.LOGARITHMIC_RADAR_DISPLAY ? 100f : 900f))    //prevent ping spam
-                {
+                if (pingsData[i].exists && 
+                    (pingsData[i].pingPosition - currPos).sqrMagnitude < (BDArmorySettings.LOGARITHMIC_RADAR_DISPLAY ? 100f : 900f))    //prevent ping spam
                     break;
-                }
 
                 if (!pingsData[i].exists && openIndex == -1)
-                {
                     openIndex = i;
-                }
             }
 
             if (openIndex >= 0)
             {
-                referenceTransform.rotation = Quaternion.LookRotation(vessel.ReferenceTransform.up,
-                    VectorUtils.GetUpDirection(transform.position));
-
-                pingsData[openIndex] = new TargetSignatureData(source,
-                    RadarUtils.WorldToRadar(source, referenceTransform, RwrDisplayRect, rwrDisplayRange),
-                    true, type);
+                pingsData[openIndex] = new TargetSignatureData(source, currPos, true, type);
                 //pingWorldPositions[openIndex] = source; //FIXME source is improperly defined
                 if (weaponManager.hasAntiRadiationOrdnance)
                 {
@@ -297,7 +308,7 @@ namespace BDArmory.Radar
                 } //MissileFire RWR-vessel checks are all (RWR ping position - guardtarget.CoM).Magnitude < 20*20?, could we simplify the more complex vessel aquistion function used here?
                 StartCoroutine(PingLifeRoutine(openIndex, persistTime));
 
-                PlayWarningSound(type, (source - vessel.transform.position).sqrMagnitude);
+                PlayWarningSound(type, (source - vessel.CoM).sqrMagnitude);
             }
         }
 
@@ -452,8 +463,8 @@ namespace BDArmory.Radar
                 {
                     if (vessel.Current == null || !vessel.Current.loaded) continue;
                     if (VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.Current.vesselType)) continue;
-                    Vector3 dirToVessel = vessel.Current.transform.position - ray.origin;
-                    if (Vector3.Angle(ray.direction, dirToVessel) < fov / 2)
+                    Vector3 dirToVessel = vessel.Current.CoM - ray.origin;
+                    if (Vector3.Angle(ray.direction, dirToVessel) < fov * 0.5f)
                     {
                         PingRWR(vessel.Current, ray.origin, type, persistTime);
                     }
