@@ -2588,9 +2588,10 @@ namespace BDArmory.Radar
             localPosition.y = 0;
             if (BDArmorySettings.LOGARITHMIC_RADAR_DISPLAY)
             {
-                scale = Mathf.Log(localPosition.magnitude * scale + 1) / Mathf.Log(radarRect.height + 1);
-                localPosition = localPosition.normalized * scale;
-                return new Vector2((radarRect.width * 0.5f) * (1 + localPosition.x), (radarRect.height * 0.5f) * (1 - localPosition.z));
+                (float dist, Vector3 dir) = localPosition.MagNorm();
+                scale = Mathf.Log(dist * scale + 1f) / Mathf.Log(radarRect.height * 0.5f + 1f);
+                localPosition = dir * scale;
+                return new Vector2((radarRect.width * 0.5f) * (1f + localPosition.x), (radarRect.height * 0.5f) * (1f - localPosition.z));
             }
             else
             {
