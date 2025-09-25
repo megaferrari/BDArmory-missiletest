@@ -2578,23 +2578,32 @@ namespace BDArmory.Radar
             return false;
         }
 
+        // Previously log scale depended on window size, this has now been made
+        // independent of window size. Based on the default window size of
+        // 256 pixels for RWRs (256 looks to provide better curve than 360)
+        // 1f / Mathf.Log(128f + 1f)
+        const float logRangeDenominator = 0.47380122963748149470090183862777f;
+        // 1f / Mathf.Log(256f + 1f)
+        const float logRangeRadialDenominator = 0.41524101186092029348378992868617f;
+
         /// <summary>
         /// Helper method: map a position onto the radar display
         /// </summary>
         public static Vector2 WorldToRadar(Vector3 worldPosition, Transform referenceTransform, Rect radarRect, float maxDistance)
         {
-            float scale = (radarRect.height * 0.5f) / maxDistance;
+            
             Vector3 localPosition = referenceTransform.InverseTransformPoint(worldPosition);
             localPosition.y = 0;
             if (BDArmorySettings.LOGARITHMIC_RADAR_DISPLAY)
             {
                 (float dist, Vector3 dir) = localPosition.MagNorm();
-                scale = Mathf.Log(dist * scale + 1f) / Mathf.Log(radarRect.height * 0.5f + 1f);
+                float scale = Mathf.Log(dist * 256f / maxDistance + 1f) * logRangeRadialDenominator;
                 localPosition = dir * scale;
                 return new Vector2((radarRect.width * 0.5f) * (1f + localPosition.x), (radarRect.height * 0.5f) * (1f - localPosition.z));
             }
             else
             {
+                float scale = (radarRect.height * 0.5f) / maxDistance;
                 return new Vector2((radarRect.width * 0.5f) + (localPosition.x * scale), ((radarRect.height * 0.5f) - (localPosition.z * scale)));
             }
         }
@@ -2606,7 +2615,7 @@ namespace BDArmory.Radar
         {
             if (referenceTransform == null) return new Vector2();
 
-            float scale = radarRect.height / maxDistance;
+            
             Vector3 localPosition = referenceTransform.InverseTransformPoint(worldPosition);
             localPosition.y = 0;
             float angle = VectorUtils.GetAngleOnPlane(localPosition, Vector3.forward, Vector3.right);
@@ -2616,11 +2625,12 @@ namespace BDArmory.Radar
 
             if (BDArmorySettings.LOGARITHMIC_RADAR_DISPLAY && !noLog)
             {
-                scale = Mathf.Log(localPosition.magnitude * scale + 1) / Mathf.Log(radarRect.height + 1);
+                float scale = Mathf.Log(localPosition.magnitude * 256f / maxDistance + 1) * logRangeRadialDenominator;
                 yPos -= radarRect.height * scale * scale; // Log^2 scales better here for some reason.
             }
             else
             {
+                float scale = radarRect.height / maxDistance;
                 yPos -= localPosition.magnitude * scale;
             }
             Vector2 radarPos = new Vector2(xPos, yPos);
