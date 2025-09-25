@@ -365,8 +365,6 @@ namespace BDArmory.Radar
         private void Start()
         {
             referenceTransform = (new GameObject()).transform;
-            referenceTransform.parent = vessel.ReferenceTransform;
-            referenceTransform.localPosition = Vector3.zero;
 
             rangeIndex = rIncrements.Length - 6;
 
@@ -452,6 +450,8 @@ namespace BDArmory.Radar
             MissileFire.OnChangeTeam -= OnChangeTeam;
             GameEvents.onGameStateSave.Remove(OnGameStateSave);
             GameEvents.onPartDestroyed.Remove(PartDestroyed);
+
+            referenceTransform = null;
 
             if (weaponManager)
             {
@@ -576,6 +576,7 @@ namespace BDArmory.Radar
 
         private void UpdateReferenceTransform()
         {
+            if (!referenceTransform) return;
             // Previously the following line had !vessel.Landed which is a bit weird, the b-scope display
             // has no specific provisions for landed vessels, and thus the display would be completely
             // wrong for landed vessels
