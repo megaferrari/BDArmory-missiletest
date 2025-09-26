@@ -2625,7 +2625,7 @@ namespace BDArmory.Radar
 
             if (BDArmorySettings.LOGARITHMIC_RADAR_DISPLAY && !noLog)
             {
-                float scale = Mathf.Log(localPosition.magnitude * 256f / maxDistance + 1) * logRangeRadialDenominator;
+                float scale = Mathf.Log(localPosition.magnitude * 128f / maxDistance + 1f) * logRangeDenominator;
                 yPos -= radarRect.height * scale * scale; // Log^2 scales better here for some reason.
             }
             else
