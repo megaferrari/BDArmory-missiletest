@@ -2363,7 +2363,7 @@ namespace BDArmory.Radar
         {
             if (missile == null || missile.part == null) return false;
             Vector3 vectorFromMissile = mf.vessel.CoM - missile.vessel.CoM;
-            if ((vectorFromMissile.sqrMagnitude > (mf.rwr && mf.rwr.omniDetection ? mf.rwr.rwrDisplayRange * mf.rwr.rwrDisplayRange : mf.guardRange * mf.guardRange)) && (missile.TargetingMode != MissileBase.TargetingModes.Radar)) return false;
+            //if ((vectorFromMissile.sqrMagnitude > (mf.rwr && mf.rwr.omniDetection ? mf.rwr.rwrDisplayRange * mf.rwr.rwrDisplayRange : mf.guardRange * mf.guardRange)) && (missile.TargetingMode != MissileBase.TargetingModes.Radar)) return false;
             bool maneuverCapability = missile.vessel.InVacuum() ? true : missile.vessel.srfSpeed > missile.GetKinematicSpeed();  // Missiles with no ability to hit target are not a threat
             if (threatToMeOnly)
             {
@@ -2582,9 +2582,9 @@ namespace BDArmory.Radar
         // independent of window size. Based on the default window size of
         // 256 pixels for RWRs (256 looks to provide better curve than 360)
         // 1f / Mathf.Log(128f + 1f)
-        const float logRangeDenominator = 0.47380122963748149470090183862777f;
+        const float logRangeDenominator = 0.20576925955053367050163980444128f;
         // 1f / Mathf.Log(256f + 1f)
-        const float logRangeRadialDenominator = 0.41524101186092029348378992868617f;
+        const float logRangeRadialDenominator = 0.18021017998330121274552856323254f;
 
         /// <summary>
         /// Helper method: map a position onto the radar display
@@ -2597,7 +2597,7 @@ namespace BDArmory.Radar
             if (BDArmorySettings.LOGARITHMIC_RADAR_DISPLAY)
             {
                 (float dist, Vector3 dir) = localPosition.MagNorm();
-                float scale = Mathf.Log(dist * 256f / maxDistance + 1f) * logRangeRadialDenominator;
+                float scale = Mathf.Log(dist * 128f / maxDistance + 1f) * logRangeDenominator;
                 localPosition = dir * scale;
                 return new Vector2((radarRect.width * 0.5f) * (1f + localPosition.x), (radarRect.height * 0.5f) * (1f - localPosition.z));
             }
