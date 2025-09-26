@@ -365,8 +365,6 @@ namespace BDArmory.Radar
         private void Start()
         {
             referenceTransform = (new GameObject()).transform;
-            referenceTransform.parent = vessel.ReferenceTransform;
-            referenceTransform.localPosition = Vector3.zero;
 
             rangeIndex = rIncrements.Length - 6;
 
@@ -452,6 +450,8 @@ namespace BDArmory.Radar
             MissileFire.OnChangeTeam -= OnChangeTeam;
             GameEvents.onGameStateSave.Remove(OnGameStateSave);
             GameEvents.onPartDestroyed.Remove(PartDestroyed);
+
+            referenceTransform = null;
 
             if (weaponManager)
             {
@@ -576,6 +576,7 @@ namespace BDArmory.Radar
 
         private void UpdateReferenceTransform()
         {
+            if (!referenceTransform) return;
             // Previously the following line had !vessel.Landed which is a bit weird, the b-scope display
             // has no specific provisions for landed vessels, and thus the display would be completely
             // wrong for landed vessels
@@ -722,13 +723,12 @@ namespace BDArmory.Radar
             {
                 UpdateInputs();
             }
-
-            drawGUI = (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready && !vessel.packed && rCount + iCount > 0 &&
-                       vessel.isActiveVessel && BDArmorySetup.GAME_UI_ENABLED && !MapView.MapIsEnabled);
         }
         
         private void LateUpdate()
         {
+            drawGUI = (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready && !vessel.packed && rCount + iCount > 0 &&
+                       vessel.isActiveVessel && BDArmorySetup.GAME_UI_ENABLED && !MapView.MapIsEnabled);
             if (drawGUI)
                 UpdateGUIData();
         }
@@ -741,11 +741,10 @@ namespace BDArmory.Radar
                 return;
             }
 
-            UpdateReferenceTransform();
-
             if (radarCount + irstCount > 0)
             {
                 //vesselReferenceTransform.parent = linkedRadars[0].transform;
+                UpdateReferenceTransform();
 
                 CleanDisplayedContacts();
 
@@ -776,9 +775,6 @@ namespace BDArmory.Radar
 
             if (queueLinks && canReceiveRadarData)
                 LinkAllRadars();
-
-            drawGUI = (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready && !vessel.packed && rCount + iCount > 0 &&
-                       vessel.isActiveVessel && BDArmorySetup.GAME_UI_ENABLED && !MapView.MapIsEnabled);
 
             if (!vessel.loaded && (radarCount + irstCount == 0))
             {

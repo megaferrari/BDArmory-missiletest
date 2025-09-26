@@ -864,7 +864,6 @@ namespace BDArmory.Control
                                 if (GpsUpdateMax > 0 && scanSpeed < GpsUpdateMax) GpsUpdateMax = scanSpeed;
                                 _irstsEnabled = true;
                             }
-                            _irstsEnabled = true;
                         }
                 }
                 if (hasAntiRadiationOrdnance)
@@ -872,7 +871,8 @@ namespace BDArmory.Control
                     if (rwr && !rwr.rwrEnabled) rwr.EnableRWR();
                     if (rwr && rwr.rwrEnabled && !rwr.displayRWR) rwr.displayRWR = true;
                 }
-                StartCoroutine(SetMaxRadarRangeRoutine());
+                if (_radarsEnabled || _irstsEnabled)
+                    StartCoroutine(SetMaxRadarRangeRoutine());
             }
         }
 
