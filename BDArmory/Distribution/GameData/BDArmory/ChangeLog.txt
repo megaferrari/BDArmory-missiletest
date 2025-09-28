@@ -102,7 +102,7 @@
 			- Add improved missile controller.
 				- Missiles will now better respect gLimit as well as guidance-commanded acceleration, note this means some parameters may need to be tweaked to retain previous performance, specifically pronavGain and weave guidance accelerations.
 			- Improve AAMloft and Kappa's ability to hit targets with high closure rates close to the launch point, particularly for VLS and other 0/0 launch conditions.
-			- Add WeaveUseAGMDescentRatio and WeaveRandomRange to weave guidance, when WeaveUseAGMDescentRatio is true it forces the use of agmDescentRatio to allow for sea-skimming weave missiles. WeaveRandomRange is a Vector2 (format is WeaveRandomRange = (x,y) ) that allows for randomization of weave maneuver parameters.
+			- Add WeaveUseAGMDescentRatio and WeaveRandomRange to weave guidance, when WeaveUseAGMDescentRatio is true it forces the use of agmDescentRatio to allow for sea-skimming weave missiles. WeaveRandomRange is a Vector3 (format is WeaveRandomRange = (x,y,z) ) that allows for randomization of weave horizontal/vertical g and frequency parameters.
 			- Loft guidance parameters are now no longer persistent and inaccessible in the SPH for non-modular missiles. Modders may still tune these parameters in-flight by enabling the "Debug Missiles" option in the BDArmory Settings menu.
 				- For modular missiles, parameters are persistent and editable in the SPH. Turning on "Debug Missiles" will also allow for in-flight adjustment of these parameters.
 		- Modular Missiles:
