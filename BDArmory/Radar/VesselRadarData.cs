@@ -724,7 +724,7 @@ namespace BDArmory.Radar
                 UpdateInputs();
             }
         }
-        
+
         private void LateUpdate()
         {
             drawGUI = (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready && !vessel.packed && rCount + iCount > 0 &&
@@ -1346,8 +1346,6 @@ namespace BDArmory.Radar
 
         private void UpdateGUIData()
         {
-            if (!drawGUI) return;
-
             int currIndex = 0;
 
             dispRange = availableRadars.Count > 0;
@@ -2636,7 +2634,7 @@ namespace BDArmory.Radar
                                 pingRect = new Rect(currJammedPos.x - (pingSize.x / 2), currJammedPos.y - (pingSize.y / 2), pingSize.x,
                                 pingSize.y);
                             }
-                            
+
                             Color iconColor = Color.green;
                             float contactAlt = displayedTargets[i].targetData.altitude;
                             if (!omniDisplay && !jammed)
