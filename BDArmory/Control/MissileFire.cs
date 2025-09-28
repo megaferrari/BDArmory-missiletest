@@ -207,6 +207,7 @@ namespace BDArmory.Control
                         while (w.MoveNext())
                         {
                             if (w.Current == null) continue;
+                            if (w.Current.GetWeaponChannel() > weaponChannel) continue;
                             if (w.Current.GetShortName() == selectedWeapon.GetShortName())
                                 w.Current.useRippleFire = ro.rippleFire;
                         }
@@ -824,6 +825,7 @@ namespace BDArmory.Control
                     while (weapon.MoveNext())
                     {
                         if (weapon.Current == null) continue;
+                        if (weapon.Current.GetWeaponChannel() > weaponChannel) continue;
                         weapon.Current.aiControlled = true;
                         if (weapon.Current.isAPS) weapon.Current.EnableWeapon();
                     }
@@ -915,6 +917,7 @@ namespace BDArmory.Control
                     while (missile.MoveNext())
                     {
                         if (missile.Current == null) continue;
+                        if (missile.Current.GetWeaponChannel() > weaponChannel) continue;
                         if (missile.Current.GetShortName() == CurrentMissile.GetShortName())
                         {
                             missile.Current.Jettison();
@@ -927,6 +930,8 @@ namespace BDArmory.Control
                     while (rocket.MoveNext())
                     {
                         if (rocket.Current == null) continue;
+                        if (rocket.Current.GetWeaponChannel() > weaponChannel) continue;
+                        if (rocket.Current.GetWeaponClass() != WeaponClasses.Rocket) continue;
                         rocket.Current.Jettison();
                     }
             }
@@ -1152,6 +1157,7 @@ namespace BDArmory.Control
                     while (weapon.MoveNext())
                     {
                         if (weapon.Current == null) continue;
+                        if (weapon.Current.GetWeaponChannel() > weaponChannel) continue;
                         if (weapon.Current.GetShortName() != selectedWeaponString) continue;
                         if (weapon.Current.GetWeaponClass() == WeaponClasses.Gun || weapon.Current.GetWeaponClass() == WeaponClasses.Rocket || weapon.Current.GetWeaponClass() == WeaponClasses.DefenseLaser)
                         {
@@ -1226,6 +1232,7 @@ namespace BDArmory.Control
                 while (weap.MoveNext())
                 {
                     if (weap.Current == null) continue;
+                    if (weap.Current.GetWeaponChannel() > weaponChannel) continue;
                     if (weap.Current.weaponState != ModuleWeapon.WeaponStates.Enabled ||
                         weap.Current.GetShortName() != selectedWeapon.GetShortName()) continue;
                     weap.Current.AGFireHold(param);
@@ -1242,6 +1249,7 @@ namespace BDArmory.Control
                 while (weap.MoveNext())
                 {
                     if (weap.Current == null) continue;
+                    if (weap.Current.GetWeaponChannel() > weaponChannel) continue;
                     if (weap.Current.weaponState != ModuleWeapon.WeaponStates.Enabled ||
                         weap.Current.GetShortName() != selectedWeapon.GetShortName()) continue;
                     weap.Current.AGFireToggle(param);
@@ -3982,6 +3990,7 @@ namespace BDArmory.Control
                         while (otherMissile.MoveNext())
                         {
                             if (otherMissile.Current == null) continue;
+                            if (otherMissile.Current.GetWeaponChannel() > weaponChannel) continue;
                             if (otherMissile.Current == ml || otherMissile.Current.GetShortName() != ml.GetShortName() ||
                                 !CheckBombClearance(otherMissile.Current)) continue;
                             if (otherMissile.Current.GetEngagementRangeMax() != selectedWeaponsEngageRangeMax) continue;
@@ -4204,8 +4213,7 @@ namespace BDArmory.Control
                         }
                     }
 
-                    if (weapon.Current.GetWeaponChannel() > weaponChannel)
-                        continue;
+                    if (weapon.Current.GetWeaponChannel() > weaponChannel) continue;
 
                     bool currIsMissile = false;
                     MissileBase mb = null;
@@ -4398,6 +4406,7 @@ namespace BDArmory.Control
                     while (Missile.MoveNext())
                     {
                         if (Missile.Current == null) continue;
+                        if (Missile.Current.GetWeaponChannel() > weaponChannel) continue;
                         if (Missile.Current.GetPartName() != selectedWeapon.GetPartName()) continue;
                         if (Missile.Current.launched) continue;
                         if (Missile.Current.engageRangeMax != selectedWeaponsEngageRangeMax) continue;
@@ -4493,6 +4502,7 @@ namespace BDArmory.Control
                     while (weapCnt.MoveNext())
                     {
                         if (weapCnt.Current == null) continue;
+                        if (weapCnt.Current.GetWeaponChannel() > weaponChannel) continue;
                         if (selectedWeapon.GetShortName() != weapCnt.Current.GetShortName()) continue;
                         if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == 41)
                         {
@@ -4821,6 +4831,7 @@ namespace BDArmory.Control
                     while (ml.MoveNext())
                     {
                         if (ml.Current == null) continue;
+                        if (ml.Current.GetWeaponChannel() > weaponChannel) continue;
                         MissileLauncher launcher = ml.Current as MissileLauncher;
                         if (launcher != null)
                         {
@@ -7213,6 +7224,7 @@ namespace BDArmory.Control
                                 while (msl.MoveNext())
                                 {
                                     if (msl.Current == null) continue;
+                                    if (msl.Current.GetWeaponChannel() > weaponChannel) continue;
                                     if (msl.Current.launched) continue;
                                     readyMissiles = true;
                                     break;
@@ -7330,6 +7342,7 @@ namespace BDArmory.Control
                                 while (bomb.MoveNext())
                                 {
                                     if (bomb.Current == null) continue;
+                                    if (bomb.Current.GetWeaponChannel() > weaponChannel) continue;
                                     if (bomb.Current.launched) continue;
                                     return true;
                                 }
@@ -8114,6 +8127,7 @@ namespace BDArmory.Control
                     while (weapon.MoveNext())
                     {
                         if (weapon.Current == null) continue;
+                        if (weapon.Current.GetWeaponChannel() > weaponChannel) continue;
                         if (weapon.Current.GetShortName() != selectedWeapon.GetShortName()) //want to find all weapons in WeaponGroup, rather than all weapons of parttype
                         {
                             if (weapon.Current.turret != null && (weapon.Current.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO)) // Put other turrets into standby instead of disabling them if they have ammo.
@@ -8138,6 +8152,7 @@ namespace BDArmory.Control
                     while (weapon.MoveNext())
                     {
                         if (weapon.Current == null) continue;
+                        if (weapon.Current.GetWeaponChannel() > weaponChannel) continue;
                         if (weapon.Current.isAPS) continue;
                         // if (weapon.Current.GetShortName() != selectedWeapon.GetShortName()) continue; 
                         weapon.Current.autoFire = false;
@@ -8571,6 +8586,7 @@ namespace BDArmory.Control
                 while (weapon.MoveNext())
                 {
                     if (weapon.Current == null) continue;
+                    if (weapon.Current.GetWeaponChannel() > weaponChannel) continue;
                     if (weapon.Current.GetShortName() != selectedWeapon.GetShortName())
                     {
                         if (weapon.Current.turret != null && (weapon.Current.ammoCount > 0 || BDArmorySettings.INFINITE_AMMO)) // Other turrets can just generally aim at the currently targeted vessel.
@@ -8790,7 +8806,6 @@ namespace BDArmory.Control
                 if (missile == null) continue;
                 //if (!missile.engageMissile) continue;
                 if (missile.HasFired || missile.launched) continue;
-                if (missile.GetWeaponChannel() > weaponChannel) continue;
                 MissileLauncher ml = missile as MissileLauncher;
                 if (ml && ml.multiLauncher && ml.multiLauncher.turret)
                 {
@@ -8973,7 +8988,6 @@ namespace BDArmory.Control
                     MissileLauncher launcher = currMissile as MissileLauncher;
                     //if (!currMissile.engageMissile) continue;
                     if (currMissile.HasFired || currMissile.launched) continue;
-                    if (currMissile.GetWeaponChannel() > weaponChannel) continue;
                     if (MissileID >= PDMslTgts.Count) MissileID = 0;
 
                     float targetDist = Vector3.Distance(currMissile.MissileReferenceTransform.position, PDMslTgts[MissileID].Vessel.CoM);
@@ -9126,6 +9140,7 @@ namespace BDArmory.Control
             foreach (var weapon in VesselModuleRegistry.GetModules<ModuleWeapon>(vessel))
             {
                 if (weapon == null) continue;
+                if (weapon.GetWeaponChannel() > weaponChannel) continue;
                 if (gunLikeClasses.Contains(weapon.GetWeaponClass()))
                 {
                     maxGunRange = Mathf.Max(maxGunRange, weapon.maxEffectiveDistance);
@@ -9337,6 +9352,7 @@ namespace BDArmory.Control
             while (weapon.MoveNext())
             {
                 if (weapon.Current == null) continue;
+                if (weapon.Current.GetWeaponChannel() > weaponChannel) continue;
                 if (weapon.Current.GetShortName() != selectedWeapon.GetShortName()) continue;
                 float gimbalTolerance = vessel.LandedOrSplashed ? 0 : 15;
                 if (((ai != null && ai.pilotEnabled && ai.CanEngage()) || (TargetInTurretRange(weapon.Current.turret, gimbalTolerance, default, weapon.Current))) && weapon.Current.maxEffectiveDistance >= finalDistance)
@@ -9566,6 +9582,7 @@ namespace BDArmory.Control
                 while (weapon.MoveNext())
                 {
                     if (weapon.Current == null) continue;
+                    if (weapon.Current.GetWeaponChannel() > weaponChannel) continue;
                     if (selectedWeapon == null)
                     {
                         if (weapon.Current.turret && guardMode)
