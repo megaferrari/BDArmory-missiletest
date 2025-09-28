@@ -2591,7 +2591,6 @@ namespace BDArmory.Radar
         /// </summary>
         public static Vector2 WorldToRadar(Vector3 worldPosition, Transform referenceTransform, Rect radarRect, float maxDistance)
         {
-            
             Vector3 localPosition = referenceTransform.InverseTransformPoint(worldPosition);
             localPosition.y = 0;
             if (BDArmorySettings.LOGARITHMIC_RADAR_DISPLAY)
@@ -2615,7 +2614,6 @@ namespace BDArmory.Radar
         {
             if (referenceTransform == null) return new Vector2();
 
-            
             Vector3 localPosition = referenceTransform.InverseTransformPoint(worldPosition);
             localPosition.y = 0;
             float angle = VectorUtils.GetAngleOnPlane(localPosition, Vector3.forward, Vector3.right);

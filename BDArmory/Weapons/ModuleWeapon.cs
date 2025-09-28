@@ -2180,7 +2180,7 @@ namespace BDArmory.Weapons
                             GUIUtils.DrawLineBetweenWorldPositions(pointingAtPosition, reticlePosition, 2, new Color(0, 1, 0, 0.6f));
                         }
 
-                        GUIUtils.DrawTextureOnWorldPos(pointingAtPosition, BDArmorySetup.Instance.greenDotTexture, new Vector2(6, 6), 0); 
+                        GUIUtils.DrawTextureOnWorldPos(pointingAtPosition, BDArmorySetup.Instance.greenDotTexture, new Vector2(6, 6), 0);
 
                         if (atprAcquired)
                         {
@@ -5223,7 +5223,7 @@ namespace BDArmory.Weapons
                     }
                     else //no lock for our secondary target/fixed gun/no multitargeting? slave weapon to primary lock
                     {
-                        bool isVessel = weaponManager.slavedTarget.vessel != null; 
+                        bool isVessel = weaponManager.slavedTarget.vessel != null;
                         if (!isVessel || !(visRange && RadarUtils.GetVesselChaffFactor(weaponManager.slavedTarget.vessel) < 1f))
                         {
                             if (weaponManager.slavingTurrets) slaved = true;
@@ -5255,7 +5255,7 @@ namespace BDArmory.Weapons
                     targetAcquisitionType = TargetAcquisitionType.Slaved;
                     if (BDArmorySettings.DEBUG_WEAPONS)
                         Debug.Log($"[BDArmory.ModuleWeapon - {shortName} is tracking target {(isVessel ? weaponManager.mainTGP.lockedVessel.vesselName : "null target")} via tgtCamera");
-                    return;                    
+                    return;
                 }
                 // within visual range and no radar aiming/need precision visual targeting of specific subsystems
                 if (aiControlled && visualTargetVessel && visRange)
@@ -5733,7 +5733,7 @@ namespace BDArmory.Weapons
                 if (hasChargeAnimation && postFireChargeAnim)
                     yield return chargeRoutine = StartCoroutine(ChargeRoutine(true));
             }
-            if (hasDeployAnim)
+            if (hasDeployAnim && deployState != null)
             {
                 deployState.enabled = true;
                 deployState.speed = -1;
@@ -6321,7 +6321,7 @@ namespace BDArmory.Weapons
                             if (binfo.eFuzeType == BulletFuzeTypes.Penetrating)
                                 output.AppendLine($"- Min thickness to arm fuze: {(binfo.fuzeSensitivity > 0 ? binfo.fuzeSensitivity : tempPenDepth * 0.666f):F2} mm");
                             if (binfo.eFuzeType == BulletFuzeTypes.Penetrating || binfo.eFuzeType == BulletFuzeTypes.Delay)
-                                output.AppendLine($"- Fuze delay: {(1000f * (binfo.fuzeDelay > 0 ? binfo.fuzeDelay : 1f/30f)):F2} ms");
+                                output.AppendLine($"- Fuze delay: {(1000f * (binfo.fuzeDelay > 0 ? binfo.fuzeDelay : 1f / 30f)):F2} ms");
                             output.AppendLine($"- radius:  {Math.Round(BlastPhysicsUtils.CalculateBlastRange(binfo.tntMass), 2)} m");
 
                             if (binfo.eFuzeType == BulletFuzeTypes.Timed || binfo.eFuzeType == BulletFuzeTypes.Proximity || binfo.eFuzeType == BulletFuzeTypes.Flak)

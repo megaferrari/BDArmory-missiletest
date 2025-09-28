@@ -17,6 +17,7 @@
 	- Tweak vessel switching weights to try to remain focused on vessels that are about to explode.
 	- Fix EMP disable messages on craft that have alraedy been disabled before claiming a negative float value time duration.
 	- Fix Radar Display not displaying correctly on radars using radarTransform defined pointing directions.
+	- Add an option in Team Icons to not store the team colours in the settings.cfg file.
 - AI / WM:
 	- Add missing unclamped limits for 3-axis static damping.
 	- Adjust the release of the "Attack" command so that craft don't go dead-stick when under attack but not threatened enough to trigger evasion.
