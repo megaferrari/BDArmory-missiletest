@@ -925,7 +925,10 @@ namespace BDArmory.Weapons.Missiles
                 Events["CruiseAltitudeRange"].guiActive = true;
                 Events["CruiseAltitudeRange"].guiActiveEditor = true;
                 Fields["CruisePredictionTime"].guiActiveEditor = true;
-                Fields["CruisePopup"].guiActive = true;
+                if (CruisePopup)
+                    Fields["CruisePopup"].guiActive = true;
+                else
+                    Fields["CruisePopup"].guiActive = false;
             }
 
             if (GuidanceMode != GuidanceModes.AGM)
