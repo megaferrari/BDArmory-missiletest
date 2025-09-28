@@ -561,7 +561,7 @@ namespace BDArmory.Weapons.Missiles
         [KSPField] public float terminalSeekerTimeout = -1;
         private float lastRWRPing = 0;
         public RadarWarningReceiver.RWRThreatTypes[] antiradTargets;
-        private bool radarLOALSearching = false;
+        protected bool radarLOALSearching = false;
         private bool hasLostLock = false;
         protected bool checkMiss = false;
         public StringBuilder debugString = new StringBuilder();
@@ -956,9 +956,10 @@ namespace BDArmory.Weapons.Missiles
 
             if (radarTarget.exists)
             {
-                float angleToTarget = Vector3.Angle(radarTarget.predictedPosition - transform.position, GetForwardTransform());
+                Vector3 vectorToTarget = radarTarget.predictedPosition - transform.position;
+                float angleToTarget = Vector3.Angle(vectorToTarget, GetForwardTransform());
                 // locked-on before launch, passive radar guidance or waiting till in active radar range:
-                if (!ActiveRadar && ((radarTarget.predictedPosition - transform.position).sqrMagnitude > (activeRadarRange * activeRadarRange) || angleToTarget > maxOffBoresight * 0.75f))
+                if (!ActiveRadar && (vectorToTarget.sqrMagnitude > (activeRadarRange * activeRadarRange) || angleToTarget > maxOffBoresight * 0.75f))
                 {
                     if (vrd && vrd.locked)
                     {
@@ -1052,7 +1053,7 @@ namespace BDArmory.Weapons.Missiles
                     {
                         if (scannedTargets == null) scannedTargets = new TargetSignatureData[BDATargetManager.LoadedVessels.Count];
                         TargetSignatureData.ResetTSDArray(ref scannedTargets);
-                        Ray ray = new Ray(transform.position, radarTarget.predictedPosition - transform.position);
+                        Ray ray = new Ray(transform.position, vectorToTarget);
                         bool pingRWR = Time.time - lastRWRPing > 0.4f;
                         if (pingRWR) lastRWRPing = Time.time;
                         bool radarSnapshot = (snapshotTicker > 10);
@@ -1285,6 +1286,7 @@ namespace BDArmory.Weapons.Missiles
                         if (!radarLOALSearching)
                         {
                             radarLOALSearching = true;
+                            TargetAcquired = true;
                             startDirection = GetForwardTransform();
                         }
                     }

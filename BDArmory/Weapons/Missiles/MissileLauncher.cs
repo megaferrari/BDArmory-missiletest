@@ -2420,6 +2420,9 @@ namespace BDArmory.Weapons.Missiles
                             TargetVelocity = Vector3.zero;
                             TargetAcceleration = Vector3.zero;
                             targetGPSCoords = VectorUtils.WorldPositionToGeoCoords(TargetPosition, vessel.mainBody); //tgtPos/tgtGPS should really be not set here, so the last valid postion/coords are used, in case of non-GPS primary guidance
+                            radarTarget = TargetSignatureData.noTarget;
+                            if (activeRadarRange > 0f && radarLOAL)
+                                radarLOALSearching = true;
                             if (dumbTerminalGuidance)
                                 terminalGuidanceActive = true;
                             if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileLauncher][Terminal Guidance]: Missile radar could not acquire a target lock - Defaulting to GPS Target");
