@@ -977,7 +977,7 @@ namespace BDArmory.Radar
             //UpdateReferenceTransform();
 
             //Vector3 targetPlanarDirection = (position - referenceTransform.position).ProjectOnPlanePreNormalized(referenceTransform.up);
-            //float angle = Vector3.Angle(targetPlanarDirection, referenceTransform.forward);
+            //float angle = VectorUtils.Angle(targetPlanarDirection, referenceTransform.forward);
 
             //if (referenceTransform.InverseTransformPoint(position).x < 0)
             //{
@@ -1116,7 +1116,7 @@ namespace BDArmory.Radar
             TargetSignatureData lockedTarget = lockedTargets[index];
 
             Vector3 targetPlanarDirection = (lockedTarget.predictedPosition - currPosition).ProjectOnPlanePreNormalized(currUp);
-            float lookAngle = Vector3.Angle(targetPlanarDirection, currForward);
+            float lookAngle = VectorUtils.Angle(targetPlanarDirection, currForward);
             if (referenceTransform.InverseTransformPoint(lockedTarget.predictedPosition).x < 0)
             {
                 lookAngle = -lookAngle;
@@ -1147,7 +1147,7 @@ namespace BDArmory.Radar
             //RadarUtils.ScanInDirection (new Ray (referenceTransform.position, lockedTarget.predictedPosition - referenceTransform.position), lockRotationAngle * 2, minLockedSignalThreshold, ref attemptedLocks, lockedSignalPersist, true, rwrType, radarSnapshot);
 
             Vector3 vectorToTarget = lockedTarget.position - currPosition;
-            if (Vector3.Angle(vectorToTarget, this.lockedTarget.position - currPosition) > multiLockFOV * 0.5f)
+            if (VectorUtils.Angle(vectorToTarget, this.lockedTarget.position - currPosition) > multiLockFOV * 0.5f)
             {
                 UnlockTargetAt(index, true);
                 return;

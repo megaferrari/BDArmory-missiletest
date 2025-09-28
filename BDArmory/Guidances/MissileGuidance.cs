@@ -318,9 +318,9 @@ namespace BDArmory.Guidances
             verticalAngle *= Mathf.Deg2Rad;
             horizontalAngle *= Mathf.Deg2Rad;
 
-            /*float verticalAngle = (Mathf.Deg2Rad * Mathf.Sign(pullUpCos)) * Vector3.Angle(missileVel.ProjectOnPlanePreNormalized(right), planarDirToTarget);
+            /*float verticalAngle = (Mathf.Deg2Rad * Mathf.Sign(pullUpCos)) * VectorUtils.Angle(missileVel.ProjectOnPlanePreNormalized(right), planarDirToTarget);
 
-            float horizontalAngle = (Mathf.Deg2Rad * Mathf.Sign(Vector3.Dot(missileVel, right))) * Vector3.Angle(missileVel.ProjectOnPlanePreNormalized(upDirection), planarDirToTarget);*/
+            float horizontalAngle = (Mathf.Deg2Rad * Mathf.Sign(Vector3.Dot(missileVel, right))) * VectorUtils.Angle(missileVel.ProjectOnPlanePreNormalized(upDirection), planarDirToTarget);*/
 
             const float PI2 = 2f * Mathf.PI;
 
@@ -783,7 +783,7 @@ namespace BDArmory.Guidances
                     missileDropOffset = -0.5f * missileAcceleration * timeToCPA * timeToCPA;
                     ballisticTarget = targetPredictedPosition + missileDropOffset;
                     velDirection = (ballisticTarget - firePosition).normalized;
-                } while (++count < 10 && Vector3.Angle(lastVelDirection, velDirection) > 1f); // 1° margin of error is sufficient to prevent premature firing (usually)
+                } while (++count < 10 && VectorUtils.Angle(lastVelDirection, velDirection) > 1f); // 1° margin of error is sufficient to prevent premature firing (usually)
 
 
                 // Determine horizontal and up components of velocity, calculate the elevation angle
@@ -1248,7 +1248,7 @@ namespace BDArmory.Guidances
                     theta = Mathf.Atan(missileVelOpt / (BDAMath.Sqrt(missileVelOptSqr - 2f * g * vertDist)));
                 theta *= Mathf.Rad2Deg;
 
-                float angle = 90f - Vector3.Angle(relPos, missile.vessel.upAxis);
+                float angle = 90f - VectorUtils.Angle(relPos, missile.vessel.upAxis);
                 if (theta > angle)
                     leadPosition = missile.vessel.CoM + Vector3.RotateTowards(relPos, missile.vessel.upAxis, (theta - angle) * Mathf.Deg2Rad, vertDist);
             }
@@ -1938,7 +1938,7 @@ namespace BDArmory.Guidances
                 if (AoA < maxAoA)
                 {
                     targetDirection = (targetPosition - ml.vessel.CoM);
-                    targetAngle = Mathf.Min(maxAoA,Vector3.Angle(velNorm, targetDirection) * 4f);
+                    targetAngle = Mathf.Min(maxAoA,VectorUtils.Angle(velNorm, targetDirection) * 4f);
                 }
                 else
                 {

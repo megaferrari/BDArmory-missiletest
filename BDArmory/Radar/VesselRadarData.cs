@@ -2778,7 +2778,7 @@ namespace BDArmory.Radar
                         pingRect = new Rect(pingPosition.x - (lockIconSize / 2), pingPosition.y - (lockIconSize / 2),
                             lockIconSize, lockIconSize);
                         float vAngle =
-                            Vector3.Angle(
+                            VectorUtils.Angle(
                                 displayedIRTargets[i].targetData.velocity.ProjectOnPlanePreNormalized(referenceTransform.up),
                                 referenceTransform.forward);
                         if (referenceTransform.InverseTransformVector(displayedIRTargets[i].targetData.velocity).x < 0)

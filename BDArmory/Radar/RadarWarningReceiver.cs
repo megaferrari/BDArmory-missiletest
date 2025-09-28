@@ -233,7 +233,7 @@ namespace BDArmory.Radar
             Vector3 currPos = part.transform.position;
             float sqrDist = (currPos - source).sqrMagnitude;
             //if ((weaponManager && weaponManager.guardMode) && (sqrDist > (weaponManager.guardRange * weaponManager.guardRange))) return; //doesn't this clamp the RWR to visual view range, not radar/RWR range?
-            if (sqrDist < BDArmorySettings.MAX_ENGAGEMENT_RANGE * BDArmorySettings.MAX_ENGAGEMENT_RANGE && sqrDist > 10000f && Vector3.Angle(direction, currPos - source) < 15f)
+            if (sqrDist < BDArmorySettings.MAX_ENGAGEMENT_RANGE * BDArmorySettings.MAX_ENGAGEMENT_RANGE && sqrDist > 10000f && VectorUtils.Angle(direction, currPos - source) < 15f)
             {
                 StartCoroutine(
                     LaunchWarningRoutine(new TargetSignatureData(source,
@@ -464,7 +464,7 @@ namespace BDArmory.Radar
                     if (vessel.Current == null || !vessel.Current.loaded) continue;
                     if (VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.Current.vesselType)) continue;
                     Vector3 dirToVessel = vessel.Current.CoM - ray.origin;
-                    if (Vector3.Angle(ray.direction, dirToVessel) < fov * 0.5f)
+                    if (VectorUtils.Angle(ray.direction, dirToVessel) < fov * 0.5f)
                     {
                         PingRWR(vessel.Current, ray.origin, type, persistTime);
                     }

@@ -2198,7 +2198,7 @@ namespace BDArmory.Weapons
                 }
 
                 Texture2D texture;
-                if (Vector3.Angle(pointingAtPosition - transform.position, finalAimTarget - transform.position) < 1f)
+                if (VectorUtils.Angle(pointingAtPosition - transform.position, finalAimTarget - transform.position) < 1f)
                 {
                     texture = BDArmorySetup.Instance.greenSpikedPointCircleTexture;
                 }
@@ -2549,7 +2549,7 @@ namespace BDArmory.Weapons
                         targetDirectionLR = rayDirection.normalized;
                     }
                     /*else if (((((visualTargetVessel != null && visualTargetVessel.loaded) || slaved) || (isAPS && (tgtShell != null || tgtRocket != null))) && (turret && (turret.yawRange > 0 || turret.maxPitch > turret.minPitch))) // causes laser to snap to target CoM if close enough. changed to only apply to turrets
-						&& Vector3.Angle(rayDirection, targetDirection) < (isAPS ? 1f : 0.25f)) //if turret and within .25 deg (or 1 deg if APS), snap to target
+						&& VectorUtils.Angle(rayDirection, targetDirection) < (isAPS ? 1f : 0.25f)) //if turret and within .25 deg (or 1 deg if APS), snap to target
 					{
 						//targetDirection = targetPosition + (relativeVelocity * Time.fixedDeltaTime) * 2 - tf.position;
 						targetDirection = targetPosition - tf.position; //something in here is throwing off the laser aim, causing the beam to be fired wildly off-target. Disabling it for now. FIXME - debug this later
@@ -4555,7 +4555,7 @@ namespace BDArmory.Weapons
                         autoFireFailReason = autoFire ? "" : "Not on target";
                     }
 
-                    if (autoFire && Vector3.Angle(targetPosition - fireTransform.position, aimDirection) < 5) //check LoS for direct-fire weapons
+                    if (autoFire && VectorUtils.Angle(targetPosition - fireTransform.position, aimDirection) < 5) //check LoS for direct-fire weapons
                     {
                         if (RadarUtils.TerrainCheck(fireTransform.position, eWeaponType == WeaponTypes.Laser ? targetPosition : fireTransform.position + (fireTransform.forward * Mathf.Min(1500, (targetPosition - fireTransform.position).magnitude)))) //kerbin curvature is going to start returning raycast terrain hits at about 1.8km for tanks
                         {
@@ -4987,15 +4987,15 @@ namespace BDArmory.Weapons
                     Color.white);
                 GUIUtils.DrawLineBetweenWorldPositions(fireTransforms[0].position + yawVector, fwdPos, 3, Color.white);
 
-                float pitch = Vector3.Angle(pitchVector, referenceDirection);
-                float yaw = Vector3.Angle(yawVector, referenceDirection);
+                float pitch = VectorUtils.Angle(pitchVector, referenceDirection);
+                float yaw = VectorUtils.Angle(yawVector, referenceDirection);
 
                 string convergeDistance;
 
                 Vector3 projAxis = Vector3.Project(refTransform.position - fireTransforms[0].transform.position,
                     refRight);
                 float xDist = projAxis.magnitude;
-                float convergeAngle = 90 - Vector3.Angle(yawVector, refTransform.up);
+                float convergeAngle = 90 - VectorUtils.Angle(yawVector, refTransform.up);
                 if (Vector3.Dot(fireTransforms[0].forward, projAxis) > 0)
                 {
                     convergeDistance = $"Converge: {Mathf.Round((xDist * Mathf.Tan(convergeAngle * Mathf.Deg2Rad))).ToString()} m";
@@ -5005,8 +5005,8 @@ namespace BDArmory.Weapons
                     convergeDistance = "Diverging";
                 }
 
-                string xAngle = $"X: {Vector3.Angle(fireTransforms[0].forward, pitchVector):0.00}";
-                string yAngle = $"Y: {Vector3.Angle(fireTransforms[0].forward, yawVector):0.00}";
+                string xAngle = $"X: {VectorUtils.Angle(fireTransforms[0].forward, pitchVector):0.00}";
+                string yAngle = $"Y: {VectorUtils.Angle(fireTransforms[0].forward, yawVector):0.00}";
 
                 string label = $"{xAngle}\n{yAngle}\n{convergeDistance}";
                 if (!string.IsNullOrEmpty(blocker))
@@ -5430,7 +5430,7 @@ namespace BDArmory.Weapons
                                 if (!(turretInRange || Vector3.Dot(targetVector, fireTransforms[0].forward) > 0)) continue;
                                 float sqrDist = (v.Current.CoM - part.transform.position).sqrMagnitude;
                                 if (sqrDist > closestSqrDist) continue;
-                                if (!(turretInRange || Vector3.Angle(targetVector, fireTransforms[0].forward) < 20)) continue;
+                                if (!(turretInRange || VectorUtils.Angle(targetVector, fireTransforms[0].forward) < 20)) continue;
                                 tgt = v.Current;
                                 closestSqrDist = sqrDist;
                             }

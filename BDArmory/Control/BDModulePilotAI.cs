@@ -2126,12 +2126,12 @@ namespace BDArmory.Control
                 if (!targetVessel.LandedOrSplashed)
                 {
                     Vector3 targetVesselRelPos = targetVessel.vesselTransform.position - vesselTransform.position;
-                    if (canExtend && vessel.radarAltitude < defaultAltitude && Vector3.Angle(targetVesselRelPos, -upDirection) < 35) // Target is at a steep angle below us and we're below default altitude, extend to get a better angle instead of attacking now.
+                    if (canExtend && vessel.radarAltitude < defaultAltitude && VectorUtils.Angle(targetVesselRelPos, -upDirection) < 35) // Target is at a steep angle below us and we're below default altitude, extend to get a better angle instead of attacking now.
                     {
                         RequestExtend("too steeply below", targetVessel);
                     }
 
-                    if (Vector3.Angle(targetVessel.vesselTransform.position - vesselTransform.position, vesselTransform.up) > 35) // If target is outside of 35° cone ahead of us then keep flying straight.
+                    if (VectorUtils.Angle(targetVessel.vesselTransform.position - vesselTransform.position, vesselTransform.up) > 35) // If target is outside of 35° cone ahead of us then keep flying straight.
                     {
                         turningTimer += Time.fixedDeltaTime;
                     }
@@ -2285,7 +2285,7 @@ namespace BDArmory.Control
             Vector3 vectorToTarget = v.transform.position - vesselTransform.position;
             float distanceToTarget = vectorToTarget.magnitude;
             float planarDistanceToTarget = vectorToTarget.ProjectOnPlanePreNormalized(upDirection).magnitude;
-            float angleToTarget = Vector3.Angle(target - vesselTransform.position, vesselTransform.up);
+            float angleToTarget = VectorUtils.Angle(target - vesselTransform.position, vesselTransform.up);
             float strafingDistance = -1f;
             float relativeVelocity = (float)(vessel.srf_velocity - v.srf_velocity).magnitude;
 
@@ -2315,7 +2315,7 @@ namespace BDArmory.Control
                         //Vector3 leadOffset = (missile.MissileReferenceTransform.position + (missile.MissileReferenceTransform.forward * distanceToTarget)) - (vesselTransform.position + (vesselTransform.up * distanceToTarget));
                         //target -= leadOffset; //correctly account for missiles mounted at an angle (important if heater to keep them pointed at heatsource and/or keep target within boresight)
                         if (!missile.isMMG) target = Quaternion.FromToRotation(missile.MissileReferenceTransform.forward, vesselTransform.up) * (target - vesselTransform.position) + vesselTransform.position;
-                        angleToTarget = Vector3.Angle(vesselTransform.up, target - vesselTransform.position);
+                        angleToTarget = VectorUtils.Angle(vesselTransform.up, target - vesselTransform.position);
                         if (angleToTarget < 20f)
                         {
                             steerMode = SteerModes.Aiming;
@@ -2421,7 +2421,7 @@ namespace BDArmory.Control
                             target += weaponOffset; //account for weapons with translational offset from longitudinal axis
                         }
 
-                        angleToTarget = Vector3.Angle(weaponDirection, target - weaponPosition);
+                        angleToTarget = VectorUtils.Angle(weaponDirection, target - weaponPosition);
                         if (distanceToTarget < weaponManager.gunRange && angleToTarget < 20) // FIXME This ought to be changed to a dynamic angle like the firing angle.
                         {
                             steerMode = SteerModes.Aiming; //steer to aim
@@ -2522,7 +2522,7 @@ namespace BDArmory.Control
             {
                 float boresightFactor = (vessel.LandedOrSplashed || v.LandedOrSplashed || missile.uncagedLock) ? 0.75f : 0.35f;
                 float minOffBoresight = missile.maxOffBoresight * boresightFactor;
-                float missileAngleToTarget = Vector3.Angle(missile.GetForwardTransform(), v.transform.position - missile.transform.position);
+                float missileAngleToTarget = VectorUtils.Angle(missile.GetForwardTransform(), v.transform.position - missile.transform.position);
                 var minDynamicLaunchRange = MissileLaunchParams.GetDynamicLaunchParams(
                     missile,
                     v.Velocity(),
@@ -2616,7 +2616,7 @@ namespace BDArmory.Control
             Vector3 vesselRight = vesselTransform.right;
 
             //test poststall (before FlightPosition is called so we're using the right steerMode)
-            float AoA = Vector3.Angle(vessel.ReferenceTransform.up, vessel.Velocity());
+            float AoA = VectorUtils.Angle(vessel.ReferenceTransform.up, vessel.Velocity());
             if (AoA > postStallAoA)
             {
                 isPSM = true;
@@ -2670,7 +2670,7 @@ namespace BDArmory.Control
 #if DEBUG
                 debugSquigglySquidDirection = squigglySquidDirection;
 #endif
-                if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($"Squiggly Squid: {Vector3.Angle(targetDirection, Vector3.RotateTowards(targetDirection, squigglySquidDirection, evasionNonlinearity * Mathf.Deg2Rad, 0f))}° at {(squigglySquidTime % 360f).ToString("G3")}°");
+                if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($"Squiggly Squid: {VectorUtils.Angle(targetDirection, Vector3.RotateTowards(targetDirection, squigglySquidDirection, evasionNonlinearity * Mathf.Deg2Rad, 0f))}° at {(squigglySquidTime % 360f).ToString("G3")}°");
                 targetDirection = Vector3.RotateTowards(targetDirection, squigglySquidDirection, evasionNonlinearity * Mathf.Deg2Rad, 0f);
             }
             Vector3 targetAngVel = Vector3.Cross(prevTargetDir, targetDirection) / Time.fixedDeltaTime;
@@ -2678,12 +2678,12 @@ namespace BDArmory.Control
             prevTargetDir = targetDirection;
             targetPosition = vessel.transform.position + 100 * targetDirection;
             flyingToPosition = targetPosition;
-            float angleToTarget = Vector3.Angle(targetDirection, vesselUp);
+            float angleToTarget = VectorUtils.Angle(targetDirection, vesselUp);
 
             //slow down for tighter turns, unless we're already at high AoA, in which case we want more thrust
             float speedReductionFactor = 1.25f;
             float finalSpeed;
-            // float velAngleToTarget = Mathf.Clamp(Vector3.Angle(targetDirection, vessel.Velocity()), 0, 90);
+            // float velAngleToTarget = Mathf.Clamp(VectorUtils.Angle(targetDirection, vessel.Velocity()), 0, 90);
             // if (vessel.atmDensity > 0.05f) finalSpeed = Mathf.Min(speedController.targetSpeed, Mathf.Clamp(maxSpeed - (speedReductionFactor * velAngleToTarget), idleSpeed, maxSpeed));
             if (!vessel.InNearVacuum()) finalSpeed = Mathf.Min(speedController.targetSpeed, Mathf.Clamp(maxSpeed - speedReductionFactor * (angleToTarget - AoA), idleSpeed, maxSpeed));
             else finalSpeed = Mathf.Min(speedController.targetSpeed, maxSpeed);
@@ -2813,7 +2813,7 @@ namespace BDArmory.Control
             }
             else if (useWaypointRollTarget && IsRunningWaypoints)
             {
-                var angle = waypointRollTargetStrength * Vector3.Angle(waypointRollTarget, rollTarget);
+                var angle = waypointRollTargetStrength * VectorUtils.Angle(waypointRollTarget, rollTarget);
                 rollTarget = Vector3.RotateTowards(rollTarget, waypointRollTarget, angle * Mathf.Deg2Rad, 0f).ProjectOnPlane(vessel.Velocity());
             }
             else if (useVelRollTarget && !belowMinAltitude)
@@ -2954,7 +2954,7 @@ namespace BDArmory.Control
                     {
                         float boresightFactor = (vessel.LandedOrSplashed || extendTarget.LandedOrSplashed || extendForMissile.uncagedLock) ? 0.75f : 0.35f;
                         float minOffBoresight = extendForMissile.maxOffBoresight * boresightFactor;
-                        float missileAngleToTarget = Vector3.Angle(extendForMissile.GetForwardTransform(), extendTarget.transform.position - extendForMissile.transform.position);
+                        float missileAngleToTarget = VectorUtils.Angle(extendForMissile.GetForwardTransform(), extendTarget.transform.position - extendForMissile.transform.position);
                         var minDynamicLaunchRange = MissileLaunchParams.GetDynamicLaunchParams(
                             extendForMissile,
                             extendTarget.Velocity(),
@@ -3014,7 +3014,7 @@ namespace BDArmory.Control
                     extendingForBombing = true;
                 }
                 float srfDist = (GetSurfacePosition(targetVessel.transform.position) - GetSurfacePosition(vessel.transform.position)).sqrMagnitude;
-                if (srfDist < extendDistance * extendDistance && Vector3.Angle(vesselTransform.up, targetVessel.transform.position - vessel.transform.position) > 45)
+                if (srfDist < extendDistance * extendDistance && VectorUtils.Angle(vesselTransform.up, targetVessel.transform.position - vessel.transform.position) > 45)
                 {
                     extending = true;
                     extendingReason = "Surface target";
@@ -3191,7 +3191,7 @@ namespace BDArmory.Control
             var waypointDirection = (waypointPosition - vessel.transform.position).normalized;
             if (waypointRange < (BDArmorySettings.WAYPOINTS_SCALE > 0 ? BDArmorySettings.WAYPOINTS_SCALE : (WaypointCourses.CourseLocations[waypointCourseIndex].waypoints[activeWaypointIndex].scale)) / 2) //gate radius
             {
-                //if (Vector3.Angle(waypointDirection, vessel.ReferenceTransform.up) > maxAllowedAoA)//as we get closer angle to WP is going to very rapidly increase from ~0 to 90 if not *perfectly* aligned
+                //if (VectorUtils.Angle(waypointDirection, vessel.ReferenceTransform.up) > maxAllowedAoA)//as we get closer angle to WP is going to very rapidly increase from ~0 to 90 if not *perfectly* aligned
                 //    waypointDirection = vessel.Velocity(); //so if within [gate radius] distance of the WP, if the angle to the gate exceeds max AOA angle, commit to current direaction to prevent control jerk at the last second as the AI tries to correct off-targetness
                 waypointDirection = Vector3.RotateTowards(vessel.srf_vel_direction, waypointDirection, Mathf.Deg2Rad * Mathf.Min(maxAllowedAoA, Mathf.Min(0.5f, 200f / (float)vessel.srfSpeed) * waypointRange), 0); //- maxAllowedAoA goes from 0 - 90; at default 35deg, would need to be going 400m/s through a 70m gate before speed and diameter matter; figure out different formula
                 //
@@ -3262,7 +3262,7 @@ namespace BDArmory.Control
                     var terrainAltitude = FlightGlobals.currentMainBody.TerrainAltitude(nextWaypoint.x, nextWaypoint.y);
                     var nextWaypointPosition = FlightGlobals.currentMainBody.GetWorldSurfacePosition(nextWaypoint.x, nextWaypoint.y, nextWaypoint.z + terrainAltitude);
                     waypointRollTarget = (nextWaypointPosition - waypointPosition).ProjectOnPlane(vessel.Velocity()).normalized;
-                    waypointRollTargetStrength = Mathf.Min(1f, Vector3.Angle(nextWaypointPosition - waypointPosition, vessel.Velocity()) / maxAllowedAoA) * Mathf.Max(0, 1f - waypointRange / range); // Full strength at maxAllowedAoA and at the waypoint.
+                    waypointRollTargetStrength = Mathf.Min(1f, VectorUtils.Angle(nextWaypointPosition - waypointPosition, vessel.Velocity()) / maxAllowedAoA) * Mathf.Max(0, 1f - waypointRange / range); // Full strength at maxAllowedAoA and at the waypoint.
                     useWaypointRollTarget = true;
                 }
             }

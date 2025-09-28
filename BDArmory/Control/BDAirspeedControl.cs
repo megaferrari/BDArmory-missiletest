@@ -267,7 +267,7 @@ namespace BDArmory.Control
         {
             Vector3 geeVector = FlightGlobals.getGeeForceAtPosition(vessel.CoM);
             geeForce = geeVector.magnitude;
-            return geeForce * Mathf.Cos(Mathf.Deg2Rad * Vector3.Angle(-geeVector, vessel.velocityD)); // -g.v/|v| ???
+            return geeForce * Mathf.Cos(Mathf.Deg2Rad * VectorUtils.Angle(-geeVector, vessel.velocityD)); // -g.v/|v| ???
         }
 
         public float GetPossibleAccel()
@@ -552,7 +552,7 @@ namespace BDArmory.Control
 
         void OrbitalControl(FlightCtrlState s)
         {
-            error = Vector3.Angle(vessel.ReferenceTransform.up, attitude);
+            error = VectorUtils.Angle(vessel.ReferenceTransform.up, attitude);
 
             if (!PIDActive)
                 UpdateSAS(s);
@@ -562,7 +562,7 @@ namespace BDArmory.Control
 
         private void UpdateThrottle(FlightCtrlState s)
         {
-            facingDesiredRotation = Vector3.Angle((useReverseThrust ? -1 : 1) * vessel.ReferenceTransform.up, thrustDirection) < alignmentToleranceforBurn;
+            facingDesiredRotation = VectorUtils.Angle((useReverseThrust ? -1 : 1) * vessel.ReferenceTransform.up, thrustDirection) < alignmentToleranceforBurn;
  
             throttleActual = facingDesiredRotation ? throttle : 0;
 
