@@ -277,7 +277,7 @@ namespace BDArmory.Guidances
             return targetPosition + (targetVelocity * leadTime);
         }
 
-        public static Vector3 GetWeaveTarget(Vector3 targetPosition, Vector3 targetVelocity, Vessel missileVessel, ref float gVert, ref float gHorz, Vector3 gRand, ref float omega, float terminalAngle, float weaveFactor, bool useAGMDescentRatio, float agmDescentRatio, ref float weaveOffset, ref Vector3 weaveStart, ref float WeaveAlt, out float ttgo, out float gLimit)
+        public static Vector3 GetWeaveTarget(Vector3 targetPosition, Vector3 targetVelocity, Vessel missileVessel, ref float gVert, ref float gHorz, Vector3 gRand, ref float omega, float terminalAngle, float weaveFactor, bool useAGMDescentRatio, float agmDescentRatio, float maneuvergLimit, ref float weaveOffset, ref Vector3 weaveStart, ref float WeaveAlt, out float ttgo, out float gLimit)
         {
             // Based on https://www.sciencedirect.com/science/article/pii/S1474667015333437
 
@@ -313,9 +313,10 @@ namespace BDArmory.Guidances
             float pullUpCos = Vector3.Dot(missileVel.normalized, upDirection);
 
             float horizontalAngle = VectorUtils.GetAngleOnPlane(missileVel, planarDirToTarget, right);
-            float verticalAngle = VectorUtils.GetElevation(missileVel, upDirection);
+            const float halfPi = Mathf.PI * 0.5f;
+            float verticalAngle = halfPi - Mathf.Acos(pullUpCos);
 
-            verticalAngle *= Mathf.Deg2Rad;
+            //verticalAngle *= Mathf.Deg2Rad;
             horizontalAngle *= Mathf.Deg2Rad;
 
             /*float verticalAngle = (Mathf.Deg2Rad * Mathf.Sign(pullUpCos)) * Vector3.Angle(missileVel.ProjectOnPlanePreNormalized(right), planarDirToTarget);
@@ -421,7 +422,7 @@ namespace BDArmory.Guidances
                     // Get angle relative to vertical
                     float pullUpSin = BDAMath.Sqrt(1f - pullUpCos * pullUpCos);
                     // Turn radius is mv^2/r = ma -> v^2/r = a -> v^2/a = r, a = 6 g -> v^2 * 1/6 g = r
-                    float invG = invg / (gVertTemp > 0.0f ? gVertTemp * 0.8f : (gHorz > 0.0f ? Mathf.Min(gHorz * 0.8f, 6f) : 6f));
+                    float invG = invg / maneuvergLimit;
                     float pullUpDist = (speed * speed * invG) * (1f - pullUpSin);
 
                     if (altDiff < 0)
