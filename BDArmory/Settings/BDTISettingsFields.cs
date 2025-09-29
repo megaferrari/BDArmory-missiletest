@@ -33,18 +33,28 @@ namespace BDArmory.Settings
 
 					settings.SetValue(field.Current.Name, field.Current.GetValue(null).ToString(), true);
 				}
-			if (!fileNode.HasNode("TeamColors"))
+			if (BDTISettings.STORE_TEAM_COLORS)
 			{
-				fileNode.AddNode("TeamColors");
+				if (!fileNode.HasNode("TeamColors"))
+				{
+					fileNode.AddNode("TeamColors");
+				}
+
+				ConfigNode colors = fileNode.GetNode("TeamColors");
+
+				foreach (var keyValuePair in BDTISetup.Instance.ColorAssignments)
+				{
+					if (BDArmorySettings.DEBUG_OTHER) Debug.Log(keyValuePair.ToString());
+					string color = $"{Mathf.RoundToInt(keyValuePair.Value.r * 255)},{Mathf.RoundToInt(keyValuePair.Value.g * 255)},{Mathf.RoundToInt(keyValuePair.Value.b * 255)},{Mathf.RoundToInt(keyValuePair.Value.a * 255)}";
+					colors.SetValue(keyValuePair.Key.ToString(), color, true);
+				}
 			}
-
-			ConfigNode colors = fileNode.GetNode("TeamColors");
-
-			foreach (var keyValuePair in BDTISetup.Instance.ColorAssignments)
+			else
 			{
-				if (BDArmorySettings.DEBUG_OTHER) Debug.Log(keyValuePair.ToString());
-				string color = $"{Mathf.RoundToInt(keyValuePair.Value.r * 255)},{Mathf.RoundToInt(keyValuePair.Value.g * 255)},{Mathf.RoundToInt(keyValuePair.Value.b * 255)},{Mathf.RoundToInt(keyValuePair.Value.a * 255)}";
-				colors.SetValue(keyValuePair.Key.ToString(), color, true);
+				if (fileNode.HasNode("TeamColors"))
+				{
+					fileNode.RemoveNode("TeamColors");
+				}
 			}
 
 			fileNode.Save(BDTISettings.settingsConfigURL);
@@ -69,7 +79,7 @@ namespace BDArmory.Settings
 						field.Current.SetValue(null, parsedValue);
 					}
 				}
-			if (!fileNode.HasNode("TeamColors")) return;
+			if (!BDTISettings.STORE_TEAM_COLORS || !fileNode.HasNode("TeamColors")) return;
 			ConfigNode colors = fileNode.GetNode("TeamColors");
 			for (int i = 0; i < colors.CountValues; i++)
 			{
@@ -99,7 +109,7 @@ namespace BDArmory.Settings
 				return value;
 			}
 			Debug.LogError("[BDArmory.BDTISettingsField]: BDAPersistentSettingsField to parse settings field of type " + type +
-						   " and value " + value);
+							 " and value " + value);
 
 			return null;
 		}

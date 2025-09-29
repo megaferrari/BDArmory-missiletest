@@ -498,7 +498,7 @@ namespace BDArmory.Targeting
         {
             if (myMF == null) return 0;
             var relativePosition = vessel.CoM - myMF.vessel.CoM;
-            float theta = Vector3.Angle(myMF.vessel.srf_vel_direction, relativePosition);
+            float theta = VectorUtils.Angle(myMF.vessel.srf_vel_direction, relativePosition);
             float cosTheta2 = Mathf.Cos(theta / 2f);
             return Mathf.Clamp(((cosTheta2 * cosTheta2 + 1f) * 100f / Mathf.Max(10f, relativePosition.magnitude)) / 2, 0, 1); // Ranges from 0 to 1, clamped at 1 for distances closer than 100m
         }

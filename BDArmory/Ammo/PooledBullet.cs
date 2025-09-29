@@ -595,7 +595,7 @@ namespace BDArmory.Bullets
                 if (penTicker == 0 && Vector3.Dot(targetVec, currentVelocity) > 0 && (guidanceRange < 0 || targetVec.sqrMagnitude < guidanceRange * guidanceRange)) //don't circle around if it misses, or after it hits something
                 {
                     Vector3 leadTargetOffset = targetVessel.CoM + Vector3.Distance(targetVessel.CoM, currentPosition) / bulletVelocity * targetVessel.Velocity();
-                    //if (Vector3.Angle(currentVelocity, leadTargetOffset) > 1) currentVelocity *= 2f * ballisticCoefficient / (TimeWarp.fixedDeltaTime * currentVelocity.magnitude * atmosphereDensity + 2f * ballisticCoefficient); needs bulletdrop gravity accel factored in as well
+                    //if (VectorUtils.Angle(currentVelocity, leadTargetOffset) > 1) currentVelocity *= 2f * ballisticCoefficient / (TimeWarp.fixedDeltaTime * currentVelocity.magnitude * atmosphereDensity + 2f * ballisticCoefficient); needs bulletdrop gravity accel factored in as well
                     //apply some drag to projectile if it's turning. Will mess up initial CPA aim calculations, true; on the other hand, its a guided homing bullet.                                                                                                                                                                                                                
                     currentVelocity = Vector3.RotateTowards(currentVelocity, leadTargetOffset - currentPosition, period * guidanceDPS * atmosphereDensity * Mathf.Deg2Rad, 0); //adapt to rockets for homing rockets?
                 }
@@ -607,7 +607,7 @@ namespace BDArmory.Bullets
 
             if (!underwater && FlightGlobals.currentMainBody.ocean && FlightGlobals.getAltitudeAtPos(currentPosition) <= 0) // Check if the bullet is now underwater.
             {
-                float hitAngle = Vector3.Angle(GetDragAdjustedVelocity(), -VectorUtils.GetUpDirection(currentPosition));
+                float hitAngle = VectorUtils.Angle(GetDragAdjustedVelocity(), -VectorUtils.GetUpDirection(currentPosition));
                 if (RicochetScenery(hitAngle))
                 {
                     tracerStartWidth /= 2;
@@ -1063,7 +1063,7 @@ namespace BDArmory.Bullets
                 distanceLastHit = distanceTraveled + bulletHit.hit.distance;
             }
 
-            float hitAngle = Vector3.Angle(impactVelocity, -bulletHit.hit.normal);
+            float hitAngle = VectorUtils.Angle(impactVelocity, -bulletHit.hit.normal);
             float dist = hitPart != null && hitPart.vessel != null && rayLength.ContainsKey(hitPart.vessel) ? rayLength[hitPart.vessel] : currentVelocity.magnitude * period;
 
             if (ProjectileUtils.CheckGroundHit(hitPart, bulletHit.hit, caliber))

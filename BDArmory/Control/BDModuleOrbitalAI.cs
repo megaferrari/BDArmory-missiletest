@@ -1303,7 +1303,7 @@ namespace BDArmory.Control
             Vector3 toIntercept = Intercept(relPos, relVel);
             bool useReverseThrust = (!UseForwardThrust(-toIntercept) && (Vector3.Dot(relPos, relVel) < 0f)) || (ReverseThrust && forwardEngines.Count == 0);
             margin += useReverseThrust ? 1.5f : 0f; // Stop earlier when reverse thrusting to keep facing target
-            float angleToRotate = Vector3.Angle((useReverseThrust ? -1 : 1) * vessel.ReferenceTransform.up, relVel) * Mathf.Deg2Rad * 0.75f;
+            float angleToRotate = VectorUtils.Angle((useReverseThrust ? -1 : 1) * vessel.ReferenceTransform.up, relVel) * Mathf.Deg2Rad * 0.75f;
             float timeToRotate = BDAMath.SolveTime(angleToRotate, maxAngularAccelerationMag) / 0.75f;
             float relSpeed = relVel.magnitude;
             float interceptStoppingDistance = StoppingDistance(relSpeed, useReverseThrust) + relSpeed * (margin + timeToRotate * 3f);
@@ -1528,7 +1528,7 @@ namespace BDArmory.Control
             if (relVel.sqrMagnitude < minFiringSpeed * minFiringSpeed) return true;
             bool useForwardThrust = UseForwardThrust(toEscape);
             Vector3 thrustDir = useForwardThrust ? vessel.ReferenceTransform.up : -vessel.ReferenceTransform.up;
-            float rotDistance = Vector3.Angle(thrustDir, toEscape) * Mathf.Deg2Rad;
+            float rotDistance = VectorUtils.Angle(thrustDir, toEscape) * Mathf.Deg2Rad;
             float timeToRotate = BDAMath.SolveTime(rotDistance / 2, maxAngularAccelerationMag) * 2;
             float timeToDisplace = BDAMath.SolveTime(minRange - toTarget.magnitude, (!useForwardThrust && currentForwardThrust ? reverseForwardThrustRatio : 1f) * maxAcceleration, Vector3.Dot(-relVel, toEscape));
             float timeToEscape = timeToRotate * 2 + timeToDisplace;
@@ -1659,7 +1659,7 @@ namespace BDArmory.Control
             Vector3 toTarget = FromTo(self, target).normalized;
             Vector3 up = self.vesselTransform.up;
             Vector3 broadsideAttitude = up.ProjectOnPlanePreNormalized(toTarget);
-            float error = Vector3.Angle(up, broadsideAttitude);
+            float error = VectorUtils.Angle(up, broadsideAttitude);
             float angleLerp = Mathf.InverseLerp(0, 10, error);
             float lerpRate = Mathf.Lerp(1, 10, angleLerp);
             broadsideAttitudeLerp = Vector3.Lerp(broadsideAttitudeLerp, broadsideAttitude, lerpRate * Time.deltaTime); //Lerp has reduced oscillation compared to Slerp
@@ -1755,7 +1755,7 @@ namespace BDArmory.Control
         {
             Vector3 tv1 = FromTo(v, t);
             Vector3 tv2 = tv1 + window * RelVel(v, t);
-            return Vector3.Angle(tv1, tv2) / window;
+            return VectorUtils.Angle(tv1, tv2) / window;
         }
 
         public static float VesselDistance(Vessel v1, Vessel v2)

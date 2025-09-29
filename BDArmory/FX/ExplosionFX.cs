@@ -536,7 +536,7 @@ namespace BDArmory.FX
             {
                 float dotProduct = Vector3.Dot(direction, (hit.point - Position).normalized);
                 if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log($"[BDArmory.ExplosionFX]: {p.name} at {Mathf.Acos(dotProduct)} angle from CR explosion direction");
-                //if (Vector3.Angle(direction, (hit.point - Position).normalized) >= 60 && Vector3.Angle(direction, (hit.point - Position).normalized) <= 90)
+                //if (VectorUtils.Angle(direction, (hit.point - Position).normalized) >= 60 && VectorUtils.Angle(direction, (hit.point - Position).normalized) <= 90)
                 // 30-60° AoE instead of 60-90°
                 if (dotProduct <= 0.866025388240814208984375f && dotProduct >= 0.5)
                 {
@@ -546,7 +546,7 @@ namespace BDArmory.FX
             }
             else
             {
-                if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log($"[BDArmory.ExplosionFX]: {p.name} at {Vector3.Angle(direction, (hit.point - Position).normalized)} angle from {warheadType} explosion direction");
+                if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log($"[BDArmory.ExplosionFX]: {p.name} at {VectorUtils.Angle(direction, (hit.point - Position).normalized)} angle from {warheadType} explosion direction");
                 return (Vector3.Dot(direction, (hit.point - Position).normalized) >= cosAngleOfEffect);
             }
         }
@@ -1003,7 +1003,7 @@ namespace BDArmory.FX
                         {
                             if (shapedEffect && ((warheadType == WarheadTypes.ShapedCharge || warheadType == WarheadTypes.Kinetic) ? (realDistance <= SCRange) : warheadType == WarheadTypes.ContinuousRod))
                             {
-                                //float HitAngle = Vector3.Angle((eventToExecute.HitPoint + rb.velocity * TimeIndex - Position).normalized, -eventToExecute.Hit.normal);
+                                //float HitAngle = VectorUtils.Angle((eventToExecute.HitPoint + rb.velocity * TimeIndex - Position).normalized, -eventToExecute.Hit.normal);
                                 //float anglemultiplier = (float)Math.Cos(Math.PI * HitAngle / 180.0);
                                 float anglemultiplier = Mathf.Abs(Vector3.Dot((eventToExecute.HitPoint + rb.velocity * TimeIndex - Position).normalized, -eventToExecute.Hit.normal));
                                 float thickness = ProjectileUtils.CalculateThickness(part, anglemultiplier);

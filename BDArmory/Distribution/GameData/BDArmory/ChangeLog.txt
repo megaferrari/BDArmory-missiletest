@@ -5,10 +5,10 @@
 - Part Changes:
 	- Added stack attachment nodes to all turret bases.
 	- Sanity-checked turret bulkhead sizes.
-	- Increased FoV settings for FLIR ball and Targeting Pod to take advantage of new zoom readouts
+	- Increased FoV settings for FLIR ball and Targeting Pod to take advantage of new zoom readouts.
 	- Missiles:
-		- AMRAAMs given INS/ARH guidance and AAM/Pronav guidance to bring its capabilities in line with modern BDA+ features
-		- Sidewinder missile given Pronav guidance
+		- AMRAAMs given INS/ARH guidance and AAM/Pronav guidance to bring its capabilities in line with modern BDA+ features.
+		- Sidewinder missile given Pronav guidance.
 		- Hellfire missile slightly buffed and given Kappa guidance, giving it top-attack capabilities.
 - UI:
 	- Fix spelling of "ordnance" in localisation files (settings and modules retain the misspelling).
@@ -17,6 +17,7 @@
 	- Tweak vessel switching weights to try to remain focused on vessels that are about to explode.
 	- Fix EMP disable messages on craft that have alraedy been disabled before claiming a negative float value time duration.
 	- Fix Radar Display not displaying correctly on radars using radarTransform defined pointing directions.
+	- Add an option in Team Icons to not store the team colours in the settings.cfg file.
 - AI / WM:
 	- Add missing unclamped limits for 3-axis static damping.
 	- Adjust the release of the "Attack" command so that craft don't go dead-stick when under attack but not threatened enough to trigger evasion.
@@ -67,16 +68,16 @@
 	- Fix bug that allowed radars to lock on below the radar horizon when the appropriate settings are toggled.
 	- Fix datalinked radars not conveying lock information to all datalinked vessels.
 	- Fix Conformal Decals and part variants affecting craft RCS analysis.
-	- Fix radars not having an elevation limit. Radars can now be given a specified elevation limit via "elevationFOV"
+	- Fix radars not having an elevation limit. Radars can now be given a specified elevation limit via "elevationFOV".
 		- Non-omnidirectional radars are assumed to be roll stabilized and will scan "directionalFieldOfView" horizontally and "elevationFOV" vertically. Radars will scan the ENTIRE pitch FoV with every sweep, vertical scan limits are affected by vessel pitch, however!
 		- Omnidirectional radars scan about an up/down axis (this will at some point be corrected so that they scan about their own spin axis), limited by "elevationFOV".
-		- Default behavior for non-omnidirectional radars is to assume a square scan zone (I.E. equal "directionalFieldOfView" and "elevationFOV" unless otherwise specified)
-		- Default behavior for omnidirectional radars is to provide full spherical coverage, as they did previously
-	- Radars can now have asymmetric scan zones, both "directionalFieldOfView" and "elevationFOV" can be given two values to specify a lower/upper scan limit. (I.E. a radar with "directionalFieldOfView = -40, 20" will scan up to 40 degrees to the left and 20 to the right.)
+		- Default behavior for non-omnidirectional radars is to assume a square scan zone (i.e., equal "directionalFieldOfView" and "elevationFOV" unless otherwise specified).
+		- Default behavior for omnidirectional radars is to provide full spherical coverage, as they did previously.
+	- Radars can now have asymmetric scan zones, both "directionalFieldOfView" and "elevationFOV" can be given two values to specify a lower/upper scan limit. (I.e., a radar with "directionalFieldOfView = -40, 20" will scan up to 40 degrees to the left and 20 to the right.)
 		- Note this is a very WIP feature and visualizations may not be perfect!
-		- For debugging, the "DEBUG DETECTORS" setting may be used, which will output the radar's lower/upper limits, FoV limit and offset (of the scan centerline) for both the azimuth and elevation axes
-	- Fix radar display not being pitch stabilized, position of targets should now remain static even when maneuvering in pitch
-	- RWR display should no longer drift
+		- For debugging, the "DEBUG DETECTORS" setting may be used, which will output the radar's lower/upper limits, FoV limit and offset (of the scan centerline) for both the azimuth and elevation axes.
+	- Fix radar display not being pitch stabilized, position of targets should now remain static even when maneuvering in pitch.
+	- RWR display should no longer drift.
 - Weapons:
 	- Remove maxEngagementRange (default 5000m) check from bombs when AI is selecting what weapon to use.
 	- EMP weapons (both guns and missiles) now capable of disabling missiles.
@@ -84,11 +85,11 @@
 	- Multi-barreled guns now no longer swap to the next ammo type in the belt until after all barrels have fired.
 	- Multi-barreled guns now fire tracers every tracerInterval rounds of each barrel, and will fire tracers simultaneously from all barrels.
 	- Fix aim lead offset for weapons with deploy animations.
-	- Fix display issue where "Advanced Ammo Config" button does not reflect the actual state of the weapon
-	- Weapons fire SFX maximum distance it can be heard now scales based on weapon caliber
-	- Added fuzeDelay and fuzeSensitivity functionality to bullets. Now, for penetrating and delay fuzes you can specify the fuze delay in seconds, and the fuze sensitivity in mm for penetrating fuzes, by listing them with commas, I.E. "fuzeType = Penetrating,0.01,20" for a 0.01 s delay which will be set off by 20 mm of armor (currently material differences are not considered).
+	- Fix display issue where "Advanced Ammo Config" button does not reflect the actual state of the weapon.
+	- Weapons fire SFX maximum distance it can be heard now scales based on weapon caliber.
+	- Added fuzeDelay and fuzeSensitivity functionality to bullets. Now, for penetrating and delay fuzes you can specify the fuze delay in seconds, and the fuze sensitivity in mm for penetrating fuzes, by listing them with commas, i.e., "fuzeType = Penetrating,0.01,20" for a 0.01 s delay which will be set off by 20 mm of armor (currently material differences are not considered).
 	- Fix bullet behavior when hitting parts with multiple colliders embedded in each other, bullets should now only hit such a part once, unless it exits the part and then hits the part again. Note the system in place cannot catch cases where another part is clipped in such a part.
-	- Fix phantom water on planets without oceans
+	- Fix phantom water on planets without oceans.
 	- Changed continuous rod warhead damage area from 60°-90° to 30°-60°.
 	- Missiles:
 		- General Changes:
@@ -112,45 +113,45 @@
 			- Fix buggy behavior caused by partial failure of missile warheads to detonate when a custom warhead and a standard warhead were used in conjunction with non-zero fuze failure settings.
 			- New "maxTorqueAero" field for missiles, provides a dynamic pressure (density times velocity squared) based component to maxTorque. This is intended to simulate aerodynamic control surfaces (as opposed to maxTorque, which now represents things like thrust-vectoring).
 			- New "maneuvergLimit" field for missiles, provides the gLimit for the various maneuvers a missile might conduct (not general guidance maneuvers). Specifically, the pull-up phase of lofted guidance types, like AAMloft and kappa, and the pop-up maneuver of cruise missiles.
-			- Several missile parameters can now be specified for different phases of flight with comma-separated values
+			- Several missile parameters can now be specified for different phases of flight with comma-separated values.
 				- "liftArea"/"dragArea" has the format: [boost], [cruise], [deltaDeploy], [deltaCruiseDeploy], separated by commas. The [cruise] value is used when "decoupleBoosters" is true, representing the change in aerodynamics after dropping the booster stage. The deltas represent the change in area when deploy animations trigger. A boolean field "deployedLiftInCruise" (defaults to true) allows you to keep [deltaDeploy] after the booster separates.
 				- "maxTorqueAero" follows the same format as above.
-				- "maxTorque" has the format: [boost], [cruise], [post-thrust], allowing for simulation of thrust-vectoring missiles
+				- "maxTorque" has the format: [boost], [cruise], [post-thrust], allowing for simulation of thrust-vectoring missiles.
 				- "steerMult" has the format: [boost], [cruise], allowing reduced "steerMult"s in cruise if desired.
 			- Add the gLimit, maxAoA and chaff/flare effectivity fields to the info box.
 			- Implement various command-to-line of sight guidance types, these all use the "beamCorrectionFactor" field and the "pronavGain" fields (with support for pronav gain scheduling).
-				- "CLOS" performs basic command-to-line of sight guidance with no beam-velocity compensation
-				- "CLOSThree" performs command-to-line of sight guidance with beam-velocity compensation
+				- "CLOS" performs basic command-to-line of sight guidance with no beam-velocity compensation.
+				- "CLOSThree" performs command-to-line of sight guidance with beam-velocity compensation.
 				- "CLOSLead" performs command-to-line of sight guidance with selectable lead (using the "beamLeadFactor" field, 1.0 representing full lead and 0.0 representing three point guidance. Defaults to 0.5 or half-rectification guidance.)
-				- "beamCorrectionFactor" is multiplied with the lateral error from the specified line of sight to provide a lateral velocity command, higher values result in a faster snap to the line of sight line, but also more oscillation
+				- "beamCorrectionFactor" is multiplied with the lateral error from the specified line of sight to provide a lateral velocity command, higher values result in a faster snap to the line of sight line, but also more oscillation.
 				- "pronavGain" is used, in a similar manner as it use used in pronav guidance, to multiply the velocity error and provide an acceleration command. Higher values result in a faster snap to the commanded velocity vector, but also more oscillation.
 			- Replaced "radarTimeout" field with general "seekerTimeout", which is now used for heat-seeking, active radar homing, inertial and anti-radiation homing. Added "terminalSeekerTimeout" field so this can be specified separately for the initial and terminal targeting types.
 			- Improved guidance for continuous rod missiles, offset direction now depends on if the missile is above/below the target rather than always being offset above.
 		- Launchers:
-			- Fix multi-missile launcher issues when railAmmo > launcher rails on the mode
-			- Fix multi-missile launchers not properly calculating "FiringAngle" parameter
+			- Fix multi-missile launcher issues when railAmmo > launcher rails on the mode.
+			- Fix multi-missile launchers not properly calculating "FiringAngle" parameter.
 			- Fix certain missiles becoming ghost-like entities that ignored bullets and interceptor missiles when fired from MultiMissileLaunchers with "ignoreLauncherColliders = true".
 			- Added "Lofted Aimpoint" toggle to Missile Turrets, with the accompanying "Loft Velocity Factor". When toggled on, the turret will aim above the target to provide some lofting to the missile trajectory (though this requires the usage of pronav and a gain schedule). "Loft Velocity Factor" is used to scale the missile's "optimimumVelocity" for the ballistic simulation, a lower "Loft Velocity Factor" results in a higher loft angle.
 			- Added new "deployBlocksPitch", "deployBlocksYaw" and "deployBlocksReload" booleans to Missile Turrets, when toggled on, the turret will have to finish it's deploy animation before pitching/yawing, and will have to retract for reloading (respecting the pitch and yaw toggles as well).
 			- Allow multi-missile launcher to gracefully error in the event of the missile model not being found. A debug log entry will be made, warning the user of such an error, and if it is a launcher, it will attempt to find the correct model to use.
 			- Added "displayOrdinanceHasColliders" field to multi-missile launchers, defaults to true. When set to false disables the colliders on the dummy missiles granting a very minimal performance improvment.
 - Effects:
-	- Add splash effects to underwater explosions (very WIP, feedback on size, behavior etc. would be appreciated)
-	- Bullet hits now attached to whatever collider they hit, so bullet hits on animated parts, like turrets, will now move with them
-	- Fix floating bullet hits and fuel leaks from explosions (note this does NOT fix decals floating due to collider issues, that's a problem with the part model)
+	- Add splash effects to underwater explosions (very WIP, feedback on size, behavior etc. would be appreciated).
+	- Bullet hits now attached to whatever collider they hit, so bullet hits on animated parts, like turrets, will now move with them.
+	- Fix floating bullet hits and fuel leaks from explosions (note this does NOT fix decals floating due to collider issues, that's a problem with the part model).
 - GameModes:
 	- Don't spawn new asteroids in asteroid rain mode while in high time-warp.
 - Competition:
 	- Add a "defaults" button to the scoring window to reset score weights to their default values.
 	- Updated parsing and plotting scripts.
-		- Scripts moved to the folder "Scripts".
 		- Using 'python parse_tournament_log_files.py -w cfg' reads the score weights from the score_weights.cfg file.
 		- Using 'python plot_summary.py -i regex' creates the plot ignoring any craft matching the regex string.
 	- Add a "Daylight" position on the "TimeWarp Between Rounds" tournament slider to warp to dawn whenever a round would start in darkness.
-	- Fix Proximity Fuzed bullets/rockets and bullet/rocket-based nukes from not registering hits/score
+	- Fix Proximity Fuzed bullets/rockets and bullet/rocket-based nukes from not registering hits/score.
 - Spawning:
 	- Automatically adjust the PRE range if the spawn distance would put craft outside the physics range.
 - Scripts:
+	- All python scripts have been moved to the folder "Scripts".
 	- Added the new "BDArmoryMissileManeuverEnvelopePlotter.py" and "KSPFloatCurveCalc.py" scripts.
 		- "KSPFloatCurveCalc.py" is a general utility, implementing KSP FloatCurves in python as a class, using numpy and some not-so-efficient-but-faster-than-opening-KSP code.
 		- "BDArmoryMissileManeuverEnvelopePlotter.py" is a new tool, using "KSPFloatCurveCalc.py", numpy and matplotlib, designed to allow modders to make the most of the new missile changes. It is a command-line utility that allows the user to plot the performance of a missile, allowing the modder to better tune the performance of their missile.

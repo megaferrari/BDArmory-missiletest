@@ -3504,8 +3504,8 @@ namespace BDArmory.Competition
                                     rammingInformation[otherVesselName].partCount = otherVessel.parts.Count;
                                     rammingInformation[vesselName].radius = vessel.GetRadius();
                                     rammingInformation[otherVesselName].radius = otherVessel.GetRadius();
-                                    rammingInformation[vesselName].targetInformation[otherVesselName].angleToCoM = Vector3.Angle(vessel.srf_vel_direction, otherVessel.CoM - vessel.CoM);
-                                    rammingInformation[otherVesselName].targetInformation[vesselName].angleToCoM = Vector3.Angle(otherVessel.srf_vel_direction, vessel.CoM - otherVessel.CoM);
+                                    rammingInformation[vesselName].targetInformation[otherVesselName].angleToCoM = VectorUtils.Angle(vessel.srf_vel_direction, otherVessel.CoM - vessel.CoM);
+                                    rammingInformation[otherVesselName].targetInformation[vesselName].angleToCoM = VectorUtils.Angle(otherVessel.srf_vel_direction, vessel.CoM - otherVessel.CoM);
                                 }
 
                                 // Update part counts if vessels get shot and potentially lose parts before the collision happens.

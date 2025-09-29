@@ -612,7 +612,7 @@ namespace BDArmory.Bullets
                 // since KSP vessels can easily be moving faster than rockets
                 impactVector = currentVelocity - (hitPart.rb.velocity + BDKrakensbane.FrameVelocityV3f);
 
-            float hitAngle = Vector3.Angle(impactVector, -hit.normal);
+            float hitAngle = VectorUtils.Angle(impactVector, -hit.normal);
 
             if (ProjectileUtils.CheckGroundHit(hitPart, hit, caliber))
             {
