@@ -277,7 +277,7 @@ namespace BDArmory.Weapons
 
         private void GetTeamID()
         {
-            var weaponManager = sourcevessel.ActiveController().WM;
+            var weaponManager = sourcevessel != null ? sourcevessel.ActiveController().WM : null;
             IFFID = weaponManager != null ? weaponManager.teamString : null;
         }
 
