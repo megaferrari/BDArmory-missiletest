@@ -504,7 +504,11 @@ namespace BDArmory.Radar
                     break;
                 }
             }
-            if (newArray.Count > 0) rIncrements = newArray.ToArray();
+            if (newArray.Count > 0)
+            {
+                rIncrements = newArray.ToArray();
+                rangeIndex = Mathf.Clamp(rangeIndex, 0, rIncrements.Length - 1);
+            }
         }
 
         public float MaxRadarRange()
@@ -928,7 +932,7 @@ namespace BDArmory.Radar
 
             if (!radar.canLock) return false;
 
-            if (!weaponManager.guardMode && (radar.locked && (radar.currentLocks == radar.maxLocks))) return false;
+            if ((!weaponManager || !weaponManager.guardMode) && (radar.locked && (radar.currentLocks == radar.maxLocks))) return false;
 
             // Ensure the radar's referenceTransform and related vectors are all updated...
             radar.UpdateReferenceTransform();

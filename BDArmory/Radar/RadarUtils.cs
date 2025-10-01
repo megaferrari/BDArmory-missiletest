@@ -437,6 +437,12 @@ namespace BDArmory.Radar
 
                     ti.radarBaseSignatureNeedsUpdate = false;
                     ti.radarSignatureMatrixNeedsUpdate = false;
+
+                    // Update ECM impact on RCS if base RCS is modified
+                    VesselECMJInfo jammer = v.gameObject.GetComponent<VesselECMJInfo>();
+                    if (jammer != null)
+                        jammer.UpdateJammerStrength();
+
                     return ti;
                 }
             }
@@ -1531,7 +1537,7 @@ namespace BDArmory.Radar
                 while (loadedvessels.MoveNext())
                 {
                     // ignore null and unloaded
-                    if (loadedvessels.Current == null || !loadedvessels.Current.loaded) continue;
+                    if (loadedvessels.Current == null || !loadedvessels.Current.loaded || !loadedvessels.Current.isActiveAndEnabled) continue;
                     if (loadedvessels.Current.IsUnderwater() && radar.sonarMode == ModuleRadar.SonarModes.None) //don't detect underwater targets with radar
                         continue;
                     if (!loadedvessels.Current.Splashed && radar.sonarMode != ModuleRadar.SonarModes.None) //don't detect flying targets with sonar
@@ -1562,6 +1568,12 @@ namespace BDArmory.Radar
                         // get vessel's radar signature
                         TargetInfo ti = GetVesselRadarSignature(loadedvessels.Current);
                         float signature = 0;
+                        // The only scenario in which this should occur is if the vessel is about to be destroyed,
+                        // in which case the previous TargetInfo was destroyed, a new one was created, however
+                        // as the vessel is de-activated, the new TargetInfo does not have a vessel as Awake() is
+                        // not even called. I would've thought !vessel.loaded would've caught this but perhaps not.
+                        if (ti.Vessel == null)
+                            continue;
                         if (radar.sonarMode != ModuleRadar.SonarModes.passive)
                         {
                             signature = (BDArmorySettings.ASPECTED_RCS) ? GetVesselRadarSignatureAtAspect(ti, ray.origin, distance * 1000f) : ti.radarModifiedSignature;
@@ -1634,7 +1646,7 @@ namespace BDArmory.Radar
                 while (loadedvessels.MoveNext())
                 {
                     // ignore null, unloaded and ignored types
-                    if (loadedvessels.Current == null || loadedvessels.Current.packed || !loadedvessels.Current.loaded || loadedvessels.Current == missile.vessel) continue;
+                    if (loadedvessels.Current == null || loadedvessels.Current.packed || !loadedvessels.Current.loaded || !loadedvessels.Current.isActiveAndEnabled || loadedvessels.Current == missile.vessel) continue;
                     if (!loadedvessels.Current.Splashed && missile.GetWeaponClass() == WeaponClasses.SLW) continue; //don't detect non-water targets if a torpedo
                     if (loadedvessels.Current.IsUnderwater() && missile.GetWeaponClass() != WeaponClasses.SLW) continue; //don't detect underwater targets with radar
 
@@ -1680,6 +1692,9 @@ namespace BDArmory.Radar
                         // get vessel's radar signature
                         TargetInfo ti = GetVesselRadarSignature(loadedvessels.Current);
                         float signature = 10f;
+                        // See comment in RadarUpdateScanBoresight for more info about this.
+                        if (ti.Vessel == null)
+                            continue;
                         if (ti != null)
                         {
                             signature = (BDArmorySettings.ASPECTED_RCS) ? GetVesselRadarSignatureAtAspect(ti, ray.origin, distance) : ti.radarModifiedSignature;
@@ -1786,7 +1801,7 @@ namespace BDArmory.Radar
                 while (loadedvessels.MoveNext())
                 {
                     // ignore null, unloaded and self
-                    if (loadedvessels.Current == null || loadedvessels.Current.packed || !loadedvessels.Current.loaded) continue;
+                    if (loadedvessels.Current == null || loadedvessels.Current.packed || !loadedvessels.Current.loaded || !loadedvessels.Current.isActiveAndEnabled) continue;
                     if (loadedvessels.Current == myWpnManager.vessel) continue;
 
                     Vector3 vectorToTarget = loadedvessels.Current.CoM - position;
@@ -1827,6 +1842,9 @@ namespace BDArmory.Radar
                         // get vessel's radar signature
                         TargetInfo ti = GetVesselRadarSignature(loadedvessels.Current);
                         float signature = 1;
+                        // See comment in RadarUpdateScanBoresight for more info about this
+                        if (ti.Vessel == null)
+                            continue;
                         if (radar.sonarMode != ModuleRadar.SonarModes.passive)    //radar or active soanr
                         {
                             signature = BDArmorySettings.ASPECTED_RCS ? GetVesselRadarSignatureAtAspect(ti, position, distance * 1000f) : ti.radarModifiedSignature;
@@ -1940,7 +1958,7 @@ namespace BDArmory.Radar
                     while (loadedvessels.MoveNext())
                     {
                         // ignore null, unloaded
-                        if (loadedvessels.Current == null || !loadedvessels.Current.loaded) continue;
+                        if (loadedvessels.Current == null || !loadedvessels.Current.loaded || !loadedvessels.Current.isActiveAndEnabled) continue;
 
                         // Seems like we only use it once so I've left it as is, but I've written this down as a reminder
                         // do consider replacing all .transform.position calls with .CoM
@@ -2000,6 +2018,9 @@ namespace BDArmory.Radar
 
                 // get vessel's radar signature
                 TargetInfo ti = GetVesselRadarSignature(lockedVessel);
+                // See comment in RadarUpdateScanBoresight for more about this
+                if (ti.Vessel == null)
+                    return false;
                 float signature = (BDArmorySettings.ASPECTED_RCS) ? GetVesselRadarSignatureAtAspect(ti, ray.origin, distance * 1000f) : ti.radarModifiedSignature;
                 signature *= GetRadarGroundClutterModifier(radar.radarGroundClutterFactor, ray.origin, directionToTarget, ti);
                 signature *= ti.radarLockbreakFactor;    //multiply lockbreak factor from active ecm
