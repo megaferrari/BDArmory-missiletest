@@ -1165,7 +1165,8 @@ namespace BDArmory.Weapons.Missiles
 
                 if (scannedTargets == null) scannedTargets = new TargetSignatureData[BDATargetManager.LoadedVessels.Count];
                 TargetSignatureData.ResetTSDArray(ref scannedTargets);
-                Ray ray = new Ray(transform.position, GetForwardTransform());
+                Vector3 forward = GetForwardTransform();
+                Ray ray = new Ray(transform.position, forward);
                 bool pingRWR = Time.time - lastRWRPing > 0.4f;
                 if (pingRWR) lastRWRPing = Time.time;
                 bool radarSnapshot = (snapshotTicker > 5);
@@ -1184,35 +1185,46 @@ namespace BDArmory.Weapons.Missiles
                 //float sqrThresh = targetVessel != null ? 1000000 : 90000f; // 1000 * 1000 : 300 * 300; Expand threshold if no target to search for, grab first available target
 
                 float smallestAngle = maxOffBoresight;
-                float sqrDist = float.PositiveInfinity;
+                float smallestDist = float.PositiveInfinity;
                 float currDist = 0;
                 float currAngle = 0;
                 TargetSignatureData lockedTarget = TargetSignatureData.noTarget;
-                Vector3 soughtTarget = radarTarget.exists ? radarTarget.predictedPosition : targetVessel != null ? targetVessel.Vessel.CoM : transform.position + (startDirection);
+                bool useSoughtTarget = radarTarget.exists || targetVessel != null;
+                Vector3 soughtTarget;
+                if (useSoughtTarget)
+                    soughtTarget = radarTarget.exists ? radarTarget.predictedPosition : targetVessel.Vessel.CoM;
+                else
+                    soughtTarget = vessel.CoM;
                 if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileBase][Radar LOAL]: Active radar found: {scannedTargets.Length} targets; radarTarget?{radarTarget.exists}; tgtVessel? {targetVessel != null}");
                 for (int i = 0; i < scannedTargets.Length; i++)
                 {
-                    if (scannedTargets[i].exists && targetVessel == null || (scannedTargets[i].predictedPosition - soughtTarget).sqrMagnitude < 1000000f)
+                    float tempDist = -1f;
+                    if (scannedTargets[i].exists && !useSoughtTarget || (tempDist = (scannedTargets[i].predictedPosition - soughtTarget).sqrMagnitude) < 1000000f)
                     {
                         //re-check engagement envelope, only lock appropriate targets
                         if (CheckTargetEngagementEnvelope(scannedTargets[i].targetInfo))
                         {
-                            if (scannedTargets[i].targetInfo.Team == Team) continue;//Don't lock friendlies
-
-                            if (targetVessel == null)
+                            if (hasIFF && Team.IsFriendly(scannedTargets[i].targetInfo.Team)) continue;//Don't lock friendlies
+                            
+                            if (!useSoughtTarget)
                             {
-                                currAngle = Mathf.Rad2Deg * Mathf.Acos(Vector3.Dot((scannedTargets[i].predictedPosition - transform.position).normalized, GetForwardTransform()));
+                                (tempDist, Vector3 currDir) = (scannedTargets[i].predictedPosition - soughtTarget).MagNorm();
+                                currAngle = Mathf.Rad2Deg * Mathf.Acos(Vector3.Dot(currDir, forward));
                                 if (currAngle > (smallestAngle + 5f)) continue; // Look for the smallest angle, give 5 degrees of wiggle room.
-                                smallestAngle = currAngle;
+                                // Look for closest target to the missile
+                                currDist = tempDist;
                             }
+                            else
+                                // Look for closest target to the previous target location
+                                currDist = tempDist;
 
-                            // Look for closest target, either to the previous target location if available, or to the missile if not
-                            currDist = (targetVessel != null ? scannedTargets[i].predictedPosition : vessel.CoM - soughtTarget).sqrMagnitude;
-                            if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileBase][Radar LOAL]: Target: {scannedTargets[i].vessel.name} has currDist: {currDist}.");
+                            if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileBase][Radar LOAL]: Target: {scannedTargets[i].vessel.name} has {(targetVessel == null ? "currDist" : "currSqrDist")}: {currDist}.");
 
-                            if (currDist < sqrDist)
+                            if (currDist < smallestDist)
                             {
-                                sqrDist = currDist;
+                                if (!useSoughtTarget && currAngle < smallestAngle)
+                                    smallestAngle = currAngle;
+                                smallestDist = currDist;
                                 lockedTarget = scannedTargets[i];
                                 ActiveRadar = true;
                                 //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileBase][Radar LOAL]: Target: {scannedTargets[i].vessel.name} selected.");
