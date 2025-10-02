@@ -624,6 +624,7 @@ namespace BDArmory.Weapons.Missiles
                 {
                     if (craftPart.Current is null) continue;
                     if (craftPart.Current.GetPartName() != missilePartName) continue;
+                    if (craftPart.Current.weaponChannel > weaponChannel) continue;
                     if (craftPart.Current.engageRangeMax != engageRangeMax) continue;
                     if (craftPart.Current.missileFireAngle != missileFireAngle) continue;
                     missilecount += craftPart.Current.AmmoCount;
