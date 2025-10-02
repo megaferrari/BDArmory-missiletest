@@ -351,6 +351,7 @@ namespace BDArmory.Weapons
                 {
                     if (weapon.Current == null) continue;
                     if (weapon.Current.GetShortName() != GetShortName()) continue;
+                    if (weapon.Current.weaponChannel > weaponChannel) continue;
                     if (weapon.Current.AmmoID != AmmoID && weapon.Current.AmmoID != lastAmmoID)
                     {
                         GetAmmoCount(weapon.Current.AmmoID, out double ammoCurrent, out double ammoMax);
