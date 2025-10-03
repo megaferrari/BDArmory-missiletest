@@ -852,11 +852,11 @@ namespace BDArmory.Weapons.Missiles
                 try
                 {
                     maxOffBoresight = float.Parse(maxOffboresightString);
-                    if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileLauncher]: setting maxOffBoresight of " + part + " on " + part.vessel.vesselName + " to " + maxOffBoresight);
+                    if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: setting maxOffBoresight of {part} on {(HighLogic.LoadedSceneIsFlight ? part.vessel.vesselName : EditorLogic.fetch.ship.shipName)} to {maxOffBoresight}");
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError("[BDArmory.MissileLauncher]: Failed to parse maxOffBoresight configNode: " + e.Message);
+                    Debug.LogError($"[BDArmory.MissileLauncher]: Failed to parse maxOffBoresight configNode ({maxOffboresightString}): {e.Message}\n{e.StackTrace}");
                 }
             }
 
@@ -1570,7 +1570,7 @@ namespace BDArmory.Weapons.Missiles
                     ml.loftState = LoftStates.Boost;
                 }
             }
-            
+
             if (terminalHoming)
             {
                 if (homingModeTerminal == GuidanceModes.AGMBallistic)
@@ -3176,7 +3176,7 @@ namespace BDArmory.Weapons.Missiles
                         target = MissileGuidance.GetCLOSTarget(sensorPos, vessel.CoM, vessel.Velocity(), targetPos, targetVel, beamCorrectionFactor, tempPronavGain, out currgLimit);
                         break;
                 }
-                
+
                 DrawDebugLine(sensorPos, targetPos);
             }
             else
@@ -3847,7 +3847,7 @@ namespace BDArmory.Weapons.Missiles
 
                         GUIUtils.DrawLineBetweenWorldPositions(vessel.CoM + MissileReferenceTransform.forward * burnTimeleft,
                             vessel.CoM + MissileReferenceTransform.forward * 10, 2, Color.red);
-                        GUIUtils.DrawLineBetweenWorldPositions(vessel.CoM, 
+                        GUIUtils.DrawLineBetweenWorldPositions(vessel.CoM,
                             vessel.CoM + MissileReferenceTransform.forward * burnTimeleft, 2, Color.green);
                     }
                 }
@@ -4053,7 +4053,7 @@ namespace BDArmory.Weapons.Missiles
                 // Then fill the rest of the array with -1f
                 for (int i = loopLength; i < length; i++)
                     floatArray[i] = -1f;
-            }    
+            }
 
             return floatArray;
         }
