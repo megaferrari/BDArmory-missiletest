@@ -1973,7 +1973,7 @@ namespace BDArmory.Radar
                             continue;
 
                         // See RadarUpdateScanBoresight for discussion of the efficiency
-                        // of performing Vector3.Angle() here, repeating the above Dot
+                        // of performing VectorUtils.Angle() here, repeating the above Dot
                         // product.
                         if (angle < fov)
                         {
@@ -2102,7 +2102,7 @@ namespace BDArmory.Radar
                         continue;
 
                     Vector3 vesselDirection = vectorToTarget.ProjectOnPlanePreNormalized(upVector);
-                    float angle = Vector3.Angle(vesselDirection, lookDirection);
+                    float angle = VectorUtils.Angle(vesselDirection, lookDirection);
                     if (angle < fov)
                     {
                         // ignore when blocked by terrain
@@ -2135,7 +2135,7 @@ namespace BDArmory.Radar
                         // evaluate range
                         distance = BDAMath.Sqrt(distance);
 
-                        signature *= Mathf.Clamp(Vector3.Angle(vectorToTarget, -irst.vessel.upAxis) / 90, 0.5f, 1.5f);
+                        signature *= Mathf.Clamp(VectorUtils.Angle(vectorToTarget, -irst.vessel.upAxis) / 90, 0.5f, 1.5f);
                         //ground will mask thermal sig                        
                         signature *= (GetRadarGroundClutterModifier(irst.GroundClutterFactor, position, vectorToTarget / distance, tInfo) * (tInfo.isSplashed ? 12 : 1));
                         //cold ocean on the other hand...
@@ -2249,7 +2249,7 @@ namespace BDArmory.Radar
                     Vector3 vesselProjectedDirection = (vesselDirection).ProjectOnPlanePreNormalized(upVector);
                     float vesselDistanceSqr = (vesselDirection).sqrMagnitude;
                     //BDATargetManager.ClearRadarReport(loadedvessels.Current, myWpnManager); //reset radar contact status
-                    if (vesselDistanceSqr < maxRWRDistance * maxRWRDistance) // && Vector3.Angle(vesselProjectedDirection, lookDirection) < fov / 2f) // && Vector3.Angle(loadedvessels.Current.transform.position - position, -myWpnManager.transform.forward) < myWpnManager.guardAngle / 2f) //WM facing direction? that s going to cause issues for any that aren't mounted pointing forward if guardAngle < 360; check combatSeat forward vector
+                    if (vesselDistanceSqr < maxRWRDistance * maxRWRDistance) // && VectorUtils.Angle(vesselProjectedDirection, lookDirection) < fov / 2f) // && VectorUtils.Angle(loadedvessels.Current.transform.position - position, -myWpnManager.transform.forward) < myWpnManager.guardAngle / 2f) //WM facing direction? that s going to cause issues for any that aren't mounted pointing forward if guardAngle < 360; check combatSeat forward vector
                     {
                         TargetInfo tInfo;
                         if ((tInfo = loadedvessels.Current.gameObject.GetComponent<TargetInfo>()))
@@ -2269,7 +2269,7 @@ namespace BDArmory.Radar
                                 {
                                     if (missileBase.SourceVessel == myWpnManager.vessel) continue; // ignore missiles we've fired
                                     float sightDistance = 0;
-                                    float angle = Vector3.Angle(vesselProjectedDirection, lookDirection);
+                                    float angle = VectorUtils.Angle(vesselProjectedDirection, lookDirection);
                                     if (angle < fov)
                                         sightDistance = maxViewDistance;
                                     //bool seenByRadar = myWpnManager.vesselRadarData && myWpnManager.vesselRadarData.detectedRadarTarget(loadedvessels.Current, myWpnManager).exists;
@@ -2332,7 +2332,7 @@ namespace BDArmory.Radar
                             else if (myWpnManager.guardMode) // Only check being under fire when in guard mode (for non-guardmode CMs) and when within view range/FOV.
                             {
                                 if (vesselDistanceSqr < maxViewDistance * maxViewDistance &&
-                                    Vector3.Angle(vesselProjectedDirection, lookDirection) < fov &&
+                                    VectorUtils.Angle(vesselProjectedDirection, lookDirection) < fov &&
                                     myWpnManager.CanSeeTarget(tInfo, false, false))
                                 {
                                     BDATargetManager.ReportVessel(loadedvessels.Current, myWpnManager); //we have visual on the target, report it.
@@ -2394,7 +2394,7 @@ namespace BDArmory.Radar
                 if (missile.SourceVessel != null && missile.SourceVessel.ActiveController().WM != null)
                     teammate = (missile.SourceVessel.ActiveController().WM.team == mf.team) && (missile.targetVessel != null ? missile.targetVessel != mf.vessel : true); // Missile is fired from teammate and not locked onto us
                 bool withinRadarFOV = (missile.TargetingMode == MissileBase.TargetingModes.Radar && !teammate) ?
-                    (Vector3.Angle(missile.GetForwardTransform(), vectorFromMissile) <= Mathf.Clamp(missile.lockedSensorFOV, 40f, 90f) * 0.5f) : false;
+                    (VectorUtils.Angle(missile.GetForwardTransform(), vectorFromMissile) <= Mathf.Clamp(missile.lockedSensorFOV, 40f, 90f) * 0.5f) : false;
                 var missileBlastRadiusSqr = teammate ? mf.vessel.GetRadius() : 3f * Mathf.Max(missile.GetBlastRadius(), mf.vessel.GetRadius()); // Blast radius or self radius, whichever is larger (use self radius if missile is from teammate)
                 missileBlastRadiusSqr *= missileBlastRadiusSqr;
 
@@ -2420,7 +2420,7 @@ namespace BDArmory.Radar
                         Vector3 relV = missile.vessel.Velocity() - wm.vessel.Velocity();
                         bool approaching = Vector3.Dot(relV, vectorFromMissile) > 0;
                         bool withinRadarFOV = (missile.TargetingMode == MissileBase.TargetingModes.Radar) ?
-                            (Vector3.Angle(missile.GetForwardTransform(), vectorFromMissile) <= Mathf.Clamp(missile.lockedSensorFOV, 40f, 90f) * 0.5f) : false;
+                            (VectorUtils.Angle(missile.GetForwardTransform(), vectorFromMissile) <= Mathf.Clamp(missile.lockedSensorFOV, 40f, 90f) * 0.5f) : false;
                         var missileBlastRadiusSqr = 3f * missile.GetBlastRadius();
                         missileBlastRadiusSqr *= missileBlastRadiusSqr;
 
@@ -2501,7 +2501,7 @@ namespace BDArmory.Radar
                 {
                     // If we hit terrain and we're above sea level
                     R = hitInfo.distance;
-                    angle = 90f - Vector3.Angle(hitInfo.normal, start - end);
+                    angle = 90f - VectorUtils.Angle(hitInfo.normal, start - end);
 
                     //if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils.TerrainCheck]: Hit terrain at sqrDist {R * R * 0.000001f} km^2. Terrain blocking?: {(R * R) < offset.sqrMagnitude}");
 
@@ -2588,7 +2588,7 @@ namespace BDArmory.Radar
                     intcptVec.y = (float)(u * y + start.y - yB);
                     intcptVec.z = (float)(u * z + start.z - zB);
 
-                    angle = Vector3.Angle(new Vector3(-(float)x, -(float)y, -(float)z), intcptVec);
+                    angle = VectorUtils.Angle(new Vector3(-(float)x, -(float)y, -(float)z), intcptVec);
                     angle = 90f - angle;
                 }
 
@@ -2612,7 +2612,6 @@ namespace BDArmory.Radar
         /// </summary>
         public static Vector2 WorldToRadar(Vector3 worldPosition, Transform referenceTransform, Rect radarRect, float maxDistance)
         {
-            
             Vector3 localPosition = referenceTransform.InverseTransformPoint(worldPosition);
             localPosition.y = 0;
             if (BDArmorySettings.LOGARITHMIC_RADAR_DISPLAY)
@@ -2636,7 +2635,6 @@ namespace BDArmory.Radar
         {
             if (referenceTransform == null) return new Vector2();
 
-            
             Vector3 localPosition = referenceTransform.InverseTransformPoint(worldPosition);
             localPosition.y = 0;
             float angle = VectorUtils.GetAngleOnPlane(localPosition, Vector3.forward, Vector3.right);

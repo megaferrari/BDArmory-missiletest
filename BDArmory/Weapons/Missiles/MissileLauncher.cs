@@ -852,11 +852,11 @@ namespace BDArmory.Weapons.Missiles
                 try
                 {
                     maxOffBoresight = float.Parse(maxOffboresightString);
-                    if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileLauncher]: setting maxOffBoresight of " + part + " on " + part.vessel.vesselName + " to " + maxOffBoresight);
+                    if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: setting maxOffBoresight of {part} on {(HighLogic.LoadedSceneIsFlight ? part.vessel.vesselName : EditorLogic.fetch.ship.shipName)} to {maxOffBoresight}");
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError("[BDArmory.MissileLauncher]: Failed to parse maxOffBoresight configNode: " + e.Message);
+                    Debug.LogError($"[BDArmory.MissileLauncher]: Failed to parse maxOffBoresight configNode ({maxOffboresightString}): {e.Message}\n{e.StackTrace}");
                 }
             }
 
@@ -1570,7 +1570,7 @@ namespace BDArmory.Weapons.Missiles
                     ml.loftState = LoftStates.Boost;
                 }
             }
-            
+
             if (terminalHoming)
             {
                 if (homingModeTerminal == GuidanceModes.AGMBallistic)
@@ -1869,7 +1869,7 @@ namespace BDArmory.Weapons.Missiles
                        && FlightGlobals.ActiveVessel != SourceVessel
                        && mCamDistanceSqr < 400 * 400 && mCamRelVSqr > 300 * 300
                        && mCamRelVSqr < 800 * 800
-                       && Vector3.Angle(vessel.Velocity(), FlightGlobals.ActiveVessel.CoM - vessel.CoM) < 60)
+                       && VectorUtils.Angle(vessel.Velocity(), FlightGlobals.ActiveVessel.CoM - vessel.CoM) < 60)
                     {
                         if (sfAudioSource == null) SetupAudio();
                         sfAudioSource.PlayOneShot(SoundUtils.GetAudioClip("BDArmory/Sounds/missileFlyby"));
@@ -3176,7 +3176,7 @@ namespace BDArmory.Weapons.Missiles
                         target = MissileGuidance.GetCLOSTarget(sensorPos, vessel.CoM, vessel.Velocity(), targetPos, targetVel, beamCorrectionFactor, tempPronavGain, out currgLimit);
                         break;
                 }
-                
+
                 DrawDebugLine(sensorPos, targetPos);
             }
             else
@@ -3276,7 +3276,7 @@ namespace BDArmory.Weapons.Missiles
                             if (TimeToImpact == float.PositiveInfinity)
                             {
                                 // If the missile is not in a vaccuum, is above LoftMinAltitude and has an angle to target below the climb angle (or 90 - climb angle if climb angle > 45) (in this case, since it's angle from the vertical the check is if it's > 90f - LoftAngle) and is either is at a lower altitude than targetAlt + LoftAltitudeAdvMax or further than LoftRangeOverride, then loft.
-                                if (!vessel.InVacuum() && (SourceVessel.Landed || vessel.altitude >= LoftMinAltitude) && Vector3.Angle(TargetPosition - vessel.CoM, vessel.upAxis) > Mathf.Min(LoftAngle, 90f - LoftAngle) && ((vessel.altitude - targetAlt <= LoftAltitudeAdvMax) || (TargetPosition - vessel.CoM).sqrMagnitude > (LoftRangeOverride * LoftRangeOverride))) loftState = LoftStates.Boost;
+                                if (!vessel.InVacuum() && (SourceVessel.Landed || vessel.altitude >= LoftMinAltitude) && VectorUtils.Angle(TargetPosition - vessel.CoM, vessel.upAxis) > Mathf.Min(LoftAngle, 90f - LoftAngle) && ((vessel.altitude - targetAlt <= LoftAltitudeAdvMax) || (TargetPosition - vessel.CoM).sqrMagnitude > (LoftRangeOverride * LoftRangeOverride))) loftState = LoftStates.Boost;
                                 else loftState = LoftStates.Terminal;
                             }
 
@@ -3332,7 +3332,7 @@ namespace BDArmory.Weapons.Missiles
                         }
                 }
 
-                if (Vector3.Angle(aamTarget - vessel.CoM, transform.forward) > maxOffBoresight * 0.75f)
+                if (VectorUtils.Angle(aamTarget - vessel.CoM, transform.forward) > maxOffBoresight * 0.75f)
                 {
                     aamTarget = TargetPosition;
                 }
@@ -3368,7 +3368,7 @@ namespace BDArmory.Weapons.Missiles
                 if (TargetAcquired)
                 {
                     //lose lock if seeker reaches gimbal limit
-                    float targetViewAngle = Vector3.Angle(transform.forward, TargetPosition - vessel.CoM);
+                    float targetViewAngle = VectorUtils.Angle(transform.forward, TargetPosition - vessel.CoM);
 
                     if (targetViewAngle > maxOffBoresight)
                     {
@@ -3410,7 +3410,7 @@ namespace BDArmory.Weapons.Missiles
                 float timeToImpact;
 
                 SLWTarget = MissileGuidance.GetAirToAirTarget(TargetPosition, TargetVelocity, TargetAcceleration, vessel, out timeToImpact, optimumAirspeed);
-                if (Vector3.Angle(SLWTarget - vessel.CoM, transform.forward) > maxOffBoresight * 0.75f)
+                if (VectorUtils.Angle(SLWTarget - vessel.CoM, transform.forward) > maxOffBoresight * 0.75f)
                 {
                     SLWTarget = TargetPosition;
                 }
@@ -3506,7 +3506,7 @@ namespace BDArmory.Weapons.Missiles
                 }
 
                 // Clamp target position to max off boresight
-                float angleToTarget = Vector3.Angle(TargetPosition - vessel.CoM, orbitalTarget - vessel.CoM);
+                float angleToTarget = VectorUtils.Angle(TargetPosition - vessel.CoM, orbitalTarget - vessel.CoM);
                 if (angleToTarget > maxOffBoresight)
                 {
                     orbitalTarget = vessel.CoM + Vector3.RotateTowards(TargetPosition - vessel.CoM, orbitalTarget - vessel.CoM, maxOffBoresight * Mathf.Deg2Rad, 0f);
@@ -3531,7 +3531,7 @@ namespace BDArmory.Weapons.Missiles
                     double airSpeed = vessel.srfSpeed;
                     Vector3d velocity = vessel.Velocity();
                     Vector3 CoL = new Vector3(0, 0, -1f);
-                    float AoA = Mathf.Clamp(Vector3.Angle(part.transform.forward, velocity), 0, 90);
+                    float AoA = Mathf.Clamp(VectorUtils.Angle(part.transform.forward, velocity), 0, 90);
                     double dragForce = 0.5 * airDensity * airSpeed * airSpeed * currDragArea * BDArmorySettings.GLOBAL_DRAG_MULTIPLIER * Mathf.Max(MissileGuidance.DefaultDragCurve.Evaluate(AoA), 0f);
                     rb.AddForceAtPosition((float)dragForce * -velocity.normalized,
                         part.transform.TransformPoint(part.CoMOffset + CoL));
@@ -3847,7 +3847,7 @@ namespace BDArmory.Weapons.Missiles
 
                         GUIUtils.DrawLineBetweenWorldPositions(vessel.CoM + MissileReferenceTransform.forward * burnTimeleft,
                             vessel.CoM + MissileReferenceTransform.forward * 10, 2, Color.red);
-                        GUIUtils.DrawLineBetweenWorldPositions(vessel.CoM, 
+                        GUIUtils.DrawLineBetweenWorldPositions(vessel.CoM,
                             vessel.CoM + MissileReferenceTransform.forward * burnTimeleft, 2, Color.green);
                     }
                 }
@@ -3888,7 +3888,7 @@ namespace BDArmory.Weapons.Missiles
             part.rb.AddForceAtPosition(-dragForce, transform.TransformPoint(simpleCoD));
 
             Vector3 torqueAxis = -Vector3.Cross(vessel.Velocity(), part.transform.forward).normalized;
-            float AoA = Vector3.Angle(part.transform.forward, vessel.Velocity());
+            float AoA = VectorUtils.Angle(part.transform.forward, vessel.Velocity());
             AoA /= 20;
             part.rb.AddTorque(AoA * simpleStableTorque * dragMagnitude * torqueAxis);
         }
@@ -4053,7 +4053,7 @@ namespace BDArmory.Weapons.Missiles
                 // Then fill the rest of the array with -1f
                 for (int i = loopLength; i < length; i++)
                     floatArray[i] = -1f;
-            }    
+            }
 
             return floatArray;
         }

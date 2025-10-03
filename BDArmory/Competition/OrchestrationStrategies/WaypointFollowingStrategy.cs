@@ -267,8 +267,8 @@ namespace BDArmory.Competition.OrchestrationStrategies
 
             newWayPoint.transform.SetPositionAndRotation(position, rotation);
 
-            newWayPoint.transform.RotateAround(position, newWayPoint.transform.up, Vector3.Angle(newWayPoint.transform.forward, direction)); //rotate model on horizontal plane towards last gate
-            newWayPoint.transform.RotateAround(position, newWayPoint.transform.right, Vector3.Angle(newWayPoint.transform.forward, direction)); //and on vertical plane if elevation change between the two
+            newWayPoint.transform.RotateAround(position, newWayPoint.transform.up, VectorUtils.Angle(newWayPoint.transform.forward, direction)); //rotate model on horizontal plane towards last gate
+            newWayPoint.transform.RotateAround(position, newWayPoint.transform.right, VectorUtils.Angle(newWayPoint.transform.forward, direction)); //and on vertical plane if elevation change between the two
 
             float WPScale = scale / 500; //default ring/torii models scaled for 500m
             newWayPoint.transform.localScale = new Vector3(WPScale, WPScale, WPScale);
@@ -291,8 +291,8 @@ namespace BDArmory.Competition.OrchestrationStrategies
 
             transform.SetPositionAndRotation(WorldCoords, rotation);
 
-            transform.RotateAround(WorldCoords, transform.up, Vector3.Angle(transform.forward, direction)); //rotate model on horizontal plane towards last gate
-            transform.RotateAround(WorldCoords, transform.right, Vector3.Angle(transform.forward, direction)); //and on vertical plane if elevation change between the two
+            transform.RotateAround(WorldCoords, transform.up, VectorUtils.Angle(transform.forward, direction)); //rotate model on horizontal plane towards last gate
+            transform.RotateAround(WorldCoords, transform.right, VectorUtils.Angle(transform.forward, direction)); //and on vertical plane if elevation change between the two
 
             float WPScale = waypoint.scale / 500; //default ring/torii models scaled for 500m
             transform.localScale = new Vector3(WPScale, WPScale, WPScale);

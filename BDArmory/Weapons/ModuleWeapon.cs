@@ -2181,7 +2181,7 @@ namespace BDArmory.Weapons
                             GUIUtils.DrawLineBetweenWorldPositions(pointingAtPosition, reticlePosition, 2, new Color(0, 1, 0, 0.6f));
                         }
 
-                        GUIUtils.DrawTextureOnWorldPos(pointingAtPosition, BDArmorySetup.Instance.greenDotTexture, new Vector2(6, 6), 0); 
+                        GUIUtils.DrawTextureOnWorldPos(pointingAtPosition, BDArmorySetup.Instance.greenDotTexture, new Vector2(6, 6), 0);
 
                         if (atprAcquired)
                         {
@@ -2199,7 +2199,7 @@ namespace BDArmory.Weapons
                 }
 
                 Texture2D texture;
-                if (Vector3.Angle(pointingAtPosition - transform.position, finalAimTarget - transform.position) < 1f)
+                if (VectorUtils.Angle(pointingAtPosition - transform.position, finalAimTarget - transform.position) < 1f)
                 {
                     texture = BDArmorySetup.Instance.greenSpikedPointCircleTexture;
                 }
@@ -2550,7 +2550,7 @@ namespace BDArmory.Weapons
                         targetDirectionLR = rayDirection.normalized;
                     }
                     /*else if (((((visualTargetVessel != null && visualTargetVessel.loaded) || slaved) || (isAPS && (tgtShell != null || tgtRocket != null))) && (turret && (turret.yawRange > 0 || turret.maxPitch > turret.minPitch))) // causes laser to snap to target CoM if close enough. changed to only apply to turrets
-						&& Vector3.Angle(rayDirection, targetDirection) < (isAPS ? 1f : 0.25f)) //if turret and within .25 deg (or 1 deg if APS), snap to target
+						&& VectorUtils.Angle(rayDirection, targetDirection) < (isAPS ? 1f : 0.25f)) //if turret and within .25 deg (or 1 deg if APS), snap to target
 					{
 						//targetDirection = targetPosition + (relativeVelocity * Time.fixedDeltaTime) * 2 - tf.position;
 						targetDirection = targetPosition - tf.position; //something in here is throwing off the laser aim, causing the beam to be fired wildly off-target. Disabling it for now. FIXME - debug this later
@@ -4556,7 +4556,7 @@ namespace BDArmory.Weapons
                         autoFireFailReason = autoFire ? "" : "Not on target";
                     }
 
-                    if (autoFire && Vector3.Angle(targetPosition - fireTransform.position, aimDirection) < 5) //check LoS for direct-fire weapons
+                    if (autoFire && VectorUtils.Angle(targetPosition - fireTransform.position, aimDirection) < 5) //check LoS for direct-fire weapons
                     {
                         if (RadarUtils.TerrainCheck(fireTransform.position, eWeaponType == WeaponTypes.Laser ? targetPosition : fireTransform.position + (fireTransform.forward * Mathf.Min(1500, (targetPosition - fireTransform.position).magnitude)))) //kerbin curvature is going to start returning raycast terrain hits at about 1.8km for tanks
                         {
@@ -4988,15 +4988,15 @@ namespace BDArmory.Weapons
                     Color.white);
                 GUIUtils.DrawLineBetweenWorldPositions(fireTransforms[0].position + yawVector, fwdPos, 3, Color.white);
 
-                float pitch = Vector3.Angle(pitchVector, referenceDirection);
-                float yaw = Vector3.Angle(yawVector, referenceDirection);
+                float pitch = VectorUtils.Angle(pitchVector, referenceDirection);
+                float yaw = VectorUtils.Angle(yawVector, referenceDirection);
 
                 string convergeDistance;
 
                 Vector3 projAxis = Vector3.Project(refTransform.position - fireTransforms[0].transform.position,
                     refRight);
                 float xDist = projAxis.magnitude;
-                float convergeAngle = 90 - Vector3.Angle(yawVector, refTransform.up);
+                float convergeAngle = 90 - VectorUtils.Angle(yawVector, refTransform.up);
                 if (Vector3.Dot(fireTransforms[0].forward, projAxis) > 0)
                 {
                     convergeDistance = $"Converge: {Mathf.Round((xDist * Mathf.Tan(convergeAngle * Mathf.Deg2Rad))).ToString()} m";
@@ -5006,8 +5006,8 @@ namespace BDArmory.Weapons
                     convergeDistance = "Diverging";
                 }
 
-                string xAngle = $"X: {Vector3.Angle(fireTransforms[0].forward, pitchVector):0.00}";
-                string yAngle = $"Y: {Vector3.Angle(fireTransforms[0].forward, yawVector):0.00}";
+                string xAngle = $"X: {VectorUtils.Angle(fireTransforms[0].forward, pitchVector):0.00}";
+                string yAngle = $"Y: {VectorUtils.Angle(fireTransforms[0].forward, yawVector):0.00}";
 
                 string label = $"{xAngle}\n{yAngle}\n{convergeDistance}";
                 if (!string.IsNullOrEmpty(blocker))
@@ -5224,7 +5224,7 @@ namespace BDArmory.Weapons
                     }
                     else //no lock for our secondary target/fixed gun/no multitargeting? slave weapon to primary lock
                     {
-                        bool isVessel = weaponManager.slavedTarget.vessel != null; 
+                        bool isVessel = weaponManager.slavedTarget.vessel != null;
                         if (!isVessel || !(visRange && RadarUtils.GetVesselChaffFactor(weaponManager.slavedTarget.vessel) < 1f))
                         {
                             if (weaponManager.slavingTurrets) slaved = true;
@@ -5256,7 +5256,7 @@ namespace BDArmory.Weapons
                     targetAcquisitionType = TargetAcquisitionType.Slaved;
                     if (BDArmorySettings.DEBUG_WEAPONS)
                         Debug.Log($"[BDArmory.ModuleWeapon - {shortName} is tracking target {(isVessel ? weaponManager.mainTGP.lockedVessel.vesselName : "null target")} via tgtCamera");
-                    return;                    
+                    return;
                 }
                 // within visual range and no radar aiming/need precision visual targeting of specific subsystems
                 if (aiControlled && visualTargetVessel && visRange)
@@ -5431,7 +5431,7 @@ namespace BDArmory.Weapons
                                 if (!(turretInRange || Vector3.Dot(targetVector, fireTransforms[0].forward) > 0)) continue;
                                 float sqrDist = (v.Current.CoM - part.transform.position).sqrMagnitude;
                                 if (sqrDist > closestSqrDist) continue;
-                                if (!(turretInRange || Vector3.Angle(targetVector, fireTransforms[0].forward) < 20)) continue;
+                                if (!(turretInRange || VectorUtils.Angle(targetVector, fireTransforms[0].forward) < 20)) continue;
                                 tgt = v.Current;
                                 closestSqrDist = sqrDist;
                             }
@@ -5734,7 +5734,7 @@ namespace BDArmory.Weapons
                 if (hasChargeAnimation && postFireChargeAnim)
                     yield return chargeRoutine = StartCoroutine(ChargeRoutine(true));
             }
-            if (hasDeployAnim)
+            if (hasDeployAnim && deployState != null)
             {
                 deployState.enabled = true;
                 deployState.speed = -1;
@@ -6322,7 +6322,7 @@ namespace BDArmory.Weapons
                             if (binfo.eFuzeType == BulletFuzeTypes.Penetrating)
                                 output.AppendLine($"- Min thickness to arm fuze: {(binfo.fuzeSensitivity > 0 ? binfo.fuzeSensitivity : tempPenDepth * 0.666f):F2} mm");
                             if (binfo.eFuzeType == BulletFuzeTypes.Penetrating || binfo.eFuzeType == BulletFuzeTypes.Delay)
-                                output.AppendLine($"- Fuze delay: {(1000f * (binfo.fuzeDelay > 0 ? binfo.fuzeDelay : 1f/30f)):F2} ms");
+                                output.AppendLine($"- Fuze delay: {(1000f * (binfo.fuzeDelay > 0 ? binfo.fuzeDelay : 1f / 30f)):F2} ms");
                             output.AppendLine($"- radius:  {Math.Round(BlastPhysicsUtils.CalculateBlastRange(binfo.tntMass), 2)} m");
 
                             if (binfo.eFuzeType == BulletFuzeTypes.Timed || binfo.eFuzeType == BulletFuzeTypes.Proximity || binfo.eFuzeType == BulletFuzeTypes.Flak)

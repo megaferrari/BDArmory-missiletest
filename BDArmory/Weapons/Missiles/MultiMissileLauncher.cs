@@ -1024,7 +1024,7 @@ namespace BDArmory.Weapons.Missiles
                             }
                             if (targetsAssigned.Count > 0 && targetsAssigned[TargetID] != null && targetsAssigned[TargetID].Vessel != null && (!ml.hasIFF || !Team.IsFriendly(targetsAssigned[TargetID].Team)))
                             {
-                                if ((Vector3.Angle(targetsAssigned[TargetID].position - missileLauncher.MissileReferenceTransform.position, missileLauncher.GetForwardTransform()) < missileLauncher.maxOffBoresight) //is the target more-or-less in front of the missile(launcher)?
+                                if ((VectorUtils.Angle(targetsAssigned[TargetID].position - missileLauncher.MissileReferenceTransform.position, missileLauncher.GetForwardTransform()) < missileLauncher.maxOffBoresight) //is the target more-or-less in front of the missile(launcher)?
                                     && ((ml.engageAir && targetsAssigned[TargetID].isFlying) ||
                                     (ml.engageGround && targetsAssigned[TargetID].isLandedOrSurfaceSplashed) ||
                                     (ml.engageSLW && targetsAssigned[TargetID].isUnderwater) ||
@@ -1064,7 +1064,7 @@ namespace BDArmory.Weapons.Missiles
                                             (ml.engageSLW && !targetsAssigned[t].isUnderwater) ||
                                             (ml.engageMissile && !targetsAssigned[t].isMissile)) continue; //check engagement envelope
 
-                                        if (Vector3.Angle(targetsAssigned[t].position - missileLauncher.MissileReferenceTransform.position, missileLauncher.GetForwardTransform()) < missileLauncher.maxOffBoresight) //is the target more-or-less in front of the missile(launcher)?
+                                        if (VectorUtils.Angle(targetsAssigned[t].position - missileLauncher.MissileReferenceTransform.position, missileLauncher.GetForwardTransform()) < missileLauncher.maxOffBoresight) //is the target more-or-less in front of the missile(launcher)?
                                         {
                                             if (ml.TargetingMode == TargetingModes.Heat)
                                             {
@@ -1105,7 +1105,7 @@ namespace BDArmory.Weapons.Missiles
                                                     (ml.engageGround && !item.Current.isLandedOrSurfaceSplashed) ||
                                                     (ml.engageSLW && !item.Current.isUnderwater) ||
                                                     (ml.engageMissile && !item.Current.isMissile)) continue; //check engagement envelope
-                                                if (Vector3.Angle(item.Current.position - missileLauncher.MissileReferenceTransform.position, missileLauncher.GetForwardTransform()) < missileLauncher.maxOffBoresight) //is the target more-or-less in front of the missile(launcher)?
+                                                if (VectorUtils.Angle(item.Current.position - missileLauncher.MissileReferenceTransform.position, missileLauncher.GetForwardTransform()) < missileLauncher.maxOffBoresight) //is the target more-or-less in front of the missile(launcher)?
                                                 {
                                                     if (ml.TargetingMode == TargetingModes.Heat)
                                                     {

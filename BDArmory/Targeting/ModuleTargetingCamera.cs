@@ -501,7 +501,7 @@ namespace BDArmory.Targeting
                 }
 
                 Vector3 lookDirection = cameraParentTransform.forward;
-                if (Vector3.Angle(lookDirection, cameraParentTransform.parent.forward) > gimbalLimit)
+                if (VectorUtils.Angle(lookDirection, cameraParentTransform.parent.forward) > gimbalLimit)
                 {
                     lookDirection = Vector3.RotateTowards(cameraParentTransform.transform.parent.forward, lookDirection, gimbalLimit * Mathf.Deg2Rad, 0);
                     gimbalLimitReached = true;
@@ -662,7 +662,7 @@ namespace BDArmory.Targeting
                 Vector3 targetDirection = radarTargetPos - cameraParentTransform.position;
 
                 //Quaternion lookRotation = Quaternion.LookRotation(radarTargetPos-cameraParentTransform.position, VectorUtils.GetUpDirection(cameraParentTransform.position));
-                if (Vector3.Angle(radarTargetPos - cameraParentTransform.position, cameraParentTransform.forward) < 0.5f)
+                if (VectorUtils.Angle(radarTargetPos - cameraParentTransform.position, cameraParentTransform.forward) < 0.5f)
                 {
                     //cameraParentTransform.rotation = lookRotation;
                     if (tgt.vessel)
@@ -1464,7 +1464,7 @@ namespace BDArmory.Targeting
             currentFovIndex = 0;
             //fov = zoomFovs[currentFovIndex];
 
-            while (Vector3.Angle(cameraParentTransform.forward, cameraParentTransform.parent.forward) > 0.1f)
+            while (VectorUtils.Angle(cameraParentTransform.forward, cameraParentTransform.parent.forward) > 0.1f)
             {
                 Vector3 newForward = Vector3.RotateTowards(cameraParentTransform.forward, cameraParentTransform.parent.forward, (2 / 3) * traverseRate * Mathf.Deg2Rad * Time.deltaTime, 0);
                 //cameraParentTransform.rotation = Quaternion.LookRotation(newForward, VectorUtils.GetUpDirection(transform.position));
@@ -1508,7 +1508,7 @@ namespace BDArmory.Targeting
                 yield break;
             }
             var wait = new WaitForFixedUpdate();
-            while (!stopPTPR && Vector3.Angle(cameraParentTransform.transform.forward, (tgtVessel != null ? tgtVessel.CoM : position) - (cameraParentTransform.transform.position)) > 0.1f)
+            while (!stopPTPR && VectorUtils.Angle(cameraParentTransform.transform.forward, (tgtVessel != null ? tgtVessel.CoM : position) - (cameraParentTransform.transform.position)) > 0.1f)
             {
                 if (tgtVessel != null)
                 {

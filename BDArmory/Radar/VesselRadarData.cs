@@ -728,7 +728,7 @@ namespace BDArmory.Radar
                 UpdateInputs();
             }
         }
-        
+
         private void LateUpdate()
         {
             drawGUI = (HighLogic.LoadedSceneIsFlight && FlightGlobals.ready && !vessel.packed && rCount + iCount > 0 &&
@@ -945,8 +945,7 @@ namespace BDArmory.Radar
             (
                 RadarUtils.RadarCanDetect(radar, radarTarget.targetData.signalStrength, dist)
                 && radarTarget.targetData.signalStrength >= radar.radarLockTrackCurve.Evaluate(dist)
-                &&
-                (radar.CheckFOV(radarTarget.targetData.predictedPosition))
+                && (radar.CheckFOV(radarTarget.targetData.predictedPosition))
             );
         }
 
@@ -1350,8 +1349,6 @@ namespace BDArmory.Radar
 
         private void UpdateGUIData()
         {
-            if (!drawGUI) return;
-
             int currIndex = 0;
 
             dispRange = availableRadars.Count > 0;
@@ -2640,7 +2637,7 @@ namespace BDArmory.Radar
                                 pingRect = new Rect(currJammedPos.x - (pingSize.x / 2), currJammedPos.y - (pingSize.y / 2), pingSize.x,
                                 pingSize.y);
                             }
-                            
+
                             Color iconColor = Color.green;
                             float contactAlt = displayedTargets[i].targetData.altitude;
                             if (!omniDisplay && !jammed)
@@ -2784,7 +2781,7 @@ namespace BDArmory.Radar
                         pingRect = new Rect(pingPosition.x - (lockIconSize / 2), pingPosition.y - (lockIconSize / 2),
                             lockIconSize, lockIconSize);
                         float vAngle =
-                            Vector3.Angle(
+                            VectorUtils.Angle(
                                 displayedIRTargets[i].targetData.velocity.ProjectOnPlanePreNormalized(referenceTransform.up),
                                 referenceTransform.forward);
                         if (referenceTransform.InverseTransformVector(displayedIRTargets[i].targetData.velocity).x < 0)

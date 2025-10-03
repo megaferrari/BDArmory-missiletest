@@ -212,7 +212,7 @@ namespace BDArmory.UI
                 if (!cam.Current.cameraEnabled || !cam.Current.groundStabilized || !cam.Current.surfaceDetected ||
                     cam.Current.gimbalLimitReached) continue;
 
-                float angle = Vector3.Angle(missilePosition, cam.Current.groundTargetPosition - position);
+                float angle = VectorUtils.Angle(missilePosition, cam.Current.groundTargetPosition - position);
                 float tgtRadius = Mathf.Max(wm.currentTarget ? wm.currentTarget.Vessel.GetRadius() : 20, 20);
                 if (!(angle < maxOffBoresight) || !(angle < smallestAngle) ||
                     !CanSeePosition(cam.Current.groundTargetPosition, vessel.transform.position,
@@ -424,7 +424,7 @@ namespace BDArmory.UI
                 {
                     if (!flare.Current) continue;
                     Vector3 relativePosFlare = flare.Current.transform.position - ray.origin;
-                    float angle = Vector3.Angle(relativePosFlare, ray.direction);
+                    float angle = VectorUtils.Angle(relativePosFlare, ray.direction);
                     if (angle < scanRadius)
                     {
                         
@@ -434,7 +434,7 @@ namespace BDArmory.UI
                         score *= GetSeekerBias(angle, Vector3.Cross(relativePosFlare, flare.Current.velocity) / relativePosFlare.sqrMagnitude, heatTargetAngularVel, heatTargetAngularVelMag, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity);
 
                         score *= (1400 * 1400) / Mathf.Clamp(relativePosFlare.sqrMagnitude, 90000, 36000000);
-                        score *= Mathf.Clamp(Vector3.Angle(relativePosFlare, -VectorUtils.GetUpDirection(ray.origin)) / 90, 0.5f, 1.5f);
+                        score *= Mathf.Clamp(VectorUtils.Angle(relativePosFlare, -VectorUtils.GetUpDirection(ray.origin)) / 90, 0.5f, 1.5f);
 
                         if (BDArmorySettings.DUMB_IR_SEEKERS) // Pick the hottest flare hotter than heatSignature
                         {
@@ -470,7 +470,7 @@ namespace BDArmory.UI
                     if (!decoy.Current) continue;
 
                     Vector3 relativePosDecoy = decoy.Current.transform.position - ray.origin;
-                    float angle = Vector3.Angle(relativePosDecoy, ray.direction);
+                    float angle = VectorUtils.Angle(relativePosDecoy, ray.direction);
                     if (angle < scanRadius)
                     {
                         float score = decoy.Current.acousticSig * Mathf.Clamp01(15 / angle); // Reduce score on anything outside 15 deg of look ray
@@ -479,7 +479,7 @@ namespace BDArmory.UI
                         score *= GetSeekerBias(angle, Vector3.Cross(relativePosDecoy, decoy.Current.velocity) / relativePosDecoy.sqrMagnitude, noiseTargetAngularVel, noiseTargetAngularVelMag, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity);
 
                         score *= (1400 * 1400) / Mathf.Clamp(relativePosDecoy.sqrMagnitude, 90000, 36000000);
-                        score *= Mathf.Clamp(Vector3.Angle(relativePosDecoy, -VectorUtils.GetUpDirection(ray.origin)) / 90, 0.5f, 1.5f);
+                        score *= Mathf.Clamp(VectorUtils.Angle(relativePosDecoy, -VectorUtils.GetUpDirection(ray.origin)) / 90, 0.5f, 1.5f);
 
                         if (BDArmorySettings.DUMB_IR_SEEKERS) // Pick the hottest flare hotter than heatSignature
                         {
@@ -563,8 +563,8 @@ namespace BDArmory.UI
                 }
 
                 Vector3 relativePosVessel = vessel.CoM - ray.origin;
-                //float angle = Vector3.Angle(vessel.CoM - ray.origin, ray.direction); at very close ranges for very narrow sensor Fovs this will cause a problem if the heatsource is an engine plume
-                float angle = Vector3.Angle((priorHeatTarget.exists && priorHeatTarget.vessel == vessel) ? (priorHeatTarget.position - ray.origin) : relativePosVessel, ray.direction);
+                //float angle = VectorUtils.Angle(vessel.CoM - ray.origin, ray.direction); at very close ranges for very narrow sensor Fovs this will cause a problem if the heatsource is an engine plume
+                float angle = VectorUtils.Angle((priorHeatTarget.exists && priorHeatTarget.vessel == vessel) ? (priorHeatTarget.position - ray.origin) : relativePosVessel, ray.direction);
                 if ((angle < scanRadius) || (uncagedLock && !priorHeatTarget.exists)) // Allow allAspect=true missiles to find target outside of seeker FOV before launch
                 {
                     if (RadarUtils.TerrainCheck(ray.origin, vessel.CoM, vessel.mainBody))
@@ -584,7 +584,7 @@ namespace BDArmory.UI
                     // Add bias targets closer to center of seeker FOV, only once missile seeker can see target
                     if ((priorHeatScore > 0f) && (angle < scanRadius))
                         score *= GetSeekerBias(angle, angularVel, priorHeatTargetAngularVel, priorHeatTargetAngularVelMag, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity);
-                    score *= Mathf.Clamp(Vector3.Angle(relativePosVessel, -VectorUtils.GetUpDirection(ray.origin)) / 90, 0.5f, 1.5f);
+                    score *= Mathf.Clamp(VectorUtils.Angle(relativePosVessel, -VectorUtils.GetUpDirection(ray.origin)) / 90, 0.5f, 1.5f);
                     if ((finalScore > 0f) && (score > 0f) && (priorHeatScore > 0))
                     // If we were passed a target heat score, look for the most similar non-zero heat score after picking a target
                     {
@@ -839,7 +839,7 @@ namespace BDArmory.UI
                 }
 
                 Vector3 relativePosVessel = vessel.CoM - ray.origin;
-                float angle = Vector3.Angle(relativePosVessel, ray.direction);
+                float angle = VectorUtils.Angle(relativePosVessel, ray.direction);
 
                 if ((angle < scanRadius))
                 {
@@ -856,7 +856,7 @@ namespace BDArmory.UI
                     if ((priorNoiseScore > 0f) && (angle < scanRadius))
                         score *= GetSeekerBias(angle, angularVel, priorNoiseTargetAngularVel, priorNoiseTargetAngularVelMag, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity);
                     //not messing about with thermocline at this time. 
-                    score *= Mathf.Clamp(Vector3.Angle(relativePosVessel, -VectorUtils.GetUpDirection(ray.origin)) / 90, 0.5f, 1.5f);
+                    score *= Mathf.Clamp(VectorUtils.Angle(relativePosVessel, -VectorUtils.GetUpDirection(ray.origin)) / 90, 0.5f, 1.5f);
 
                     if ((finalScore > 0f) && (score > 0f) && (priorNoiseScore > 0)) // If we were passed a target noise score, look for the most similar non-zero noise score after picking a target
                     {
@@ -1465,7 +1465,7 @@ namespace BDArmory.UI
                     if ((mf.multiTargetNum > 1 || mf.multiMissileTgtNum > 1) && mf.targetsAssigned.Contains(target.Current)) continue;
                     if (mf.CanSeeTarget(target.Current) && !target.Current.isMissile && target.Current.isThreat && target.Current.SafeOrbitalIntercept(mf))
                     {
-                        float theta = Vector3.Angle(mf.vessel.srf_vel_direction, target.Current.transform.position - mf.vessel.transform.position);
+                        float theta = VectorUtils.Angle(mf.vessel.srf_vel_direction, target.Current.transform.position - mf.vessel.transform.position);
                         float distance = (mf.vessel.transform.position - target.Current.position).magnitude;
                         float cosTheta2 = Mathf.Cos(theta / 2f);
                         float targetScore = (target.Current == mf.currentTarget ? hysteresis : 1f) * ((bias - 1f) * cosTheta2 * cosTheta2 + 1f) / distance;
