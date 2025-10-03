@@ -57,6 +57,7 @@
 		- If the parent craft is free or commanded to attack a location, then the fighters get the same command, otherwise they are commanded to follow the parent.
 		- Ranked tournaments use the combined score of a parent vessel and its fighters when determining the ranking.
 		- Access patterns for the AI / WM are optimised to be even faster than the previously used VesselModuleRegistry.
+		- Added a "Weapon Channel" mechanic to support separation of weapons on fighters from the mothership, active Weapon Managers can only control weapons with a lower or equal "Weapon Channel" value.
 - Countermeasures:
 	- Add 'Ammo' gauges for Countermeasure dispensers for how many CMs they have remaining.
 - Sensors:
