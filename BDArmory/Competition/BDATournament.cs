@@ -9,6 +9,7 @@ using UnityEngine;
 
 using BDArmory.Competition.OrchestrationStrategies;
 using BDArmory.Evolution;
+using BDArmory.Extensions;
 using BDArmory.GameModes.Waypoints;
 using BDArmory.Settings;
 using BDArmory.UI;
@@ -101,12 +102,13 @@ namespace BDArmory.Competition
     {
         public Dictionary<string, string> playersToFileNames = []; // Match players with craft filenames for extending ranks rounds.
         public Dictionary<string, string> playersToTeamNames = []; // Match the players with team names (for teams competitions).
+        public Dictionary<string, bool> playerIsFighter = []; // Track which players are fighters (spawned from other craft).
         public Dictionary<string, float> scores = []; // The current scores for the tournament.
         public float lastUpdated = 0;
         HashSet<string> npcs = [];
         Dictionary<string, List<ScoringData>> scoreDetails = []; // Scores per player per round. Rounds players weren't involved in contain default ScoringData entries.
         List<CompetitionOutcome> competitionOutcomes = [];
-        public static Dictionary<string, float> weights = new()
+        public static readonly Dictionary<string, float> defaultWeights = new()
         {
             {"Wins",                    1f},
             {"Survived",                0f},
@@ -143,6 +145,7 @@ namespace BDArmory.Competition
             {"Waypoint Time",          -0.01f},
             {"Waypoint Deviation",     -0.002f}
         };
+        public static Dictionary<string, float> weights = new(defaultWeights);
 
         /// <summary>
         /// Reset scores for a new tournament.
@@ -164,15 +167,18 @@ namespace BDArmory.Competition
         /// <param name="player">The player (vesselName).</param>
         /// <param name="fileName">The craft file belonging to the player (required for generating ranked rounds).</param>
         /// <param name="currentRound">The current round (fills previous rounds with empty score data).</param>
-        /// <returns></returns>
-        public bool AddPlayer(string player, string fileName, int currentRound = 0, bool npc = false)
+        /// <param name="npc">Whether the player is an NPC or not.</param>
+        /// <param name="fighter">Whether the player is a fighter (detached from parent vessel) or not.</param>
+        /// <returns>true if successfully added, false otherwise.</returns>
+        public bool AddPlayer(string player, string fileName, int currentRound = -1, bool npc = false, bool fighter = false)
         {
             if (playersToFileNames.ContainsKey(player)) return false; // They're already there.
-            if (!File.Exists(fileName)) { Debug.LogWarning($"[BDArmory.BDATournament]: {fileName} does not exist for {player}."); return false; }
-            if (currentRound < 0) { Debug.LogWarning($"[BDArmory.BDATournament]: Invalid round {currentRound}, setting to 0."); currentRound = 0; }
+            if (string.IsNullOrEmpty(fileName) || !File.Exists(fileName)) { Debug.LogWarning($"[BDArmory.BDATournament]: {fileName} does not exist for {player}."); return false; }
+            if (currentRound < 0) currentRound = BDATournament.Instance.currentRound;
             if (BDArmorySettings.DEBUG_COMPETITION) Debug.Log($"[BDArmory.BDATournament]: Adding {player} with file {fileName} in round {currentRound}");
             playersToFileNames.Add(player, fileName);
-            scoreDetails.Add(player, Enumerable.Range(0, currentRound).Select(i => new ScoringData()).ToList());
+            playerIsFighter.Add(player, fighter);
+            scoreDetails.Add(player, []);
             if (npc) npcs.Add(player);
             return true;
         }
@@ -297,16 +303,24 @@ namespace BDArmory.Competition
         }
 
         /// <summary>
-        /// Get the craft files in ascending order of the currently computed scores.
-        /// Note: this ignores NPCs since they're not included in the overall scoring.
+        /// Get the craft files in ascending order of the currently computed scores (summing over those deriving from the same craft file, i.e., fighters).
+        /// Notes:
+        /// - This ignores NPCs since they're not included in the overall scoring.
+        /// - Having multiple craft from the same file (other than fighters) in the ranked tournament will mess with this.
         /// </summary>
-        public List<string> GetRankedCraftFiles() => scores.OrderBy(kvp => kvp.Value).Select(kvp => playersToFileNames[kvp.Key]).ToList();
+        public List<string> GetRankedCraftFiles()
+        {
+            List<string> nonFighters = [.. playerIsFighter.Where(kvp => !kvp.Value).Select(kvp => kvp.Key)];
+            var combinedScores = nonFighters.ToDictionary(player => player, player => playersToFileNames.Where(kvp => !string.IsNullOrEmpty(kvp.Value) && kvp.Value == playersToFileNames[player]).Sum(kvp => scores[kvp.Key]));
+            List<string> ranking = [.. combinedScores.OrderBy(kvp => kvp.Value).Select(kvp => playersToFileNames[kvp.Key])];
+            return ranking;
+        }
         public List<int> GetRankedTeams(List<List<string>> teamFiles)
         {
             // While the reverse of playersToFileNames is not necessarily 1-to-1 (due to the full teams option), duplicates of the same craft file should be on the same team.
             // The following accumulates the scores for all players with those vessels in each team, which is then used to rank the teams.
-            var teamScores = teamFiles.Select(tm => scores.Where(kvp => tm.Contains(playersToFileNames[kvp.Key])).Sum(kvp => kvp.Value)).ToList();
-            return Enumerable.Range(0, teamFiles.Count).OrderBy(i => teamScores[i]).ToList();
+            List<float> teamScores = [.. teamFiles.Select(tm => scores.Where(kvp => tm.Contains(playersToFileNames[kvp.Key])).Sum(kvp => kvp.Value))];
+            return [.. Enumerable.Range(0, teamFiles.Count).OrderBy(i => teamScores[i])];
         }
 
         #region Serialization
@@ -314,26 +328,31 @@ namespace BDArmory.Competition
         [SerializeField] List<float> _weightValues;
         [SerializeField] List<string> _players;
         [SerializeField] List<string> _npcs;
+        [SerializeField] List<string> _fighters;
         [SerializeField] List<string> _scores;
         [SerializeField] List<string> _files;
         [SerializeField] List<string> _results;
         public TournamentScores PrepareSerialization()
         {
-            _weightKeys = weights.Keys.ToList();
-            _weightValues = _weightKeys.Select(k => weights[k]).ToList();
-            _players = scoreDetails.Keys.ToList();
-            _npcs = npcs.ToList();
-            _scores = _players.Where(p => scoreDetails.ContainsKey(p)).Select(p => JsonUtility.ToJson(new SerializedScoreDataList().Serialize(p, scoreDetails[p], _players))).ToList();
-            _files = _players.Where(p => playersToFileNames.ContainsKey(p)).Select(p => playersToFileNames[p]).ToList(); // If the craft file has been removed, try to cope without it.
-            _results = competitionOutcomes.Select(r => JsonUtility.ToJson(r.PreSerialize())).ToList();
+            _weightKeys = [.. weights.Keys];
+            _weightValues = [.. _weightKeys.Select(k => weights[k])];
+            _players = [.. scoreDetails.Keys];
+            _npcs = [.. npcs];
+            _fighters = [.. playerIsFighter.Where(p => p.Value).Select(p => p.Key)];
+            _scores = [.. _players.Where(scoreDetails.ContainsKey).Select(p => JsonUtility.ToJson(new SerializedScoreDataList().Serialize(p, scoreDetails[p], _players)))];
+            _files = [.. _players.Where(playersToFileNames.ContainsKey).Select(p => playersToFileNames[p])]; // If the craft file has been removed, try to cope without it.
+            _results = [.. competitionOutcomes.Select(r => JsonUtility.ToJson(r.PreSerialize()))];
             return this;
         }
         public void PostDeserialization()
         {
             Reset();
             ConfigureScoreWeights(Enumerable.Range(0, _weightKeys.Count).ToDictionary(i => _weightKeys[i], i => _weightValues[i]));
-            npcs = _npcs != null ? _npcs.ToHashSet() : new HashSet<string>();
-            for (int i = 0; i < _players.Count; ++i) AddPlayer(_players[i], _files[i], 0, npcs.Contains(_files[i]));
+            for (int i = 0; i < _players.Count; ++i)
+            {
+                var player = _players[i];
+                AddPlayer(player: player, fileName: _files[i], 0, npc: _npcs.Contains(player), fighter: _fighters.Contains(player));
+            }
             try
             {
                 scoreDetails = Enumerable.Range(0, _players.Count).ToDictionary(i => _players[i], i => JsonUtility.FromJson<SerializedScoreDataList>(_scores[i])).ToDictionary(kvp => kvp.Key, kvp =>
@@ -341,7 +360,7 @@ namespace BDArmory.Competition
                     if (kvp.Value == null)
                     {
                         Debug.LogError($"[BDArmory.BDATournament]: Failed to deserialize List<ScoreData>.");
-                        return new List<ScoringData>();
+                        return [];
                     }
                     return kvp.Value.Deserialize(_players);
                 });
@@ -349,7 +368,7 @@ namespace BDArmory.Competition
             catch (Exception e) { Debug.LogError($"[BDArmory.BDATournament]: Failed to deserialize tournament scores: {e.Message}\n{e.StackTrace}"); }
             try
             {
-                competitionOutcomes = _results.Select(r => JsonUtility.FromJson<CompetitionOutcome>(r).PostDeserialize()).ToList();
+                competitionOutcomes = [.. _results.Select(r => JsonUtility.FromJson<CompetitionOutcome>(r).PostDeserialize())];
             }
             catch (Exception e) { Debug.LogError($"[BDArmory.BDATournament]: Failed to deserialize competition outcomes: {e.Message}\n{e.StackTrace}"); }
         }
@@ -361,12 +380,12 @@ namespace BDArmory.Competition
 
             public SerializedScoreDataList Serialize(string player, List<ScoringData> scoreDetails, List<string> players)
             {
-                serializedScoreData = scoreDetails.Select(sd => JsonUtility.ToJson(new SerializedScoreData().Serialize(sd, players))).ToList();
+                serializedScoreData = [.. scoreDetails.Select(sd => JsonUtility.ToJson(new SerializedScoreData().Serialize(sd, players)))];
                 return this;
             }
             public List<ScoringData> Deserialize(List<string> players)
             {
-                var ssdl = serializedScoreData.Select(JsonUtility.FromJson<SerializedScoreData>).ToList();
+                List<SerializedScoreData> ssdl = [.. serializedScoreData.Select(JsonUtility.FromJson<SerializedScoreData>)];
                 List<ScoringData> sdl = [];
                 foreach (var ssd in ssdl)
                 {
@@ -580,6 +599,8 @@ namespace BDArmory.Competition
         [SerializeField] string _scores;
         [SerializeField] List<string> _heats;
         [SerializeField] List<string> _teamFiles;
+        [SerializeField] List<string> _deconflictionURLs;
+        [SerializeField] List<string> _deconflictionSuffixes;
 
         /// <summary>
         /// Generate a tournament.state file for FFA tournaments.
@@ -610,7 +631,7 @@ namespace BDArmory.Competition
             numberOfRounds = tournamentRoundType == TournamentRoundType.Ranked ? 1 : numberOfRounds; // Ranked tournaments generate a single Shuffled round, then just go until the current number of rounds slider +1 is satisfied.
             this.numberOfRounds = numberOfRounds;
             this.vesselsPerHeat = vesselsPerHeat;
-            var abs_folder = Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn", folder);
+            var abs_folder = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn", folder));
             if (!Directory.Exists(abs_folder))
             {
                 message = "Tournament folder (" + folder + ") containing craft files does not exist.";
@@ -636,7 +657,7 @@ namespace BDArmory.Competition
                 case -1: // Auto
                     var autoVesselsPerHeat = OptimiseVesselsPerHeat(craftFiles.Count, npcsPerHeat);
                     vesselsPerHeat = autoVesselsPerHeat.Item1;
-                    fullHeatCount = Mathf.CeilToInt(craftFiles.Count / vesselsPerHeat) - autoVesselsPerHeat.Item2;
+                    fullHeatCount = Mathf.CeilToInt(craftFiles.Count / (float)vesselsPerHeat) - autoVesselsPerHeat.Item2;
                     break;
                 case 0: // Unlimited (all vessels in one heat).
                     vesselsPerHeat = craftFiles.Count;
@@ -644,7 +665,8 @@ namespace BDArmory.Competition
                     break;
                 default:
                     vesselsPerHeat = Mathf.Clamp(Mathf.Max(1, vesselsPerHeat - npcsPerHeat), 1, craftFiles.Count);
-                    fullHeatCount = craftFiles.Count / vesselsPerHeat;
+                    fullHeatCount = Mathf.CeilToInt(craftFiles.Count / (float)vesselsPerHeat) - (Mathf.CeilToInt(craftFiles.Count / (float)vesselsPerHeat) * vesselsPerHeat - craftFiles.Count); // Spread the deficit amongst the other heats if possible.
+                    if (fullHeatCount <= 0) fullHeatCount = craftFiles.Count / vesselsPerHeat;
                     break;
             }
             rounds = [];
@@ -687,7 +709,7 @@ namespace BDArmory.Competition
                                     selectedFiles.ToList() // Add a copy of the craft files list.
                                 ));
                                 count += vesselsThisHeat;
-                                vesselsThisHeat = heatIndex++ < fullHeatCount ? vesselsPerHeat : vesselsPerHeat - 1; // Take one less for the remaining heats to distribute the deficit of craft files.
+                                vesselsThisHeat = ++heatIndex < fullHeatCount ? vesselsPerHeat : vesselsPerHeat - 1; // Take one less for the remaining heats to distribute the deficit of craft files.
                                 selectedFiles = craftFiles.Skip(count).Take(vesselsThisHeat).ToList();
                             }
                         }
@@ -766,7 +788,7 @@ namespace BDArmory.Competition
             }
             this.tournamentRoundType = tournamentRoundType;
             numberOfRounds = tournamentRoundType == TournamentRoundType.Ranked ? 1 : numberOfRounds; // Ranked tournaments generate a single Shuffled round, then just go until the current number of rounds slider +1 is satisfied.
-            var absFolder = Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn", folder);
+            var absFolder = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "AutoSpawn", folder));
             if (!Directory.Exists(absFolder))
             {
                 message = "Tournament folder (" + folder + ") containing craft files or team folders does not exist.";
@@ -985,7 +1007,7 @@ namespace BDArmory.Competition
                         // Gauntlet is like N-choose-2K except that it's selecting K teams from the main folder and K teams from the opponents (e.g., 2v2, 3v3, 2v3, (2v2)v(2v2), (2v3)v(3v2), etc.)
                         #region Opponent config
                         var opponentFolder = Path.Combine("AutoSpawn", BDArmorySettings.VESSEL_SPAWN_GAUNTLET_OPPONENTS_FILES_LOCATION);
-                        var opponentAbsFolder = Path.Combine(KSPUtil.ApplicationRootPath, opponentFolder);
+                        var opponentAbsFolder = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, opponentFolder));
                         if (!Directory.Exists(opponentAbsFolder))
                         {
                             message = "Opponents folder (" + opponentFolder + ") containing craft files or team folders does not exist.";
@@ -1394,7 +1416,7 @@ namespace BDArmory.Competition
                     scores.ComputeScores();
                 }
                 catch (Exception e_scores) { Debug.LogError($"[BDArmory.BDATournament]: Failed to deserialize the tournament scores: {e_scores.Message}\n{e_scores.StackTrace}"); }
-                try
+                try // Deserialize rounds / heats
                 {
                     if (_heats != null)
                     {
@@ -1469,6 +1491,12 @@ namespace BDArmory.Competition
                     }
                 }
                 catch (Exception e_rounds) { Debug.LogError($"[BDArmory.BDATournament]: Failed to deserialize the tournament rounds: {e_rounds.Message}\n{e_rounds.StackTrace}"); }
+                try // Deserialize deconfliction dictionaries
+                {
+                    _deconflictionURLs = data._deconflictionURLs;
+                    _deconflictionSuffixes = data._deconflictionSuffixes;
+                }
+                catch (Exception e_deconfliction) { Debug.LogError($"[BDArmory.BDATournament]: Failed to deserialize the vessel naming deconfliction data: {e_deconfliction.Message}\n{e_deconfliction.StackTrace}"); }
                 return true;
             }
             catch (Exception e)
@@ -1476,6 +1504,18 @@ namespace BDArmory.Competition
                 Debug.LogError("[BDArmory.BDATournament]: " + e.Message);
                 return false;
             }
+        }
+
+        public void StoreDeconflictionData()
+        {
+            _deconflictionURLs = [.. SpawnUtils.SpawnedVesselURLs.Select(kvp => JsonUtility.ToJson(new StringList { ls = [kvp.Key, kvp.Value] }))];
+            _deconflictionSuffixes = [.. SpawnUtils.DeconflictionSuffixes.Select(kvp => JsonUtility.ToJson(new StringList { ls = [kvp.Key, kvp.Value] }))];
+        }
+
+        public void RestoreDeconflictionData()
+        {
+            SpawnUtils.SpawnedVesselURLs = _deconflictionURLs.Select(json => JsonUtility.FromJson<StringList>(json).ls).ToDictionary(ls => ls[0], ls => ls[1]);
+            SpawnUtils.DeconflictionSuffixes = _deconflictionSuffixes.Select(json => JsonUtility.FromJson<StringList>(json).ls).ToDictionary(ls => ls[0], ls => ls[1]);
         }
 
         #region Helper functions
@@ -1711,6 +1751,23 @@ namespace BDArmory.Competition
             spawnerBase = tournamentState.tournamentStyle == TournamentStyle.TemplateRNG ? CustomTemplateSpawning.Instance : CircularSpawning.Instance;
             while (++roundIndex < tournamentState.rounds.Count) // tournamentState.rounds can change during the loop, so we can't just use an iterator now.
             {
+                if (BDArmorySettings.TOURNAMENT_TIMEWARP_BETWEEN_ROUNDS < 0)
+                {
+                    var spawnConfig = tournamentState.rounds[roundIndex][0];
+                    var body = FlightGlobals.Bodies[spawnConfig.worldIndex];
+                    if (!EarlyBird.IsDayTime(spawnConfig.latitude, spawnConfig.longitude, body, 10))
+                    {
+                        SpawnUtils.ShowSpawnPoint(spawnConfig.worldIndex, spawnConfig.latitude, spawnConfig.longitude, spawnConfig.altitude);
+                        BDACompetitionMode.Instance.competitionStatus.Add($"Warping ahead to morning, then running the next round.");
+                        yield return WarpAhead(EarlyBird.TimeToDaylight(
+                            spawnConfig.latitude,
+                            spawnConfig.longitude,
+                            body,
+                            10
+                        )); // Warp to morning +10mins.
+                    }
+                }
+
                 currentRound = roundIndex;
                 foreach (var heatIndex in tournamentState.rounds[roundIndex].Keys)
                 {
@@ -1725,8 +1782,13 @@ namespace BDArmory.Competition
                     int attempts = 0;
                     bool unrecoverable = false;
                     competitionStarted = false;
+                    if (roundIndex == 0 && heatIndex == 0)
+                        SpawnUtils.ResetVesselNamingDeconfliction(); // Start fresh with vessel naming deconfliction.
+                    else
+                        tournamentState.RestoreDeconflictionData(); // Restore the deconfliction data to the most recently used in the tournament (to avoid outside interference).
                     while (!competitionStarted && attempts++ < 3) // 3 attempts is plenty
                     {
+                        SpawnUtils.ResetVesselNamingDeconfliction(fightersOnly: true);
                         tournamentStatus = TournamentStatus.Running;
                         if (BDArmorySettings.WAYPOINTS_MODE)
                             yield return ExecuteWaypointHeat(roundIndex, heatIndex);
@@ -1774,6 +1836,7 @@ namespace BDArmory.Competition
                         yield break;
                     }
                     firstRun = false;
+                    tournamentState.StoreDeconflictionData(); // Update the deconfliction data from this heat.
 
                     // Register the heat as completed.
                     if (!tournamentState.completed.ContainsKey(roundIndex)) tournamentState.completed.Add(roundIndex, new HashSet<int>());
@@ -1876,7 +1939,7 @@ namespace BDArmory.Competition
             yield return new WaitWhile(() => TournamentCoordinator.Instance.IsRunning && !BDACompetitionMode.Instance.competitionIsActive);
             competitionStarted = true;
             // Register all the active vessels as part of the tournament.
-            foreach (var kvp in spawnerBase.GetSpawnedVesselURLs())
+            foreach (var kvp in SpawnUtils.SpawnedVesselURLs)
                 tournamentState.scores.AddPlayer(kvp.Key, kvp.Value, roundIndex, tournamentState.npcFiles.Contains(kvp.Value));
             yield return new WaitWhile(() => TournamentCoordinator.Instance.IsRunning);
         }
@@ -1940,6 +2003,12 @@ namespace BDArmory.Competition
                     case 53:
                         BDACompetitionMode.Instance.StartRapidDeployment(0);
                         break;
+                    case 67:
+                        BDACompetitionMode.Instance.StartRapidDeployment(0);
+                        break;
+                    case 77:
+                        BDACompetitionMode.Instance.StartRapidDeployment(0);
+                        break;
                     default:
                         BDACompetitionMode.Instance.StartCompetitionMode(BDArmorySettings.COMPETITION_DISTANCE, startDespiteFailures);
                         break;
@@ -1966,13 +2035,14 @@ namespace BDArmory.Competition
             }
             competitionStarted = true;
             // Register all the active vessels as part of the tournament.
-            foreach (var kvp in spawnerBase.GetSpawnedVesselURLs())
+            foreach (var kvp in SpawnUtils.SpawnedVesselURLs)
                 tournamentState.scores.AddPlayer(kvp.Key, kvp.Value, roundIndex, tournamentState.npcFiles.Contains(kvp.Value));
             // Wait for the competition to finish.
             while (BDACompetitionMode.Instance.competitionIsActive)
                 yield return new WaitForSeconds(1);
         }
 
+        #region Warping
         GameObject warpCamera;
         IEnumerator WarpAhead(double warpTimeBetweenHeats)
         {
@@ -2065,6 +2135,79 @@ namespace BDArmory.Competition
             warpingInProgress = false;
         }
 
+        private class EarlyBird // Based on, but not the same as the EarlyBird mod.
+        {
+            /// <summary>
+            /// The time until the next sunrise (plus offset in minutes).
+            /// </summary>
+            /// <param name="lat">Latitude</param>
+            /// <param name="lon">Longitude</param>
+            /// <param name="body">The celestial body.</param>
+            /// <param name="offset">An offset in minutes.</param>
+            /// <returns>The time until the next sunrise.</returns>
+            public static double TimeToDaylight(double lat, double lon, CelestialBody body, double offset = 0)
+            {
+                if (body.isStar) return 0;
+                var sun = Planetarium.fetch.Sun;
+                var localTime = GetLocalTime(lon, body, sun);
+                offset *= 60 / body.solarDayLength;
+                double dayLength = GetDayLength(lat, body, sun);
+                double timeOfDawn = 0.5 - dayLength / 2 + offset;
+                return (timeOfDawn - localTime + 1.0) % 1.0 * body.solarDayLength;
+            }
+            /// <summary>
+            /// Check whether it's daytime (within the margin) at the give location.
+            /// </summary>
+            /// <param name="lat">Latitude</param>
+            /// <param name="lon">Longitude</param>
+            /// <param name="body">The celestial body.</param>
+            /// <param name="margin">Margin in minutes.</param>
+            /// <returns>True if it's daytime, otherwise false.</returns>
+            public static bool IsDayTime(double lat, double lon, CelestialBody body, double margin = 0)
+            {
+                if (body.isStar) return true;
+                var sun = Planetarium.fetch.Sun;
+                var localTime = GetLocalTime(lon, body, sun);
+                margin *= 60 / body.solarDayLength;
+                double dayLength = GetDayLength(lat, body, sun);
+                double timeOfDawn = 0.5 - dayLength / 2 + margin;
+                double timeOfDusk = 0.5 + dayLength / 2 - margin;
+                return localTime > timeOfDawn && localTime < timeOfDusk;
+            }
+            /// <summary>
+            /// Gets the day length in the range 0—1.
+            /// </summary>
+            /// <param name="lat"></param>
+            /// <param name="body"></param>
+            /// <param name="sun"></param>
+            /// <returns></returns>
+            public static double GetDayLength(double lat, CelestialBody body, CelestialBody sun)
+            {
+                if (body.isStar) return 1;
+                // cos ω₀ = -tan φ * tan δ
+                // ω₀ = solar hour angle, φ = observer latitude, δ = solar declination
+                var solarDeclination = body.GetLatitude(sun.position - body.position, true);
+                var cosW0 = -Math.Tan(lat * Math.PI / 180) * Math.Tan(solarDeclination * Math.PI / 180);
+                if (cosW0 <= -1) return 1;
+                if (cosW0 >= 1) return 0;
+                var solarHourAngle = Math.Acos(cosW0);
+                return solarHourAngle / Math.PI;
+            }
+            /// <summary>
+            /// Gets the local time in the range 0—1 with 0.5 being noon.
+            /// </summary>
+            /// <param name="lon"></param>
+            /// <param name="body"></param>
+            /// <param name="sun"></param>
+            /// <returns></returns>
+            public static double GetLocalTime(double lon, CelestialBody body, CelestialBody sun)
+            {
+                if (body.isStar) return 0.5;
+                return ((lon - body.GetLongitude(sun.position - body.position, true)) % 360 / 360.0 + 1.5) % 1.0;
+            }
+        }
+        #endregion
+
         void SetGameUI(bool enable)
         { if (isActiveAndEnabled) StartCoroutine(SetGameUIWorker(enable)); }
         IEnumerator SetGameUIWorker(bool enable)
@@ -2137,6 +2280,20 @@ namespace BDArmory.Competition
         }
 
         public void RecomputeScores() => tournamentState.scores.ComputeScores();
+
+        /// <summary>
+        /// Add a player to the tournament scoring while a tournament is running.
+        /// </summary>
+        /// <param name="player">The craft's name.</param>
+        /// <param name="filename">The file the craft originated from.</param>
+        /// <param name="fighter">Whether or not the vessel is a fighter.</param>
+        public void AddPlayer(Vessel vessel)
+        {
+            if (vessel == null) return;
+            var ac = vessel.ActiveController();
+            if (ac.WM == null) return; // Not a valid vessel for combat.
+            tournamentState.scores.AddPlayer(vessel.GetName(), ac.WM.SourceVesselURL, fighter: ac.IsFighter);
+        }
     }
 
     /// <summary>
@@ -2178,7 +2335,7 @@ namespace BDArmory.Competition
             Instance = this;
             DontDestroyOnLoad(this);
             GameEvents.onLevelWasLoadedGUIReady.Add(onLevelWasLoaded);
-            savesDir = Path.Combine(KSPUtil.ApplicationRootPath, "saves");
+            savesDir = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "saves"));
         }
 
         void OnDestroy()

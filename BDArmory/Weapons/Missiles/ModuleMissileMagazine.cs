@@ -21,11 +21,11 @@ namespace BDArmory.Weapons.Missiles
         [KSPField(isPersistant = true, guiActive = true, guiName = "#LOC_BDArmory_WeaponName", guiActiveEditor = false), UI_Label(affectSymCounterparts = UI_Scene.All, scene = UI_Scene.All)]//Weapon Name 
         public string loadedMissileName = "";
 
-        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "#LOC_BDArmory_OrdinanceAvailable"),//Ordinance Available
+        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "#LOC_BDArmory_OrdnanceAvailable"),//Ordnance Available
 UI_FloatRange(minValue = 1f, maxValue = 4, stepIncrement = 1f, scene = UI_Scene.All)]
         public float ammoCount = 1;
 
-        [KSPField(guiActive = true, guiActiveEditor = false, guiName = "#LOC_BDArmory_OrdinanceAvailable"),//Ordinance Available
+        [KSPField(guiActive = true, guiActiveEditor = false, guiName = "#LOC_BDArmory_OrdnanceAvailable"),//Ordnance Available
 UI_ProgressBar(affectSymCounterparts = UI_Scene.None, controlEnabled = false, scene = UI_Scene.Flight, maxValue = 100, minValue = 0, requireFullControl = false)]
         public float ammoRemaining = 1;
 
@@ -93,8 +93,8 @@ UI_FloatRange(minValue = 1f, maxValue = 4, stepIncrement = 1f, scene = UI_Scene.
             }
             if (HighLogic.LoadedSceneIsFlight)
             {
-                UI_ProgressBar ordinance = (UI_ProgressBar)Fields["ammoRemaining"].uiControlFlight;
-                ordinance.maxValue = ammoCount;
+                UI_ProgressBar ordnance = (UI_ProgressBar)Fields["ammoRemaining"].uiControlFlight;
+                ordnance.maxValue = ammoCount;
                 ammoRemaining = ammoCount;
             }
             GUIUtils.RefreshAssociatedWindows(part);
@@ -199,7 +199,18 @@ UI_FloatRange(minValue = 1f, maxValue = 4, stepIncrement = 1f, scene = UI_Scene.
                                 if (missile.FindModuleImplementing<MissileLauncher>())
                                 {
                                     MissileName = missile.name;
-                                    missileScale = new Vector2(Mathf.Max(missile.collider.bounds.size.x, missile.collider.bounds.size.y, missile.collider.bounds.size.z), Mathf.Min(missile.collider.bounds.size.x, missile.collider.bounds.size.y, missile.collider.bounds.size.z));
+                                    float scaleMax = 0f;
+                                    float scaleMin = 0f;
+                                    var childColliders = missile.GetComponentsInChildren<Collider>(includeInactive: false);
+                                    foreach (var col in childColliders)
+                                    {
+                                        if (col)
+                                        {
+                                            scaleMax = Mathf.Max(scaleMax, Mathf.Max(col.bounds.size.x, col.bounds.size.y, col.bounds.size.z));
+                                            scaleMin = Mathf.Max(scaleMin, Mathf.Min(col.bounds.size.x, col.bounds.size.y, col.bounds.size.z));
+                                        }
+                                    }
+                                    missileScale = new Vector2(scaleMax, scaleMin);
                                     //Debug.Log($"[MissileMagazine] Missile bounds are {missile.collider.bounds.size.x.ToString("0.00")}, {missile.collider.bounds.size.y.ToString("0.00")}, {missile.collider.bounds.size.z.ToString("0.00")}");
                                     //this will grab missile body dia/length, something something folding fins. But given BDA missiles are IRL scale instead of ~0.7 kerbalscale, including fins would make the mags *really* large
                                     MissileLauncher MLConfig = missile.FindModuleImplementing<MissileLauncher>();
@@ -231,8 +242,8 @@ UI_FloatRange(minValue = 1f, maxValue = 4, stepIncrement = 1f, scene = UI_Scene.
 
             output.Append(Environment.NewLine);
             output.AppendLine($"Missile Magazine");
-            output.AppendLine($"Attach a missile to this to load magazine with selected ordinance");
-            output.AppendLine($"- Maximum Ordinance: {maxAmmo}");
+            output.AppendLine($"Attach a missile to this to load magazine with selected ordnance");
+            output.AppendLine($"- Maximum Ordnance: {maxAmmo}");
             output.AppendLine($"- Ammo has Mass/Cost: {AccountForAmmo}");
             return output.ToString();
         }

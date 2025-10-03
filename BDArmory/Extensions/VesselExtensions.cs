@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Runtime.CompilerServices;
 
 using BDArmory.Settings;
 using BDArmory.Utils;
@@ -168,13 +169,17 @@ namespace BDArmory.Extensions
             }
             else
             {
-                var rootBound = GetRendererPartBounds(vessel.rootPart);
-                min = rootBound.min; max = rootBound.max;
+                var partBound = GetRendererPartBounds(vessel.rootPart);
+                if (partBound.min.sqrMagnitude > 1e6 || partBound.max.sqrMagnitude > 1e6) // Fall back to the first collider bounds if renderer bounds are nonsensical. This is usually temporary.
+                    partBound = vessel.rootPart.GetColliderBounds().FirstOrDefault();
+                min = partBound.min; max = partBound.max;
                 using (var part = vessel.Parts.GetEnumerator())
                     while (part.MoveNext())
                     {
                         if (badBoundsParts.Contains(part.Current.name)) continue; // Skip parts that are known to give bad bounds (e.g., lasers when firing).
-                        var partBound = GetRendererPartBounds(part.Current);
+                        partBound = GetRendererPartBounds(part.Current);
+                        if (partBound.min.sqrMagnitude > 1e6 || partBound.max.sqrMagnitude > 1e6)
+                            partBound = part.Current.GetColliderBounds().FirstOrDefault(); // Fall back to the first collider bounds if renderer bounds are nonsensical. This is usually temporary.
                         min.x = Mathf.Min(min.x, partBound.min.x);
                         min.y = Mathf.Min(min.y, partBound.min.y);
                         min.z = Mathf.Min(min.z, partBound.min.z);
@@ -235,6 +240,23 @@ namespace BDArmory.Extensions
         static T FindVesselModuleImplementing_1_11<T>(this Vessel vessel) where T : class
         {
             return vessel.FindVesselModuleImplementing<T>();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ActiveController ActiveController(this Vessel vessel) => Utils.ActiveController.GetActiveController(vessel);
+
+        /// <summary>
+        /// Strip the vessel type from the end of a vessel's name (as long as it's not an ignored type).
+        /// KSP automatically adds this whenever a new vessel is made.
+        /// </summary>
+        /// <param name="vessel"></param>
+        public static void StripTypeFromName(this Vessel vessel)
+        {
+            if (vessel == null || string.IsNullOrEmpty(vessel.vesselName)) return;
+            if (!VesselModuleRegistry.IgnoredVesselTypes.Contains(vessel.vesselType) && vessel.vesselName.EndsWith($" {vessel.vesselType}"))
+            {
+                vessel.vesselName = vessel.vesselName.Remove(vessel.vesselName.Length - $" {vessel.vesselType}".Length);
+            }
         }
     }
 }
