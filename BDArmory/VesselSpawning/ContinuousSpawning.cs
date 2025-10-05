@@ -150,6 +150,7 @@ namespace BDArmory.VesselSpawning
             Queue<string> spawnQueue = [];
             Queue<string> craftToSpawn = [];
             double currentUpdateTick;
+            bool hasSetTeamColours = BDTISettings.STORE_TEAM_COLORS;
             var sufficientCraftTimer = Time.time;
             while (vesselsSpawningContinuously)
             {
@@ -281,6 +282,11 @@ namespace BDArmory.VesselSpawning
                     {
                         yield return new WaitWhileFixed(() => currentlySpawningCount > 0);
                         vesselsSpawning = false;
+                        if (!hasSetTeamColours)
+                        {
+                            BDTISetup.Instance.ResetColors();
+                            hasSetTeamColours = true;
+                        }
                     }
 
                     // Start the competition once we have enough craft.
