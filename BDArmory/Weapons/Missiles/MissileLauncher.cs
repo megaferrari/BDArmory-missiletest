@@ -2145,9 +2145,9 @@ namespace BDArmory.Weapons.Missiles
                         }
 
                         //decrease turn rate after thrust cuts out
-                        if (TimeIndex > dropTime + boostTime + cruiseDelay + cruiseTime)
+                        if (MissileState == MissileStates.PostThrust)
                         {
-                            var clampedTurnRate = Mathf.Clamp(maxTurnRateDPS - ((TimeIndex - dropTime - boostTime - cruiseDelay - cruiseTime) * 0.45f),
+                            var clampedTurnRate = Mathf.Clamp(maxTurnRateDPS - ((cruiseRangeTrigger < 0 ? (TimeIndex - dropTime - boostTime - cruiseDelay - cruiseTime) : (Time.time - cruiseStartTime - cruiseTime)) * 0.45f),
                                 1, maxTurnRateDPS);
                             turnRateDPS = clampedTurnRate;
 
@@ -2809,8 +2809,18 @@ namespace BDArmory.Weapons.Missiles
 
             if (useFuel) burnedFuelMass = boosterFuelMass;
 
-            if (parsedMaxTorque[1] > 0)
-                currMaxTorque = parsedMaxTorque[1];
+            if (cruiseRangeTrigger > 0 || cruiseDelay > 0)
+            {
+                // Use the post-thrust value until *after* the cruise stage starts
+                if (parsedMaxTorque[2] > 0)
+                    currMaxTorque = parsedMaxTorque[2];
+            }
+            else
+            {
+                // Directly set the cruise value
+                if (parsedMaxTorque[1] > 0)
+                    currMaxTorque = parsedMaxTorque[1];
+            }
 
             if (parsedSteerMult[1] > 0)
                 currSteerMult = parsedSteerMult[1];
@@ -2854,6 +2864,8 @@ namespace BDArmory.Weapons.Missiles
             }
         }
 
+        float cruiseStartTime = -1f;
+
         IEnumerator CruiseRoutine()
         {
             float massToBurn = 0;
@@ -2864,7 +2876,7 @@ namespace BDArmory.Weapons.Missiles
             }
             StartCruise();
             var wait = new WaitForFixedUpdate();
-            float cruiseStartTime = Time.time;
+            cruiseStartTime = Time.time;
             while (Time.time - cruiseStartTime < cruiseTime || (useFuel && burnedFuelMass < massToBurn))
             {
                 if (!BDArmorySetup.GameIsPaused)
@@ -2964,6 +2976,10 @@ namespace BDArmory.Weapons.Missiles
             }
 
             currentThrust = spoolEngine ? 0 : cruiseThrust;
+
+            // Set the cruise value
+            if (parsedMaxTorque[1] > 0)
+                currMaxTorque = parsedMaxTorque[1];
 
             using (var pEmitter = pEmitters.GetEnumerator())
                 while (pEmitter.MoveNext())
@@ -3120,7 +3136,13 @@ namespace BDArmory.Weapons.Missiles
                     if (targetingPod.lockedVessel)
                         targetVel = targetingPod.lockedVessel.Velocity();
                     else
-                        targetVel = Vector3.zero;
+                    {
+                        MissileFire weaponManagerTemp;
+                        if (targetingPod.radarLock && (weaponManagerTemp = targetingPod.WeaponManager) != null && weaponManagerTemp.vesselRadarData && weaponManagerTemp.vesselRadarData.locked)
+                            targetVel = weaponManagerTemp.vesselRadarData.lockedTargetData.targetData.velocity;
+                        else
+                            targetVel = Vector3.zero;
+                    }
                 }
                 else if (TargetingMode == TargetingModes.Radar)
                 {
