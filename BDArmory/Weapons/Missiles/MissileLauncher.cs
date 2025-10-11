@@ -1169,7 +1169,7 @@ namespace BDArmory.Weapons.Missiles
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: OnStart missile {shortName}: setting default locktrackcurve with maxrange/minrcs: {activeRadarLockTrackCurve.maxTime}/{RadarUtils.MISSILE_DEFAULT_LOCKABLE_RCS}");
                 }
 
-                if (activeRadarVelocityGate.minTime == float.MaxValue)
+                if (activeRadarVelocityGate.minTime == float.MaxValue && activeRadarVelocityFilter > 0)
                 {
                     activeRadarVelocityGate.Add(0f, RadarUtils.MISSILE_DEFAULT_GATE_RCS);
                     activeRadarVelocityGate.Add(activeRadarVelocityFilter, 1f);           // TODO: tune & balance constants!
@@ -1181,7 +1181,7 @@ namespace BDArmory.Weapons.Missiles
                 }
 
 
-                if (activeRadarRangeGate.minTime == float.MaxValue)
+                if (activeRadarRangeGate.minTime == float.MaxValue && activeRadarRangeFilter > 0)
                 {
                     activeRadarRangeGate.Add(0f, 1f);
                     activeRadarRangeGate.Add(activeRadarRangeFilter * 0.001f, 0f);           // TODO: tune & balance constants!
