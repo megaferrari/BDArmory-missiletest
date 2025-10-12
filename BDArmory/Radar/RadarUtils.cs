@@ -1490,10 +1490,9 @@ namespace BDArmory.Radar
                     // Because radar curves are in km, we have to convert distance to km if it's not a missile
                     if (TerrainCheck(position, targetPosition, FlightGlobals.currentMainBody, (!isMissile ? 1000f * distance : distance) + radarMaxRangeGate, out terrainR, out terrainAngle, true))
                         return false;
-                    // For the same reason, terrainR has to be converted to km if it's not a missile
                     notchMultiplier = CalculateRadarNotchingModifier(position, targetVessel.CoM, targetVessel.srf_velocity,
                         radarRangeGate, radarVelocityGate, radarMaxVelocityGate, radarMaxRangeGate, radarMinVelocityGate, radarMinRangeGate,
-                         !isMissile ? 0.001f * terrainR : terrainR, distance, (float)targetVessel.radarAltitude, out notchMod);
+                         terrainR, !isMissile ? 1000f * distance : distance, (float)targetVessel.radarAltitude, out notchMod);
                 }
                 else
                 {
