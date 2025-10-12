@@ -1452,7 +1452,7 @@ namespace BDArmory.Radar
 
                     float currentAngle = availableIRSTs[i].currentAngle;
 
-                    float radarAngle = VectorUtils.SignedAngle(availableIRSTs[i].transform.up, projectedVesselFwd, left);
+                    float radarAngle = VectorUtils.SignedAngle(availableIRSTs[i].irstForward, projectedVesselFwd, left);
 
                     if (!availableIRSTs[i].omnidirectional)
                     {

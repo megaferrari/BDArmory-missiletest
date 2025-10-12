@@ -274,6 +274,9 @@ namespace BDArmory.Weapons.Missiles
         [KSPField]
         public float activeRadarMinTrackSCR = 1f;
 
+        [KSPField]
+        public bool activeRadarCanNotch = true;
+
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_BallisticOvershootFactor"),//Ballistic Overshoot factor
          UI_FloatRange(minValue = 0.5f, maxValue = 1.5f, stepIncrement = 0.01f, scene = UI_Scene.Editor)]
         public float BallisticOverShootFactor = 0.7f;

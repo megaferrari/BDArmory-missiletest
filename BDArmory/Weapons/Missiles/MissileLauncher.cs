@@ -1169,25 +1169,25 @@ namespace BDArmory.Weapons.Missiles
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: OnStart missile {shortName}: setting default locktrackcurve with maxrange/minrcs: {activeRadarLockTrackCurve.maxTime}/{RadarUtils.MISSILE_DEFAULT_LOCKABLE_RCS}");
                 }
 
-                if (activeRadarVelocityGate.minTime == float.MaxValue && activeRadarVelocityFilter > 0)
+                if (activeRadarVelocityGate.minTime == float.MaxValue)
                 {
                     activeRadarVelocityGate.Add(0f, RadarUtils.MISSILE_DEFAULT_GATE_RCS);
                     activeRadarVelocityGate.Add(activeRadarVelocityFilter, 1f);           // TODO: tune & balance constants!
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: OnStart missile {shortName}: setting default activeRadarVelocityGate with maxfilter: {activeRadarLockTrackCurve.maxTime}");
                 }
-                else
+                else if (activeRadarVelocityFilter < activeRadarVelocityGate.maxTime)
                 {
                     activeRadarVelocityFilter = activeRadarVelocityGate.maxTime;
                 }
 
 
-                if (activeRadarRangeGate.minTime == float.MaxValue && activeRadarRangeFilter > 0)
+                if (activeRadarRangeGate.minTime == float.MaxValue)
                 {
                     activeRadarRangeGate.Add(0f, 1f);
-                    activeRadarRangeGate.Add(activeRadarRangeFilter * 0.001f, 0f);           // TODO: tune & balance constants!
+                    activeRadarRangeGate.Add(activeRadarRangeFilter, 0f);           // TODO: tune & balance constants!
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: OnStart missile {shortName}: setting default activeRadarRangeGate with maxfilter/minrcs: {activeRadarRangeGate.maxTime}/{RadarUtils.MISSILE_DEFAULT_GATE_RCS}");
                 }
-                else
+                else if(activeRadarRangeFilter < activeRadarRangeGate.maxTime)
                 {
                     activeRadarRangeFilter = activeRadarRangeGate.maxTime;
                 }
@@ -2811,9 +2811,9 @@ namespace BDArmory.Weapons.Missiles
 
             if (cruiseRangeTrigger > 0 || cruiseDelay > 0)
             {
-                // Use the post-thrust value until *after* the cruise stage starts
-                if (parsedMaxTorque[2] > 0)
-                    currMaxTorque = parsedMaxTorque[2];
+                // Use the coast value until *after* the cruise stage starts
+                if (parsedMaxTorque[3] > 0)
+                    currMaxTorque = parsedMaxTorque[3];
             }
             else
             {
@@ -4038,9 +4038,13 @@ namespace BDArmory.Weapons.Missiles
             // Parse steerMult, only 2 values here needed, boost and cruise
             parsedSteerMult = ParsePerfParams(steerMult, 2);
 
-            // Parse maxTorque, for which there are 3 values, boost, cruise and post-thrust
+            // Parse maxTorque, for which there are 4 values, boost, cruise, post-thrust, and coast
             // to simulate thrust vectoring
-            parsedMaxTorque = ParsePerfParams(maxTorque, 3);
+            parsedMaxTorque = ParsePerfParams(maxTorque, 4);
+
+            // If the coast value is not set, use the post-thrust value
+            if (parsedMaxTorque[3] < 0f)
+                parsedMaxTorque[3] = parsedMaxTorque[2];
 
             // Parse maxTorqueAero, for which there are 4 values, boost, cruise and 2 deltas
             parsedMaxTorqueAero = ParsePerfParams(maxTorqueAero, 4);
