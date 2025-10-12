@@ -1,4 +1,4 @@
-﻿IMPROVEMENTS / FIXES
+IMPROVEMENTS / FIXES
 - Sensors:
 	- Fixed omnidirectional radars failing to detect targets west of them
 	- Fix IRST display issues for IRST parts with an irstTransform
@@ -106,8 +106,8 @@ IMPROVEMENTS / FIXES
 	- Fix display issue where "Advanced Ammo Config" button does not reflect the actual state of the weapon.
 	- Weapons fire SFX maximum distance it can be heard now scales based on weapon caliber.
 	- Added fuzeDelay and fuzeSensitivity functionality to bullets. Now, for penetrating and delay fuzes you can specify the fuze delay in seconds, and the fuze sensitivity in mm for penetrating fuzes, by listing them with commas, i.e., "fuzeType = Penetrating,0.01,20" for a 0.01 s delay which will be set off by 20 mm of armor (currently material differences are not considered).
-	- Fix bullet behavior when hitting parts with multiple colliders embedded in each other, bullets should now only hit such a part once, unless it exits the part and then hits the part again. Note the system in place cannot catch cases where another part is clipped in such a part.
-	- Fix phantom water on planets without oceans.
+	- Fix bullet behavior when hitting parts with multiple colliders embedded in each other, bullets should now only hit such a part once, unless it exits the part and then hits the part again. Note the system in place cannot catch cases where another part is clipped into such a part.
+	- Fix checks for phantom water on planets without oceans.
 	- Changed continuous rod warhead damage area from 60°-90° to 30°-60°.
 	- Missiles:
 		- General Changes:
@@ -142,7 +142,7 @@ IMPROVEMENTS / FIXES
 				- "CLOSThree" performs command-to-line of sight guidance with beam-velocity compensation.
 				- "CLOSLead" performs command-to-line of sight guidance with selectable lead (using the "beamLeadFactor" field, 1.0 representing full lead and 0.0 representing three point guidance. Defaults to 0.5 or half-rectification guidance.)
 				- "beamCorrectionFactor" is multiplied with the lateral error from the specified line of sight to provide a lateral velocity command, higher values result in a faster snap to the line of sight line, but also more oscillation.
-				- "pronavGain" is used, in a similar manner as it use used in pronav guidance, to multiply the velocity error and provide an acceleration command. Higher values result in a faster snap to the commanded velocity vector, but also more oscillation.
+				- "pronavGain" is used, in a similar manner as it used in pronav guidance, to multiply the velocity error and provide an acceleration command. Higher values result in a faster snap to the commanded velocity vector, but also more oscillation.
 			- Replaced "radarTimeout" field with general "seekerTimeout", which is now used for heat-seeking, active radar homing, inertial and anti-radiation homing. Added "terminalSeekerTimeout" field so this can be specified separately for the initial and terminal targeting types.
 			- Improved guidance for continuous rod missiles, offset direction now depends on if the missile is above/below the target rather than always being offset above.
 		- Launchers:
