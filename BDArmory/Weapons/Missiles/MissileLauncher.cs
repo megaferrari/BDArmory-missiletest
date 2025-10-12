@@ -1345,7 +1345,12 @@ namespace BDArmory.Weapons.Missiles
                 {
                     if (part.FindModuleImplementing<BDExplosivePart>() != null)
                     {
-                        blastRadius = part.FindModuleImplementing<BDExplosivePart>().GetBlastRadius();
+                        List<BDExplosivePart> tntList = part.FindModulesImplementing<BDExplosivePart>();
+                        foreach (BDExplosivePart tnt in tntList)
+                        {
+                            float tempBlastRadius = tnt.GetBlastRadius();
+                            blastRadius = tempBlastRadius > blastRadius ? tempBlastRadius : blastRadius;
+                        }
                         return blastRadius;
                     }
                     else if (part.FindModuleImplementing<MultiMissileLauncher>() != null)
