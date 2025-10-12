@@ -1,4 +1,21 @@
 ﻿IMPROVEMENTS / FIXES
+- Sensors:
+	- Fixed omnidirectional radars failing to detect targets west of them
+	- Fix IRST display issues for IRST parts with an irstTransform
+	- Fix issues with notch calculations
+	- Add "radarCanNotch" field to radars to allow for notch calculations to affect chaff effectiveness without affecting track/lock
+	- Fix bubble decoys being able to affect radars in rare cases
+- Weapons:
+	- Missiles:
+		- Add "activeRadarCanNotch" field to missiles as a counterpart to "radarCanNotch"
+		- Missile RCS now correctly works until the end of the cruise stage even with cruiseRangeTrigger > 0
+		- Added 4th value to maxTorque to allow for specifying a "coast" maxTorque for use when the missile is coasting between the boost and cruise stages (due to cruiseDelay or cruiseRangeTrigger)
+		- Allow for laser/targeting camera targeted CLOS missiles to use radar velocity data when radar slaved but not CoM locked
+- Scripts:
+	- Fix default GLOBAL_LIFT_MULTIPLIER in BDArmoryMissileManeuverEnvelopePlotter.py
+
+v1.11.0.0
+IMPROVEMENTS / FIXES
 - General:
 	- Fix the g-limit overrides from needing to save the persistent savegame, which was leaving spawned craft in play when reverting to the SPH.
 	- Fix issues with armor damage when using "Armor Mass Multiplier" values other than 1.
