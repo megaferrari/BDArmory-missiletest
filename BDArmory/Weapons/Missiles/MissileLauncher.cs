@@ -525,7 +525,7 @@ namespace BDArmory.Weapons.Missiles
             WeaveOffset = -1f;
             terminalHomingActive = false;
 
-            if (radarTimeout > 0)
+            if (radarTimeout >= 0)
             {
                 Debug.LogWarning($"[BDArmory.MissileLauncher]: Error in configuration of {part.name}, radarTimeout is deprecated, please use seekerTimeout instead.");
                 seekerTimeout = radarTimeout;
@@ -2464,7 +2464,7 @@ namespace BDArmory.Weapons.Missiles
                 if (dumbTerminalGuidance || terminalGuidanceActive)
                 {
                     TargetingMode = TargetingModeTerminal;
-                    if (terminalSeekerTimeout > 0)
+                    if (terminalSeekerTimeout >= 0)
                         seekerTimeout = terminalSeekerTimeout;
                     terminalGuidanceActive = true;
                     terminalGuidanceShouldActivate = false;
@@ -2817,23 +2817,23 @@ namespace BDArmory.Weapons.Missiles
             if (cruiseRangeTrigger > 0 || cruiseDelay > 0)
             {
                 // Use the coast value until *after* the cruise stage starts
-                if (parsedMaxTorque[3] > 0)
+                if (parsedMaxTorque[3] >= 0)
                     currMaxTorque = parsedMaxTorque[3];
             }
             else
             {
                 // Directly set the cruise value
-                if (parsedMaxTorque[1] > 0)
+                if (parsedMaxTorque[1] >= 0)
                     currMaxTorque = parsedMaxTorque[1];
             }
 
-            if (parsedSteerMult[1] > 0)
+            if (parsedSteerMult[1] >= 0)
                 currSteerMult = parsedSteerMult[1];
 
             if (decoupleBoosters)
             {
-                // We only apply any lift/drag area changes if parsedLiftArea[1] changes
-                if (parsedLiftArea[1] > 0)
+                // We only apply any lift/drag area changes if parsedLiftArea[1] is valid
+                if (parsedLiftArea[1] >= 0f)
                 {
                     currLiftArea = parsedLiftArea[1];
                     currDragArea = parsedDragArea[1];
@@ -2844,9 +2844,8 @@ namespace BDArmory.Weapons.Missiles
                         currDragArea = currLiftArea;
                     }
 
-                    currMaxTorqueAero = parsedMaxTorqueAero[1];
-                    if (currMaxTorqueAero < 0)
-                        currMaxTorqueAero = 0f;
+                    if (currMaxTorqueAero >= 0)
+                        currMaxTorqueAero = parsedMaxTorqueAero[1];
 
                     if (deployed && deployedLiftInCruise)
                         applyDeployedLiftDrag();
@@ -2983,7 +2982,7 @@ namespace BDArmory.Weapons.Missiles
             currentThrust = spoolEngine ? 0 : cruiseThrust;
 
             // Set the cruise value
-            if (parsedMaxTorque[1] > 0)
+            if (parsedMaxTorque[1] >= 0)
                 currMaxTorque = parsedMaxTorque[1];
 
             using (var pEmitter = pEmitters.GetEnumerator())
@@ -3017,7 +3016,7 @@ namespace BDArmory.Weapons.Missiles
             if (useFuel) burnedFuelMass = cruiseFuelMass + boosterFuelMass;
 
             // If we specify a post-thrust maxTorque (I.E. TVC)
-            if (parsedMaxTorque[2] > 0)
+            if (parsedMaxTorque[2] >= 0)
                 currMaxTorque = parsedMaxTorque[2];
 
             using (IEnumerator<Light> light = gameObject.GetComponentsInChildren<Light>().AsEnumerable().GetEnumerator())
