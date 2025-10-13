@@ -187,7 +187,7 @@ def encode_names(log_lines: List[str]) -> Tuple[Dict[str, str], List[str]]:
     for i in range(1, len(log_lines)):  # The first line doesn't contain craft names
         for name in sorted_craft_names:
             log_lines[i] = log_lines[i].replace(name, craft_names[name].decode())
-    encoded_craft_names = {v.decode(): k for k, v in craft_names.items()}
+    encoded_craft_names = {v.decode(): k.replace('\\"', '"') for k, v in craft_names.items()}  # Reverse the craft name encoding dict and fix the \\ due to JSON encoding.
     return encoded_craft_names, log_lines
 
 

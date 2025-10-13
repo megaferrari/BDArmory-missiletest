@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -10,6 +11,7 @@ using BDArmory.Targeting;
 using BDArmory.UI;
 using BDArmory.Utils;
 using BDArmory.Weapons;
+using BDArmory.Extensions;
 using BDArmory.Weapons.Missiles;
 
 namespace BDArmory.Damage
@@ -23,9 +25,12 @@ namespace BDArmory.Damage
         public bool softEMP = true; //can EMPdamage exceed EMPthreshold?
         private bool disabled = false; //prevent further EMP buildup while rebooting
         public bool bricked = false; //He's dead, jeb
+        public bool isMissile = false;
         private float rebootTimer = 15;
-        private bool initialAIState = false; //if for whatever reason players are manually firing EMPs at targets with AI/WM disabled, don't enable them when vessel reboots
-        private bool initialWMState = false;
+
+        //if for whatever reason players are manually firing EMPs at targets with AI/WM disabled, don't enable them when vessel reboots
+        private IBDAIControl activeAI = null;
+        private List<MissileFire> activeWMs = [];
 
         private void EnableVessel()
         {
@@ -50,20 +55,18 @@ namespace BDArmory.Damage
                 {
                     command.minimumCrew /= 10; //more elegant than a dict storing every crew part's cap to restore to original amount
                 }
-                var AI = p.FindModuleImplementing<IBDAIControl>();
-                if (AI != null && initialAIState)
-                {
-                    AI.ActivatePilot(); //It's Alive!
-                    initialAIState = false;
-                }
-                var WM = p.FindModuleImplementing<MissileFire>();
-                if (WM != null && initialWMState)
-                {
-                    WM.guardMode = true;
-                    WM.debilitated = false;
-                    initialWMState = false;
-                }
             }
+
+            // Previously enabled active AI is still attached, fire it up again.
+            if (activeAI != null && activeAI.vessel == vessel)
+                activeAI.ActivatePilot();
+            activeAI = null;
+
+            // Restore the guardMode state of the WMs.
+            foreach (var wm in VesselModuleRegistry.GetMissileFires(vessel).Where(wm => wm != null)) wm.debilitated = false;
+            foreach (var wm in activeWMs) wm.guardMode = true;
+            activeWMs.Clear();
+
             vessel.ActionGroups.ToggleGroup(KSPActionGroup.Custom10); // restart engines
             if (!VesselModuleRegistry.GetModuleEngines(vessel).Any(engine => engine.EngineIgnited)) // Find vessels that didn't activate their engines on AG10 and fire their next stage.
             {
@@ -77,7 +80,14 @@ namespace BDArmory.Damage
         {
             if (!HighLogic.LoadedSceneIsFlight) return;
             if (BDArmorySetup.GameIsPaused) return;
-
+            if (BDArmorySettings.PAINTBALL_MODE && !isMissile)
+            {
+                EMPDamage = 0; 
+                incomingDamage = 0;
+                if (disabled) EnableVessel();
+                return;
+                
+            }
             if (!bricked)
             {
                 if (EMPDamage > 0 || incomingDamage > 0)
@@ -118,6 +128,18 @@ namespace BDArmory.Damage
             {
                 EMPDamage = Mathf.Clamp(EMPDamage - 5 * TimeWarp.fixedDeltaTime, 0, Mathf.Infinity); //have EMP buildup dissipate over time
             }
+            if (isMissile && EMPDamage > 10)
+            {
+                foreach (Part p in vessel.parts)
+                {
+                    var MB = p.FindModuleImplementing<MissileBase>();
+                    if (MB != null)
+                    {
+                        MB.guidanceActive = false;
+                    }
+                }
+                bricked = true;
+            }
             if (EMPDamage > EMPThreshold && !bricked && !disabled) //does the damage exceed the soft cap, but not the hard cap?
             {
                 disabled = true; //if so disable the craft
@@ -144,6 +166,21 @@ namespace BDArmory.Damage
             var message = "Disabling " + vessel.vesselName + " for " + rebootTimer + "s due to EMP damage";
             if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log("[BDArmory.ModuleDrainEC]: " + message);
             BDACompetitionMode.Instance.competitionStatus.Add(message);
+
+            // Store the active AI if there was one.
+            var AI = vessel.ActiveController().AI;
+            activeAI = (AI != null && AI.pilotEnabled) ? AI : null;
+            if (AI != null && AI.pilotEnabled) AI.DeactivatePilot(); //disable AI
+
+            // Store the guardMode state of the WMs.
+            activeWMs.Clear();
+            foreach (var wm in VesselModuleRegistry.GetMissileFires(vessel).Where(wm => wm != null))
+            {
+                if (wm.guardMode) activeWMs.Add(wm);
+                wm.guardMode = false; //disable guardmode
+                wm.debilitated = true; //for weapon selection and targeting;
+            }
+
             foreach (Part p in vessel.parts)
             {
                 var camera = p.FindModuleImplementing<ModuleTargetingCamera>();
@@ -187,19 +224,6 @@ namespace BDArmory.Damage
                     command.minimumCrew *= 10; //disable vessel control
                 }
 
-                var AI = p.FindModuleImplementing<IBDAIControl>();
-                if (AI != null)
-                {
-                    if (AI.pilotEnabled) initialAIState = true;
-                    AI.DeactivatePilot(); //disable AI
-                }
-                var WM = p.FindModuleImplementing<MissileFire>();
-                if (WM != null)
-                {
-                    if (WM.guardMode) initialWMState = true;
-                    WM.guardMode = false; //disable guardmode
-                    WM.debilitated = true; //for weapon selection and targeting;
-                }
                 var MB = p.FindModuleImplementing<MissileBase>();
                 if (MB != null)
                 {
