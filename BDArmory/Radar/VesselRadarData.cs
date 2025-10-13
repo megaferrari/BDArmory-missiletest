@@ -144,6 +144,11 @@ namespace BDArmory.Radar
         private int activeLockedTargetIndex;
         private List<int> lockedTargetIndexes;
 
+        public int numLockedTargets
+        {
+            get { return lockedTargetIndexes.Count; }
+        }
+
         public bool hasLoadedExternalVRDs = false;
 
         private float lockedTargetsUpdateTime = -1f;
