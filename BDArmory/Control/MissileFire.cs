@@ -6200,7 +6200,7 @@ namespace BDArmory.Control
                                         //if (heat && heatTarget.exists && heatTarget.signalStrength *
                                         //       ((BDArmorySettings.ASPECTED_IR_SEEKERS && Vector3.Dot(guardTarget.vesselTransform.up, mlauncher.transform.forward) > 0.25f) ?
                                         //        mlauncher.frontAspectHeatModifier : 1) < heatThresh) //heatTarget doesn't get found until *after* a heater is selected
-                                        if (heat && BDArmorySettings.ASPECTED_IR_SEEKERS && Vector3.Dot(guardTarget.vesselTransform.up, mlauncher.transform.forward) > 0.25f)
+                                        if (heat && BDArmorySettings.ASPECTED_IR_SEEKERS && Vector3.Dot(target.Vessel.vesselTransform.up, mlauncher.transform.forward) > 0.25f)
                                         {
                                             //candidateTDPS *= 0.0001f; //Heatseeker, but IR sig is below missile threshold, skip to something else unless nothing else available
                                             if (mlauncher.frontAspectHeatModifier < 0.15f) continue;

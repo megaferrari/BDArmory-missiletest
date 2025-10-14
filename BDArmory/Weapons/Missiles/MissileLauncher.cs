@@ -2367,6 +2367,9 @@ namespace BDArmory.Weapons.Missiles
                         TargetSignatureData.ResetTSDArray(ref scannedTargets);
                         Ray ray = new Ray(vessel.CoM, GetForwardTransform());
 
+                        // Missile's radar has gone active
+                        ActiveRadar = true;
+
                         //RadarUtils.UpdateRadarLock(ray, maxOffBoresight, activeRadarMinThresh, ref scannedTargets, 0.4f, true, RadarWarningReceiver.RWRThreatTypes.MissileLock, true);
                         RadarUtils.RadarUpdateMissileLock(ray, maxOffBoresight, ref scannedTargets, 0.4f, this);
                         float sqrThresh = terminalGuidanceDistance * terminalGuidanceDistance * 2.25f; // (terminalGuidanceDistance * 1.5f)^2
@@ -2394,7 +2397,6 @@ namespace BDArmory.Weapons.Missiles
                                     prevDist = currDist;
 
                                     lockIndex = i;
-                                    ActiveRadar = true;
                                 }
                             }
                             //if (!scannedTargets[i].exists)
@@ -2463,6 +2465,10 @@ namespace BDArmory.Weapons.Missiles
                 }
                 if (dumbTerminalGuidance || terminalGuidanceActive)
                 {
+                    // De-activate active radar if it's active
+                    if (TargetingMode == TargetingModes.Radar && TargetingModeTerminal != TargetingModes.Radar)
+                        ActiveRadar = false;
+
                     TargetingMode = TargetingModeTerminal;
                     if (terminalSeekerTimeout >= 0)
                         seekerTimeout = terminalSeekerTimeout;
