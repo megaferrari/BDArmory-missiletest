@@ -4332,6 +4332,8 @@ namespace BDArmory.Control
 
             weaponArray = tempList.ToArray();
             pointDefenseWeaponArray = pointDefenseWeapons.ToArray();
+            if (pointDefenseMissiles.Count > 0)
+                pointDefenseMissiles = pointDefenseMissiles.OrderByDescending(m => m.GetEngagementRangeMax()).ToList();
             pointDefenseMissileArray = pointDefenseMissiles.ToArray();
 
             if (weaponIndex >= weaponArray.Length)
@@ -8990,73 +8992,87 @@ namespace BDArmory.Control
                     if (currMissile.HasFired || currMissile.launched) continue;
                     if (MissileID >= PDMslTgts.Count) MissileID = 0;
 
-                    float targetDist = Vector3.Distance(currMissile.MissileReferenceTransform.position, PDMslTgts[MissileID].Vessel.CoM);
-                    if (PDMslTgts[MissileID].Vessel != null && targetDist > currMissile.engageRangeMax) MissileID = 0;
-                    if (PDMslTgts[MissileID].Vessel != null)
+                    Vessel targetVessel = PDMslTgts[MissileID].Vessel;
+
+                    float targetDist = Vector3.Distance(currMissile.MissileReferenceTransform.position, targetVessel.CoM);
+                    if (targetVessel != null && targetDist > currMissile.engageRangeMax) MissileID = 0;
+                    if (targetVessel != null)
                     {
                         if (targetDist < currMissile.engageRangeMin) continue;
                         bool viableTarget = true;
                         int interceptorsAway = 0;
 
-                        if (currMissile.TargetingMode == MissileBase.TargetingModes.Radar && vesselRadarData != null && (!vesselRadarData.locked || vesselRadarData.lockedTargetData.vessel != PDMslTgts[MissileID].Vessel))
+                        if (!CheckEngagementEnvelope(currMissile, targetDist, targetVessel)) continue;
+                        bool torpedo = launcher && launcher.torpedo; //TODO - work out MMG torpedo support?
+                        if (targetVessel.Splashed && !torpedo) viableTarget = false;
+
+                        if (currMissile.TargetingMode == MissileBase.TargetingModes.Radar)
                         {
-                            if (!vesselRadarData.locked)
+                            bool radarLocked = false;
+
+                            if (vesselRadarData != null && (!vesselRadarData.locked || vesselRadarData.lockedTargetData.vessel != targetVessel))
                             {
-                                vesselRadarData.TryLockTarget(PDMslTgts[MissileID].Vessel);
-                            }
-                            else
-                            {
-                                /*
-                                if (firedMissiles >= maxMissilesOnTarget && (multiMissileTgtNum > 1 && BDATargetManager.TargetList(Team).Count > 1))
+                                if (!vesselRadarData.locked)
                                 {
-                                    if (!currMissile.radarLOAL) //switch active lock instead of clearing locks for SARH missiles
+                                    radarLocked = vesselRadarData.TryLockTarget(targetVessel);
+                                }
+                                else
+                                {
+                                    /*
+                                    if (firedMissiles >= maxMissilesOnTarget && (multiMissileTgtNum > 1 && BDATargetManager.TargetList(Team).Count > 1))
                                     {
-                                        vesselRadarData.TryLockTarget(PDMslTgts[MissileID].Vessel);
+                                        if (!currMissile.radarLOAL) //switch active lock instead of clearing locks for SARH missiles
+                                        {
+                                            vesselRadarData.TryLockTarget(targetVessel);
+                                        }
+                                        else
+                                        {
+                                            List<TargetSignatureData> possibleTargets = vesselRadarData.GetLockedTargets();
+                                            bool existingLock = false;
+                                            for (int i = 0; i < possibleTargets.Count; i++)
+                                            {
+                                                if (possibleTargets[i].vessel == targetVessel)
+                                                {
+                                                    existingLock = true;
+                                                    break;
+                                                }
+                                            }
+                                            if (existingLock)
+                                            {
+                                                vesselRadarData.SwitchActiveLockedTarget(targetVessel);
+                                            }
+                                        }
                                     }
                                     else
                                     {
-                                        List<TargetSignatureData> possibleTargets = vesselRadarData.GetLockedTargets();
-                                        bool existingLock = false;
-                                        for (int i = 0; i < possibleTargets.Count; i++)
+                                        if (PreviousMissile != null && PreviousMissile.ActiveRadar && PreviousMissile.targetVessel != null && PreviousMissile.targetVessel.Vessel != null) //previous missile has gone active, don't need that lock anymore
                                         {
-                                            if (possibleTargets[i].vessel == PDMslTgts[MissileID].Vessel)
-                                            {
-                                                existingLock = true;
-                                                break;
-                                            }
+                                            vesselRadarData.UnlockSelectedTarget(PreviousMissile.targetVessel.Vessel);
                                         }
-                                        if (existingLock)
-                                        {
-                                            vesselRadarData.SwitchActiveLockedTarget(PDMslTgts[MissileID].Vessel);
-                                        }
+                                        vesselRadarData.TryLockTarget(targetVessel);
                                     }
-                                }
-                                else
-                                {
-                                    if (PreviousMissile != null && PreviousMissile.ActiveRadar && PreviousMissile.targetVessel != null && PreviousMissile.targetVessel.Vessel != null) //previous missile has gone active, don't need that lock anymore
-                                    {
-                                        vesselRadarData.UnlockSelectedTarget(PreviousMissile.targetVessel.Vessel);
-                                    }
-                                    vesselRadarData.TryLockTarget(PDMslTgts[MissileID].Vessel);
-                                }
-                                */
+                                    */
 
-                                if (GuardCheckLock(PDMslTgts[MissileID].Vessel))
-                                    vesselRadarData.SwitchActiveLockedTarget(PDMslTgts[MissileID].Vessel);
-                                else
-                                    vesselRadarData.TryLockTarget(PDMslTgts[MissileID].Vessel);
+                                    if (GuardCheckLock(targetVessel))
+                                        radarLocked = vesselRadarData.SwitchActiveLockedTarget(targetVessel);
+                                    else
+                                        radarLocked = vesselRadarData.TryLockTarget(targetVessel);
+                                }
                             }
+
+                            if (!radarLocked && (torpedo ? _sonarsEnabled : _radarsEnabled) && !currMissile.radarLOAL && MaxradarLocks < vesselRadarData.numLockedTargets) continue; //don't have available radar lock, move to next missile    
+
                         }
                         if (currMissile.TargetingMode == MissileBase.TargetingModes.Heat)
                         {
                             SearchForHeatTarget(currMissile, PDMslTgts[MissileID]);
+                            // If we haven't gotten a heat target, continue
+                            if (!heatTarget.exists ||
+                                (heatTarget.vessel != targetVessel) ||
+                                heatTarget.signalStrength * ((BDArmorySettings.ASPECTED_IR_SEEKERS && Vector3.Dot(targetVessel.vesselTransform.up, currMissile.transform.forward) > 0.25f) ? currMissile.frontAspectHeatModifier : 1) < currMissile.heatThreshold) continue;
                         }
-                        if (!CheckEngagementEnvelope(currMissile, targetDist, PDMslTgts[MissileID].Vessel)) continue;
-                        bool torpedo = launcher && launcher.torpedo; //TODO - work out MMG torpedo support?
-                        if (PDMslTgts[MissileID].Vessel.Splashed && !torpedo) viableTarget = false;
                         //need to see if missile is turreted (and is a unique turret we haven't seen yet); if so, check if target is within traverse, else see if target is within boresight
-                        bool turreted = false;
-                        if (currMissile.TargetingMode == MissileBase.TargetingModes.Radar && (torpedo ? _sonarsEnabled : _radarsEnabled) && !currMissile.radarLOAL && MaxradarLocks < vesselRadarData.numLockedTargets) continue; //don't have available radar lock, move to next missile                            
+                        bool turreted = false;                  
                         MissileTurret mT = null;
                         if (launcher && (launcher.missileTurret || launcher.multiLauncher && launcher.multiLauncher.turret))
                         {
@@ -9066,24 +9082,24 @@ namespace BDArmory.Control
                                 turreted = true;
                                 mT.EnableTurret(currMissile, false);
                                 MslTurrets.Add(mT); //don't try to assign two different targets to a turret, so treat remaining missiles on the turret as boresight launch
-                                mT.slavedTargetPosition = PDMslTgts[MissileID].Vessel.CoM;
+                                mT.slavedTargetPosition = targetVessel.CoM;
                                 mT.slaved = true;
                                 mT.SlavedAim();
                             }
                         }
 
                         interceptorsAway = GetMissilesAway(PDMslTgts[MissileID])[0];
-                        //Debug.Log($"[PD Missile Debug - {vessel.GetName()}] Missiles already fired against this target {PDMslTgts[MissileID].Vessel.GetName()}: {interceptorsAway}");
+                        //Debug.Log($"[PD Missile Debug - {vessel.GetName()}] Missiles already fired against this target {targetVessel.GetName()}: {interceptorsAway}");
 
                         if (interceptorsAway < maxMissilesOnTarget)
                         {
-                            //Debug.Log($"[PD Missile Debug - {vessel.GetName()}]viable: {viableTarget}; turreted: {turreted}; inRange: {(turreted ? TargetInTurretRange(mT.turret, mT.fireFOV, PDMslTgts[MissileID].Vessel.CoM) : GetLaunchAuthorization(PDMslTgts[MissileID].Vessel, this, currMissile))}");
-                            if (viableTarget && turreted ? TargetInTurretRange(mT.turret, mT.fireFOV, PDMslTgts[MissileID].Vessel.CoM) : GetLaunchAuthorization(PDMslTgts[MissileID].Vessel, this, currMissile))
+                            //Debug.Log($"[PD Missile Debug - {vessel.GetName()}]viable: {viableTarget}; turreted: {turreted}; inRange: {(turreted ? TargetInTurretRange(mT.turret, mT.fireFOV, targetVessel.CoM) : GetLaunchAuthorization(targetVessel, this, currMissile))}");
+                            if (viableTarget && turreted ? TargetInTurretRange(mT.turret, mT.fireFOV, targetVessel.CoM) : GetLaunchAuthorization(targetVessel, this, currMissile))
                             {
-                                //missileTarget = PDMslTgts[MissileID].Vessel;
+                                //missileTarget = targetVessel;
                                 firedMissile = true;
-                                //Debug.Log($"[BDArmory.MissileFire] firing interceptor missile at {PDMslTgts[MissileID].Vessel.name}");
-                                StartCoroutine(GuardMissileRoutine(PDMslTgts[MissileID].Vessel, currMissile));
+                                //Debug.Log($"[BDArmory.MissileFire] firing interceptor missile at {targetVessel.name}");
+                                StartCoroutine(GuardMissileRoutine(targetVessel, currMissile));
                                 break;
                             }
                         }
