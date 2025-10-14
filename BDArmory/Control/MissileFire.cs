@@ -5594,6 +5594,7 @@ namespace BDArmory.Control
             bool candidateAGM = false;
             bool candidateAntiRad = false;
             var surfaceAI = SurfaceAI;
+            Vessel targetVessel = target.Vessel;
             if (target.isMissile)
             {
                 // iterate over weaponTypesMissile and pick suitable one based on engagementRange (and dynamic launch zone for missiles)
@@ -5606,7 +5607,7 @@ namespace BDArmory.Control
                     {
                         if (item.Current == null) continue;
                         // candidate, check engagement envelope
-                        if (!CheckEngagementEnvelope(item.Current, distance, guardTarget)) continue;
+                        if (!CheckEngagementEnvelope(item.Current, distance, targetVessel)) continue;
                         // weapon usable, if missile continue looking for lasers/guns, else take it
                         WeaponClasses candidateClass = item.Current.GetWeaponClass();
                         switch (candidateClass)
@@ -5831,7 +5832,7 @@ namespace BDArmory.Control
                         if (item.Current == null) continue;
 
                         // candidate, check engagement envelope
-                        if (!CheckEngagementEnvelope(item.Current, distance, guardTarget)) continue;
+                        if (!CheckEngagementEnvelope(item.Current, distance, targetVessel)) continue;
                         // weapon usable, if missile continue looking for lasers/guns, else take it
                         WeaponClasses candidateClass = item.Current.GetWeaponClass();
                         // any rocketpods work?
@@ -5839,7 +5840,7 @@ namespace BDArmory.Control
                         {
                             case (WeaponClasses.Bomb): //hardly ideal, but if it's the only thing you have, then just maybe...
                                 {
-                                    if (!vessel.Splashed || (vessel.Splashed && vessel.altitude > currentTarget.Vessel.altitude))
+                                    if (!vessel.Splashed || (vessel.Splashed && vessel.altitude > targetVessel.altitude))
                                     {
                                         MissileLauncher Bomb = item.Current as MissileLauncher;
 
@@ -6003,7 +6004,7 @@ namespace BDArmory.Control
                                     float candidateMinrange = Gun.engageRangeMin;
                                     float candidateMaxRange = Gun.engageRangeMax;
                                     int candidatePriority = Mathf.RoundToInt(Gun.priority);
-                                    float candidateRadius = currentTarget.Vessel.GetRadius(Gun.fireTransforms[0].forward, target.bounds);
+                                    float candidateRadius = targetVessel.GetRadius(Gun.fireTransforms[0].forward, target.bounds);
                                     float candidateCaliber = Gun.caliber;
 
                                     if (Gun.BurstFire && Gun.RoundsRemaining > 0 && Gun.RoundsRemaining < Gun.RoundsPerMag)
@@ -6200,7 +6201,7 @@ namespace BDArmory.Control
                                         //if (heat && heatTarget.exists && heatTarget.signalStrength *
                                         //       ((BDArmorySettings.ASPECTED_IR_SEEKERS && Vector3.Dot(guardTarget.vesselTransform.up, mlauncher.transform.forward) > 0.25f) ?
                                         //        mlauncher.frontAspectHeatModifier : 1) < heatThresh) //heatTarget doesn't get found until *after* a heater is selected
-                                        if (heat && BDArmorySettings.ASPECTED_IR_SEEKERS && Vector3.Dot(target.Vessel.vesselTransform.up, mlauncher.transform.forward) > 0.25f)
+                                        if (heat && BDArmorySettings.ASPECTED_IR_SEEKERS && Vector3.Dot(targetVessel.vesselTransform.up, mlauncher.transform.forward) > 0.25f)
                                         {
                                             //candidateTDPS *= 0.0001f; //Heatseeker, but IR sig is below missile threshold, skip to something else unless nothing else available
                                             if (mlauncher.frontAspectHeatModifier < 0.15f) continue;
@@ -6223,7 +6224,7 @@ namespace BDArmory.Control
                                             {
                                                 candidateTDPS *= 0.001f; //no radar/IRST, skip to something else unless nothing else available
                                             }
-                                            else if (!vesselRadarData.detectedRadarTarget(target.Vessel, this).exists || !vesselRadarData.activeIRTarget(target.Vessel, this).exists)
+                                            else if (!vesselRadarData.detectedRadarTarget(targetVessel, this).exists || !vesselRadarData.activeIRTarget(targetVessel, this).exists)
                                             {
                                                 candidateTDPS *= 0.001f;
                                             }
@@ -6232,7 +6233,7 @@ namespace BDArmory.Control
                                         {
                                             candidateTDPS *= 0.001f;  //no laserdot, skip to something else unless nothing else available
                                         }
-                                        float fovAngle = VectorUtils.Angle(mlauncher.GetForwardTransform(), guardTarget.CoM - mlauncher.transform.position);
+                                        float fovAngle = VectorUtils.Angle(mlauncher.GetForwardTransform(), targetVessel.CoM - mlauncher.transform.position);
                                         if (fovAngle > mlauncher.missileFireAngle && mlauncher.missileFireAngle < mlauncher.maxOffBoresight * 0.75f)
                                         {
                                             candidateTDPS *= mlauncher.missileFireAngle / fovAngle; //missile is clamped to a narrow boresight - do we have anything with a wider FoV we should start with?
@@ -6299,7 +6300,7 @@ namespace BDArmory.Control
                     {
                         if (item.Current == null) continue;
                         // candidate, check engagement envelope
-                        if (!CheckEngagementEnvelope(item.Current, distance, guardTarget)) continue;
+                        if (!CheckEngagementEnvelope(item.Current, distance, targetVessel)) continue;
                         // weapon usable, if missile continue looking for lasers/guns, else take it
                         WeaponClasses candidateClass = item.Current.GetWeaponClass();
                         switch (candidateClass)
@@ -6390,7 +6391,7 @@ namespace BDArmory.Control
                                     float candidateMinrange = Gun.engageRangeMin;
                                     float candidateMaxRange = Gun.engageRangeMax;
                                     float candidateTraverse = Gun.yawRange * (Gun.maxPitch - Gun.minPitch);
-                                    float candidateRadius = currentTarget.Vessel.GetRadius(Gun.fireTransforms[0].forward, target.bounds);
+                                    float candidateRadius = targetVessel.GetRadius(Gun.fireTransforms[0].forward, target.bounds);
                                     float candidateCaliber = Gun.caliber;
                                     Transform fireTransform = Gun.fireTransforms[0];
 
@@ -6405,7 +6406,7 @@ namespace BDArmory.Control
                                     if (BDArmorySettings.BULLET_WATER_DRAG)
                                     {
                                         if ((!surfaceAI || surfaceAI.SurfaceType != AIUtils.VehicleMovementType.Submarine) && vessel.Splashed && FlightGlobals.getAltitudeAtPos(fireTransform.position) < 0) continue;
-                                        if (candidateCaliber < 75 && FlightGlobals.getAltitudeAtPos(target.position) + target.Vessel.GetRadius() < 0) continue; //vessel completely submerged, and not using rounds big enough to survive water impact
+                                        if (candidateCaliber < 75 && FlightGlobals.getAltitudeAtPos(target.position) + targetVessel.GetRadius() < 0) continue; //vessel completely submerged, and not using rounds big enough to survive water impact
                                     }
                                     if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == 41)
                                     {
@@ -6494,7 +6495,7 @@ namespace BDArmory.Control
                             //Bombs are good. any of those we can use over rockets?
                             case (WeaponClasses.Bomb):
                                 {
-                                    if (vessel.Splashed && vessel.altitude < currentTarget.Vessel.altitude) continue; //I guess depth charges would sorta apply here, but those are SLW instead
+                                    if (vessel.Splashed && vessel.altitude < targetVessel.altitude) continue; //I guess depth charges would sorta apply here, but those are SLW instead
                                     MissileLauncher Bomb = item.Current as MissileLauncher;
                                     if (Bomb.reloadableRail != null && (Bomb.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordnance
                                                                                                                                                               //if (firedMissiles >= maxMissilesOnTarget) continue;// Max missiles are fired, try another weapon
@@ -6503,7 +6504,7 @@ namespace BDArmory.Control
                                     int candidateCluster = Bomb.clusterbomb;
                                     bool EMP = Bomb.warheadType == MissileBase.WarheadTypes.EMP;
                                     int candidatePriority = Mathf.RoundToInt(Bomb.priority);
-                                    double srfSpeed = currentTarget.Vessel.horizontalSrfSpeed;
+                                    double srfSpeed = targetVessel.horizontalSrfSpeed;
 
                                     if (EMP && target.isDebilitated) continue;
                                     if (targetWeapon != null && targetWeaponPriority > candidatePriority)
@@ -6587,7 +6588,7 @@ namespace BDArmory.Control
                                     // - add code to choose optimal missile based on target profile - i.e. use bigger bombs on large landcruisers, smaller bombs on small Vees that don't warrant that sort of overkill?
                                     int candidatePriority;
                                     float candidateYield;
-                                    double srfSpeed = currentTarget.Vessel.horizontalSrfSpeed;
+                                    double srfSpeed = targetVessel.horizontalSrfSpeed;
                                     MissileLauncher Missile = item.Current as MissileLauncher;
                                     if (Missile != null)
                                     {
@@ -6625,7 +6626,7 @@ namespace BDArmory.Control
                                             {
                                                 if (Missile.antiradTargets.Contains(rwr.pingsData[i].signalType))
                                                 {
-                                                    if ((rwr.pingsData[i].position - guardTarget.CoM).sqrMagnitude < 20f * 20f) //is current target a hostile radar source?
+                                                    if ((rwr.pingsData[i].position - targetVessel.CoM).sqrMagnitude < 20f * 20f) //is current target a hostile radar source?
                                                     {
                                                         candidateAntiRad = true;
                                                         candidateYield *= 2; // Prioritize anti-rad missiles for hostile radar sources
@@ -6644,7 +6645,7 @@ namespace BDArmory.Control
                                         else if (Missile.TargetingMode == MissileBase.TargetingModes.Laser)
                                         {
                                             if (candidateAntiRad) continue; //keep antirad missile;
-                                            if (targetingPods.Count <= 0 || (foundCam && (foundCam.groundTargetPosition - guardTarget.CoM).sqrMagnitude > Mathf.Max(100, 0.013f * (float)guardTarget.srfSpeed * (float)guardTarget.srfSpeed))) candidateYield *= 0.1f;
+                                            if (targetingPods.Count <= 0 || (foundCam && (foundCam.groundTargetPosition - targetVessel.CoM).sqrMagnitude > Mathf.Max(100, 0.013f * (float)targetVessel.srfSpeed * (float)targetVessel.srfSpeed))) candidateYield *= 0.1f;
 
                                             if (targetWeapon != null && targetYield > candidateYield) continue; //prioritize biggest Boom
                                             candidateAGM = true;
@@ -6664,7 +6665,7 @@ namespace BDArmory.Control
                                                 //targetWeaponPriority = candidatePriority;
                                             }
                                         }
-                                        float fovAngle = VectorUtils.Angle(Missile.GetForwardTransform(), guardTarget.CoM - Missile.transform.position);
+                                        float fovAngle = VectorUtils.Angle(Missile.GetForwardTransform(), targetVessel.CoM - Missile.transform.position);
                                         if (fovAngle > Missile.missileFireAngle && Missile.missileFireAngle < Missile.maxOffBoresight * 0.75f)
                                         {
                                             candidateYield *= Missile.missileFireAngle / fovAngle; //missile is clamped to a narrow boresight - do we have anything with a wider FoV we should start with?
@@ -6789,7 +6790,7 @@ namespace BDArmory.Control
                                         {
                                             if (rwr.pingsData[i].signalStrength == 6) //Sonar
                                             {
-                                                if ((rwr.pingsData[i].position - guardTarget.CoM).sqrMagnitude < 20f * 20f) //is current target a hostile radar source?
+                                                if ((rwr.pingsData[i].position - targetVessel.CoM).sqrMagnitude < 20f * 20f) //is current target a hostile radar source?
                                                 {
                                                     candidateYield *= 2; // Prioritize PAH Torps for hostile sonar sources
                                                     break;
@@ -6837,7 +6838,7 @@ namespace BDArmory.Control
                     while (item.MoveNext())
                     {
                         if (item.Current == null) continue;
-                        if (!CheckEngagementEnvelope(item.Current, distance, guardTarget)) continue;
+                        if (!CheckEngagementEnvelope(item.Current, distance, targetVessel)) continue;
 
                         WeaponClasses candidateClass = item.Current.GetWeaponClass();
                         switch (candidateClass)
@@ -6862,7 +6863,7 @@ namespace BDArmory.Control
                                         continue; //keep higher priority weapon
                                     if (EMP && target.isDebilitated) continue;
 
-                                    if (!vessel.Splashed || (vessel.Splashed && vessel.altitude > currentTarget.Vessel.altitude)) //if surfaced or sumberged, but above target, try depthcharges
+                                    if (!vessel.Splashed || (vessel.Splashed && vessel.altitude > targetVessel.altitude)) //if surfaced or sumberged, but above target, try depthcharges
                                     {
                                         if (item.Current.GetMissileType().ToLower() == "depthcharge")
                                         {
@@ -6883,7 +6884,7 @@ namespace BDArmory.Control
                                         {
                                             if (rwr.pingsData[i].signalStrength == 6) //Sonar
                                             {
-                                                if ((rwr.pingsData[i].position - guardTarget.CoM).sqrMagnitude < 20f * 20f) //is current target a hostile radar source?
+                                                if ((rwr.pingsData[i].position - targetVessel.CoM).sqrMagnitude < 20f * 20f) //is current target a hostile radar source?
                                                 {
                                                     candidateYield *= 1.5f; // Prioritize PAH Torps for hostile sonar sources
                                                     break;
@@ -7092,19 +7093,19 @@ namespace BDArmory.Control
             {
                 if (BDArmorySettings.DEBUG_AI)
                 {
-                    Debug.Log($"[BDArmory.MissileFire]: {vessel.vesselName} - No weapon selected for target {target.Vessel.vesselName}");
+                    Debug.Log($"[BDArmory.MissileFire]: {vessel.vesselName} - No weapon selected for target {targetVessel.vesselName}");
                     // Debug.Log("DEBUG target isflying:" + target.isFlying + ", isLorS:" + target.isLandedOrSurfaceSplashed + ", isUW:" + target.isUnderwater);
                     // if (target.isFlying)
                     //     foreach (var weapon in weaponTypesAir)
                     //     {
                     //         var engageableWeapon = weapon as EngageableWeapon;
-                    //         Debug.Log("DEBUG flying target:" + target.Vessel + ", weapon:" + weapon + " can engage:" + CheckEngagementEnvelope(weapon, distance) + ", engageEnabled:" + engageableWeapon.engageEnabled + ", min/max:" + engageableWeapon.GetEngagementRangeMin() + "/" + engageableWeapon.GetEngagementRangeMax());
+                    //         Debug.Log("DEBUG flying target:" + targetVessel + ", weapon:" + weapon + " can engage:" + CheckEngagementEnvelope(weapon, distance) + ", engageEnabled:" + engageableWeapon.engageEnabled + ", min/max:" + engageableWeapon.GetEngagementRangeMin() + "/" + engageableWeapon.GetEngagementRangeMax());
                     //     }
                     // if (target.isLandedOrSurfaceSplashed)
                     //     foreach (var weapon in weaponTypesAir)
                     //     {
                     //         var engageableWeapon = weapon as EngageableWeapon;
-                    //         Debug.Log("DEBUG landed target:" + target.Vessel + ", weapon:" + weapon + " can engage:" + CheckEngagementEnvelope(weapon, distance) + ", engageEnabled:" + engageableWeapon.engageEnabled + ", min/max:" + engageableWeapon.GetEngagementRangeMin() + "/" + engageableWeapon.GetEngagementRangeMax());
+                    //         Debug.Log("DEBUG landed target:" + targetVessel + ", weapon:" + weapon + " can engage:" + CheckEngagementEnvelope(weapon, distance) + ", engageEnabled:" + engageableWeapon.engageEnabled + ", min/max:" + engageableWeapon.GetEngagementRangeMin() + "/" + engageableWeapon.GetEngagementRangeMax());
                     //     }
                 }
                 selectedWeapon = null;
