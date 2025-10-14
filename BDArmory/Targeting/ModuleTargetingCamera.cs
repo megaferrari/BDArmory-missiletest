@@ -1519,10 +1519,13 @@ namespace BDArmory.Targeting
             Vector3 cameraForward;
             while (!stopPTPR && VectorUtils.Angle((cameraForward = cameraParentTransform.transform.forward), (tgtVessel != null ? tgtVessel.CoM : position) - (cameraPos = cameraParentTransform.transform.position)) > 0.1f)
             {
-                if (tgtVessel != null && ((tgtVessel.CoM - cameraPos).sqrMagnitude < maxRayDistance * maxRayDistance))
+                if (tgtVessel != null)
                 {
                     position = tgtVessel.CoM + tgtVessel.Velocity() * Time.fixedDeltaTime;
-                    lockedVessel = tgtVessel;
+                    if ((tgtVessel.CoM - cameraPos).sqrMagnitude < maxRayDistance * maxRayDistance)
+                        lockedVessel = tgtVessel;
+                    else
+                        lockedVessel = null;
                 }
                 else lockedVessel = null;
                 Vector3 newForward = Vector3.RotateTowards(cameraForward, position - cameraPos, traverseRate * Mathf.Deg2Rad * Time.fixedDeltaTime, 0);
