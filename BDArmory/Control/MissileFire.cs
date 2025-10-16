@@ -818,6 +818,9 @@ namespace BDArmory.Control
                 if (vesselRadarData) vesselRadarData.UnslaveTurrets(); // Unslave the turrets so that manual firing works.
                 weaponIndex = 0;
                 selectedWeapon = null;
+                if (IsPrimaryWM) // Disabling guard mode on the primary disables guard mode on any non-primary WMs on the craft.
+                    foreach (var wm in VesselModuleRegistry.GetMissileFires(vessel).Where(wm => !wm.IsPrimaryWM && wm.guardMode))
+                        wm.ToggleGuardMode();
             }
             else
             {
@@ -898,6 +901,18 @@ namespace BDArmory.Control
         public void AGToggleGuardMode(KSPActionParam param)
         {
             ToggleGuardMode();
+        }
+
+        [KSPAction("Enable Guard Mode")]
+        public void AGEnableGuardMode(KSPActionParam param)
+        {
+            if (!guardMode) ToggleGuardMode();
+        }
+
+        [KSPAction("Disable Guard Mode")]
+        public void AGDisableGuardMode(KSPActionParam param)
+        {
+            if (guardMode) ToggleGuardMode();
         }
 
         //[KSPField(isPersistant = true)] public bool guardMode;
