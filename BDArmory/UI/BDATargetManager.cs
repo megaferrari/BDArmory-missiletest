@@ -297,7 +297,7 @@ namespace BDArmory.UI
                 Transform thrustTransform = null;
                 bool afterburner = false;
                 bool propEngine = false;
-                float distance = 9999999;
+                float distance = float.PositiveInfinity;
                 if (hottestPart.Count > 0)
                 {
                     RaycastHit[] hits = new RaycastHit[10];
@@ -306,10 +306,10 @@ namespace BDArmory.UI
                         while (part.MoveNext())
                         {
                             if (!part.Current) continue;
-                            float thisdistance = Vector3.Distance(part.Current.transform.position, sensorPosition);
-                            if (distance > thisdistance)
+                            float thisSqrdistance = VectorUtils.SqrDist(part.Current.transform.position, sensorPosition);
+                            if (distance > thisSqrdistance)
                             {
-                                distance = thisdistance;
+                                distance = thisSqrdistance;
                                 closestPart = part.Current;
                             }
                         }
@@ -319,6 +319,7 @@ namespace BDArmory.UI
                     if (closestPart != null)
                     {
                         TargetInfo tInfo;
+                        distance = BDAMath.Sqrt(distance);
                         if (tInfo = v.gameObject.GetComponent<TargetInfo>())
                         {
                             if (tInfo.isMissile)
@@ -419,6 +420,8 @@ namespace BDArmory.UI
             float heatSignature = heatTarget.signalStrength;
             float bestScore = 0f;
 
+            Vector3 down = -VectorUtils.GetUpDirection(ray.origin);
+
             using (List<CMFlare>.Enumerator flare = BDArmorySetup.Flares.GetEnumerator())
                 while (flare.MoveNext())
                 {
@@ -434,7 +437,7 @@ namespace BDArmory.UI
                         score *= GetSeekerBias(angle, Vector3.Cross(relativePosFlare, flare.Current.velocity) / relativePosFlare.sqrMagnitude, heatTargetAngularVel, heatTargetAngularVelMag, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity);
 
                         score *= (1400 * 1400) / Mathf.Clamp(relativePosFlare.sqrMagnitude, 90000, 36000000);
-                        score *= Mathf.Clamp(VectorUtils.Angle(relativePosFlare, -VectorUtils.GetUpDirection(ray.origin)) / 90, 0.5f, 1.5f);
+                        score *= Mathf.Clamp(VectorUtils.Angle(relativePosFlare, down) / 90, 0.5f, 1.5f);
 
                         if (BDArmorySettings.DUMB_IR_SEEKERS) // Pick the hottest flare hotter than heatSignature
                         {

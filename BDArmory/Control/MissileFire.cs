@@ -4333,7 +4333,8 @@ namespace BDArmory.Control
             weaponArray = tempList.ToArray();
             pointDefenseWeaponArray = pointDefenseWeapons.ToArray();
             if (pointDefenseMissiles.Count > 0)
-                pointDefenseMissiles = pointDefenseMissiles.OrderByDescending(m => m.GetEngagementRangeMax()).ToList();
+                // Least capable to most capable missile
+                pointDefenseMissiles = pointDefenseMissiles.OrderBy(m => m.GetEngagementRangeMax()).ToList();
             pointDefenseMissileArray = pointDefenseMissiles.ToArray();
 
             if (weaponIndex >= weaponArray.Length)
@@ -5580,7 +5581,8 @@ namespace BDArmory.Control
             // Part 2: check weapons against individual target types
             // ------
 
-            float distance = Vector3.Distance(vessel.CoM + vessel.Velocity(), target.position + target.velocity);
+            (double tempDistance, Vector3 targetDir) = ((target.position + target.velocity) - (vessel.CoM + vessel.Velocity())).MagNorm();
+            float distance = (float)tempDistance;
             IBDWeapon targetWeapon = null;
             float targetWeaponRPM = -1;
             float targetWeaponTDPS = 0;
@@ -5590,6 +5592,7 @@ namespace BDArmory.Control
             float targetBombYield = -1;
             float targetRocketPower = -1;
             float targetRocketAccel = -1;
+            float targetHeatSignature = -1;
             int targetWeaponPriority = -1;
             bool candidateAGM = false;
             bool candidateAntiRad = false;
@@ -6201,11 +6204,16 @@ namespace BDArmory.Control
                                         //if (heat && heatTarget.exists && heatTarget.signalStrength *
                                         //       ((BDArmorySettings.ASPECTED_IR_SEEKERS && Vector3.Dot(guardTarget.vesselTransform.up, mlauncher.transform.forward) > 0.25f) ?
                                         //        mlauncher.frontAspectHeatModifier : 1) < heatThresh) //heatTarget doesn't get found until *after* a heater is selected
-                                        if (heat && BDArmorySettings.ASPECTED_IR_SEEKERS && Vector3.Dot(targetVessel.vesselTransform.up, mlauncher.transform.forward) > 0.25f)
+                                        if (heat)
                                         {
+                                            // Note this doesn't consider flares...
+                                            if (targetHeatSignature < 0)
+                                                BDATargetManager.GetVesselHeatSignature(targetVessel, targetDir * 50f + vessel.CoM);
+                                            if (targetHeatSignature * ((BDArmorySettings.ASPECTED_IR_SEEKERS && Vector3.Dot(guardTarget.vesselTransform.up, mlauncher.transform.forward) > 0.25f) ? mlauncher.frontAspectHeatModifier : 1) < heatThresh)
+                                                candidateTDPS *= 0.0001f; //Heatseeker, but IR sig is below missile threshold, skip to something else unless nothing else available
                                             //candidateTDPS *= 0.0001f; //Heatseeker, but IR sig is below missile threshold, skip to something else unless nothing else available
-                                            if (mlauncher.frontAspectHeatModifier < 0.15f) continue;
-                                            candidateTDPS *= mlauncher.frontAspectHeatModifier / 100;
+                                            //if (mlauncher.frontAspectHeatModifier < 0.15f) continue;
+                                            //candidateTDPS *= mlauncher.frontAspectHeatModifier / 100;
                                         }
                                         if (radar)
                                         {
@@ -9066,6 +9074,7 @@ namespace BDArmory.Control
                         }
                         if (currMissile.TargetingMode == MissileBase.TargetingModes.Heat)
                         {
+                            // Look for a better way to do this...
                             SearchForHeatTarget(currMissile, PDMslTgts[MissileID]);
                             // If we haven't gotten a heat target, continue
                             if (!heatTarget.exists ||
@@ -9445,15 +9454,17 @@ namespace BDArmory.Control
                 {
                     case WeaponClasses.Gun:
                         {
-                            var effectiveBulletSpeed = (turret.part.rb.velocity + BDKrakensbane.FrameVelocityV3f + weapon.bulletVelocity * direction.normalized).magnitude;
-                            var timeOfFlight = direction.magnitude / effectiveBulletSpeed;
+                            (float distance, Vector3 dir) = direction.MagNorm();
+                            var effectiveBulletSpeed = (turret.part.rb.velocity + BDKrakensbane.FrameVelocityV3f + weapon.bulletVelocity * dir).magnitude;
+                            var timeOfFlight = distance / effectiveBulletSpeed;
                             direction -= 0.5f * FlightGlobals.getGeeForceAtPosition(vessel.CoM) * timeOfFlight * timeOfFlight;
                             break;
                         }
                     case WeaponClasses.Rocket:
                         {
-                            var effectiveRocketSpeed = (turret.part.rb.velocity + BDKrakensbane.FrameVelocityV3f + (weapon.thrust * weapon.thrustTime / weapon.rocketMass) * direction.normalized).magnitude;
-                            var timeOfFlight = direction.magnitude / effectiveRocketSpeed;
+                            (float distance, Vector3 dir) = direction.MagNorm();
+                            var effectiveRocketSpeed = (turret.part.rb.velocity + BDKrakensbane.FrameVelocityV3f + (weapon.thrust * weapon.thrustTime / weapon.rocketMass) * dir).magnitude;
+                            var timeOfFlight = distance / effectiveRocketSpeed;
                             direction -= 0.5f * FlightGlobals.getGeeForceAtPosition(vessel.CoM) * timeOfFlight * timeOfFlight;
                             break;
                         }
