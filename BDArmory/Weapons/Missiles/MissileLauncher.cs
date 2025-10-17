@@ -2382,7 +2382,7 @@ namespace BDArmory.Weapons.Missiles
                         float prevDist = float.PositiveInfinity;
                         int lockIndex = -1;
 
-                        if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher][Terminal Guidance]: Active radar found: {scannedTargets.Length} targets.");
+                        //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher][Terminal Guidance]: Active radar found: {scannedTargets.Length} targets.");
 
                         for (int i = 0; i < scannedTargets.Length; i++)
                         {
@@ -2390,7 +2390,7 @@ namespace BDArmory.Weapons.Missiles
                             {
                                 currDist = (scannedTargets[i].predictedPosition - tempTargetPos).sqrMagnitude;
 
-                                if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher][Terminal Guidance]: Target: {scannedTargets[i].vessel.name} has currDist: {currDist}.");
+                                //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher][Terminal Guidance]: Target: {scannedTargets[i].vessel.name} has currDist: {currDist}.");
 
                                 //re-check engagement envelope, only lock appropriate targets
                                 if (currDist < sqrThresh && currDist < prevDist && CheckTargetEngagementEnvelope(scannedTargets[i].targetInfo))
