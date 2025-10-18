@@ -17,6 +17,7 @@ IMPROVEMENTS / FIXES
 	- Radar code optimizations.
 	- Targeting camera radar slaving now affected by chaff.
 - Weapons:
+	- Adjust weapon selection logic to account for craft spawned from the SPH not having their Landed state set.
 	- Missiles:
 		- Add "activeRadarCanNotch" field to missiles as a counterpart to "radarCanNotch".
 		- Missile RCS now correctly works until the end of the cruise stage even with cruiseRangeTrigger > 0.

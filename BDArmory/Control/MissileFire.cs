@@ -6319,7 +6319,243 @@ namespace BDArmory.Control
                         }
                     }
             }
-            else if (target.isLandedOrSurfaceSplashed) //for targets on surface/above 10m depth
+            else if (target.isUnderwater)
+            {
+                // iterate over weaponTypesSLW (Ship Launched Weapons) and pick suitable one based on engagementRange
+                // Prioritize by:
+                // 1. Depth Charges
+                // 2. Torpedos
+                using (List<IBDWeapon>.Enumerator item = weaponTypesSLW.GetEnumerator())
+                    while (item.MoveNext())
+                    {
+                        if (item.Current == null) continue;
+                        if (!CheckEngagementEnvelope(item.Current, distance, targetVessel)) continue;
+
+                        WeaponClasses candidateClass = item.Current.GetWeaponClass();
+                        switch (candidateClass)
+                        {
+                            case (WeaponClasses.SLW):
+                                {
+                                    MissileLauncher SLW = item.Current as MissileLauncher;
+                                    if (SLW.TargetingMode == MissileBase.TargetingModes.Radar && (!_sonarsEnabled && !SLW.radarLOAL)) continue; //dont select RH missiles when no radar aboard
+                                    if (SLW.TargetingMode == MissileBase.TargetingModes.Laser && targetingPods.Count <= 0) continue; //don't select LH missiles when no FLIR aboard
+                                    if (SLW.reloadableRail != null && (SLW.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordnance
+                                    float candidateYield = SLW.GetBlastRadius();
+                                    float candidateTurning = SLW.maxTurnRateDPS;
+                                    float candidateTDPS = 0f;
+                                    bool EMP = SLW.warheadType == MissileBase.WarheadTypes.EMP;
+                                    bool heat = SLW.TargetingMode == MissileBase.TargetingModes.Heat;
+                                    bool radar = SLW.TargetingMode == MissileBase.TargetingModes.Radar;
+                                    bool inertial = SLW.TargetingMode == MissileBase.TargetingModes.Inertial;
+                                    float heatThresh = SLW.heatThreshold;
+                                    int candidatePriority = Mathf.RoundToInt(SLW.priority);
+
+                                    if (targetWeapon != null && targetWeaponPriority > candidatePriority)
+                                        continue; //keep higher priority weapon
+                                    if (EMP && target.isDebilitated) continue;
+
+                                    if (!vessel.Splashed || (vessel.Splashed && vessel.altitude > targetVessel.altitude)) //if surfaced or sumberged, but above target, try depthcharges
+                                    {
+                                        if (item.Current.GetMissileType().ToLower() == "depthcharge")
+                                        {
+                                            if (distance < candidateYield) continue; //could add in prioritization for bigger boom, but how many different options for depth charges are there?
+                                            targetWeapon = item.Current;
+                                            targetWeaponPriority = candidatePriority;
+                                            break;
+                                        }
+                                    }
+
+                                    if (item.Current.GetMissileType().ToLower() != "torpedo") continue;
+
+                                    if (distance < candidateYield) continue; //don't use explosives within their blast radius
+                                                                             //if(firedMissiles >= maxMissilesOnTarget) continue;// Max missiles are fired, try another weapon
+                                    if (SLW.TargetingMode == MissileBase.TargetingModes.Heat && SLW.activeRadarRange < 0 && (rwr && rwr.rwrEnabled)) //we have passive acoustic homing? see if anything has active sonar
+                                    {
+                                        for (int i = 0; i < rwr.pingsData.Length; i++)
+                                        {
+                                            if (rwr.pingsData[i].signalStrength == 6) //Sonar
+                                            {
+                                                if ((rwr.pingsData[i].position - targetVessel.CoM).sqrMagnitude < 20f * 20f) //is current target a hostile radar source?
+                                                {
+                                                    candidateYield *= 1.5f; // Prioritize PAH Torps for hostile sonar sources
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if (candidateTurning + candidateYield > targetWeaponTDPS)
+                                    {
+                                        candidateTDPS = candidateTurning + candidateYield; // weight selection towards more maneuverable missiles
+                                    }
+                                    //if (candidateDetDist > 0)
+                                    //{
+                                    //    candidateTDPS += candidateDetDist; // weight selection towards misiles with proximity warheads
+                                    //}
+                                    if (heat && heatTarget.exists && heatTarget.signalStrength < heatThresh)
+                                    {
+                                        candidateTDPS *= 0.001f; //Heatseeker, but IR sig is below missile threshold, skip to something else unless nutohine else available
+                                    }
+                                    if (radar)
+                                    {
+                                        if (!_sonarsEnabled || (vesselRadarData != null && !vesselRadarData.locked))
+                                        {
+                                            if (!SLW.radarLOAL) candidateTDPS *= 0.001f; //no radar/sonar lock, skip to something else unless nothing else available
+                                            else
+                                            {
+                                                if (SLW.seekerTimeout < ((distance - SLW.activeRadarRange) / SLW.optimumAirspeed)) candidateTDPS *= 0.5f; //outside missile self-lock zone 
+                                            }
+                                        }
+                                    }
+                                    if (inertial)
+                                    {
+                                        if (!_sonarsEnabled)
+                                        {
+                                            candidateTDPS *= 0.001f; //no radar/sonar, skip to something else unless nothing else available
+                                        }
+                                    }
+                                    if (distance < ((EngageableWeapon)item.Current).engageRangeMin || firedMissiles >= maxMissilesOnTarget || (unguidedWeapon && distance > ((EngageableWeapon)item.Current).engageRangeMax / 10))
+                                        candidateTDPS *= -1f; // if within min range, negatively weight weapon - allows weapon to still be selected if all others lost/out of ammo
+                                    if ((!vessel.Splashed) || ((distance > gunRange) && (vessel.LandedOrSplashed))) // If we're not airborne, we want to prioritize guns
+                                    {
+                                        if ((distance <= 500 || distance < candidateYield || candidateTDPS < 1) && targetWeapon != null) continue; //torp are within min range/can't lock, don't replace existing gun if in gun range
+                                        if (targetWeaponPriority < candidatePriority) //use priority gun
+                                        {
+                                            targetWeapon = item.Current;
+                                            targetWeaponTDPS = candidateTDPS;
+                                            targetWeaponPriority = candidatePriority;
+                                        }
+                                        else //if equal priority, use standard weighting
+                                        {
+                                            if (targetWeaponTDPS < candidateTDPS)
+                                            {
+                                                targetWeapon = item.Current;
+                                                targetWeaponTDPS = candidateTDPS;
+                                                targetWeaponPriority = candidatePriority;
+                                            }
+                                        }
+                                    }
+                                    break;
+                                    //MMG torpedo support... ?
+                                }
+                            case (WeaponClasses.Rocket):
+                                {
+                                    ModuleWeapon Rocket = item.Current as ModuleWeapon;
+                                    float candidateRocketPower = Rocket.blastRadius;
+                                    float CandidateEndurance = Rocket.thrustTime;
+                                    int candidateRanking = Mathf.RoundToInt(Rocket.priority);
+                                    Transform fireTransform = Rocket.fireTransforms[0];
+
+                                    if (Rocket.BurstFire && Rocket.RoundsRemaining > 0 && Rocket.RoundsRemaining < Rocket.RoundsPerMag)
+                                    {
+                                        targetWeapon = item.Current;
+                                        targetWeaponPriority = 99;
+                                        continue;
+                                    }
+                                    if ((Rocket.choker || Rocket.electroLaser) && target.isDebilitated) continue; //don't keep shooting target with non-damaging shutdown guns if shutdown
+                                    if (vessel.Splashed && FlightGlobals.getAltitudeAtPos(fireTransform.position) < -5)//if underwater, rockets might work, at close range
+                                    {
+                                        if (BDArmorySettings.BULLET_WATER_DRAG)
+                                        {
+                                            if ((distance > 500 * CandidateEndurance)) continue;
+                                        }
+                                        if (targetWeaponPriority > candidateRanking)
+                                            continue; //don't select a lower priority weapon over a higher priority one
+
+                                        if (targetWeaponPriority < candidateRanking) //use priority gun
+                                        {
+                                            if (distance < candidateRocketPower) continue;// don't fire rockets when within blast radius
+                                            targetWeapon = item.Current;
+                                            targetRocketPower = candidateRocketPower;
+                                            targetWeaponPriority = candidateRanking;
+                                        }
+                                        else //if equal priority, use standard weighting
+                                        {
+                                            if (targetRocketPower < candidateRocketPower) //don't replace higher yield rockets
+                                            {
+                                                if (distance < candidateRocketPower) continue;// don't drop bombs when within blast radius
+                                                targetWeapon = item.Current;
+                                                targetRocketPower = candidateRocketPower;
+                                                targetWeaponPriority = candidateRanking;
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                            case (WeaponClasses.DefenseLaser):
+                                {
+                                    // For STS, favour higher power/turreted
+                                    ModuleWeapon Laser = item.Current as ModuleWeapon;
+                                    float candidateRPM = Laser.roundsPerMinute;
+                                    bool candidateGimbal = Laser.turret;
+                                    float candidateTraverse = Laser.yawRange;
+                                    float candidateMinrange = Laser.engageRangeMin;
+                                    float candidateMaxrange = Laser.engageRangeMax;
+                                    int candidatePriority = Mathf.RoundToInt(Laser.priority);
+                                    bool electrolaser = Laser.electroLaser;
+                                    bool pulseLaser = Laser.pulseLaser;
+                                    float candidatePower = electrolaser ? Laser.ECPerShot / (pulseLaser ? 50 : 1) : Laser.laserDamage / (pulseLaser ? 50 : 1);
+
+                                    Transform fireTransform = Laser.fireTransforms[0];
+                                    if (Laser.BurstFire && Laser.RoundsRemaining > 0 && Laser.RoundsRemaining < Laser.RoundsPerMag)
+                                    {
+                                        targetWeapon = item.Current;
+                                        targetWeaponRPM = candidateRPM;
+                                        targetWeaponPriority = 99;
+                                        continue;
+                                    }
+                                    if (vessel.Splashed && FlightGlobals.getAltitudeAtPos(fireTransform.position) < 0)//if underwater, lasers should work, at close range
+                                    {
+                                        if (BDArmorySettings.BULLET_WATER_DRAG)
+                                        {
+                                            if (distance > candidateMaxrange / 10) continue;
+                                        }
+                                        if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == 41)
+                                        {
+                                            candidateRPM = BDArmorySettings.FIRE_RATE_OVERRIDE;
+                                        }
+
+                                        if (electrolaser) continue; // don't use lightning guns underwater
+
+                                        if (targetWeapon != null && targetWeaponPriority > candidatePriority)
+                                            continue; //keep higher priority weapon
+
+                                        candidateRPM *= candidatePower;
+
+                                        if (candidateGimbal = true && candidateTraverse > 0)
+                                        {
+                                            ModuleTurret turret = Laser.turret;
+                                            candidateRPM *= TargetInTurretRange(turret, 15, default, Laser) ? 1.5f : 0.01f; // weight selection towards turrets that can point in the right direction
+                                        }
+                                        if (candidateMinrange > distance || distance > candidateMaxrange / 10)
+                                        {
+                                            candidateRPM *= .00001f; //if within min range massively negatively weight weapon - allows weapon to still be selected if all others lost/out of ammo
+                                        }
+                                        if (Laser.dualModeAPS) candidateRPM /= 4; //disincentivise selecting dual mode APS turrets if something else is available to maintain Point Defense umbrella
+
+                                        if (targetWeaponPriority < candidatePriority) //use priority gun
+                                        {
+                                            targetWeapon = item.Current;
+                                            targetWeaponRPM = candidateRPM;
+                                            targetWeaponPriority = candidatePriority;
+                                        }
+                                        else //if equal priority, use standard weighting
+                                        {
+                                            if (targetWeaponRPM < candidateRPM)
+                                            {
+                                                targetWeapon = item.Current;
+                                                targetWeaponRPM = candidateRPM;
+                                                targetWeaponPriority = candidatePriority;
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                        }
+                    }
+            }
+            // Note: this is an "else" instead of an "else if" because craft spawned to the runway from the SPH don't have their Landed state set for some reason.
+            else // if (target.isLandedOrSurfaceSplashed) //for targets on surface/above 10m depth
             {
                 // iterate over weaponTypesGround and pick suitable one based on engagementRange (and dynamic launch zone for missiles)
                 // Prioritize by:
@@ -6852,241 +7088,6 @@ namespace BDArmory.Control
                                             {
                                                 targetWeapon = item.Current;
                                                 targetYield = candidateYield;
-                                                targetWeaponPriority = candidatePriority;
-                                            }
-                                        }
-                                    }
-                                    break;
-                                }
-                        }
-                    }
-            }
-            else if (target.isUnderwater)
-            {
-                // iterate over weaponTypesSLW (Ship Launched Weapons) and pick suitable one based on engagementRange
-                // Prioritize by:
-                // 1. Depth Charges
-                // 2. Torpedos
-                using (List<IBDWeapon>.Enumerator item = weaponTypesSLW.GetEnumerator())
-                    while (item.MoveNext())
-                    {
-                        if (item.Current == null) continue;
-                        if (!CheckEngagementEnvelope(item.Current, distance, targetVessel)) continue;
-
-                        WeaponClasses candidateClass = item.Current.GetWeaponClass();
-                        switch (candidateClass)
-                        {
-                            case (WeaponClasses.SLW):
-                                {
-                                    MissileLauncher SLW = item.Current as MissileLauncher;
-                                    if (SLW.TargetingMode == MissileBase.TargetingModes.Radar && (!_sonarsEnabled && !SLW.radarLOAL)) continue; //dont select RH missiles when no radar aboard
-                                    if (SLW.TargetingMode == MissileBase.TargetingModes.Laser && targetingPods.Count <= 0) continue; //don't select LH missiles when no FLIR aboard
-                                    if (SLW.reloadableRail != null && (SLW.reloadableRail.ammoCount < 1 && !BDArmorySettings.INFINITE_ORDINANCE)) continue; //don't select when out of ordnance
-                                    float candidateYield = SLW.GetBlastRadius();
-                                    float candidateTurning = SLW.maxTurnRateDPS;
-                                    float candidateTDPS = 0f;
-                                    bool EMP = SLW.warheadType == MissileBase.WarheadTypes.EMP;
-                                    bool heat = SLW.TargetingMode == MissileBase.TargetingModes.Heat;
-                                    bool radar = SLW.TargetingMode == MissileBase.TargetingModes.Radar;
-                                    bool inertial = SLW.TargetingMode == MissileBase.TargetingModes.Inertial;
-                                    float heatThresh = SLW.heatThreshold;
-                                    int candidatePriority = Mathf.RoundToInt(SLW.priority);
-
-                                    if (targetWeapon != null && targetWeaponPriority > candidatePriority)
-                                        continue; //keep higher priority weapon
-                                    if (EMP && target.isDebilitated) continue;
-
-                                    if (!vessel.Splashed || (vessel.Splashed && vessel.altitude > targetVessel.altitude)) //if surfaced or sumberged, but above target, try depthcharges
-                                    {
-                                        if (item.Current.GetMissileType().ToLower() == "depthcharge")
-                                        {
-                                            if (distance < candidateYield) continue; //could add in prioritization for bigger boom, but how many different options for depth charges are there?
-                                            targetWeapon = item.Current;
-                                            targetWeaponPriority = candidatePriority;
-                                            break;
-                                        }
-                                    }
-
-                                    if (item.Current.GetMissileType().ToLower() != "torpedo") continue;
-
-                                    if (distance < candidateYield) continue; //don't use explosives within their blast radius
-                                                                             //if(firedMissiles >= maxMissilesOnTarget) continue;// Max missiles are fired, try another weapon
-                                    if (SLW.TargetingMode == MissileBase.TargetingModes.Heat && SLW.activeRadarRange < 0 && (rwr && rwr.rwrEnabled)) //we have passive acoustic homing? see if anything has active sonar
-                                    {
-                                        for (int i = 0; i < rwr.pingsData.Length; i++)
-                                        {
-                                            if (rwr.pingsData[i].signalStrength == 6) //Sonar
-                                            {
-                                                if ((rwr.pingsData[i].position - targetVessel.CoM).sqrMagnitude < 20f * 20f) //is current target a hostile radar source?
-                                                {
-                                                    candidateYield *= 1.5f; // Prioritize PAH Torps for hostile sonar sources
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    if (candidateTurning + candidateYield > targetWeaponTDPS)
-                                    {
-                                        candidateTDPS = candidateTurning + candidateYield; // weight selection towards more maneuverable missiles
-                                    }
-                                    //if (candidateDetDist > 0)
-                                    //{
-                                    //    candidateTDPS += candidateDetDist; // weight selection towards misiles with proximity warheads
-                                    //}
-                                    if (heat && heatTarget.exists && heatTarget.signalStrength < heatThresh)
-                                    {
-                                        candidateTDPS *= 0.001f; //Heatseeker, but IR sig is below missile threshold, skip to something else unless nutohine else available
-                                    }
-                                    if (radar)
-                                    {
-                                        if (!_sonarsEnabled || (vesselRadarData != null && !vesselRadarData.locked))
-                                        {
-                                            if (!SLW.radarLOAL) candidateTDPS *= 0.001f; //no radar/sonar lock, skip to something else unless nothing else available
-                                            else
-                                            {
-                                                if (SLW.seekerTimeout < ((distance - SLW.activeRadarRange) / SLW.optimumAirspeed)) candidateTDPS *= 0.5f; //outside missile self-lock zone 
-                                            }
-                                        }
-                                    }
-                                    if (inertial)
-                                    {
-                                        if (!_sonarsEnabled)
-                                        {
-                                            candidateTDPS *= 0.001f; //no radar/sonar, skip to something else unless nothing else available
-                                        }
-                                    }
-                                    if (distance < ((EngageableWeapon)item.Current).engageRangeMin || firedMissiles >= maxMissilesOnTarget || (unguidedWeapon && distance > ((EngageableWeapon)item.Current).engageRangeMax / 10))
-                                        candidateTDPS *= -1f; // if within min range, negatively weight weapon - allows weapon to still be selected if all others lost/out of ammo
-                                    if ((!vessel.Splashed) || ((distance > gunRange) && (vessel.LandedOrSplashed))) // If we're not airborne, we want to prioritize guns
-                                    {
-                                        if ((distance <= 500 || distance < candidateYield || candidateTDPS < 1) && targetWeapon != null) continue; //torp are within min range/can't lock, don't replace existing gun if in gun range
-                                        if (targetWeaponPriority < candidatePriority) //use priority gun
-                                        {
-                                            targetWeapon = item.Current;
-                                            targetWeaponTDPS = candidateTDPS;
-                                            targetWeaponPriority = candidatePriority;
-                                        }
-                                        else //if equal priority, use standard weighting
-                                        {
-                                            if (targetWeaponTDPS < candidateTDPS)
-                                            {
-                                                targetWeapon = item.Current;
-                                                targetWeaponTDPS = candidateTDPS;
-                                                targetWeaponPriority = candidatePriority;
-                                            }
-                                        }
-                                    }
-                                    break;
-                                    //MMG torpedo support... ?
-                                }
-                            case (WeaponClasses.Rocket):
-                                {
-                                    ModuleWeapon Rocket = item.Current as ModuleWeapon;
-                                    float candidateRocketPower = Rocket.blastRadius;
-                                    float CandidateEndurance = Rocket.thrustTime;
-                                    int candidateRanking = Mathf.RoundToInt(Rocket.priority);
-                                    Transform fireTransform = Rocket.fireTransforms[0];
-
-                                    if (Rocket.BurstFire && Rocket.RoundsRemaining > 0 && Rocket.RoundsRemaining < Rocket.RoundsPerMag)
-                                    {
-                                        targetWeapon = item.Current;
-                                        targetWeaponPriority = 99;
-                                        continue;
-                                    }
-                                    if ((Rocket.choker || Rocket.electroLaser) && target.isDebilitated) continue; //don't keep shooting target with non-damaging shutdown guns if shutdown
-                                    if (vessel.Splashed && FlightGlobals.getAltitudeAtPos(fireTransform.position) < -5)//if underwater, rockets might work, at close range
-                                    {
-                                        if (BDArmorySettings.BULLET_WATER_DRAG)
-                                        {
-                                            if ((distance > 500 * CandidateEndurance)) continue;
-                                        }
-                                        if (targetWeaponPriority > candidateRanking)
-                                            continue; //don't select a lower priority weapon over a higher priority one
-
-                                        if (targetWeaponPriority < candidateRanking) //use priority gun
-                                        {
-                                            if (distance < candidateRocketPower) continue;// don't fire rockets when within blast radius
-                                            targetWeapon = item.Current;
-                                            targetRocketPower = candidateRocketPower;
-                                            targetWeaponPriority = candidateRanking;
-                                        }
-                                        else //if equal priority, use standard weighting
-                                        {
-                                            if (targetRocketPower < candidateRocketPower) //don't replace higher yield rockets
-                                            {
-                                                if (distance < candidateRocketPower) continue;// don't drop bombs when within blast radius
-                                                targetWeapon = item.Current;
-                                                targetRocketPower = candidateRocketPower;
-                                                targetWeaponPriority = candidateRanking;
-                                            }
-                                        }
-                                    }
-                                    break;
-                                }
-                            case (WeaponClasses.DefenseLaser):
-                                {
-                                    // For STS, favour higher power/turreted
-                                    ModuleWeapon Laser = item.Current as ModuleWeapon;
-                                    float candidateRPM = Laser.roundsPerMinute;
-                                    bool candidateGimbal = Laser.turret;
-                                    float candidateTraverse = Laser.yawRange;
-                                    float candidateMinrange = Laser.engageRangeMin;
-                                    float candidateMaxrange = Laser.engageRangeMax;
-                                    int candidatePriority = Mathf.RoundToInt(Laser.priority);
-                                    bool electrolaser = Laser.electroLaser;
-                                    bool pulseLaser = Laser.pulseLaser;
-                                    float candidatePower = electrolaser ? Laser.ECPerShot / (pulseLaser ? 50 : 1) : Laser.laserDamage / (pulseLaser ? 50 : 1);
-
-                                    Transform fireTransform = Laser.fireTransforms[0];
-                                    if (Laser.BurstFire && Laser.RoundsRemaining > 0 && Laser.RoundsRemaining < Laser.RoundsPerMag)
-                                    {
-                                        targetWeapon = item.Current;
-                                        targetWeaponRPM = candidateRPM;
-                                        targetWeaponPriority = 99;
-                                        continue;
-                                    }
-                                    if (vessel.Splashed && FlightGlobals.getAltitudeAtPos(fireTransform.position) < 0)//if underwater, lasers should work, at close range
-                                    {
-                                        if (BDArmorySettings.BULLET_WATER_DRAG)
-                                        {
-                                            if (distance > candidateMaxrange / 10) continue;
-                                        }
-                                        if (BDArmorySettings.RUNWAY_PROJECT && BDArmorySettings.RUNWAY_PROJECT_ROUND == 41)
-                                        {
-                                            candidateRPM = BDArmorySettings.FIRE_RATE_OVERRIDE;
-                                        }
-
-                                        if (electrolaser) continue; // don't use lightning guns underwater
-
-                                        if (targetWeapon != null && targetWeaponPriority > candidatePriority)
-                                            continue; //keep higher priority weapon
-
-                                        candidateRPM *= candidatePower;
-
-                                        if (candidateGimbal = true && candidateTraverse > 0)
-                                        {
-                                            ModuleTurret turret = Laser.turret;
-                                            candidateRPM *= TargetInTurretRange(turret, 15, default, Laser) ? 1.5f : 0.01f; // weight selection towards turrets that can point in the right direction
-                                        }
-                                        if (candidateMinrange > distance || distance > candidateMaxrange / 10)
-                                        {
-                                            candidateRPM *= .00001f; //if within min range massively negatively weight weapon - allows weapon to still be selected if all others lost/out of ammo
-                                        }
-                                        if (Laser.dualModeAPS) candidateRPM /= 4; //disincentivise selecting dual mode APS turrets if something else is available to maintain Point Defense umbrella
-
-                                        if (targetWeaponPriority < candidatePriority) //use priority gun
-                                        {
-                                            targetWeapon = item.Current;
-                                            targetWeaponRPM = candidateRPM;
-                                            targetWeaponPriority = candidatePriority;
-                                        }
-                                        else //if equal priority, use standard weighting
-                                        {
-                                            if (targetWeaponRPM < candidateRPM)
-                                            {
-                                                targetWeapon = item.Current;
-                                                targetWeaponRPM = candidateRPM;
                                                 targetWeaponPriority = candidatePriority;
                                             }
                                         }
