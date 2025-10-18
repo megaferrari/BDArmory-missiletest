@@ -5,6 +5,8 @@
 	- Make the AI GUI auto-resizing by default. Left clicking the resize handle switches to manual resizing, right clicking it switches to auto-resizing.
 - AI / WM:
 	- Improved point-defense logic to better account for IR missiles, AI should no longer get stuck trying to fire an IR missile when it can't attain a lock.
+	- Add action group triggers for enabling/disabling guard mode on WMs instead of just toggling it.
+	- Add 'Full 3-Axis PID' as an option in the pilot AI for using separate PID values for each axis (without dynamic damping).
 - Sensors:
 	- Fixed omnidirectional radars failing to detect targets west of them.
 	- Fix IRST display issues for IRST parts with an irstTransform.
