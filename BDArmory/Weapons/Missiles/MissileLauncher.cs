@@ -217,11 +217,8 @@ namespace BDArmory.Weapons.Missiles
 
         public string explSoundPath = "BDArmory/Sounds/explode1";
 
-        // Transferred to MissileBase
         //weapon specifications
-        /*[KSPField(advancedTweakable = true, isPersistant = true, guiActive = false, guiActiveEditor = false, guiName = "#LOC_BDArmory_FiringPriority"),
-            UI_FloatRange(minValue = 0, maxValue = 10, stepIncrement = 1, scene = UI_Scene.All, affectSymCounterparts = UI_Scene.All)]
-        public float priority = 0; //per-weapon priority selection override*/
+        // priority transferred to MissileBase
 
         [KSPField]
         public bool spoolEngine = false;
